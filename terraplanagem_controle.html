@@ -112,7 +112,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 .canvas-viewport{
   position:relative;overflow:hidden;
   background:#fafbfc;border:1px solid var(--border);
-  flex:1;min-height:520px;cursor:default;
+  flex:1;min-height:640px;cursor:default;
 }
 .canvas-viewport.mode-pan   {cursor:grab}
 .canvas-viewport.mode-pan.panning{cursor:grabbing}
@@ -156,6 +156,14 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 
 .draw-preview{fill:rgba(48,79,126,0.1);stroke:var(--inpasa-blue);stroke-width:1.5;
   stroke-dasharray:8 5;rx:3;pointer-events:none}
+
+/* multi-select */
+.block-group.multi-selected .block-rect{
+  stroke:var(--inpasa-blue) !important;stroke-width:2.5;
+  filter:drop-shadow(0 0 6px rgba(48,79,126,0.45));
+}
+.rubber-band{fill:rgba(48,79,126,0.07);stroke:var(--inpasa-blue);stroke-width:1;
+  stroke-dasharray:5 4;pointer-events:none}
 
 /* ── HINTS ── */
 .map-hint{display:none;padding:7px 11px;background:var(--accent-soft);
@@ -279,6 +287,7 @@ body.locked .handle,body.locked .handle-move{display:none!important}
 body.locked #btn-delete-el{pointer-events:none;opacity:.4}
 body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 <div class="app">
@@ -378,6 +387,15 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12"/></svg>
       Nova Área
     </button>
+    <div class="toolbar-sep"></div>
+    <button class="tool-btn" id="btn-select-all" onclick="selectAll()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="1" width="14" height="14" stroke-dasharray="3 2"/></svg>
+      Sel. Todos
+    </button>
+    <button class="tool-btn" onclick="deselectAll()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+      Deselecionar
+    </button>
   </div>
   <div class="toolbar-section">
     <button class="tool-btn danger" onclick="clearAll()">
@@ -389,7 +407,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
 
 <!-- HINTS -->
 <div class="map-hint" id="hint-block">✏ Clique e arraste para desenhar o polígono da área · <kbd>Esc</kbd> cancela</div>
-<div class="map-hint green" id="hint-pan">🖐 Clique e arraste para mover · Scroll = zoom</div>
+<div class="map-hint green" id="hint-pan">🖐 Clique e arraste para mover o canvas · Scroll = zoom</div>
+<div class="map-hint" id="hint-multisel" style="background:#fff8e6;border-color:var(--inpasa-gold);color:#7c3f00">
+  🔲 <strong id="hint-multisel-count">0 áreas selecionadas</strong> · Arraste qualquer bloco selecionado para mover o grupo · <kbd>Ctrl+A</kbd> seleciona todos · <kbd>Esc</kbd> deseleciona
+</div>
 
 <!-- CANVAS + SIDE -->
 <div class="layout">
@@ -408,7 +429,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       </div>
     </div>
     <div class="canvas-viewport" id="canvas-viewport">
-      <svg id="terra-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="5000">
+      <svg id="terra-svg" xmlns="http://www.w3.org/2000/svg" width="16000" height="10000">
         <defs>
           <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e4e7ec" stroke-width="0.5"/>
@@ -418,7 +439,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
             <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#d4d8e0" stroke-width="1"/>
           </pattern>
         </defs>
-        <rect width="8000" height="5000" fill="url(#grid)"/>
+        <rect width="16000" height="10000" fill="url(#grid)"/>
         <g id="blocks-layer"></g>
         <g id="preview-layer"></g>
       </svg>
@@ -601,15 +622,15 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
 /* ================================================================
    CONFIG
    ================================================================ */
-const EDIT_PASSWORD = '1234';               // ← altere aqui
+const EDIT_PASSWORD = (window.PCO_CONFIG||{system:{}}).system.passwordEdicao || '1234';               // ← altere aqui
 const STORAGE_KEY   = 'terra_net_v1';       // cache offline
-const SB_URL = 'https://vfqesvmaqxvlgtshyoja.supabase.co';  // ← Project URL
-const SB_KEY = 'sb_publishable_iM-DC7LaA8Ur3mRqpAyy5w_r7bx6LD7';            // ← anon/public key
+const SB_URL = (window.PCO_CONFIG||{supabase:{}}).supabase.url || '';  // ← Project URL
+const SB_KEY = (window.PCO_CONFIG||{supabase:{}}).supabase.key || '';            // ← anon/public key
 const TABLE  = 'terra_areas';               // tabela no Supabase
 
 const SVG_NS  = 'http://www.w3.org/2000/svg';
-const WORLD_W = 8000;
-const WORLD_H = 5000;
+const WORLD_W = 16000;
+const WORLD_H = 10000;
 const SNAP    = 20;
 const MIN_W   = 60;
 const MIN_H   = 40;
@@ -624,12 +645,13 @@ const STATUS_CFG = {
 /* ================================================================
    STATE
    ================================================================ */
-let elements   = [];
-let selectedId = null;
-let tool       = 'select';
-let isUnlocked = false;
-let modalCb    = null;
-let pendingCsv = null;
+let elements    = [];
+let selectedId  = null;       // single selection (for detail panel)
+let selectedIds = new Set();  // multi-selection
+let tool        = 'select';
+let isUnlocked  = false;
+let modalCb     = null;
+let pendingCsv  = null;
 let vpScale = 1, vpTx = 0, vpTy = 0;
 
 /* ================================================================
@@ -779,6 +801,7 @@ function setTool(t){
   ['select','pan','block'].forEach(k=>document.getElementById('btn-'+k)?.classList.toggle('active',t===k));
   document.getElementById('hint-block')?.classList.toggle('visible',t==='block');
   document.getElementById('hint-pan')?.classList.toggle('visible',t==='pan');
+  if(t!=='select') document.getElementById('hint-multisel')?.classList.remove('visible');
   const vp=document.getElementById('canvas-viewport');
   vp.className='canvas-viewport'+(t==='pan'?' mode-pan':t==='block'?' mode-block':'');
 }
@@ -880,14 +903,37 @@ function endDraw(ev){
 }
 
 /* ================================================================
-   DRAG / RESIZE
+   DRAG / RESIZE  (single + multi)
    ================================================================ */
 let dragging=null;
+let rubberBand=null; // {startX,startY} for lasso selection
 
 function startDrag(ev,id,mode){
   if(!isUnlocked){ selectEl(id); return; }
   ev.stopPropagation();
-  selectEl(id);
+
+  // If Ctrl held: toggle this id in multi-selection
+  if(ev.ctrlKey || ev.metaKey){
+    if(selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+    selectedId = id;
+    updateMultiHint(); renderSVG();
+    ev.preventDefault(); return;
+  }
+
+  // If clicking a block already in multi-selection: start group drag
+  if(selectedIds.size > 1 && selectedIds.has(id)){
+    const w=evToWorld(ev);
+    const snaps={};
+    elements.forEach(el=>{ if(selectedIds.has(el.id)) snaps[el.id]={x:el.x,y:el.y,w:el.w,h:el.h}; });
+    dragging={id, mode:'multi-move', startW:{x:w.x,y:w.y}, snaps};
+    ev.preventDefault(); return;
+  }
+
+  // Single select + drag
+  selectedId=id;
+  selectedIds=new Set([id]);
+  updateMultiHint();
   const w=evToWorld(ev);
   const el=elements.find(e=>e.id===id);
   dragging={id, mode, startW:{x:w.x,y:w.y}, snap0:{x:el.x,y:el.y,w:el.w,h:el.h}};
@@ -903,7 +949,24 @@ vp.addEventListener('mousedown',ev=>{
   const onEl=ev.target.closest('.block-group');
   if(tool==='pan'){ startPan(ev); return }
   if(tool==='block' && isUnlocked && !onEl){ startDraw(ev); return }
-  if(tool==='select' && !onEl) deselect();
+  if(tool==='select' && !onEl){
+    // Start rubber-band lasso if not holding Ctrl
+    if(!ev.ctrlKey && !ev.metaKey){
+      deselectAll();
+    }
+    if(isUnlocked || true){ // rubber-band works even in read-only for viewing
+      const w=evToWorld(ev);
+      rubberBand={sx:w.x,sy:w.y};
+      // draw preview rect
+      const layer=document.getElementById('preview-layer');
+      document.getElementById('rubber-prev')?.remove();
+      const rb=document.createElementNS(SVG_NS,'rect');
+      rb.id='rubber-prev'; rb.setAttribute('class','rubber-band');
+      rb.setAttribute('x',w.x); rb.setAttribute('y',w.y);
+      rb.setAttribute('width',0); rb.setAttribute('height',0);
+      layer.appendChild(rb);
+    }
+  }
 });
 
 function startPan(ev){
@@ -912,11 +975,38 @@ function startPan(ev){
 }
 
 window.addEventListener('mousemove',ev=>{
-  if(panStart){ vpTx=panOrigin.tx+(ev.clientX-panStart.x); vpTy=panOrigin.ty+(ev.clientY-panStart.y); applyTransform(); return }
+  if(panStart){
+    vpTx=panOrigin.tx+(ev.clientX-panStart.x);
+    vpTy=panOrigin.ty+(ev.clientY-panStart.y);
+    applyTransform(); return;
+  }
   if(drawStart){ moveDraw(ev); return }
+
+  // rubber-band lasso
+  if(rubberBand){
+    const w=evToWorld(ev);
+    const rx=Math.min(rubberBand.sx,w.x), ry=Math.min(rubberBand.sy,w.y);
+    const rw=Math.abs(w.x-rubberBand.sx), rh=Math.abs(w.y-rubberBand.sy);
+    const rb=document.getElementById('rubber-prev');
+    if(rb){ rb.setAttribute('x',rx);rb.setAttribute('y',ry);rb.setAttribute('width',rw);rb.setAttribute('height',rh); }
+    return;
+  }
+
   if(dragging){
     const w=evToWorld(ev);
     const dx=w.x-dragging.startW.x, dy=w.y-dragging.startW.y;
+
+    if(dragging.mode==='multi-move'){
+      // move all selected elements together
+      elements.forEach(el=>{
+        if(selectedIds.has(el.id)){
+          const s=dragging.snaps[el.id];
+          el.x=snapV(s.x+dx); el.y=snapV(s.y+dy);
+        }
+      });
+      renderSVG(); return;
+    }
+
     const el=elements.find(e=>e.id===dragging.id);
     const s=dragging.snap0;
     if(!el) return;
@@ -945,6 +1035,29 @@ window.addEventListener('mousemove',ev=>{
 window.addEventListener('mouseup',ev=>{
   if(panStart){ panStart=null; panOrigin=null; document.getElementById('canvas-viewport').classList.remove('panning'); return }
   if(drawStart){ endDraw(ev); return }
+
+  if(rubberBand){
+    const w=evToWorld(ev);
+    const rx=Math.min(rubberBand.sx,w.x), ry=Math.min(rubberBand.sy,w.y);
+    const rw=Math.abs(w.x-rubberBand.sx), rh=Math.abs(w.y-rubberBand.sy);
+    document.getElementById('rubber-prev')?.remove();
+    rubberBand=null;
+    // select all blocks that intersect the lasso rect (only if dragged > 5px)
+    if(rw > 5 || rh > 5){
+      if(!ev.ctrlKey && !ev.metaKey) selectedIds=new Set();
+      elements.forEach(el=>{
+        // check overlap
+        if(el.x < rx+rw && el.x+el.w > rx && el.y < ry+rh && el.y+el.h > ry){
+          selectedIds.add(el.id);
+        }
+      });
+      selectedId=selectedIds.size===1?[...selectedIds][0]:null;
+      updateMultiHint(); renderSVG();
+      if(selectedIds.size>0) toast(`${selectedIds.size} área(s) selecionada(s)`);
+    }
+    return;
+  }
+
   if(dragging){ dragging=null; save(); render(); }
 });
 
@@ -957,8 +1070,35 @@ vp.addEventListener('wheel',ev=>{
 /* ================================================================
    SELECT / DESELECT / DELETE
    ================================================================ */
-function selectEl(id){ selectedId=id; render() }
-function deselect(){ selectedId=null; render() }
+function selectEl(id){
+  selectedId=id;
+  selectedIds=new Set([id]);
+  updateMultiHint(); render();
+}
+function deselect(){
+  selectedId=null;
+  selectedIds=new Set();
+  updateMultiHint(); render();
+}
+function deselectAll(){ deselect(); }
+
+function selectAll(){
+  selectedIds=new Set(elements.map(e=>e.id));
+  selectedId=null;
+  updateMultiHint(); renderSVG();
+  toast(`${selectedIds.size} área(s) selecionada(s) · Arraste qualquer bloco para mover o grupo`);
+}
+
+function updateMultiHint(){
+  const hint=document.getElementById('hint-multisel');
+  const n=selectedIds.size;
+  if(n>1){
+    hint.classList.add('visible');
+    document.getElementById('hint-multisel-count').textContent=`${n} áreas selecionadas`;
+  } else {
+    hint.classList.remove('visible');
+  }
+}
 
 function deleteSelected(){
   if(!isUnlocked){ toast('Libere a edição primeiro',true); return }
@@ -1011,8 +1151,9 @@ function renderBlock(layer,el){
   const fontSize = Math.min(18, Math.max(9, w/12));
   const subSize  = Math.min(11, Math.max(7,  w/18));
 
+  const multiSel = selectedIds.has(el.id);
   const g=document.createElementNS(SVG_NS,'g');
-  g.setAttribute('class','block-group'+(sel?' selected':''));
+  g.setAttribute('class','block-group'+(sel?' selected':multiSel?' multi-selected':''));
   g.setAttribute('data-id',el.id);
 
   // main rect
@@ -1083,8 +1224,16 @@ function renderBlock(layer,el){
   }
 
   g.addEventListener('mousedown',ev=>{
-    if(tool==='select') startDrag(ev,el.id,'move');
-    else selectEl(el.id);
+    if(tool==='select'){
+      // if in multi-selection and clicking one of selected: start group drag
+      if(selectedIds.size>1 && selectedIds.has(el.id)){
+        startDrag(ev,el.id,'move'); // startDrag detects multi
+      } else {
+        startDrag(ev,el.id,'move');
+      }
+    } else {
+      selectEl(el.id);
+    }
   });
   layer.appendChild(g);
 }
@@ -1351,9 +1500,17 @@ function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
    ================================================================ */
 window.addEventListener('keydown',ev=>{
   const typing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
-  if(ev.key==='Escape'){ setTool('select'); deselect(); drawStart=null; document.getElementById('block-prev')?.remove() }
+  if(ev.key==='Escape'){
+    setTool('select'); deselect(); drawStart=null;
+    document.getElementById('block-prev')?.remove();
+    document.getElementById('rubber-prev')?.remove();
+    rubberBand=null;
+  }
   if(!typing){
-    if((ev.key==='Delete'||ev.key==='Backspace')&&selectedId) deleteSelected();
+    if(ev.key==='Delete'||ev.key==='Backspace'){
+      if(selectedId) deleteSelected();
+    }
+    if((ev.key==='a'||ev.key==='A') && (ev.ctrlKey||ev.metaKey)){ ev.preventDefault(); selectAll(); }
     if(ev.key==='n'||ev.key==='N') setTool('block');
     if(ev.key==='v'||ev.key==='V') setTool('select');
     if(ev.key==='h'||ev.key==='H') setTool('pan');
