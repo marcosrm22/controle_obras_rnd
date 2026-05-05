@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCO · Gestão de Usuários</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;
+  --gold:#EAA239;--gold-soft:#fbf0d9;
+  --green:#609346;--green-soft:#e8efe1;
+  --red:#CC5121;--red-soft:#f8e2d6;
+  --neutral:#BDBFC1;
+  --shadow:0 4px 20px -4px rgba(26,35,50,0.12);
+  --shadow-lg:0 12px 40px -12px rgba(26,35,50,0.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.app{max-width:1300px;margin:0 auto;padding:20px 24px 60px}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:14px;border-bottom:3px solid var(--blue);margin-bottom:24px;
+  flex-wrap:wrap;gap:12px;
+}
+.topbar-left .eyebrow{font-size:9px;color:var(--blue);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:3px}
+.topbar-left h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.topbar-right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+
+/* ── BUTTONS ── */
+.btn{
+  font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;padding:7px 13px;
+  border:1px solid;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:all .15s;white-space:nowrap;text-decoration:none;
+}
+.btn svg{width:13px;height:13px;flex-shrink:0}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-secondary{background:var(--panel);border-color:var(--border-2);color:var(--text)}
+.btn-secondary:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+.btn-danger{background:var(--panel);border-color:var(--red);color:var(--red)}
+.btn-danger:hover{background:var(--red-soft)}
+.btn-success{background:var(--green);border-color:var(--green);color:#fff}
+.btn-success:hover{background:#4a7234}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:var(--blue);font-weight:800}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+/* ── PENDING BANNER ── */
+.pending-banner{
+  background:var(--gold-soft);border:1px solid var(--gold);border-left:4px solid var(--gold);
+  padding:12px 16px;margin-bottom:18px;display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:10px;
+}
+.pending-banner-text{font-size:12px;font-weight:700;color:#7c4a00}
+.pending-banner-text span{font-size:10px;font-weight:500;color:#9a6020;display:block;margin-top:2px}
+.pending-banner.hidden{display:none}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)}
+.tab{
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:9px 18px;border:none;background:none;cursor:pointer;
+  color:var(--text-mute);font-family:'Montserrat',sans-serif;
+  border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;
+}
+.tab:hover{color:var(--blue)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-badge{
+  background:var(--red);color:#fff;font-size:8px;font-weight:800;
+  padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;
+}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── FILTERS ── */
+.filters{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  margin-bottom:14px;
+}
+.filter-input{
+  font-family:'Montserrat',sans-serif;font-size:11px;font-weight:500;
+  border:1px solid var(--border-2);background:var(--panel);
+  padding:6px 10px;outline:none;color:var(--text);min-width:200px;
+}
+.filter-input:focus{border-color:var(--blue)}
+.filter-select{
+  font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;
+  border:1px solid var(--border-2);background:var(--panel);
+  padding:6px 9px;outline:none;cursor:pointer;color:var(--text);
+}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow)}
+.data-table{width:100%;border-collapse:collapse;font-size:11px}
+.data-table th{
+  background:var(--blue);color:#fff;font-weight:700;padding:8px 12px;
+  text-transform:uppercase;letter-spacing:1px;font-size:9px;text-align:left;white-space:nowrap;
+}
+.data-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--blue-soft)}
+.data-table .actions{display:flex;gap:5px;flex-wrap:wrap}
+
+/* ── STATUS BADGES ── */
+.badge{font-size:8px;padding:2px 8px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;border:1px solid;white-space:nowrap}
+.badge-pendente{background:var(--gold-soft);color:#7c4a00;border-color:var(--gold)}
+.badge-ativo   {background:var(--green-soft);color:#2d4a1e;border-color:var(--green)}
+.badge-bloqueado{background:var(--red-soft);color:var(--red);border-color:var(--red)}
+.perfil-badge{font-size:8px;padding:2px 8px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;border:1px solid;white-space:nowrap}
+.perfil-admin {background:var(--blue-soft);color:var(--blue);border-color:var(--blue)}
+.perfil-editor{background:#fff0d6;color:#7c4a00;border-color:var(--gold)}
+.perfil-viewer{background:#f3f4f6;color:#4b5563;border-color:#9ca3af}
+
+/* ── PERM TOGGLES ── */
+.perm-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.perm-toggle{
+  display:flex;align-items:center;gap:5px;
+  font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:3px 8px;border:1px solid var(--border-2);cursor:pointer;
+  background:var(--bg);color:var(--text-mute);font-family:'Montserrat',sans-serif;
+  transition:all .15s;user-select:none;
+}
+.perm-toggle.on{background:var(--green-soft);border-color:var(--green);color:#2d4a1e}
+.perm-toggle input{display:none}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,20,40,.55);
+  z-index:8000;align-items:center;justify-content:center}
+.modal-overlay.visible{display:flex}
+.modal-box{background:var(--panel);border-top:4px solid var(--gold);
+  padding:26px;max-width:500px;width:94%;box-shadow:var(--shadow-lg)}
+.modal-box h3{font-size:17px;font-weight:800;color:var(--blue);margin-bottom:6px}
+.modal-box p{font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6}
+.modal-field{margin-bottom:13px}
+.modal-field label{font-size:9px;color:var(--text-mute);letter-spacing:1px;
+  text-transform:uppercase;font-weight:700;margin-bottom:4px;display:block}
+.modal-field input,.modal-field select{
+  width:100%;border:1px solid var(--border-2);background:var(--bg);
+  padding:8px 10px;font-family:'Montserrat',sans-serif;font-size:12px;
+  outline:none;transition:border-color .15s;
+}
+.modal-field input:focus,.modal-field select:focus{border-color:var(--blue)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.modal-section{font-size:9px;color:var(--text-mute);letter-spacing:1.5px;
+  text-transform:uppercase;font-weight:700;margin:14px 0 8px;padding-top:12px;
+  border-top:1px solid var(--border)}
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.perm-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border:1px solid var(--border);background:var(--bg);cursor:pointer;
+  font-size:10px;font-weight:600;color:var(--text-dim);transition:all .15s;
+  user-select:none;
+}
+.perm-item input[type=checkbox]{
+  width:14px;height:14px;cursor:pointer;accent-color:var(--blue);
+}
+.perm-item:has(input:checked){background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--blue);color:#fff;padding:9px 20px;font-size:11px;font-weight:700;
+  letter-spacing:.5px;opacity:0;transition:all .25s ease;pointer-events:none;
+  box-shadow:var(--shadow-lg);z-index:9999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+.toast.ok {background:var(--green)}
+
+/* empty state */
+.empty-state{text-align:center;padding:40px;color:var(--text-mute)}
+.empty-state p{font-size:12px;margin-top:8px;line-height:1.6}
+
+/* spinner */
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="eyebrow">Administração · PCO Digital</div>
+      <h1>Gestão de Usuários</h1>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:11px;color:var(--text-mute)" id="logged-as"></span>
+      <a href="index.html" class="btn btn-secondary">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 8H2M5 5l-3 3 3 3"/><path d="M8 3h5v10H8"/></svg>
+        Dashboard
+      </a>
+      <button class="btn btn-danger" onclick="doLogout()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3H3v10h3M10 5l3 3-3 3M13 8H6"/></svg>
+        Sair
+      </button>
+    </div>
+  </div>
+
+  <!-- PENDING BANNER -->
+  <div class="pending-banner hidden" id="pending-banner">
+    <div class="pending-banner-text">
+      🔔 <span id="pending-count-text">0 solicitações aguardando aprovação</span>
+      <span>Acesse a aba "Pendentes" para aprovar ou recusar.</span>
+    </div>
+    <button class="btn btn-gold" onclick="switchTab('pendentes')">Ver pendentes →</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('todos')" id="tab-todos">
+      Todos os Usuários
+    </button>
+    <button class="tab" onclick="switchTab('pendentes')" id="tab-pendentes">
+      Pendentes <span class="tab-badge" id="badge-pendentes" style="display:none">0</span>
+    </button>
+    <button class="tab" onclick="switchTab('ativos')" id="tab-ativos">Ativos</button>
+    <button class="tab" onclick="switchTab('bloqueados')" id="tab-bloqueados">Bloqueados</button>
+  </div>
+
+  <!-- TAB: TODOS -->
+  <div class="tab-panel active" id="panel-todos">
+    <div class="filters">
+      <input class="filter-input" id="search-todos" placeholder="🔍  Buscar por nome, e-mail ou empresa..." oninput="filterTable()"/>
+      <select class="filter-select" id="filter-status" onchange="filterTable()">
+        <option value="">Todos os status</option>
+        <option value="pendente">Pendente</option>
+        <option value="ativo">Ativo</option>
+        <option value="bloqueado">Bloqueado</option>
+      </select>
+      <button class="btn btn-secondary" onclick="loadUsers()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8a7 7 0 1014 0A7 7 0 001 8z"/><path d="M8 5v3l2 2"/></svg>
+        Recarregar
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome</th><th>E-mail</th><th>Empresa</th><th>Cargo</th>
+            <th>Status</th><th>Perfil</th><th>Permissões</th><th>Solicitado em</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-todos">
+          <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-mute)">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: PENDENTES -->
+  <div class="tab-panel" id="panel-pendentes">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome</th><th>E-mail</th><th>Empresa</th><th>Cargo</th>
+            <th>Motivo</th><th>Solicitado em</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pendentes">
+          <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-mute)">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: ATIVOS -->
+  <div class="tab-panel" id="panel-ativos">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome</th><th>E-mail</th><th>Empresa</th>
+            <th>Perfil</th><th>Permissões</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-ativos">
+          <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-mute)">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: BLOQUEADOS -->
+  <div class="tab-panel" id="panel-bloqueados">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Bloqueado em</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="tbody-bloqueados">
+          <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-mute)">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- .app -->
+
+<!-- MODAL: EDITAR USUÁRIO -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-box">
+    <h3>Editar Usuário</h3>
+    <p id="modal-edit-sub">Ajuste o perfil e as permissões de acesso.</p>
+
+    <div class="modal-field">
+      <label>Status</label>
+      <select id="edit-status">
+        <option value="pendente">Pendente</option>
+        <option value="ativo">Ativo</option>
+        <option value="bloqueado">Bloqueado</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
+      <label>Perfil</label>
+      <select id="edit-perfil">
+        <option value="viewer">Viewer — só visualiza</option>
+        <option value="editor">Editor — pode editar elementos</option>
+        <option value="admin">Admin — acesso total</option>
+      </select>
+    </div>
+
+    <div class="modal-section">Acesso às ferramentas</div>
+    <div class="perm-grid">
+      <label class="perm-item">
+        <input type="checkbox" id="perm-drenagem"/>
+        🌊 Redes de Drenagem
+      </label>
+      <label class="perm-item">
+        <input type="checkbox" id="perm-terra"/>
+        🏔 Terraplanagem
+      </label>
+      <label class="perm-item">
+        <input type="checkbox" id="perm-editar"/>
+        ✏️ Pode acionar edição
+      </label>
+      <label class="perm-item">
+        <input type="checkbox" id="perm-admin-panel"/>
+        ⚙️ Painel de usuários
+      </label>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUserEdit()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9l4 4 8-8"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const SB_URL  = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY  = (window.PCO_CONFIG||{}).supabase?.key || '';
+const TOKEN   = sessionStorage.getItem('pco_token') || SB_KEY;
+const MY_ID   = sessionStorage.getItem('pco_user_id');
+const MY_NOME = sessionStorage.getItem('pco_nome') || 'Admin';
+const MY_PERF = sessionStorage.getItem('pco_perfil') || 'admin';
+
+/* Guard: only admins */
+if(MY_PERF !== 'admin' && sessionStorage.getItem('pco_token')){
+  alert('Acesso restrito a administradores.');
+  window.location.href = 'index.html';
+}
+
+document.getElementById('logged-as').textContent = 'Olá, ' + MY_NOME;
+
+let allUsers = [];
+let editingId = null;
+
+/* ================================================================
+   SB HELPERS
+   ================================================================ */
+async function sbFetch(path, opts={}){
+  const { prefer='', method='GET', body } = opts;
+  const res = await fetch(SB_URL + '/rest/v1/' + path, {
+    method,
+    headers:{
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + TOKEN,
+      'Content-Type': 'application/json',
+      'Prefer': prefer,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if(!res.ok) throw new Error(res.status + ' ' + text);
+  if(!text || !text.trim()) return null;
+  try{ return JSON.parse(text) }catch(_){ return null }
+}
+
+/* ================================================================
+   LOAD
+   ================================================================ */
+async function loadUsers(){
+  try {
+    allUsers = await sbFetch('pco_usuarios?order=criado_em.desc') || [];
+    renderAll();
+    updatePendingBanner();
+  } catch(e){
+    toast('Erro ao carregar: ' + e.message, 'err');
+  }
+}
+
+function updatePendingBanner(){
+  const pend = allUsers.filter(u=>u.status==='pendente').length;
+  const banner = document.getElementById('pending-banner');
+  const badge  = document.getElementById('badge-pendentes');
+  if(pend > 0){
+    banner.classList.remove('hidden');
+    document.getElementById('pending-count-text').textContent =
+      pend + ' solicitação' + (pend>1?'ões':'') + ' aguardando aprovação';
+    badge.textContent = pend;
+    badge.style.display = 'inline';
+  } else {
+    banner.classList.add('hidden');
+    badge.style.display = 'none';
+  }
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function permLabel(p){
+  const list = [];
+  if(p?.drenagem)      list.push('<span style="color:var(--blue);font-weight:700">Drenagem</span>');
+  if(p?.terraplanagem) list.push('<span style="color:var(--green);font-weight:700">Terra</span>');
+  if(p?.pode_editar)   list.push('<span style="color:var(--gold);font-weight:700">Edição</span>');
+  if(p?.admin_panel)   list.push('<span style="color:var(--red);font-weight:700">Admin</span>');
+  return list.length ? list.join(' · ') : '<span style="color:var(--text-mute)">—</span>';
+}
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString('pt-BR') : '—' }
+function statusBadge(s){
+  const map={pendente:'badge-pendente',ativo:'badge-ativo',bloqueado:'badge-bloqueado'};
+  const labels={pendente:'⏳ Pendente',ativo:'✔ Ativo',bloqueado:'🔒 Bloqueado'};
+  return `<span class="badge ${map[s]||''}">${labels[s]||s}</span>`;
+}
+function perfilBadge(p){
+  const map={admin:'perfil-admin',editor:'perfil-editor',viewer:'perfil-viewer'};
+  return `<span class="perfil-badge ${map[p]||'perfil-viewer'}">${p||'viewer'}</span>`;
+}
+
+function renderAll(){
+  const search = (document.getElementById('search-todos')?.value||'').toLowerCase();
+  const fstatus = document.getElementById('filter-status')?.value||'';
+
+  const filtered = allUsers.filter(u=>{
+    const matchText = !search ||
+      (u.nome||'').toLowerCase().includes(search) ||
+      (u.email||'').toLowerCase().includes(search) ||
+      (u.empresa||'').toLowerCase().includes(search);
+    const matchStatus = !fstatus || u.status===fstatus;
+    return matchText && matchStatus;
+  });
+
+  const pendentes  = allUsers.filter(u=>u.status==='pendente');
+  const ativos     = allUsers.filter(u=>u.status==='ativo');
+  const bloqueados = allUsers.filter(u=>u.status==='bloqueado');
+
+  renderTodos(filtered);
+  renderPendentes(pendentes);
+  renderAtivos(ativos);
+  renderBloqueados(bloqueados);
+}
+
+function filterTable(){ renderAll() }
+
+function renderTodos(users){
+  const tb = document.getElementById('tbody-todos');
+  if(!users.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-mute)">Nenhum usuário encontrado</td></tr>'; return }
+  tb.innerHTML = users.map(u=>`
+    <tr>
+      <td style="font-weight:700">${esc(u.nome||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px">${esc(u.email||'')}</td>
+      <td>${esc(u.empresa||'—')}</td>
+      <td style="color:var(--text-dim)">${esc(u.cargo||'—')}</td>
+      <td>${statusBadge(u.status)}</td>
+      <td>${perfilBadge(u.perfil)}</td>
+      <td style="font-size:10px">${permLabel(u.permissoes)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute)">${fmtDate(u.criado_em)}</td>
+      <td><div class="actions">${actionBtns(u)}</div></td>
+    </tr>`).join('');
+}
+
+function renderPendentes(users){
+  const tb = document.getElementById('tbody-pendentes');
+  if(!users.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-mute)">✅ Nenhuma solicitação pendente</td></tr>'; return }
+  tb.innerHTML = users.map(u=>`
+    <tr>
+      <td style="font-weight:700">${esc(u.nome||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px">${esc(u.email||'')}</td>
+      <td>${esc(u.empresa||'—')}</td>
+      <td>${esc(u.cargo||'—')}</td>
+      <td style="font-size:10px;color:var(--text-dim);max-width:180px">${esc(u.motivo||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute)">${fmtDate(u.criado_em)}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-success" onclick="quickApprove('${u.id}')">✔ Aprovar</button>
+          <button class="btn btn-danger"  onclick="quickBlock('${u.id}')">✖ Recusar</button>
+          <button class="btn btn-secondary" onclick="openEdit('${u.id}')">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-8 8H3v-3z"/></svg>
+            Editar
+          </button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderAtivos(users){
+  const tb = document.getElementById('tbody-ativos');
+  if(!users.length){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-mute)">Nenhum usuário ativo</td></tr>'; return }
+  tb.innerHTML = users.map(u=>`
+    <tr>
+      <td style="font-weight:700">${esc(u.nome||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px">${esc(u.email||'')}</td>
+      <td>${esc(u.empresa||'—')}</td>
+      <td>${perfilBadge(u.perfil)}</td>
+      <td style="font-size:10px">${permLabel(u.permissoes)}</td>
+      <td><div class="actions">${actionBtns(u)}</div></td>
+    </tr>`).join('');
+}
+
+function renderBloqueados(users){
+  const tb = document.getElementById('tbody-bloqueados');
+  if(!users.length){ tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-mute)">Nenhum usuário bloqueado</td></tr>'; return }
+  tb.innerHTML = users.map(u=>`
+    <tr>
+      <td style="font-weight:700">${esc(u.nome||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px">${esc(u.email||'')}</td>
+      <td>${esc(u.empresa||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute)">${fmtDate(u.atualizado_em)}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-success" onclick="quickApprove('${u.id}')">↩ Reativar</button>
+          <button class="btn btn-secondary" onclick="openEdit('${u.id}')">Editar</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function actionBtns(u){
+  let btns = `<button class="btn btn-secondary" onclick="openEdit('${u.id}')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-8 8H3v-3z"/></svg>
+    Editar
+  </button>`;
+  if(u.status==='pendente') btns += `<button class="btn btn-success" onclick="quickApprove('${u.id}')">✔ Aprovar</button>`;
+  if(u.status==='ativo')    btns += `<button class="btn btn-danger"  onclick="quickBlock('${u.id}')">🔒 Bloquear</button>`;
+  if(u.status==='bloqueado')btns += `<button class="btn btn-success" onclick="quickApprove('${u.id}')">↩ Reativar</button>`;
+  return btns;
+}
+
+/* ================================================================
+   QUICK ACTIONS
+   ================================================================ */
+async function quickApprove(id){
+  await updateUser(id, { status:'ativo', atualizado_em: new Date().toISOString() });
+  toast('Usuário aprovado ✓', 'ok'); loadUsers();
+}
+async function quickBlock(id){
+  await updateUser(id, { status:'bloqueado', atualizado_em: new Date().toISOString() });
+  toast('Usuário bloqueado', 'err'); loadUsers();
+}
+
+async function updateUser(id, data){
+  try{
+    await sbFetch(`pco_usuarios?id=eq.${id}`, {
+      method:'PATCH', prefer:'return=minimal', body: data,
+    });
+  }catch(e){ toast('Erro: '+e.message,'err') }
+}
+
+/* ================================================================
+   EDIT MODAL
+   ================================================================ */
+function openEdit(id){
+  const u = allUsers.find(x=>x.id===id);
+  if(!u) return;
+  editingId = id;
+  document.getElementById('modal-edit-sub').textContent = u.nome + ' · ' + u.email;
+  document.getElementById('edit-status').value = u.status || 'pendente';
+  document.getElementById('edit-perfil').value = u.perfil  || 'viewer';
+  const p = u.permissoes || {};
+  document.getElementById('perm-drenagem').checked   = !!p.drenagem;
+  document.getElementById('perm-terra').checked      = !!p.terraplanagem;
+  document.getElementById('perm-editar').checked     = !!p.pode_editar;
+  document.getElementById('perm-admin-panel').checked= !!p.admin_panel;
+  document.getElementById('modal-edit').classList.add('visible');
+}
+
+async function saveUserEdit(){
+  const status = document.getElementById('edit-status').value;
+  const perfil = document.getElementById('edit-perfil').value;
+  const permissoes = {
+    drenagem:      document.getElementById('perm-drenagem').checked,
+    terraplanagem: document.getElementById('perm-terra').checked,
+    pode_editar:   document.getElementById('perm-editar').checked,
+    admin_panel:   document.getElementById('perm-admin-panel').checked,
+  };
+  await updateUser(editingId, {
+    status, perfil, permissoes,
+    atualizado_em: new Date().toISOString(),
+  });
+  closeModal();
+  toast('Usuário atualizado ✓', 'ok');
+  loadUsers();
+}
+
+function closeModal(){
+  document.getElementById('modal-edit').classList.remove('visible');
+  editingId = null;
+}
+
+/* ================================================================
+   TABS
+   ================================================================ */
+function switchTab(name){
+  ['todos','pendentes','ativos','bloqueados'].forEach(t=>{
+    document.getElementById('tab-'+t)?.classList.toggle('active', t===name);
+    document.getElementById('panel-'+t)?.classList.toggle('active', t===name);
+  });
+}
+
+/* ================================================================
+   TOAST / HELPERS
+   ================================================================ */
+function toast(msg, type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function doLogout(){
+  sessionStorage.clear();
+  window.location.href = 'login.html';
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+// If no session, redirect to login (allow SB_KEY fallback for admin bootstrap)
+if(!sessionStorage.getItem('pco_token') && !SB_KEY){
+  window.location.href = 'login.html';
+}
+loadUsers();
+</script>
+</body>
+</html>

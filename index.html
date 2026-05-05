@@ -262,6 +262,47 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
 .config-field input:focus{border-color:var(--blue)}
 .config-field.span2{grid-column:1/-1}
 
+
+/* ── USER BAR ── */
+.user-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.user-chip{
+  display:flex;align-items:center;gap:7px;
+  background:var(--blue-soft);border:1px solid #b0c0da;
+  padding:5px 11px;font-size:11px;font-weight:600;color:var(--blue);
+}
+.user-chip .user-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--blue);color:#fff;
+  font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+.user-role{
+  font-size:8px;font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;text-transform:uppercase;
+  background:#fff;border:1px solid var(--border);
+  padding:2px 6px;color:var(--text-mute);
+}
+.logout-btn{
+  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;
+  border:1px solid var(--border-2);background:var(--panel);
+  color:var(--text-dim);cursor:pointer;transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.logout-btn svg{width:12px;height:12px}
+
+/* card disabled state */
+.card.no-access{opacity:.4;pointer-events:none;filter:grayscale(1)}
+.card.no-access::after{
+  content:'Sem acesso';
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.6);color:#fff;padding:5px 14px;
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+}
+
 </style>
 <script src="config.js"></script>
 </head>
@@ -275,7 +316,20 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       <h1>PCO Digital <span>· Painel de Ferramentas</span></h1>
       <p class="subtitle">Ferramentas visuais de controle de execução · integradas ao Supabase</p>
     </div>
-    <div class="version-tag">v1.0 · 2026</div>
+    <div class="user-bar" id="user-bar">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div id="user-nome" style="font-size:11px;font-weight:700">Carregando...</div>
+          <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div>
+        </div>
+      </div>
+      <span class="user-role" id="user-role">viewer</span>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5l3 3-3 3M13 8H6"/><path d="M6 3H3v10h3"/></svg>
+        Sair
+      </button>
+    </div>
   </header>
 
   <!-- INFO ROW -->
@@ -350,6 +404,31 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       <div class="card-footer">
         <span class="card-cta">Abrir ferramenta</span>
         <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- ADMIN: USUÁRIOS (only shown for admins) -->
+    <a class="card blue" href="admin_usuarios.html" id="card-admin" style="display:none">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+            <path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>
+          </svg>
+        </div>
+        <div class="card-tag">Administração · Acesso</div>
+        <div class="card-title">Gestão de Usuários</div>
+        <div class="card-desc">Aprove solicitações de cadastro, defina perfis e permissões de acesso por ferramenta para cada usuário do sistema.</div>
+        <div class="card-chips">
+          <span class="chip chip-blue">Aprovação</span>
+          <span class="chip chip-gray">Permissões</span>
+          <span class="chip chip-gray">Perfis</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta">Gerenciar usuários</span>
+        <span class="card-arrow" id="admin-notif">→</span>
       </div>
     </a>
 
@@ -643,6 +722,70 @@ function switchFile(filename, btn) {
   document.getElementById('pub-editor').value = '';
   document.getElementById('pub-file-indicator').textContent = '';
   if (ghState.token) ghLoadFile();
+}
+</script>
+
+
+<script>
+/* ================================================================
+   SESSION GUARD — index.html
+   ================================================================ */
+(function(){
+  const token  = sessionStorage.getItem('pco_token');
+  const nome   = sessionStorage.getItem('pco_nome')   || '';
+  const email  = sessionStorage.getItem('pco_email')  || '';
+  const perfil = sessionStorage.getItem('pco_perfil') || '';
+  const perms  = JSON.parse(sessionStorage.getItem('pco_perms') || '{}');
+
+  // Redirect to login if no session
+  if(!token){
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Populate user bar
+  const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-nome').textContent   = nome || email;
+  document.getElementById('user-email').textContent  = email;
+  document.getElementById('user-role').textContent   = perfil;
+
+  // Show admin card + pending badge if admin
+  if(perfil === 'admin' || perms.admin_panel){
+    const adminCard = document.getElementById('card-admin');
+    if(adminCard) adminCard.style.display = '';
+    // check pending users for badge
+    checkPendingUsers();
+  }
+
+  // Hide cards user has no access to
+  if(!perms.drenagem && perfil !== 'admin'){
+    document.querySelector('a[href="drenagem_controle_v3.html"]')?.classList.add('no-access');
+  }
+  if(!perms.terraplanagem && perfil !== 'admin'){
+    document.querySelector('a[href="terraplanagem_controle.html"]')?.classList.add('no-access');
+  }
+
+  async function checkPendingUsers(){
+    const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+    const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+    try{
+      const res = await fetch(
+        SB_URL + '/rest/v1/pco_usuarios?status=eq.pendente&select=id',
+        { headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+token } }
+      );
+      const rows = await res.json().catch(()=>[]);
+      if(rows.length > 0){
+        const notif = document.getElementById('admin-notif');
+        if(notif) notif.textContent = '🔔 ' + rows.length;
+      }
+    }catch(_){}
+  }
+})();
+
+function doLogout(){
+  sessionStorage.clear();
+  window.location.href = 'login.html';
 }
 </script>
 

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCO Digital · Solicitar Acesso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;
+  --gold:#EAA239;--green:#609346;--red:#CC5121;--red-soft:#f8e2d6;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);
+  --shadow-lg:0 20px 60px -16px rgba(26,35,50,0.28);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  min-height:100vh;
+  background:linear-gradient(135deg,#1e2d4a 0%,#304F7E 55%,#2a4a6e 100%);
+  font-family:'Montserrat',system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.login-wrap{width:100%;max-width:460px}
+.brand{text-align:center;margin-bottom:32px;color:#fff}
+.brand .eyebrow{font-size:9px;letter-spacing:3px;text-transform:uppercase;font-weight:700;opacity:.6;margin-bottom:8px}
+.brand h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.brand h1 span{opacity:.55;font-weight:500}
+.card{background:var(--panel);box-shadow:var(--shadow-lg);padding:36px 32px 28px}
+.card-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:11px;color:var(--text-mute);margin-bottom:28px;line-height:1.5}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-mute);margin-bottom:5px}
+.field input,.field select{
+  width:100%;border:1px solid var(--border-2);background:var(--bg);
+  padding:10px 12px;font-family:'Montserrat',sans-serif;font-size:13px;
+  outline:none;transition:border-color .15s,background .15s;color:var(--text);
+}
+.field input:focus,.field select:focus{border-color:var(--blue);background:#fff}
+.field input::placeholder{color:var(--text-mute)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{width:100%;padding:11px;font-family:'Montserrat',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  border:none;cursor:pointer;transition:all .15s;margin-top:4px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-primary:disabled{opacity:.5;pointer-events:none}
+.msg{font-size:11px;padding:9px 12px;margin-bottom:16px;
+  font-weight:600;display:none;line-height:1.5}
+.msg.err {background:var(--red-soft);color:var(--red);border-left:3px solid var(--red)}
+.msg.ok  {background:#e8efe1;color:var(--green);border-left:3px solid var(--green)}
+.msg.visible{display:block}
+.card-footer{text-align:center;margin-top:22px;padding-top:18px;
+  border-top:1px solid var(--border);font-size:11px;color:var(--text-mute)}
+.card-footer a{color:var(--blue);font-weight:700;text-decoration:none}
+.card-footer a:hover{text-decoration:underline}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* success state */
+.success-state{text-align:center;padding:20px 0;display:none}
+.success-state .icon{font-size:48px;margin-bottom:16px}
+.success-state h3{font-size:18px;font-weight:800;color:var(--green);margin-bottom:8px}
+.success-state p{font-size:12px;color:var(--text-dim);line-height:1.6}
+.success-state a{color:var(--blue);font-weight:700;text-decoration:none;display:inline-block;margin-top:16px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+
+  <div class="brand">
+    <div class="eyebrow">Planejamento &amp; Controle de Obras</div>
+    <h1>PCO Digital <span>· Acesso</span></h1>
+  </div>
+
+  <div class="card">
+    <!-- FORM STATE -->
+    <div id="form-state">
+      <div class="card-title">Solicitar Cadastro</div>
+      <div class="card-sub">Preencha os dados abaixo. Após envio, aguarde a aprovação do administrador para acessar o sistema.</div>
+
+      <div class="msg" id="msg"></div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Nome completo</label>
+          <input type="text" id="nome" placeholder="João Silva" autocomplete="name"/>
+        </div>
+        <div class="field">
+          <label>Empresa / Organização</label>
+          <input type="text" id="empresa" placeholder="Construtora XYZ"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Cargo / Função</label>
+        <input type="text" id="cargo" placeholder="Engenheiro de Obras"/>
+      </div>
+
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="email" placeholder="seu@email.com" autocomplete="email"/>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="senha" placeholder="mín. 8 caracteres"/>
+        </div>
+        <div class="field">
+          <label>Confirmar senha</label>
+          <input type="password" id="senha2" placeholder="repita a senha"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Motivo do acesso</label>
+        <input type="text" id="motivo" placeholder="ex.: acompanhar execução da obra X"/>
+      </div>
+
+      <button class="btn btn-primary" id="btn-cad" onclick="doCadastro()">Enviar solicitação</button>
+
+      <div class="card-footer">
+        Já tem cadastro? <a href="login.html">Fazer login</a>
+      </div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-state" id="success-state">
+      <div class="icon">✅</div>
+      <h3>Solicitação enviada!</h3>
+      <p>Sua solicitação de acesso foi registrada.<br>
+        O administrador será notificado e aprovará seu cadastro em breve.<br>
+        Você receberá acesso após a aprovação.</p>
+      <a href="login.html">← Voltar para o login</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+
+function showMsg(text, type='err'){
+  const el=document.getElementById('msg');
+  el.textContent=text; el.className='msg visible '+type;
+}
+function hideMsg(){ document.getElementById('msg').className='msg' }
+
+async function doCadastro(){
+  hideMsg();
+  const nome    = document.getElementById('nome').value.trim();
+  const empresa = document.getElementById('empresa').value.trim();
+  const cargo   = document.getElementById('cargo').value.trim();
+  const email   = document.getElementById('email').value.trim();
+  const senha   = document.getElementById('senha').value;
+  const senha2  = document.getElementById('senha2').value;
+  const motivo  = document.getElementById('motivo').value.trim();
+
+  if(!nome||!email||!senha){ showMsg('Preencha nome, e-mail e senha.'); return }
+  if(senha.length < 8){ showMsg('A senha deve ter pelo menos 8 caracteres.'); return }
+  if(senha !== senha2){ showMsg('As senhas não coincidem.'); return }
+
+  const btn = document.getElementById('btn-cad');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>Enviando...';
+
+  try {
+    // 1. Create auth user (email + password) via Supabase Auth
+    const signupRes = await fetch(SB_URL + '/auth/v1/signup', {
+      method:'POST',
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password: senha }),
+    });
+    const signupData = await signupRes.json().catch(()=>({}));
+
+    if(!signupRes.ok){
+      const msg = signupData?.msg || signupData?.error_description || 'Erro ao criar conta.';
+      // "User already registered" is a common error
+      if(msg.toLowerCase().includes('already')){
+        showMsg('Este e-mail já possui cadastro. Tente fazer login.');
+      } else {
+        showMsg(msg);
+      }
+      return;
+    }
+
+    const userId = signupData?.user?.id || signupData?.id;
+    if(!userId){ showMsg('Erro ao obter ID do usuário. Tente novamente.'); return }
+
+    // 2. Insert profile in pco_usuarios with status=pendente
+    const profRes = await fetch(SB_URL + '/rest/v1/pco_usuarios', {
+      method:'POST',
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        id:       userId,
+        email:    email,
+        nome:     nome,
+        empresa:  empresa,
+        cargo:    cargo,
+        motivo:   motivo,
+        status:   'pendente',
+        perfil:   'viewer',
+        permissoes: {
+          drenagem:      false,
+          terraplanagem: false,
+          pode_editar:   false,
+        },
+        criado_em: new Date().toISOString(),
+      }),
+    });
+
+    if(!profRes.ok){
+      const errText = await profRes.text();
+      console.error('Profile insert error:', errText);
+      // If profile already exists (duplicate), still show success
+    }
+
+    // Show success
+    document.getElementById('form-state').style.display='none';
+    document.getElementById('success-state').style.display='block';
+
+  } catch(e){
+    showMsg('Erro de conexão: ' + e.message);
+  } finally {
+    btn.disabled=false;
+    btn.textContent='Enviar solicitação';
+  }
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') doCadastro() });
+</script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCO Digital · Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5; --panel:#fff; --border:#d8dde4; --border-2:#c1c9d3;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-dark:#223a60; --blue-soft:#eef2f8;
+  --gold:#EAA239; --green:#609346; --red:#CC5121; --red-soft:#f8e2d6;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);
+  --shadow-lg:0 20px 60px -16px rgba(26,35,50,0.28);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  min-height:100vh;
+  background: linear-gradient(135deg,#1e2d4a 0%,#304F7E 55%,#2a4a6e 100%);
+  font-family:'Montserrat',system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+
+.login-wrap{width:100%;max-width:420px}
+
+/* Brand */
+.brand{text-align:center;margin-bottom:32px;color:#fff}
+.brand .eyebrow{font-size:9px;letter-spacing:3px;text-transform:uppercase;
+  font-weight:700;opacity:.6;margin-bottom:8px}
+.brand h1{font-size:28px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.brand h1 span{opacity:.55;font-weight:500}
+.brand p{font-size:11px;opacity:.5;margin-top:6px;font-family:'JetBrains Mono',monospace}
+
+/* Card */
+.card{background:var(--panel);box-shadow:var(--shadow-lg);padding:36px 32px 28px}
+
+.card-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:11px;color:var(--text-mute);margin-bottom:28px;line-height:1.5}
+
+/* Fields */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-mute);margin-bottom:5px}
+.field input{
+  width:100%;border:1px solid var(--border-2);background:var(--bg);
+  padding:10px 12px;font-family:'Montserrat',sans-serif;font-size:13px;
+  outline:none;transition:border-color .15s,background .15s;color:var(--text);
+}
+.field input:focus{border-color:var(--blue);background:#fff}
+.field input::placeholder{color:var(--text-mute)}
+
+/* Buttons */
+.btn{
+  width:100%;padding:11px;font-family:'Montserrat',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  border:none;cursor:pointer;transition:all .15s;margin-top:4px;
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-primary:disabled{opacity:.5;pointer-events:none}
+
+/* Error / info */
+.msg{
+  font-size:11px;padding:9px 12px;margin-bottom:16px;
+  font-weight:600;display:none;line-height:1.5;
+}
+.msg.err {background:var(--red-soft);color:var(--red);border-left:3px solid var(--red)}
+.msg.ok  {background:#e8efe1;color:var(--green);border-left:3px solid var(--green)}
+.msg.info{background:var(--blue-soft);color:var(--blue);border-left:3px solid var(--blue)}
+.msg.visible{display:block}
+
+/* Footer link */
+.card-footer{
+  text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);
+  font-size:11px;color:var(--text-mute);
+}
+.card-footer a{color:var(--blue);font-weight:700;text-decoration:none}
+.card-footer a:hover{text-decoration:underline}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+
+  <div class="brand">
+    <div class="eyebrow">Planejamento &amp; Controle de Obras</div>
+    <h1>PCO Digital <span>· Sistema</span></h1>
+    <p>v1.0 · acesso restrito</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Entrar</div>
+    <div class="card-sub">Use o e-mail e senha cadastrados para acessar o sistema.</div>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="email" placeholder="seu@email.com" autocomplete="email"/>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+
+    <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+
+    <div class="card-footer">
+      Não tem cadastro? <a href="cadastro.html">Solicitar acesso</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── SB helpers ── */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+
+function showMsg(text, type='err'){
+  const el = document.getElementById('msg');
+  el.textContent = text; el.className = 'msg visible ' + type;
+}
+function hideMsg(){ document.getElementById('msg').className = 'msg' }
+
+async function sbPost(path, body){
+  const res = await fetch(SB_URL + path, {
+    method:'POST',
+    headers:{
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  let data;
+  try{ data = JSON.parse(text) } catch(_){ data = {} }
+  return { ok: res.ok, status: res.status, data };
+}
+
+async function doLogin(){
+  hideMsg();
+  const email = document.getElementById('email').value.trim();
+  const senha = document.getElementById('senha').value;
+  if(!email || !senha){ showMsg('Preencha e-mail e senha.'); return }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Entrando...';
+
+  try {
+    // 1. Authenticate via Supabase Auth
+    const r = await sbPost('/auth/v1/token?grant_type=password', { email, password: senha });
+
+    if(!r.ok){
+      const msg = r.data?.error_description || r.data?.msg || 'Credenciais inválidas.';
+      showMsg(msg); return;
+    }
+
+    const { access_token, user } = r.data;
+
+    // 2. Check user profile in pco_usuarios
+    const profRes = await fetch(
+      SB_URL + `/rest/v1/pco_usuarios?id=eq.${user.id}&select=*`,
+      { headers:{ 'apikey': SB_KEY, 'Authorization': 'Bearer ' + access_token } }
+    );
+    const profiles = await profRes.json().catch(()=>[]);
+    const profile = profiles[0];
+
+    if(!profile){
+      showMsg('Usuário não encontrado no sistema. Contate o administrador.'); return;
+    }
+    if(profile.status === 'pendente'){
+      showMsg('Seu cadastro ainda está aguardando aprovação do administrador.', 'info'); return;
+    }
+    if(profile.status === 'bloqueado'){
+      showMsg('Acesso bloqueado. Contate o administrador.'); return;
+    }
+    if(profile.status !== 'ativo'){
+      showMsg('Acesso não autorizado.'); return;
+    }
+
+    // 3. Save session
+    sessionStorage.setItem('pco_token',    access_token);
+    sessionStorage.setItem('pco_user_id',  user.id);
+    sessionStorage.setItem('pco_email',    user.email);
+    sessionStorage.setItem('pco_nome',     profile.nome || user.email);
+    sessionStorage.setItem('pco_perfil',   profile.perfil || 'viewer');
+    sessionStorage.setItem('pco_perms',    JSON.stringify(profile.permissoes || {}));
+
+    showMsg('Login realizado! Redirecionando...', 'ok');
+    setTimeout(()=>{ window.location.href = 'index.html' }, 800);
+
+  } catch(e){
+    showMsg('Erro de conexão: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+/* Enter key */
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() });
+
+/* Redirect if already logged in */
+if(sessionStorage.getItem('pco_token')) window.location.href = 'index.html';
+</script>
+</body>
+</html>
