@@ -85,6 +85,31 @@ html,body{
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
   border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Forgot password panel */
+.forgot-panel{
+  display:none;margin-top:16px;padding-top:18px;
+  border-top:1px solid var(--border);
+}
+.forgot-panel.visible{display:block}
+.forgot-panel .field{margin-bottom:12px}
+.btn-ghost{
+  width:100%;padding:9px;font-family:'Montserrat',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  border:1px solid var(--border-2);background:none;cursor:pointer;
+  color:var(--text-dim);transition:all .15s;margin-top:4px;
+}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+.forgot-title{font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px}
+.forgot-sub{font-size:10px;color:var(--text-mute);margin-bottom:14px;line-height:1.5}
+.msg-forgot{
+  font-size:11px;padding:9px 12px;margin-bottom:12px;
+  font-weight:600;display:none;line-height:1.5;
+}
+.msg-forgot.err {background:var(--red-soft);color:var(--red);border-left:3px solid var(--red)}
+.msg-forgot.ok  {background:#e8efe1;color:var(--green);border-left:3px solid var(--green)}
+.msg-forgot.info{background:var(--blue-soft);color:var(--blue);border-left:3px solid var(--blue)}
+.msg-forgot.visible{display:block}
 </style>
 </head>
 <body>
@@ -112,6 +137,28 @@ html,body{
     </div>
 
     <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+
+    <!-- Forgot password toggle -->
+    <div style="text-align:center;margin-top:14px">
+      <a href="#" onclick="toggleForgot(event)"
+         style="font-size:11px;color:var(--text-mute);text-decoration:none;font-weight:600"
+         id="forgot-toggle-link">Esqueci minha senha</a>
+    </div>
+
+    <!-- Forgot password panel (inline) -->
+    <div class="forgot-panel" id="forgot-panel">
+      <div class="forgot-title">Redefinir senha</div>
+      <div class="forgot-sub">Informe seu e-mail cadastrado. Você receberá um link para criar uma nova senha.</div>
+      <div class="msg-forgot" id="msg-forgot"></div>
+      <div class="field">
+        <label>E-mail cadastrado</label>
+        <input type="email" id="forgot-email" placeholder="seu@email.com"/>
+      </div>
+      <button class="btn btn-primary" id="btn-forgot" onclick="doForgot()" style="margin-bottom:8px">
+        Enviar link de redefinição
+      </button>
+      <button class="btn-ghost" onclick="toggleForgot(event)">← Voltar para o login</button>
+    </div>
 
     <div class="card-footer">
       Não tem cadastro? <a href="cadastro.html">Solicitar acesso</a>
@@ -208,8 +255,70 @@ async function doLogin(){
   }
 }
 
+/* Forgot password toggle */
+function toggleForgot(e){
+  e.preventDefault();
+  const panel = document.getElementById('forgot-panel');
+  const link  = document.getElementById('forgot-toggle-link');
+  const isOpen = panel.classList.contains('visible');
+  panel.classList.toggle('visible', !isOpen);
+  link.textContent = isOpen ? 'Esqueci minha senha' : '← Voltar para o login';
+  if(!isOpen) document.getElementById('forgot-email').focus();
+}
+
+function showForgotMsg(text, type='err'){
+  const el = document.getElementById('msg-forgot');
+  el.textContent = text; el.className = 'msg-forgot visible ' + type;
+}
+
+async function doForgot(){
+  const email = document.getElementById('forgot-email').value.trim();
+  if(!email){ showForgotMsg('Informe o e-mail cadastrado.'); return }
+
+  const btn = document.getElementById('btn-forgot');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Enviando...';
+
+  try {
+    // Supabase sends a magic link / reset email
+    // redirectTo must match the page that handles the token
+    const redirectTo = window.location.origin
+      + window.location.pathname.replace('login.html','')
+      + 'redefinir_senha.html';
+
+    const res = await fetch(SB_URL + '/auth/v1/recover', {
+      method: 'POST',
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, options:{ redirectTo } }),
+    });
+
+    // Supabase always returns 200 on /recover (even for unknown emails)
+    // to avoid user enumeration
+    showForgotMsg(
+      'Se o e-mail estiver cadastrado, você receberá um link em instantes. Verifique também sua caixa de spam.',
+      'ok'
+    );
+    document.getElementById('forgot-email').value = '';
+  } catch(e){
+    showForgotMsg('Erro de conexão: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar link de redefinição';
+  }
+}
+
 /* Enter key */
-document.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() });
+document.addEventListener('keydown', e=>{
+  const forgotOpen = document.getElementById('forgot-panel').classList.contains('visible');
+  if(e.key==='Enter'){
+    if(forgotOpen) doForgot();
+    else doLogin();
+  }
+});
 
 /* Redirect if already logged in */
 if(sessionStorage.getItem('pco_token')) window.location.href = 'index.html';

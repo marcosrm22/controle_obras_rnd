@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCO Digital · Redefinir Senha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;
+  --green:#609346;--red:#CC5121;--red-soft:#f8e2d6;
+  --shadow-lg:0 20px 60px -16px rgba(26,35,50,0.28);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  min-height:100vh;
+  background:linear-gradient(135deg,#1e2d4a 0%,#304F7E 55%,#2a4a6e 100%);
+  font-family:'Montserrat',system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.wrap{width:100%;max-width:420px}
+
+.brand{text-align:center;margin-bottom:32px;color:#fff}
+.brand .eyebrow{font-size:9px;letter-spacing:3px;text-transform:uppercase;font-weight:700;opacity:.6;margin-bottom:8px}
+.brand h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.brand h1 span{opacity:.55;font-weight:500}
+
+.card{background:var(--panel);box-shadow:var(--shadow-lg);padding:36px 32px 28px}
+.card-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:11px;color:var(--text-mute);margin-bottom:24px;line-height:1.55}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-mute);margin-bottom:5px}
+.field input{
+  width:100%;border:1px solid var(--border-2);background:var(--bg);
+  padding:10px 12px;font-family:'Montserrat',sans-serif;font-size:13px;
+  outline:none;transition:border-color .15s,background .15s;color:var(--text);
+}
+.field input:focus{border-color:var(--blue);background:#fff}
+.field input::placeholder{color:var(--text-mute)}
+
+/* password strength bar */
+.strength-bar{height:4px;background:#e5e7eb;margin-top:6px;overflow:hidden}
+.strength-fill{height:100%;width:0%;transition:width .3s ease,background .3s ease}
+.strength-label{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  margin-top:4px;color:var(--text-mute);min-height:14px}
+
+/* requirements checklist */
+.reqs{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:3px 10px}
+.req{font-size:10px;color:var(--text-mute);display:flex;align-items:center;gap:4px;
+  transition:color .2s}
+.req.ok{color:var(--green)}
+.req .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+.btn{
+  width:100%;padding:11px;font-family:'Montserrat',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  border:none;cursor:pointer;transition:all .15s;margin-top:4px;
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-primary:disabled{opacity:.45;pointer-events:none}
+
+.msg{font-size:11px;padding:9px 12px;margin-bottom:16px;
+  font-weight:600;display:none;line-height:1.5}
+.msg.err {background:var(--red-soft);color:var(--red);border-left:3px solid var(--red)}
+.msg.ok  {background:#e8efe1;color:var(--green);border-left:3px solid var(--green)}
+.msg.info{background:var(--blue-soft);color:var(--blue);border-left:3px solid var(--blue)}
+.msg.visible{display:block}
+
+.card-footer{text-align:center;margin-top:22px;padding-top:18px;
+  border-top:1px solid var(--border);font-size:11px;color:var(--text-mute)}
+.card-footer a{color:var(--blue);font-weight:700;text-decoration:none}
+.card-footer a:hover{text-decoration:underline}
+
+.spinner{display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+  vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* success state */
+.success-state{text-align:center;padding:16px 0;display:none}
+.success-icon{font-size:52px;margin-bottom:16px}
+.success-state h3{font-size:18px;font-weight:800;color:var(--green);margin-bottom:8px}
+.success-state p{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:20px}
+.success-state a{
+  display:inline-block;padding:10px 28px;background:var(--blue);color:#fff;
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  text-decoration:none;transition:background .15s;
+}
+.success-state a:hover{background:var(--blue-dark)}
+
+/* invalid token state */
+.error-state{text-align:center;padding:16px 0;display:none}
+.error-icon{font-size:52px;margin-bottom:16px}
+.error-state h3{font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px}
+.error-state p{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="eyebrow">Planejamento &amp; Controle de Obras</div>
+    <h1>PCO Digital <span>· Acesso</span></h1>
+  </div>
+
+  <div class="card">
+
+    <!-- DEFAULT STATE: form -->
+    <div id="form-state">
+      <div class="card-title">Criar nova senha</div>
+      <div class="card-sub">Escolha uma senha segura para sua conta. Ela substituirá a senha atual imediatamente.</div>
+
+      <div class="msg" id="msg"></div>
+
+      <div class="field">
+        <label>Nova senha</label>
+        <input type="password" id="nova-senha" placeholder="mínimo 8 caracteres"
+               oninput="checkStrength()" autocomplete="new-password"/>
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div class="strength-label" id="strength-label"></div>
+        <div class="reqs">
+          <div class="req" id="req-len"><div class="dot"></div>8+ caracteres</div>
+          <div class="req" id="req-upper"><div class="dot"></div>Letra maiúscula</div>
+          <div class="req" id="req-num"><div class="dot"></div>Número</div>
+          <div class="req" id="req-special"><div class="dot"></div>Caractere especial</div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:6px">
+        <label>Confirmar nova senha</label>
+        <input type="password" id="confirmar-senha" placeholder="repita a senha"
+               oninput="checkMatch()" autocomplete="new-password"/>
+        <div class="strength-label" id="match-label"></div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-salvar" onclick="doReset()" disabled>
+        Salvar nova senha
+      </button>
+
+      <div class="card-footer">
+        <a href="login.html">← Voltar para o login</a>
+      </div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-state" id="success-state">
+      <div class="success-icon">🔐</div>
+      <h3>Senha redefinida!</h3>
+      <p>Sua nova senha foi salva com sucesso.<br>Use-a para acessar o sistema normalmente.</p>
+      <a href="login.html">Ir para o login</a>
+    </div>
+
+    <!-- INVALID TOKEN STATE -->
+    <div class="error-state" id="error-state">
+      <div class="error-icon">⚠️</div>
+      <h3>Link inválido ou expirado</h3>
+      <p>Este link de redefinição de senha já foi usado ou expirou.<br>
+        Solicite um novo link pelo login.</p>
+      <div style="margin-top:16px">
+        <a href="login.html"
+           style="color:var(--blue);font-weight:700;text-decoration:none;font-size:12px">
+          ← Voltar para o login e solicitar novo link
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+
+/* ── Extract token from URL hash (Supabase puts it there) ──
+   URL format after clicking email link:
+   https://site.com/redefinir_senha.html#access_token=xxx&type=recovery
+*/
+let accessToken = null;
+
+function parseHash(){
+  const hash = window.location.hash.slice(1); // remove #
+  const params = new URLSearchParams(hash);
+  const type  = params.get('type');
+  const token = params.get('access_token');
+
+  if(type === 'recovery' && token){
+    accessToken = token;
+    return true;
+  }
+  return false;
+}
+
+/* ── Password strength ── */
+function checkStrength(){
+  const pwd = document.getElementById('nova-senha').value;
+  const checks = {
+    len:     pwd.length >= 8,
+    upper:   /[A-Z]/.test(pwd),
+    num:     /[0-9]/.test(pwd),
+    special: /[^A-Za-z0-9]/.test(pwd),
+  };
+
+  document.getElementById('req-len').classList.toggle('ok',     checks.len);
+  document.getElementById('req-upper').classList.toggle('ok',   checks.upper);
+  document.getElementById('req-num').classList.toggle('ok',     checks.num);
+  document.getElementById('req-special').classList.toggle('ok', checks.special);
+
+  const score = Object.values(checks).filter(Boolean).length;
+  const fill  = document.getElementById('strength-fill');
+  const label = document.getElementById('strength-label');
+  const levels = [
+    { pct:0,   bg:'transparent', txt:'' },
+    { pct:25,  bg:'#CC5121',     txt:'Muito fraca' },
+    { pct:50,  bg:'#D97706',     txt:'Fraca' },
+    { pct:75,  bg:'#EAA239',     txt:'Boa' },
+    { pct:100, bg:'#609346',     txt:'Forte' },
+  ];
+  const lvl = levels[score];
+  fill.style.width      = lvl.pct + '%';
+  fill.style.background = lvl.bg;
+  label.textContent     = lvl.txt;
+  label.style.color     = lvl.bg;
+
+  checkMatch();
+  updateBtn();
+}
+
+function checkMatch(){
+  const pwd  = document.getElementById('nova-senha').value;
+  const pwd2 = document.getElementById('confirmar-senha').value;
+  const lbl  = document.getElementById('match-label');
+  if(!pwd2){ lbl.textContent=''; return }
+  if(pwd === pwd2){
+    lbl.textContent='✓ Senhas coincidem';
+    lbl.style.color='var(--green)';
+  } else {
+    lbl.textContent='✗ Senhas não coincidem';
+    lbl.style.color='var(--red)';
+  }
+  updateBtn();
+}
+
+function updateBtn(){
+  const pwd  = document.getElementById('nova-senha').value;
+  const pwd2 = document.getElementById('confirmar-senha').value;
+  const valid = pwd.length >= 8 && pwd === pwd2;
+  document.getElementById('btn-salvar').disabled = !valid;
+}
+
+/* ── Submit new password ── */
+function showMsg(text, type='err'){
+  const el = document.getElementById('msg');
+  el.textContent=text; el.className='msg visible '+type;
+}
+
+async function doReset(){
+  const pwd  = document.getElementById('nova-senha').value;
+  const pwd2 = document.getElementById('confirmar-senha').value;
+
+  if(pwd !== pwd2){ showMsg('As senhas não coincidem.'); return }
+  if(pwd.length < 8){ showMsg('A senha deve ter pelo menos 8 caracteres.'); return }
+  if(!accessToken){ showMsg('Token inválido. Solicite um novo link.'); return }
+
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Salvando...';
+
+  try {
+    // Update password using the recovery access token
+    const res = await fetch(SB_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: pwd }),
+    });
+
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      const msg = data?.msg || data?.error_description || 'Erro ao redefinir senha.';
+      showMsg(msg); return;
+    }
+
+    // Success
+    document.getElementById('form-state').style.display  = 'none';
+    document.getElementById('success-state').style.display = 'block';
+
+    // Clear token from URL (security)
+    history.replaceState(null, '', window.location.pathname);
+
+  } catch(e){
+    showMsg('Erro de conexão: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar nova senha';
+  }
+}
+
+/* Enter key */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter') doReset();
+});
+
+/* ── Init: check token in URL ── */
+window.addEventListener('load', ()=>{
+  const valid = parseHash();
+  if(!valid){
+    // No valid recovery token — show error state
+    document.getElementById('form-state').style.display  = 'none';
+    document.getElementById('error-state').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
