@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Controle de Redes de Drenagem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --bg-2:#fff; --panel:#fff; --border:#d8dde4; --border-2:#c1c9d3;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --inpasa-blue:#304F7E; --inpasa-blue-dark:#223a60;
+  --inpasa-gold:#EAA239; --inpasa-green:#609346;
+  --accent-soft:#eef2f8;
+  --green:#609346; --green-soft:#e8efe1;
+  --yellow:#EAA239; --yellow-soft:#fbf0d9;
+  --red:#CC5121; --red-soft:#f8e2d6;
+  --neutral:#BDBFC1;
+  --shadow:0 4px 20px -4px rgba(26,35,50,0.12);
+  --shadow-lg:0 12px 40px -12px rgba(26,35,50,0.25);
+  --canvas-bg:#fafbfc; --canvas-grid:#e8ebef;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Montserrat',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.45}
+.app{max-width:1800px;margin:0 auto;padding:18px 22px 60px}
+
+/* ── HEADER ── */
+header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:12px;border-bottom:3px solid var(--inpasa-blue);margin-bottom:16px;flex-wrap:wrap;gap:14px}
+.brand-text .eyebrow{font-size:9px;color:var(--inpasa-blue);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:2px;font-weight:700}
+.brand-text h1{font-size:19px;font-weight:800;letter-spacing:-0.4px;color:var(--text)}
+.brand-text h1 span{color:var(--text-dim);font-weight:500}
+.header-right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+
+/* ── BUTTONS ── */
+.tool-btn{background:var(--bg-2);color:var(--text);border:1px solid var(--border-2);padding:7px 12px;
+  font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.5px;text-transform:uppercase;
+  cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s ease;white-space:nowrap}
+.tool-btn:hover{background:var(--accent-soft);border-color:var(--inpasa-blue);color:var(--inpasa-blue)}
+.tool-btn.active{background:var(--inpasa-blue);border-color:var(--inpasa-blue);color:#fff;font-weight:700}
+.tool-btn.primary{background:var(--inpasa-gold);border-color:var(--inpasa-gold);color:var(--inpasa-blue);font-weight:800}
+.tool-btn.primary:hover{background:#d89328}
+.tool-btn.success{background:var(--green);border-color:var(--green);color:#fff}
+.tool-btn.danger{color:var(--red)}
+.tool-btn.danger:hover{border-color:var(--red);background:var(--red-soft)}
+.tool-btn svg{width:14px;height:14px;flex-shrink:0}
+.tool-btn:disabled{opacity:.4;pointer-events:none}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
+  margin-bottom:12px;padding:9px 13px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow)}
+.toolbar-section{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.toolbar-sep{width:1px;height:22px;background:var(--border)}
+.toolbar-label{font-size:9px;color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-right:2px}
+.diam-select{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;
+  border:1px solid var(--border-2);background:var(--bg-2);color:var(--text);padding:6px 9px;cursor:pointer;outline:none}
+
+/* ── KPIs ── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin-bottom:12px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--inpasa-blue);padding:9px 12px;box-shadow:var(--shadow)}
+.kpi[data-color="green"]{border-left-color:var(--green)}
+.kpi[data-color="yellow"]{border-left-color:var(--yellow)}
+.kpi[data-color="blue"]{border-left-color:#007CC5}
+.kpi-label{font-size:9px;color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px;font-weight:600}
+.kpi-value{font-size:22px;font-weight:800;letter-spacing:-1px;color:var(--text)}
+.kpi-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:1px}
+
+/* ── MACRO BAR ── */
+.macro-progress{background:var(--panel);border:1px solid var(--border);padding:10px 14px;margin-bottom:9px;box-shadow:var(--shadow)}
+.macro-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+  font-size:10px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.macro-head strong{color:var(--inpasa-blue);font-size:13px;letter-spacing:0;font-weight:800}
+.macro-bar{height:9px;background:var(--bg);border:1px solid var(--border);overflow:hidden}
+.macro-fill{display:flex;height:100%}
+.macro-fill>span{transition:width .4s ease}
+.seg-done{background:var(--green)} .seg-pend{background:var(--neutral)}
+
+/* ── LEGEND ── */
+.legend-wrap{background:var(--panel);border:1px solid var(--border);padding:9px 13px;margin-bottom:12px;box-shadow:var(--shadow)}
+.legend-title{font-size:9px;color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:7px}
+.legend-grid{display:flex;flex-wrap:wrap;gap:8px 16px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--text-dim)}
+.legend-swatch{width:28px;height:8px;border-radius:4px;display:inline-block}
+.legend-swatch.pend{opacity:.35;border:1px solid currentColor}
+.legend-box{width:16px;height:16px;border:2px solid #1a2332;display:inline-flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;font-family:'JetBrains Mono',monospace}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}}
+
+/* ── MAP WRAP ── */
+.map-wrap{background:var(--panel);border:1px solid var(--border);padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.map-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--border);
+  font-size:10px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;flex-wrap:wrap;gap:6px}
+.map-title strong{color:var(--text);font-size:12px;font-weight:800}
+.zoom-controls{display:flex;gap:4px;align-items:center}
+.zoom-btn{width:28px;height:28px;border:1px solid var(--border-2);background:var(--bg-2);cursor:pointer;
+  font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  color:var(--text-dim);transition:all .15s}
+.zoom-btn:hover{background:var(--accent-soft);color:var(--inpasa-blue);border-color:var(--inpasa-blue)}
+.zoom-level{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute);min-width:36px;text-align:center}
+
+/* ── CANVAS VIEWPORT ── */
+.canvas-viewport{
+  position:relative;overflow:hidden;
+  background:var(--canvas-bg);border:1px solid var(--border);
+  flex:1;min-height:520px;
+  cursor:default;
+}
+.canvas-viewport.mode-pan{cursor:grab}
+.canvas-viewport.mode-pan.panning{cursor:grabbing}
+.canvas-viewport.mode-pipe{cursor:crosshair}
+.canvas-viewport.mode-box{cursor:cell}
+
+/* The actual large SVG canvas inside the viewport */
+#drain-svg{
+  position:absolute;top:0;left:0;
+  /* world size = 8000×5000 px; viewport will be scaled/translated via transform */
+}
+
+/* Grid lines via SVG pattern — drawn inside SVG */
+
+/* Hint */
+.map-hint{display:none;padding:7px 11px;background:var(--accent-soft);border:1px dashed var(--inpasa-blue);
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--inpasa-blue);margin-bottom:8px;font-weight:500}
+.map-hint.visible{display:block}
+
+/* ── SVG ELEMENTS ── */
+.pipe-group{cursor:pointer}
+.pipe-group:hover .pipe-border{opacity:.7}
+.pipe-group.selected .pipe-border{opacity:1;filter:drop-shadow(0 0 5px rgba(234,162,57,.8))}
+.pipe-group.selected .pipe-body{stroke:var(--inpasa-gold) !important;stroke-width:3}
+
+.pv-group{cursor:pointer}
+.pv-group:hover .pv-rect{stroke:var(--inpasa-gold);stroke-width:2.5}
+.pv-group.selected .pv-rect{stroke:var(--inpasa-gold) !important;stroke-width:3;filter:drop-shadow(0 0 6px rgba(234,162,57,.8))}
+
+.pv-label{font-family:'JetBrains Mono',monospace;font-weight:700;text-anchor:middle;dominant-baseline:middle;
+  paint-order:stroke;stroke:rgba(0,0,0,.8);stroke-width:3;stroke-linejoin:round;pointer-events:none}
+.pipe-label{font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;text-anchor:middle;dominant-baseline:middle;
+  paint-order:stroke;stroke:rgba(0,0,0,.7);stroke-width:2.5;stroke-linejoin:round;pointer-events:none}
+
+.handle{fill:var(--inpasa-gold);stroke:#fff;stroke-width:1.5;cursor:grab}
+.draw-preview{stroke:var(--inpasa-blue);stroke-linecap:round;stroke-dasharray:12 8;opacity:.6;pointer-events:none}
+
+/* ── SIDE PANEL ── */
+.side{background:var(--panel);border:1px solid var(--border);padding:14px;height:fit-content;position:sticky;top:14px;box-shadow:var(--shadow)}
+.side-empty{text-align:center;padding:24px 10px;color:var(--text-mute)}
+.side-empty p{font-size:11px;line-height:1.6}
+.side-empty strong{color:var(--inpasa-blue)}
+.detail{display:none}
+.detail.active{display:block}
+.detail-head{padding-bottom:9px;border-bottom:3px solid var(--inpasa-blue);margin-bottom:12px}
+.detail-eyebrow{font-size:9px;color:var(--inpasa-blue);letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.detail-name{font-size:16px;font-weight:800;margin-top:2px;word-break:break-word}
+.detail-sub{font-size:10px;color:var(--text-dim);margin-top:2px}
+.status-badge{font-size:9px;padding:3px 9px;letter-spacing:1px;text-transform:uppercase;border:1px solid;font-weight:700;white-space:nowrap;display:inline-block;margin-top:5px}
+.status-badge.done{background:var(--green-soft);color:var(--green);border-color:var(--green)}
+.status-badge.pend{background:#f3f4f6;color:#6b7280;border-color:#9ca3af}
+.field{margin-bottom:10px}
+.field-label{font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px;display:block}
+.input{width:100%;background:var(--bg-2);border:1px solid var(--border-2);padding:7px 9px;
+  font-family:'Montserrat',sans-serif;font-size:12px;outline:none;transition:border-color .15s}
+.input:focus{border-color:var(--inpasa-blue)}
+select.input{cursor:pointer}
+.status-opts{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
+.status-opt{padding:5px 10px;border:2px solid var(--border-2);background:var(--bg-2);font-size:10px;font-weight:700;
+  cursor:pointer;letter-spacing:.5px;text-transform:uppercase;font-family:'Montserrat',sans-serif;transition:all .15s}
+.status-opt[data-s="done"]:hover,.status-opt[data-s="done"].active{background:var(--green);border-color:var(--green);color:#fff}
+.status-opt[data-s="pend"]:hover,.status-opt[data-s="pend"].active{background:var(--neutral);border-color:#9ca3af;color:#fff}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.btn-row .tool-btn{flex:1;justify-content:center}
+.textarea{width:100%;background:var(--bg-2);border:1px solid var(--border-2);padding:7px 9px;
+  font-family:'Montserrat',sans-serif;font-size:11px;outline:none;resize:vertical;min-height:54px;transition:border-color .15s}
+.textarea:focus{border-color:var(--inpasa-blue)}
+.delete-btn{width:100%;margin-top:8px;justify-content:center;color:var(--red)}
+.delete-btn:hover{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+
+/* ── TABLE SECTION ── */
+.table-section{margin-top:20px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow)}
+.table-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.table-header-title{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--text)}
+.table-header-actions{display:flex;gap:7px;align-items:center}
+.table-wrap{overflow-x:auto}
+.data-table{width:100%;border-collapse:collapse;font-size:11px}
+.data-table th{background:var(--inpasa-blue);color:#fff;font-weight:700;padding:7px 10px;
+  text-transform:uppercase;letter-spacing:1px;font-size:9px;text-align:left;white-space:nowrap}
+.data-table td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-table tr:hover td{background:var(--accent-soft)}
+.data-table tr.selected td{background:#fff8e6}
+.data-table .num{text-align:right;font-family:'JetBrains Mono',monospace}
+.inline-badge{font-size:8px;padding:2px 6px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border:1px solid}
+.inline-badge.done{background:var(--green-soft);color:var(--green);border-color:var(--green)}
+.inline-badge.pend{background:#f3f4f6;color:#6b7280;border-color:#9ca3af}
+.diam-chip{display:inline-block;padding:1px 7px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;white-space:nowrap}
+
+/* ── IMPORT MODAL ── */
+.import-area{border:2px dashed var(--border-2);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;background:var(--bg)}
+.import-area:hover,.import-area.drag-over{border-color:var(--inpasa-blue);background:var(--accent-soft)}
+.import-area p{font-size:12px;color:var(--text-dim)}
+.import-area strong{color:var(--inpasa-blue)}
+#import-file-input{display:none}
+.import-preview{max-height:200px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:#f8f9fb;border:1px solid var(--border);padding:8px;margin-top:10px;white-space:pre;color:var(--text-dim)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--inpasa-blue);color:#fff;padding:9px 20px;font-size:11px;font-weight:700;
+  letter-spacing:.5px;opacity:0;transition:all .25s ease;pointer-events:none;
+  box-shadow:var(--shadow-lg);z-index:9999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+
+/* ── MODALS ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,20,40,.55);z-index:8000;align-items:center;justify-content:center}
+.modal-overlay.visible{display:flex}
+.modal-box{background:var(--panel);border-top:4px solid var(--inpasa-gold);padding:24px;max-width:520px;width:94%;box-shadow:var(--shadow-lg)}
+.modal-box.wide{max-width:640px}
+.modal-box h3{font-size:17px;font-weight:800;color:var(--inpasa-blue);margin-bottom:7px}
+.modal-box p{font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.6}
+.modal-btns{display:flex;gap:9px;justify-content:flex-end;margin-top:14px}
+.pwd-input{width:100%;background:var(--bg-2);border:2px solid var(--border-2);padding:11px;
+  font-family:'JetBrains Mono',monospace;font-size:16px;letter-spacing:3px;text-align:center;outline:none;transition:border-color .15s;margin-bottom:5px}
+.pwd-input:focus{border-color:var(--inpasa-blue)}
+.pwd-error{min-height:15px;color:var(--red);font-size:10px;font-weight:700}
+
+/* ── LOCK STATE ── */
+body.locked .tool-btn#btn-pipe,
+body.locked .tool-btn#btn-box,
+body.locked .status-opt,
+body.locked select.input,
+body.locked input.input:not([readonly]),
+body.locked .textarea{pointer-events:none;opacity:.4}
+body.locked .handle{display:none!important}
+body.locked #btn-delete-el{pointer-events:none;opacity:.4}
+body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-text">
+      <div class="eyebrow">PLANEJAMENTO &amp; CONTROLE</div>
+      <h1>Redes de Drenagem <span>· Controle Visual de Execução</span></h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="tool-btn" id="btn-lock" onclick="toggleLock()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+      <span id="lock-label">Bloqueado · Liberar</span>
+    </button>
+    <div style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase">
+      <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--neutral);display:inline-block;transition:background .3s"></span>
+      SUPABASE · <span id="save-status">Conectando...</span>
+    </div>
+  </div>
+</header>
+
+<!-- KPIs -->
+<div class="kpis">
+  <div class="kpi" data-color="blue">
+    <div class="kpi-label">Trechos</div>
+    <div class="kpi-value" id="kpi-pipes">0</div>
+    <div class="kpi-sub" id="kpi-pipes-m">0 m lineares</div>
+  </div>
+  <div class="kpi" data-color="green">
+    <div class="kpi-label">Caixas PV</div>
+    <div class="kpi-value" id="kpi-boxes">0</div>
+    <div class="kpi-sub">Poços de visita</div>
+  </div>
+  <div class="kpi" data-color="green">
+    <div class="kpi-label">Trechos Concluídos</div>
+    <div class="kpi-value" id="kpi-done-pipes">0</div>
+    <div class="kpi-sub" id="kpi-done-pct">0%</div>
+  </div>
+  <div class="kpi" data-color="green">
+    <div class="kpi-label">Caixas Concluídas</div>
+    <div class="kpi-value" id="kpi-done-boxes">0</div>
+    <div class="kpi-sub" id="kpi-done-boxes-pct">0%</div>
+  </div>
+  <div class="kpi" data-color="yellow">
+    <div class="kpi-label">Metros Concluídos</div>
+    <div class="kpi-value" id="kpi-m-done">0</div>
+    <div class="kpi-sub">metros executados</div>
+  </div>
+</div>
+
+<!-- MACRO BARS -->
+<div class="macro-progress">
+  <div class="macro-head"><span>Avanço — Trechos</span><strong id="macro-text-pipes">0 / 0</strong></div>
+  <div class="macro-bar"><div class="macro-fill" id="macro-fill-pipes"></div></div>
+</div>
+<div class="macro-progress" style="margin-top:-6px">
+  <div class="macro-head"><span>Avanço — Caixas PV</span><strong id="macro-text-boxes">0 / 0</strong></div>
+  <div class="macro-bar"><div class="macro-fill" id="macro-fill-boxes"></div></div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend-wrap">
+  <div class="legend-title">Legenda — Diâmetros e Status</div>
+  <div class="legend-grid" id="legend-grid"></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-section">
+    <span class="toolbar-label">Ferramentas</span>
+    <button class="tool-btn active" id="btn-select" onclick="setTool('select')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2l10 6-5 1-2 5z"/></svg>Selecionar
+    </button>
+    <button class="tool-btn" id="btn-pan" onclick="setTool('pan')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v12M2 8h12" stroke-linecap="round"/><circle cx="8" cy="8" r="2"/></svg>Pan
+    </button>
+    <button class="tool-btn" id="btn-pipe" onclick="setTool('pipe')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 8h12" stroke-linecap="round"/></svg>Traçar Tubo
+    </button>
+    <button class="tool-btn" id="btn-box" onclick="setTool('box')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa PV
+    </button>
+  </div>
+  <div class="toolbar-section">
+    <span class="toolbar-label">Diâmetro</span>
+    <select class="diam-select" id="diam-default">
+      <option value="400">Ø 400 mm</option>
+      <option value="600">Ø 600 mm</option>
+      <option value="800">Ø 800 mm</option>
+      <option value="1000">Ø 1000 mm</option>
+      <option value="1200" selected>Ø 1200 mm</option>
+      <option value="1500">Ø 1500 mm</option>
+    </select>
+    <div class="toolbar-sep"></div>
+    <button class="tool-btn danger" onclick="clearAll()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>Limpar Tudo
+    </button>
+  </div>
+</div>
+
+<!-- HINTS -->
+<div class="map-hint" id="hint-pipe">✏ Clique e arraste para traçar um trecho · <kbd>Esc</kbd> cancela</div>
+<div class="map-hint" id="hint-box">✏ Clique para posicionar uma caixa PV · <kbd>Esc</kbd> cancela</div>
+<div class="map-hint" id="hint-pan" style="background:#f0fbf0;border-color:var(--green);color:var(--green)">🖐 Clique e arraste para mover o canvas · Scroll do mouse = zoom</div>
+
+<!-- CANVAS + SIDE -->
+<div class="layout">
+  <div class="map-wrap">
+    <div class="map-title">
+      <strong>Planta de Rede de Drenagem</strong>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span id="map-count" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute)">0 elementos</span>
+        <div class="zoom-controls">
+          <button class="zoom-btn" onclick="zoom(1.25)" title="Zoom in">+</button>
+          <span class="zoom-level" id="zoom-label">100%</span>
+          <button class="zoom-btn" onclick="zoom(0.8)" title="Zoom out">−</button>
+          <button class="zoom-btn" onclick="zoomFit()" title="Encaixar tudo" style="font-size:11px;font-weight:800;width:auto;padding:0 6px">⊞</button>
+          <button class="zoom-btn" onclick="zoomReset()" title="100%%" style="font-size:10px;width:auto;padding:0 6px">1:1</button>
+        </div>
+      </div>
+    </div>
+    <div class="canvas-viewport" id="canvas-viewport">
+      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="5000">
+        <defs>
+          <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e4e7ec" stroke-width="0.5"/>
+          </pattern>
+          <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+            <rect width="100" height="100" fill="url(#smallGrid)"/>
+            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#d4d8e0" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="8000" height="5000" fill="url(#grid)"/>
+        <g id="elements-layer"></g>
+        <g id="preview-layer"></g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side">
+    <div class="side-empty" id="side-empty">
+      <p id="empty-msg"><strong>Planta vazia</strong><br>Libere a edição e use as ferramentas acima para desenhar a rede.</p>
+    </div>
+    <div class="detail" id="detail-panel">
+      <div class="detail-head">
+        <div class="detail-eyebrow" id="detail-type">TRECHO</div>
+        <div class="detail-name" id="detail-name">—</div>
+        <div class="detail-sub" id="detail-sub">—</div>
+        <span class="status-badge pend" id="detail-badge">PENDENTE</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Status</span>
+        <div class="status-opts">
+          <button class="status-opt active" data-s="pend" onclick="setStatus('pend')">⏳ Pendente</button>
+          <button class="status-opt" data-s="done" onclick="setStatus('done')">✔ Concluído</button>
+        </div>
+      </div>
+      <div class="field" id="field-diam">
+        <span class="field-label">Diâmetro</span>
+        <select class="input" id="op-diam" onchange="setDiam(this.value)">
+          <option value="400">Ø 400 mm</option>
+          <option value="600">Ø 600 mm</option>
+          <option value="800">Ø 800 mm</option>
+          <option value="1000">Ø 1000 mm</option>
+          <option value="1200">Ø 1200 mm</option>
+          <option value="1500">Ø 1500 mm</option>
+        </select>
+      </div>
+      <div class="field" id="field-len">
+        <span class="field-label">Comprimento (m)</span>
+        <input type="number" class="input" id="op-len" min="0" step="0.5" placeholder="ex.: 50"/>
+      </div>
+      <div class="field" id="field-pvnum" style="display:none">
+        <span class="field-label">Número PV (1–500)</span>
+        <input type="number" class="input" id="op-pvnum" min="1" max="500" step="1" placeholder="1–500"/>
+      </div>
+      <div class="field">
+        <span class="field-label">Observações / Impedimentos</span>
+        <textarea class="textarea" id="op-note" placeholder="Informe pendências, datas, observações..."></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="tool-btn primary" onclick="saveSelected()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9l4 4 8-8"/></svg>Salvar
+        </button>
+        <button class="tool-btn" onclick="deselect()">Fechar</button>
+      </div>
+      <button class="tool-btn danger delete-btn" id="btn-delete-el" onclick="deleteSelected()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>
+        Excluir este elemento
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE SECTION -->
+<div class="table-section">
+  <div class="table-header">
+    <span class="table-header-title">📋 Tabela de Elementos — <span id="table-count">0 registros</span></span>
+    <div class="table-header-actions">
+      <button class="tool-btn" onclick="exportCSV()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v9M4 7l4 4 4-4"/><path d="M2 13h12"/></svg>
+        Baixar CSV
+      </button>
+      <button class="tool-btn primary" onclick="openImport()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 11V2M4 6l4-4 4 4"/><path d="M2 13h12"/></svg>
+        Importar CSV
+      </button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table" id="data-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Tipo</th><th>Ø / PV Nº</th>
+          <th class="num">Compr. (m)</th><th>Status</th><th>Observações</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<!-- MODAL: CONFIRMAÇÃO -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal-box">
+    <h3 id="modal-title">Confirmar</h3>
+    <p id="modal-msg">Tem certeza?</p>
+    <div class="modal-btns">
+      <button class="tool-btn" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="tool-btn danger" id="modal-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SENHA -->
+<div class="modal-overlay" id="modal-pwd">
+  <div class="modal-box">
+    <h3>Liberar Edição</h3>
+    <p>Digite a senha para habilitar as ferramentas de desenho.</p>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="Senha"/>
+    <div class="pwd-error" id="pwd-error"></div>
+    <div class="modal-btns">
+      <button class="tool-btn" onclick="closeModal('modal-pwd')">Cancelar</button>
+      <button class="tool-btn primary" onclick="tryUnlock()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR CSV -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal-box wide">
+    <h3>Importar CSV</h3>
+    <p>Selecione ou arraste um arquivo <strong>.csv</strong> previamente exportado deste sistema. As colunas <code>id</code>, <code>tipo</code>, <code>diametro_mm</code>, <code>pv_numero</code>, <code>comprimento_m</code>, <code>status</code> e <code>observacoes</code> serão lidas. As posições no canvas serão mantidas — apenas os dados de campo são atualizados.</p>
+    <div class="import-area" id="import-area" onclick="document.getElementById('import-file-input').click()">
+      <p>🗂 <strong>Clique para selecionar</strong> ou arraste um arquivo CSV aqui</p>
+    </div>
+    <input type="file" id="import-file-input" accept=".csv,text/csv"/>
+    <div class="import-preview" id="import-preview" style="display:none"></div>
+    <div class="modal-btns">
+      <button class="tool-btn" onclick="closeModal('modal-import')">Cancelar</button>
+      <button class="tool-btn primary" id="btn-confirm-import" disabled onclick="confirmImport()">Aplicar Importação</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONSTANTES
+   ================================================================ */
+const EDIT_PASSWORD = '1234';          // ← altere aqui
+const STORAGE_KEY   = 'drain_net_v2'; // fallback offline
+
+/* ── SUPABASE CONFIG — preencha os dois campos abaixo ── */
+const SB_URL = 'https://vfqesvmaqxvlgtshyoja.supabase.co';  // ← Project URL
+const SB_KEY = 'sb_publishable_iM-DC7LaA8Ur3mRqpAyy5w_r7bx6LD7';            // ← anon/public key
+const TABLE  = 'drain_elements';
+const SVG_NS        = 'http://www.w3.org/2000/svg';
+const WORLD_W       = 8000;
+const WORLD_H       = 5000;
+const SNAP          = 20;
+const PV_SIZE       = 40;
+const MIN_PIPE      = 30;
+
+
+/* Espessura visual da linha por diâmetro (em SVG units) */
+const PIPE_TH = {400:10,600:14,800:18,1000:22,1200:26,1500:32};
+
+/* Cores: done = saturado, pend = pastel */
+const DIAM_C = {
+  400:  {done:'#2563EB',pend:'#DBEAFE',stroke:'#1d4ed8'},
+  600:  {done:'#7C3AED',pend:'#EDE9FE',stroke:'#6d28d9'},
+  800:  {done:'#059669',pend:'#D1FAE5',stroke:'#047857'},
+  1000: {done:'#D97706',pend:'#FEF3C7',stroke:'#b45309'},
+  1200: {done:'#DC2626',pend:'#FEE2E2',stroke:'#b91c1c'},
+  1500: {done:'#DB2777',pend:'#FCE7F3',stroke:'#be185d'},
+};
+const DIAMS = [400,600,800,1000,1200,1500];
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let elements   = [];
+let selectedId = null;
+let tool       = 'select';
+let isUnlocked = false;
+let modalCb    = null;
+let pendingCsv = null;   // rows parsed from CSV before confirm
+
+/* Viewport / pan-zoom */
+let vpScale = 1;
+let vpTx    = 0;
+let vpTy    = 0;
+
+/* ================================================================
+   UID / SNAP
+   ================================================================ */
+function uid(){ return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,6) }
+function snapV(v){ return Math.round(v/SNAP)*SNAP }
+
+/* ================================================================
+   LEGEND BUILD
+   ================================================================ */
+function buildLegend(){
+  const g = document.getElementById('legend-grid');
+  g.innerHTML = '';
+  DIAMS.forEach(d => {
+    const c = DIAM_C[d];
+    g.innerHTML += `
+      <div class="legend-item">
+        <span class="legend-swatch" style="background:${c.done}"></span>Ø${d} concluído
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch pend" style="background:${c.pend};border-color:${c.done}"></span>Ø${d} pendente
+      </div>`;
+  });
+  g.innerHTML += `
+    <div class="legend-item">
+      <div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída
+    </div>`;
+}
+
+/* ================================================================
+   SUPABASE HELPERS
+   ================================================================ */
+function setSyncStatus(msg, state='idle'){
+  document.getElementById('save-status').textContent = msg;
+  const dot = document.getElementById('sync-dot');
+  const colors = { idle:'#BDBFC1', ok:'#609346', saving:'#EAA239', error:'#CC5121' };
+  dot.style.background = colors[state] || colors.idle;
+  dot.style.animation  = state==='saving' ? 'syncPulse 0.8s infinite' : 'none';
+}
+
+async function sbFetch(path, opts={}){
+  const { prefer='', ...rest } = opts;
+  const res = await fetch(SB_URL + '/rest/v1/' + path, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': prefer,
+    },
+    ...rest,
+  });
+  // lê o corpo como texto primeiro (nunca falha)
+  const text = await res.text();
+  if(!res.ok) throw new Error(res.status + ' ' + text);
+  // só tenta parsear JSON se houver conteúdo
+  if(!text || !text.trim()) return null;
+  try { return JSON.parse(text); }
+  catch(_) { return null; }
+}
+
+/* Objeto interno → linha do banco */
+function toRow(el){
+  const base = { id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'' };
+  if(el.kind === 'pipe')
+    return { ...base, diam: el.diam, length_m: el.lengthM||0,
+             x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2,
+             pv_num: null, pv_x: null, pv_y: null };
+  else
+    return { ...base, pv_num: el.pvNum, pv_x: el.x, pv_y: el.y,
+             diam: null, length_m: null, x1: null, y1: null, x2: null, y2: null };
+}
+
+/* Linha do banco → objeto interno */
+function fromRow(r){
+  if(r.kind === 'pipe')
+    return { id:r.id, kind:'pipe', status:r.status, note:r.note||'',
+             diam:r.diam, lengthM:Number(r.length_m)||0,
+             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2) };
+  else
+    return { id:r.id, kind:'box', status:r.status, note:r.note||'',
+             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y) };
+}
+
+/* ================================================================
+   STORAGE  (Supabase + localStorage como fallback offline)
+   ================================================================ */
+async function save(){
+  setSyncStatus('Salvando...', 'saving');
+  // salva também local como cache offline
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)) }catch(_){}
+  try {
+    await sbFetch(TABLE + '?on_conflict=id', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates,return=minimal',
+      body: JSON.stringify(elements.map(toRow)),
+    });
+    setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
+  } catch(e){
+    setSyncStatus('Erro ao salvar', 'error');
+    toast('Supabase: ' + e.message, true);
+  }
+}
+
+async function deleteFromDB(id){
+  await sbFetch(TABLE + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+}
+
+async function loadData(){
+  setSyncStatus('Conectando...', 'saving');
+  try {
+    const rows = await sbFetch(TABLE + '?order=created_at.asc');
+    elements = (rows||[]).map(fromRow);
+    setSyncStatus('Online ✓', 'ok');
+    // atualiza cache local
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)) }catch(_){}
+  } catch(e){
+    setSyncStatus('Offline — cache local', 'error');
+    toast('Supabase indisponível · usando cache local', true);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) elements = JSON.parse(raw);
+    } catch(_){ elements = []; }
+  }
+}
+
+/* ================================================================
+   PAN / ZOOM — viewport transform
+   ================================================================ */
+function applyTransform(){
+  const svg = document.getElementById('drain-svg');
+  svg.style.transform = `translate(${vpTx}px,${vpTy}px) scale(${vpScale})`;
+  svg.style.transformOrigin = '0 0';
+  document.getElementById('zoom-label').textContent = Math.round(vpScale*100)+'%';
+}
+
+function zoom(factor, cx, cy){
+  const vp = document.getElementById('canvas-viewport');
+  const rect = vp.getBoundingClientRect();
+  // zoom toward center of viewport if no point specified
+  const px = (cx ?? rect.width/2);
+  const py = (cy ?? rect.height/2);
+  const newScale = Math.min(8, Math.max(0.08, vpScale * factor));
+  // adjust translation so the point under cursor stays fixed
+  vpTx = px - (px - vpTx) * (newScale/vpScale);
+  vpTy = py - (py - vpTy) * (newScale/vpScale);
+  vpScale = newScale;
+  applyTransform();
+}
+
+function zoomFit(){
+  if(elements.length === 0){ zoomReset(); return; }
+  const vp = document.getElementById('canvas-viewport');
+  const rect = vp.getBoundingClientRect();
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  elements.forEach(el => {
+    if(el.kind==='pipe'){
+      minX=Math.min(minX,el.x1,el.x2); minY=Math.min(minY,el.y1,el.y2);
+      maxX=Math.max(maxX,el.x1,el.x2); maxY=Math.max(maxY,el.y1,el.y2);
+    } else {
+      minX=Math.min(minX,el.x); minY=Math.min(minY,el.y);
+      maxX=Math.max(maxX,el.x+PV_SIZE); maxY=Math.max(maxY,el.y+PV_SIZE);
+    }
+  });
+  const pad = 80;
+  const bw = maxX-minX+2*pad, bh = maxY-minY+2*pad;
+  const s  = Math.min(8, Math.max(0.08, Math.min(rect.width/bw, rect.height/bh)));
+  vpScale  = s;
+  vpTx     = rect.width/2  - (minX-pad+bw/2)*s;
+  vpTy     = rect.height/2 - (minY-pad+bh/2)*s;
+  applyTransform();
+}
+
+function zoomReset(){
+  const vp = document.getElementById('canvas-viewport');
+  const rect = vp.getBoundingClientRect();
+  vpScale = Math.min(1, rect.width/800, rect.height/500);
+  vpTx = 20; vpTy = 20;
+  applyTransform();
+}
+
+/* Convert viewport pixel → world SVG coordinates */
+function vpToWorld(px, py){
+  return { x:(px-vpTx)/vpScale, y:(py-vpTy)/vpScale };
+}
+
+/* Convert mouse event → world coords */
+function evToWorld(ev){
+  const vp   = document.getElementById('canvas-viewport');
+  const rect = vp.getBoundingClientRect();
+  return vpToWorld(ev.clientX - rect.left, ev.clientY - rect.top);
+}
+
+/* ================================================================
+   LOCK / UNLOCK
+   ================================================================ */
+function toggleLock(){
+  if(isUnlocked){ isUnlocked=false; updateLockUI(); setTool('select'); toast('Dashboard bloqueado') }
+  else{
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-error').textContent='';
+    document.getElementById('modal-pwd').classList.add('visible');
+    setTimeout(()=>document.getElementById('pwd-input').focus(),80);
+  }
+}
+function tryUnlock(){
+  if(document.getElementById('pwd-input').value===EDIT_PASSWORD){
+    isUnlocked=true;
+    closeModal('modal-pwd');
+    updateLockUI();
+    toast('Edição liberada ✓');
+  } else {
+    document.getElementById('pwd-error').textContent='Senha incorreta';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock()});
+function updateLockUI(){
+  document.body.classList.toggle('locked',!isUnlocked);
+  document.body.classList.toggle('unlocked',isUnlocked);
+  document.getElementById('lock-label').textContent=isUnlocked?'Edição liberada · Trancar':'Bloqueado · Liberar';
+}
+
+/* ================================================================
+   TOOLS
+   ================================================================ */
+function setTool(t){
+  tool=t;
+  ['select','pan','pipe','box'].forEach(k=>{
+    document.getElementById('btn-'+k)?.classList.toggle('active',t===k);
+  });
+  ['pipe','box','pan'].forEach(k=>{
+    document.getElementById('hint-'+k)?.classList.toggle('visible',t===k);
+  });
+  const vp = document.getElementById('canvas-viewport');
+  vp.className = 'canvas-viewport' + (t==='pan'?' mode-pan':t==='pipe'?' mode-pipe':t==='box'?' mode-box':'');
+}
+
+/* ================================================================
+   DRAW — PIPE
+   ================================================================ */
+let pipeStart = null;
+
+function startPipe(ev){
+  if(!isUnlocked) return;
+  const w = evToWorld(ev);
+  pipeStart = {x:snapV(w.x), y:snapV(w.y)};
+  // preview line
+  const layer = document.getElementById('preview-layer');
+  const line  = document.createElementNS(SVG_NS,'line');
+  line.id='pipe-prev';
+  line.setAttribute('class','draw-preview');
+  line.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
+  line.setAttribute('x1',pipeStart.x); line.setAttribute('y1',pipeStart.y);
+  line.setAttribute('x2',pipeStart.x); line.setAttribute('y2',pipeStart.y);
+  layer.appendChild(line);
+  ev.preventDefault();
+}
+
+function movePipe(ev){
+  if(!pipeStart) return;
+  const w = evToWorld(ev);
+  const prev = document.getElementById('pipe-prev');
+  if(prev){ prev.setAttribute('x2',snapV(w.x)); prev.setAttribute('y2',snapV(w.y)); }
+}
+
+function endPipe(ev){
+  if(!pipeStart) return;
+  const w  = evToWorld(ev);
+  const x2 = snapV(w.x), y2 = snapV(w.y);
+  document.getElementById('pipe-prev')?.remove();
+  const dx=x2-pipeStart.x, dy=y2-pipeStart.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<MIN_PIPE){ toast('Trecho muito curto · descartado'); pipeStart=null; return; }
+  const el={
+    id:uid(), kind:'pipe',
+    x1:pipeStart.x, y1:pipeStart.y, x2, y2,
+    diam:getDiam(), lengthM:0, status:'pend', note:''
+  };
+  elements.push(el);
+  selectedId=el.id;
+  pipeStart=null;
+  save(); render();
+}
+
+/* ================================================================
+   PLACE BOX (PV)
+   ================================================================ */
+function placeBox(ev){
+  if(!isUnlocked) return;
+  const w = evToWorld(ev);
+  const x = snapV(w.x)-PV_SIZE/2, y = snapV(w.y)-PV_SIZE/2;
+  const el={id:uid(), kind:'box', x, y, pvNum:nextPvNum(), status:'pend', note:''};
+  elements.push(el);
+  selectedId=el.id;
+  save(); render();
+}
+
+function getDiam(){ return Number(document.getElementById('diam-default').value)||1200 }
+
+function nextPvNum(){
+  const used=elements.filter(e=>e.kind==='box').map(e=>e.pvNum||0);
+  let n=1; while(used.includes(n)) n++; return Math.min(n,500);
+}
+
+/* ================================================================
+   PAN
+   ================================================================ */
+let panStart = null;
+let panOrigin = null;
+
+function startPan(ev){
+  panStart = {x:ev.clientX, y:ev.clientY};
+  panOrigin = {tx:vpTx, ty:vpTy};
+  document.getElementById('canvas-viewport').classList.add('panning');
+}
+function movePan(ev){
+  if(!panStart) return;
+  vpTx = panOrigin.tx + (ev.clientX-panStart.x);
+  vpTy = panOrigin.ty + (ev.clientY-panStart.y);
+  applyTransform();
+}
+function endPan(){ panStart=null; panOrigin=null; document.getElementById('canvas-viewport').classList.remove('panning') }
+
+/* ================================================================
+   DRAG ELEMENT
+   ================================================================ */
+let dragging = null;
+
+function startDrag(ev,id){
+  if(!isUnlocked) return;
+  ev.stopPropagation();
+  selectEl(id);
+  const w = evToWorld(ev);
+  const el = elements.find(e=>e.id===id);
+  dragging={id, startW:{x:w.x,y:w.y}, snap0:JSON.parse(JSON.stringify(el))};
+  ev.preventDefault();
+}
+
+/* ================================================================
+   UNIFIED VP POINTER EVENTS
+   ================================================================ */
+const vp = document.getElementById('canvas-viewport');
+
+vp.addEventListener('mousedown', ev=>{
+  const onEl = ev.target.closest('.pipe-group,.pv-group');
+
+  if(tool==='pan'){ startPan(ev); return }
+
+  if(tool==='pipe'){
+    if(isUnlocked && !onEl) startPipe(ev);
+    return;
+  }
+  if(tool==='box'){
+    if(isUnlocked && !onEl) placeBox(ev);
+    return;
+  }
+  // select tool
+  if(!onEl) deselect();
+});
+
+window.addEventListener('mousemove', ev=>{
+  if(panStart){ movePan(ev); return }
+  if(pipeStart){ movePipe(ev); return }
+  if(dragging){
+    const w  = evToWorld(ev);
+    const dx = w.x - dragging.startW.x;
+    const dy = w.y - dragging.startW.y;
+    const el = elements.find(e=>e.id===dragging.id);
+    const s  = dragging.snap0;
+    if(!el) return;
+    if(el.kind==='pipe'){
+      el.x1=snapV(s.x1+dx); el.y1=snapV(s.y1+dy);
+      el.x2=snapV(s.x2+dx); el.y2=snapV(s.y2+dy);
+    } else {
+      el.x=snapV(s.x+dx); el.y=snapV(s.y+dy);
+    }
+    renderSVG();
+  }
+});
+
+window.addEventListener('mouseup', ev=>{
+  if(panStart){ endPan(); return }
+  if(pipeStart){ endPipe(ev); return }
+  if(dragging){ dragging=null; save(); render() }
+});
+
+/* Scroll = zoom toward cursor */
+vp.addEventListener('wheel', ev=>{
+  ev.preventDefault();
+  const rect = vp.getBoundingClientRect();
+  const cx = ev.clientX - rect.left;
+  const cy = ev.clientY - rect.top;
+  const factor = ev.deltaY < 0 ? 1.12 : 0.89;
+  zoom(factor, cx, cy);
+},{passive:false});
+
+/* ================================================================
+   SELECT
+   ================================================================ */
+function selectEl(id){ selectedId=id; render() }
+function deselect(){ selectedId=null; render() }
+
+/* ================================================================
+   DELETE
+   ================================================================ */
+function deleteSelected(){
+  if(!isUnlocked){ toast('Libere a edição primeiro',true); return }
+  if(selectedId==null){ toast('Selecione um elemento primeiro'); return }
+  const el=elements.find(e=>e.id===selectedId);
+  if(!el){ toast('Elemento não encontrado',true); return }
+  const idToDelete = selectedId; // captura AGORA antes de qualquer render
+  const name=el.kind==='pipe'?`Trecho Ø${el.diam} mm`:`Caixa PV Nº ${el.pvNum||'?'}`;
+  openModal('Excluir elemento','Confirmar exclusão: '+name+'?', async ()=>{
+    elements = elements.filter(e => e.id !== idToDelete);
+    selectedId = null;
+    render();
+    // remove no banco primeiro, depois salva o estado restante
+    try {
+      await deleteFromDB(idToDelete);
+      toast('Elemento excluído ✓');
+    } catch(e){
+      toast('Removido localmente · erro no banco: ' + e.message, true);
+    }
+    // salva o array atualizado (upsert dos restantes)
+    if(elements.length > 0) await save();
+    else setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
+  });
+}
+
+function clearAll(){
+  if(!isUnlocked){ toast('Libere a edição primeiro',true); return }
+  if(elements.length===0) return;
+  openModal('Limpar tudo',`Remover todos os ${elements.length} elementos? Não pode ser desfeito.`, async ()=>{
+    const ids = elements.map(e => e.id);
+    elements=[]; selectedId=null; render();
+    try {
+      // deleta todos pelo array de IDs
+      await sbFetch(TABLE + '?id=in.(' + ids.map(i=>`"${i}"`).join(',') + ')', { method:'DELETE' });
+      setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
+      toast('Canvas limpo ✓');
+    } catch(e){
+      toast('Limpo localmente · erro no banco: ' + e.message, true);
+    }
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify([])) }catch(_){}
+  });
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function render(){ renderSVG(); renderKPIs(); renderTable(); renderDetail(); updateEmptyMsg() }
+
+function renderSVG(){
+  const layer = document.getElementById('elements-layer');
+  layer.innerHTML='';
+  elements.forEach(el=>{
+    if(el.kind==='pipe') renderPipe(layer,el);
+    else renderBox(layer,el);
+  });
+  document.getElementById('map-count').textContent=`${elements.length} elemento${elements.length!==1?'s':''}`;
+}
+
+function colorOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.done:c.pend }
+function strokeOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.stroke:'#9ca3af' }
+
+function renderPipe(layer,el){
+  const sel = el.id===selectedId;
+  const th  = PIPE_TH[el.diam]||18;
+  const fill= colorOf(el.diam,el.status);
+  const strk= strokeOf(el.diam,el.status);
+
+  const g = document.createElementNS(SVG_NS,'g');
+  g.setAttribute('class','pipe-group'+(sel?' selected':''));
+  g.setAttribute('data-id',el.id);
+
+  // hit area
+  const hit=document.createElementNS(SVG_NS,'line');
+  hit.setAttribute('x1',el.x1); hit.setAttribute('y1',el.y1);
+  hit.setAttribute('x2',el.x2); hit.setAttribute('y2',el.y2);
+  hit.setAttribute('stroke','transparent');
+  hit.setAttribute('stroke-width',Math.max(th+18,36));
+  hit.setAttribute('stroke-linecap','round');
+  g.appendChild(hit);
+
+  // border
+  const bord=document.createElementNS(SVG_NS,'line');
+  bord.setAttribute('class','pipe-border');
+  bord.setAttribute('x1',el.x1); bord.setAttribute('y1',el.y1);
+  bord.setAttribute('x2',el.x2); bord.setAttribute('y2',el.y2);
+  bord.setAttribute('stroke',strk); bord.setAttribute('stroke-width',th+4);
+  bord.setAttribute('stroke-linecap','round'); bord.setAttribute('opacity','0.4');
+  g.appendChild(bord);
+
+  // body
+  const body=document.createElementNS(SVG_NS,'line');
+  body.setAttribute('class','pipe-body');
+  body.setAttribute('x1',el.x1); body.setAttribute('y1',el.y1);
+  body.setAttribute('x2',el.x2); body.setAttribute('y2',el.y2);
+  body.setAttribute('stroke',sel?'var(--inpasa-gold)':fill);
+  body.setAttribute('stroke-width',sel?th+3:th);
+  body.setAttribute('stroke-linecap','round');
+  if(el.status!=='done') body.setAttribute('stroke-dasharray',`${th*2.5} ${th*1.2}`);
+  g.appendChild(body);
+
+  // label
+  const mx=(el.x1+el.x2)/2, my=(el.y1+el.y2)/2;
+  let angle=Math.atan2(el.y2-el.y1,el.x2-el.x1)*180/Math.PI;
+  if(Math.abs(angle)>90) angle+=180;
+  const lblText=`Ø${el.diam}`+(el.lengthM?` · ${el.lengthM}m`:'');
+  const lbl=document.createElementNS(SVG_NS,'text');
+  lbl.setAttribute('class','pipe-label');
+  lbl.setAttribute('x',mx); lbl.setAttribute('y',my-th/2-8);
+  lbl.setAttribute('transform',`rotate(${angle},${mx},${my-th/2-8})`);
+  lbl.setAttribute('fill',el.status==='done'?'#1a2332':'#546175');
+  lbl.setAttribute('font-size','11');
+  lbl.textContent=lblText;
+  g.appendChild(lbl);
+
+  // handles
+  if(sel && isUnlocked){
+    [{x:el.x1,y:el.y1},{x:el.x2,y:el.y2}].forEach(pt=>{
+      const c=document.createElementNS(SVG_NS,'circle');
+      c.setAttribute('class','handle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r',9);
+      g.appendChild(c);
+    });
+  }
+
+  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else { selectEl(el.id); } });
+  layer.appendChild(g);
+}
+
+function renderBox(layer,el){
+  const sel  = el.id===selectedId;
+  const fill = el.status==='done'?'#304F7E':'#e5e7eb';
+  const tc   = el.status==='done'?'#fff':'#374151';
+  const lbl  = String(el.pvNum||'?');
+
+  const g=document.createElementNS(SVG_NS,'g');
+  g.setAttribute('class','pv-group'+(sel?' selected':''));
+  g.setAttribute('data-id',el.id);
+  g.setAttribute('transform',`translate(${el.x},${el.y})`);
+
+  const rect=document.createElementNS(SVG_NS,'rect');
+  rect.setAttribute('class','pv-rect');
+  rect.setAttribute('x',0); rect.setAttribute('y',0);
+  rect.setAttribute('width',PV_SIZE); rect.setAttribute('height',PV_SIZE);
+  rect.setAttribute('fill',fill); rect.setAttribute('rx',3);
+  rect.setAttribute('stroke',sel?'var(--inpasa-gold)':'#1a2332');
+  rect.setAttribute('stroke-width',sel?3:1.5);
+  g.appendChild(rect);
+
+  const txt=document.createElementNS(SVG_NS,'text');
+  txt.setAttribute('class','pv-label');
+  txt.setAttribute('x',PV_SIZE/2); txt.setAttribute('y',PV_SIZE/2);
+  txt.setAttribute('fill',tc);
+  txt.setAttribute('font-size',lbl.length>2?'10':'13');
+  txt.textContent=lbl;
+  g.appendChild(txt);
+
+  if(sel && isUnlocked){
+    [[0,0],[PV_SIZE,0],[PV_SIZE,PV_SIZE],[0,PV_SIZE]].forEach(([cx,cy])=>{
+      const c=document.createElementNS(SVG_NS,'circle');
+      c.setAttribute('class','handle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',7);
+      g.appendChild(c);
+    });
+  }
+
+  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else selectEl(el.id); });
+  layer.appendChild(g);
+}
+
+/* ================================================================
+   KPIs
+   ================================================================ */
+function renderKPIs(){
+  const pipes=elements.filter(e=>e.kind==='pipe');
+  const boxes=elements.filter(e=>e.kind==='box');
+  const dp=pipes.filter(e=>e.status==='done');
+  const db=boxes.filter(e=>e.status==='done');
+  const totM=pipes.reduce((a,e)=>a+(e.lengthM||0),0);
+  const donM=dp.reduce((a,e)=>a+(e.lengthM||0),0);
+  const pp=pipes.length?dp.length/pipes.length*100:0;
+  const bp=boxes.length?db.length/boxes.length*100:0;
+
+  document.getElementById('kpi-pipes').textContent=pipes.length;
+  document.getElementById('kpi-boxes').textContent=boxes.length;
+  document.getElementById('kpi-done-pipes').textContent=dp.length;
+  document.getElementById('kpi-done-boxes').textContent=db.length;
+  document.getElementById('kpi-m-done').textContent=donM.toLocaleString('pt-BR',{maximumFractionDigits:1});
+  document.getElementById('kpi-pipes-m').textContent=totM.toLocaleString('pt-BR',{maximumFractionDigits:1})+' m lineares';
+  document.getElementById('kpi-done-pct').textContent=pp.toFixed(0)+'% concluídos';
+  document.getElementById('kpi-done-boxes-pct').textContent=bp.toFixed(0)+'% concluídas';
+
+  document.getElementById('macro-fill-pipes').innerHTML=
+    `<span class="seg-done" style="width:${pp}%"></span><span class="seg-pend" style="width:${100-pp}%"></span>`;
+  document.getElementById('macro-fill-boxes').innerHTML=
+    `<span class="seg-done" style="width:${bp}%"></span><span class="seg-pend" style="width:${100-bp}%"></span>`;
+  document.getElementById('macro-text-pipes').textContent=`${dp.length} / ${pipes.length} trechos`;
+  document.getElementById('macro-text-boxes').textContent=`${db.length} / ${boxes.length} caixas`;
+}
+
+/* ================================================================
+   TABLE
+   ================================================================ */
+function renderTable(){
+  const tbody=document.getElementById('table-body');
+  document.getElementById('table-count').textContent=`${elements.length} registros`;
+  if(!elements.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">Nenhum elemento cadastrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML='';
+  elements.forEach(el=>{
+    const isPipe=el.kind==='pipe';
+    const st=el.status||'pend';
+    const c=DIAM_C[el.diam]||DIAM_C[1200];
+    const diamCell=isPipe
+      ?`<span class="diam-chip" style="background:${c.done};color:#fff">Ø${el.diam} mm</span>`
+      :`<strong>Nº ${String(el.pvNum||'?').padStart(3,'0')}</strong>`;
+    const lenCell=isPipe?(el.lengthM?el.lengthM+' m':'—'):'—';
+    const tr=document.createElement('tr');
+    tr.dataset.id=el.id;
+    if(el.id===selectedId) tr.classList.add('selected');
+    tr.innerHTML=`
+      <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute)">${el.id}</td>
+      <td style="font-weight:700">${isPipe?'Tubulação':'Caixa PV'}</td>
+      <td>${diamCell}</td>
+      <td class="num">${lenCell}</td>
+      <td><span class="inline-badge ${st}">${st==='done'?'✔ Concluído':'⏳ Pendente'}</span></td>
+      <td style="font-size:10px;max-width:200px;color:var(--text-dim)">${el.note?escHtml(el.note):'—'}</td>`;
+    tr.addEventListener('click',()=>selectEl(el.id));
+    tbody.appendChild(tr);
+  });
+}
+
+/* ================================================================
+   DETAIL PANEL
+   ================================================================ */
+function renderDetail(){
+  const empty  = document.getElementById('side-empty');
+  const detail = document.getElementById('detail-panel');
+  if(selectedId==null){
+    empty.style.display='block'; detail.classList.remove('active'); return;
+  }
+  const el=elements.find(e=>e.id===selectedId);
+  if(!el){ deselect(); return; }
+  empty.style.display='none'; detail.classList.add('active');
+
+  const isPipe=el.kind==='pipe';
+  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA PV';
+  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:`Caixa PV · Nº ${el.pvNum||'?'}`;
+  document.getElementById('detail-sub').textContent=isPipe
+    ?(el.lengthM?el.lengthM+' metros':'Comprimento não informado')
+    :'Poço de Visita';
+
+  const st=el.status||'pend';
+  const badge=document.getElementById('detail-badge');
+  badge.className='status-badge '+st;
+  badge.textContent=st==='done'?'✔ CONCLUÍDO':'⏳ PENDENTE';
+
+  document.querySelectorAll('.status-opt[data-s]').forEach(b=>b.classList.toggle('active',b.dataset.s===st));
+
+  document.getElementById('field-diam').style.display=isPipe?'block':'none';
+  document.getElementById('field-len').style.display=isPipe?'block':'none';
+  document.getElementById('field-pvnum').style.display=!isPipe?'block':'none';
+
+  if(isPipe){
+    document.getElementById('op-diam').value=el.diam;
+    document.getElementById('op-len').value=el.lengthM||'';
+  } else {
+    document.getElementById('op-pvnum').value=el.pvNum||'';
+  }
+  document.getElementById('op-note').value=el.note||'';
+}
+
+function setStatus(s){
+  const el=elements.find(e=>e.id===selectedId); if(!el) return;
+  el.status=s; render();
+}
+function setDiam(d){
+  const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='pipe') return;
+  el.diam=Number(d); renderSVG(); renderDetail();
+}
+function saveSelected(){
+  const el=elements.find(e=>e.id===selectedId); if(!el) return;
+  if(el.kind==='pipe'){
+    el.lengthM=Number(document.getElementById('op-len').value)||0;
+  } else {
+    el.pvNum=Math.min(500,Math.max(1,Number(document.getElementById('op-pvnum').value)||1));
+  }
+  el.note=document.getElementById('op-note').value;
+  save(); render(); toast('Salvo ✓');
+}
+function updateEmptyMsg(){
+  const msg=document.getElementById('empty-msg');
+  if(elements.length===0){
+    msg.innerHTML=isUnlocked
+      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa PV" para começar a desenhar a rede.'
+      :'<strong>Planta vazia</strong><br>Libere a edição com a senha para cadastrar elementos.';
+  }
+}
+
+/* ================================================================
+   CSV EXPORT
+   ================================================================ */
+function csvEsc(v){
+  // Use semicolon as separator (Brazilian/European Excel default)
+  const s = String(v == null ? '' : v);
+  // Only quote if contains semicolon, double-quote or newline
+  return (s.includes(';') || s.includes('"') || s.includes('\n'))
+    ? `"${s.replace(/"/g,'""')}"` : s;
+}
+
+function exportCSV(){
+  const SEP = ';'; // ponto-e-vírgula para Excel brasileiro
+  const cols = ['id','tipo','diametro_mm','pv_numero','comprimento_m','status','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
+  const header = cols.join(SEP);
+  const rows = elements.map(el => {
+    let vals;
+    if(el.kind==='pipe'){
+      vals = [
+        el.id, 'tubulacao', el.diam, '', el.lengthM||0, el.status, el.note||'',
+        el.x1, el.y1, el.x2, el.y2, '', ''
+      ];
+    } else {
+      vals = [
+        el.id, 'caixa_pv', '', el.pvNum||'', 0, el.status, el.note||'',
+        '', '', '', '', el.x, el.y
+      ];
+    }
+    return vals.map(csvEsc).join(SEP);
+  });
+  // BOM UTF-8 para Excel reconhecer acentos + sep=; hint
+  const csv = '\uFEFF' + 'sep=;\n' + header + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `drenagem_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  toast('CSV exportado ✓  —  abra normalmente no Excel');
+}
+
+/* ================================================================
+   CSV IMPORT
+   ================================================================ */
+function openImport(){
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('import-preview').textContent='';
+  document.getElementById('import-file-input').value='';
+  document.getElementById('btn-confirm-import').disabled=true;
+  pendingCsv=null;
+  document.getElementById('modal-import').classList.add('visible');
+}
+
+document.getElementById('import-file-input').addEventListener('change',function(){
+  if(this.files[0]) readCsvFile(this.files[0]);
+});
+
+const importArea=document.getElementById('import-area');
+importArea.addEventListener('dragover',ev=>{ev.preventDefault();importArea.classList.add('drag-over')});
+importArea.addEventListener('dragleave',()=>importArea.classList.remove('drag-over'));
+importArea.addEventListener('drop',ev=>{
+  ev.preventDefault(); importArea.classList.remove('drag-over');
+  if(ev.dataTransfer.files[0]) readCsvFile(ev.dataTransfer.files[0]);
+});
+
+function readCsvFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      if(!rows.length) throw new Error('Arquivo vazio ou formato inválido');
+      pendingCsv=rows;
+      const preview=`${rows.length} registro(s) encontrado(s)\n\n`+rows.slice(0,5).map(r=>JSON.stringify(r)).join('\n')+(rows.length>5?'\n...(mais '+( rows.length-5)+')':'');
+      document.getElementById('import-preview').textContent=preview;
+      document.getElementById('import-preview').style.display='block';
+      document.getElementById('btn-confirm-import').disabled=false;
+    }catch(err){
+      toast('Erro ao ler CSV: '+err.message,true);
+    }
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function parseCSV(text){
+  // Remove BOM and sep= hint line
+  text=text.replace(/^\uFEFF/,'').replace(/^sep=.+\n/i,'');
+  const lines=text.split('\n').map(l=>l.trimEnd()).filter(l=>l.length);
+  if(lines.length<2) return [];
+  // Auto-detect separator: semicolon or comma
+  const firstLine=lines[0];
+  const SEP = firstLine.includes(';') ? ';' : ',';
+  const headers=splitCSVLine(lines[0],SEP).map(h=>h.trim().toLowerCase());
+  return lines.slice(1).map(line=>{
+    const vals=splitCSVLine(line,SEP);
+    const obj={};
+    headers.forEach((h,i)=>{ obj[h]=(vals[i]||'').trim() });
+    return obj;
+  });
+}
+
+function splitCSVLine(line, SEP=';'){
+  const result=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){ if(inQ && line[i+1]==='"'){ cur+='"'; i++ } else inQ=!inQ }
+    else if(ch===SEP&&!inQ){ result.push(cur); cur='' }
+    else cur+=ch;
+  }
+  result.push(cur); return result;
+}
+
+function confirmImport(){
+  if(!pendingCsv||!pendingCsv.length){ toast('Nenhum dado para importar',true); return; }
+  let updated=0, notFound=0;
+  pendingCsv.forEach(row=>{
+    const id=(row['id']||'').trim();
+    const el=elements.find(e=>e.id===id);
+    if(!el){ notFound++; return; }
+    // update editable fields
+    if(row['status']==='done'||row['status']==='pend') el.status=row['status'];
+    const obs=row['observacoes']||row['observações']||'';
+    el.note=obs;
+    if(el.kind==='pipe'){
+      const d=Number(row['diametro_mm']);
+      if(DIAMS.includes(d)) el.diam=d;
+      const l=parseFloat(row['comprimento_m']);
+      if(!isNaN(l)&&l>=0) el.lengthM=l;
+    } else {
+      const pv=parseInt(row['pv_numero']);
+      if(!isNaN(pv)&&pv>=1&&pv<=500) el.pvNum=pv;
+    }
+    updated++;
+  });
+  closeModal('modal-import');
+  save(); render();
+  toast(`Importação concluída · ${updated} atualizado(s), ${notFound} ID(s) não encontrado(s)`);
+}
+
+/* ================================================================
+   MODAL HELPERS
+   ================================================================ */
+function openModal(title,msg,cb){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-msg').textContent=msg;
+  modalCb=cb;
+  document.getElementById('modal-confirm').classList.add('visible');
+}
+function closeModal(id){
+  document.getElementById(id||'modal-confirm').classList.remove('visible');
+  modalCb=null;
+}
+document.getElementById('modal-ok').addEventListener('click',()=>{
+  const cb = modalCb;   // captura ANTES de fechar (closeModal zera modalCb)
+  closeModal('modal-confirm');
+  if(cb) cb();
+});
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+function toast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(err?' err':'');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ================================================================
+   HTML ESCAPE
+   ================================================================ */
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+/* ================================================================
+   KEYBOARD
+   ================================================================ */
+window.addEventListener('keydown',ev=>{
+  const active=document.activeElement;
+  const typing=active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT');
+  if(ev.key==='Escape'){ setTool('select'); deselect(); pipeStart=null; document.getElementById('pipe-prev')?.remove() }
+  if(!typing){
+    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedId) deleteSelected() }
+    if(ev.key==='p'||ev.key==='P') setTool('pipe');
+    if(ev.key==='b'||ev.key==='B') setTool('box');
+    if(ev.key==='v'||ev.key==='V') setTool('select');
+    if(ev.key==='h'||ev.key==='H') setTool('pan');
+    if(ev.key==='f'||ev.key==='F') zoomFit();
+    if(ev.key==='+'||ev.key==='=') zoom(1.2);
+    if(ev.key==='-') zoom(0.83);
+  }
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+/* keyframe para o dot de sincronia */
+const _style = document.createElement('style');
+_style.textContent = '@keyframes syncPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}';
+document.head.appendChild(_style);
+
+buildLegend();
+updateLockUI();
+zoomReset();
+// carrega do Supabase de forma assíncrona, renderiza ao terminar
+(async ()=>{
+  await loadData();
+  render();
+})();
+</script>
+</body>
+</html>
