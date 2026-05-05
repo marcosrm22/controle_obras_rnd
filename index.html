@@ -136,6 +136,54 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .chip-orange{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
 .chip-gray  {background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
 
+
+/* ── CARD DASHBOARD KPIs ── */
+.card-kpis{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  margin:0 0 16px;
+}
+.card-kpi{
+  padding:12px 14px;text-align:center;
+  border-right:1px solid var(--border);
+}
+.card-kpi:last-child{border-right:none}
+.card-kpi-val{
+  font-size:22px;font-weight:800;letter-spacing:-1px;
+  color:var(--text);line-height:1;margin-bottom:3px;
+}
+.card-kpi-val.loading{
+  font-size:14px;color:var(--text-mute);font-weight:400;letter-spacing:0;
+  animation:pulse 1.2s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.card-kpi-label{
+  font-size:8px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-mute);
+}
+
+/* progress bar inside card */
+.card-progress{padding:0 20px 16px}
+.card-progress-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:5px;
+  font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
+.card-progress-label{color:var(--text-mute)}
+.card-progress-pct{font-family:'JetBrains Mono',monospace;font-size:10px}
+.card-prog-bar{height:7px;background:#eef0f3;overflow:hidden;border-radius:0}
+.card-prog-fill{display:flex;height:100%;transition:width .6s ease}
+.prog-done{background:var(--green)}
+.prog-wip {background:var(--gold)}
+.prog-pend{background:var(--neutral)}
+.prog-blue{background:var(--blue)}
+
+/* last-update timestamp */
+.card-updated{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  color:var(--text-mute);padding:0 20px 12px;
+}
+
 /* ── COMING SOON CARD ── */
 .card.soon{opacity:.55;pointer-events:none}
 .card.soon .card-bar{background:linear-gradient(90deg,var(--neutral),#d0d4d9)}
@@ -365,14 +413,49 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         </div>
         <div class="card-tag">Infraestrutura · Drenagem</div>
         <div class="card-title">Redes de Drenagem</div>
-        <div class="card-desc">Desenhe trechos de tubulação PEAD e caixas PV no canvas. Controle diâmetros (Ø400 a Ø1500 mm), comprimentos, status de execução e empresa responsável por trecho.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Tubulações PEAD</span>
-          <span class="chip chip-blue">Caixas PV</span>
-          <span class="chip chip-gray">Ø400 – Ø1500</span>
-          <span class="chip chip-green">Zoom · Pan</span>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-total">—</div>
+          <div class="card-kpi-label">Trechos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-done">—</div>
+          <div class="card-kpi-label">Concluídos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-boxes">—</div>
+          <div class="card-kpi-label">Caixas PV</div>
         </div>
       </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço — Trechos</span>
+          <span class="card-progress-pct blue" id="dr-pct" style="color:var(--blue)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-blue" id="dr-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço — Caixas PV</span>
+          <span class="card-progress-pct blue" id="dr-pct-boxes" style="color:var(--blue)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-blue" id="dr-bar-boxes" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="dr-updated"></div>
+
       <div class="card-footer">
         <span class="card-cta">Abrir ferramenta</span>
         <span class="card-arrow">→</span>
@@ -393,14 +476,46 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         </div>
         <div class="card-tag">Movimentação de Terra</div>
         <div class="card-title">Terraplanagem</div>
-        <div class="card-desc">Desenhe e gerencie blocos de áreas de terraplanagem no canvas. Registre empresa executora, volume estimado, datas previstas e reais, e status de execução por área.</div>
-        <div class="card-chips">
-          <span class="chip chip-green">Finalizado</span>
-          <span class="chip chip-orange">Em Andamento</span>
-          <span class="chip chip-gray">Pendente</span>
-          <span class="chip chip-green">Seleção múltipla</span>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-total">—</div>
+          <div class="card-kpi-label">Total Áreas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-done">—</div>
+          <div class="card-kpi-label">Finalizadas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-wip">—</div>
+          <div class="card-kpi-label">Em Andamento</div>
         </div>
       </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço geral</span>
+          <span class="card-progress-pct" id="tr-pct" style="color:var(--green)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill" id="tr-bar-wrap">
+            <div class="prog-done" id="tr-bar-done" style="width:0%"></div>
+            <div class="prog-wip"  id="tr-bar-wip"  style="width:0%"></div>
+            <div class="prog-pend" id="tr-bar-pend" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Áreas atrasadas</span>
+          <span class="card-progress-pct" id="tr-late" style="color:var(--red)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="tr-updated"></div>
+
       <div class="card-footer">
         <span class="card-cta">Abrir ferramenta</span>
         <span class="card-arrow">→</span>
@@ -419,13 +534,35 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         </div>
         <div class="card-tag">Administração · Acesso</div>
         <div class="card-title">Gestão de Usuários</div>
-        <div class="card-desc">Aprove solicitações de cadastro, defina perfis e permissões de acesso por ferramenta para cada usuário do sistema.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Aprovação</span>
-          <span class="chip chip-gray">Permissões</span>
-          <span class="chip chip-gray">Perfis</span>
+      </div>
+
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="adm-total">—</div>
+          <div class="card-kpi-label">Usuários</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="adm-ativos">—</div>
+          <div class="card-kpi-label">Ativos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="adm-pend">—</div>
+          <div class="card-kpi-label">Pendentes</div>
         </div>
       </div>
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Solicitações pendentes</span>
+          <span class="card-progress-pct" id="adm-pend-label" style="color:var(--gold)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-wip" id="adm-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="adm-updated"></div>
+
       <div class="card-footer">
         <span class="card-cta">Gerenciar usuários</span>
         <span class="card-arrow" id="admin-notif">→</span>
@@ -725,6 +862,142 @@ function switchFile(filename, btn) {
 }
 </script>
 
+
+
+<script>
+/* ================================================================
+   DASHBOARD — carrega indicadores do Supabase para os cards
+   ================================================================ */
+(function(){
+  const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+  const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+  const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+  const today  = new Date().toISOString().slice(0,10);
+
+  function pct(a,b){ return b ? Math.round(a/b*100) : 0 }
+  function fmt(n)  { return n != null ? String(n) : '0' }
+  function timeAgo(){
+    return 'atualizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  async function sbGet(path){
+    const res = await fetch(SB_URL + '/rest/v1/' + path, {
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + TOKEN,
+        'Prefer': 'count=exact',
+      }
+    });
+    const text = await res.text();
+    const count = res.headers.get('content-range')
+      ? parseInt(res.headers.get('content-range').split('/')[1]) : null;
+    let data;
+    try{ data = JSON.parse(text) } catch(_){ data = [] }
+    return { data: Array.isArray(data) ? data : [], count };
+  }
+
+  function setEl(id, val){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = val;
+    el.classList.remove('loading');
+  }
+
+  /* ── DRENAGEM ── */
+  async function loadDrenagem(){
+    try{
+      const { data } = await sbGet('drain_elements?select=id,kind,status,length_m');
+      const pipes  = data.filter(e=>e.kind==='pipe');
+      const boxes  = data.filter(e=>e.kind==='box');
+      const donePipes = pipes.filter(e=>e.status==='done');
+      const doneBoxes = boxes.filter(e=>e.status==='done');
+      const pp = pct(donePipes.length, pipes.length);
+      const bp = pct(doneBoxes.length, boxes.length);
+
+      setEl('dr-total', fmt(pipes.length));
+      setEl('dr-done',  fmt(donePipes.length));
+      setEl('dr-boxes', fmt(boxes.length));
+      setEl('dr-pct',   pp + '%');
+      setEl('dr-pct-boxes', bp + '%');
+      setEl('dr-updated', timeAgo());
+
+      const barP = document.getElementById('dr-bar');
+      const barB = document.getElementById('dr-bar-boxes');
+      if(barP) barP.style.width = pp + '%';
+      if(barB) barB.style.width = bp + '%';
+    } catch(_){}
+  }
+
+  /* ── TERRAPLANAGEM ── */
+  async function loadTerra(){
+    try{
+      const { data } = await sbGet('terra_areas?select=id,status,prev_fim');
+      const total = data.length;
+      const done  = data.filter(e=>e.status==='done').length;
+      const wip   = data.filter(e=>e.status==='wip').length;
+      const pend  = data.filter(e=>e.status==='pend').length;
+      const late  = data.filter(e=>
+        e.status!=='done' && e.prev_fim && e.prev_fim < today
+      ).length;
+      const dp = pct(done,  total);
+      const wp = pct(wip,   total);
+      const pp = pct(pend,  total);
+
+      setEl('tr-total', fmt(total));
+      setEl('tr-done',  fmt(done));
+      setEl('tr-wip',   fmt(wip));
+      setEl('tr-pct',   dp + '% finalizadas');
+      setEl('tr-late',  late > 0 ? late + ' área' + (late>1?'s':'') + ' atrasada' + (late>1?'s':'') : 'Nenhuma atrasada');
+      setEl('tr-updated', timeAgo());
+
+      const bDone = document.getElementById('tr-bar-done');
+      const bWip  = document.getElementById('tr-bar-wip');
+      const bPend = document.getElementById('tr-bar-pend');
+      if(bDone) bDone.style.width = dp + '%';
+      if(bWip)  bWip.style.width  = wp + '%';
+      if(bPend) bPend.style.width = pp + '%';
+
+      // color of late indicator
+      const lateEl = document.getElementById('tr-late');
+      if(lateEl) lateEl.style.color = late > 0 ? 'var(--red)' : 'var(--green)';
+    } catch(_){}
+  }
+
+  /* ── USUÁRIOS (admin only) ── */
+  async function loadAdmin(){
+    const adminCard = document.getElementById('card-admin');
+    if(!adminCard || adminCard.style.display === 'none') return;
+    try{
+      const { data } = await sbGet('pco_usuarios?select=id,status');
+      const total  = data.length;
+      const ativos = data.filter(u=>u.status==='ativo').length;
+      const pend   = data.filter(u=>u.status==='pendente').length;
+      const pp     = pct(pend, total);
+
+      setEl('adm-total',  fmt(total));
+      setEl('adm-ativos', fmt(ativos));
+      setEl('adm-pend',   fmt(pend));
+      setEl('adm-pend-label', pend > 0
+        ? pend + ' aguardando aprovação'
+        : 'Nenhuma pendente');
+      setEl('adm-updated', timeAgo());
+
+      const bar = document.getElementById('adm-bar');
+      if(bar) bar.style.width = Math.min(pp, 100) + '%';
+
+      const lbl = document.getElementById('adm-pend-label');
+      if(lbl) lbl.style.color = pend > 0 ? 'var(--gold)' : 'var(--green)';
+    } catch(_){}
+  }
+
+  // Run all loaders on page load
+  window.addEventListener('load', ()=>{
+    loadDrenagem();
+    loadTerra();
+    setTimeout(loadAdmin, 300); // slight delay so admin card visibility is already set
+  });
+})();
+</script>
 
 <script>
 /* ================================================================
