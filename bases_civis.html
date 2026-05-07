@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCO · Controle de Bases Civis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7;--bg-2:#fff;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;
+  --gold:#EAA239;--gold-soft:#fbf0d9;
+  --green:#609346;--green-soft:#e8efe1;
+  --red:#CC5121;--red-soft:#f8e2d6;
+  --orange:#D97706;--orange-soft:#FEF3C7;
+  --neutral:#BDBFC1;
+  --shadow:0 4px 20px -4px rgba(26,35,50,0.12);
+  --shadow-lg:0 12px 40px -12px rgba(26,35,50,0.25);
+  --shadow-hover:0 12px 40px -8px rgba(48,79,126,0.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.app{max-width:1400px;margin:0 auto;padding:20px 24px 60px}
+
+/* ── HEADER ── */
+header{display:flex;justify-content:space-between;align-items:flex-end;
+  padding-bottom:14px;border-bottom:3px solid var(--blue);margin-bottom:24px;
+  flex-wrap:wrap;gap:14px}
+.brand .eyebrow{font-size:9px;color:var(--blue);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:3px}
+.brand h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.brand h1 span{color:var(--text-dim);font-weight:500}
+.header-right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.btn{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;padding:7px 13px;
+  border:1px solid;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:all .15s;white-space:nowrap;text-decoration:none;color:inherit}
+.btn svg{width:13px;height:13px;flex-shrink:0}
+.btn-secondary{background:var(--panel);border-color:var(--border-2)}
+.btn-secondary:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+/* ── KPIs ── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--blue);
+  padding:9px 12px;box-shadow:var(--shadow)}
+.kpi[data-color="green"]{border-left-color:var(--green)}
+.kpi[data-color="yellow"]{border-left-color:var(--gold)}
+.kpi[data-color="red"]{border-left-color:var(--red)}
+.kpi-label{font-size:9px;color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px;font-weight:600}
+.kpi-value{font-size:22px;font-weight:800;letter-spacing:-1px;color:var(--text)}
+.kpi-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:1px}
+
+/* ── MACRO BAR ── */
+.macro-progress{background:var(--panel);border:1px solid var(--border);padding:10px 14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.macro-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+  font-size:10px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.macro-head strong{color:var(--blue);font-size:13px;letter-spacing:0;font-weight:800}
+.macro-bar{height:10px;background:var(--bg);border:1px solid var(--border);overflow:hidden}
+.macro-fill{display:flex;height:100%}
+.macro-fill>span{transition:width .4s ease}
+.seg-done{background:var(--green)}.seg-wip{background:var(--gold)}.seg-pend{background:var(--neutral)}
+
+/* ── SECTION LABEL ── */
+.section-label{font-size:9px;color:var(--text-mute);letter-spacing:2px;
+  text-transform:uppercase;font-weight:700;margin-bottom:14px;padding-bottom:8px;
+  border-bottom:1px solid var(--border)}
+
+/* ── CARDS ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-bottom:40px}
+.card{background:var(--panel);border:1px solid var(--border);text-decoration:none;
+  color:inherit;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  box-shadow:var(--shadow)}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:#b0bfd4}
+.card:hover .card-arrow{transform:translateX(4px)}
+.card-bar{height:5px;width:100%}
+.card.teal  .card-bar{background:linear-gradient(90deg,#007D77,#2eada7)}
+.card.indigo .card-bar{background:linear-gradient(90deg,#4f46e5,#7c3aed)}
+.card.soon  .card-bar{background:linear-gradient(90deg,var(--neutral),#d0d4d9)}
+.card-body{padding:20px 20px 14px;flex:1}
+.card-icon{width:40px;height:40px;border-radius:4px;display:flex;align-items:center;
+  justify-content:center;margin-bottom:14px}
+.card-icon svg{width:20px;height:20px}
+.card.teal   .card-icon{background:#e0f2f1}
+.card.teal   .card-icon svg{stroke:#007D77}
+.card.teal   .card-tag{color:#007D77}
+.card.teal   .card-cta{color:#007D77}
+.card.indigo .card-icon{background:#ede9fe}
+.card.indigo .card-icon svg{stroke:#4f46e5}
+.card.indigo .card-tag{color:#4f46e5}
+.card.indigo .card-cta{color:#4f46e5}
+.card.soon{opacity:.5;pointer-events:none}
+.card.soon .card-tag{color:var(--text-mute)}
+.card.soon .card-cta{color:var(--text-mute)}
+.soon-badge{position:absolute;top:14px;right:14px;font-size:8px;font-weight:800;
+  letter-spacing:1.5px;text-transform:uppercase;background:var(--neutral);color:#fff;padding:3px 8px}
+.card-tag{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.card-title{font-size:17px;font-weight:800;letter-spacing:-.3px;margin-bottom:0}
+
+/* KPI strip inside card */
+.card-kpis{display:grid;grid-template-columns:repeat(3,1fr);
+  gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 14px}
+.card-kpi{padding:10px 12px;text-align:center;border-right:1px solid var(--border)}
+.card-kpi:last-child{border-right:none}
+.card-kpi-val{font-size:20px;font-weight:800;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:2px}
+.card-kpi-val.loading{font-size:14px;color:var(--text-mute);font-weight:400;letter-spacing:0;animation:pulse 1.2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.card-kpi-label{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute)}
+
+/* progress inside card */
+.card-progress{padding:0 16px 14px}
+.card-progress-head{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:4px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.card-progress-label{color:var(--text-mute)}
+.card-prog-bar{height:6px;background:#eef0f3;overflow:hidden}
+.card-prog-fill{display:flex;height:100%;transition:width .6s ease}
+
+.card-footer{padding:10px 16px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;background:#fafbfc}
+.card-cta{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.card-arrow{display:inline-block;font-size:16px;font-weight:300;
+  transition:transform .18s ease;color:var(--text-mute)}
+.card-updated{font-family:'JetBrains Mono',monospace;font-size:8px;
+  color:var(--text-mute);padding:0 16px 10px}
+
+/* ── BREADCRUMB ── */
+.breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:18px;
+  font-size:10px;color:var(--text-mute);font-weight:600}
+.breadcrumb a{color:var(--blue);text-decoration:none;font-weight:700}
+.breadcrumb a:hover{text-decoration:underline}
+.breadcrumb-sep{opacity:.4}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="eyebrow">Planejamento &amp; Controle · Obras Civis</div>
+    <h1>Controle de Bases Civis <span>· Resumo Geral</span></h1>
+  </div>
+  <div class="header-right">
+    <a href="index.html" class="btn btn-secondary">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 8H2M5 5l-3 3 3 3"/><path d="M8 3h5v10H8"/></svg>
+      Dashboard
+    </a>
+  </div>
+</header>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <a href="index.html">PCO Digital</a>
+  <span class="breadcrumb-sep">›</span>
+  <span>Controle de Bases Civis</span>
+</div>
+
+<!-- KPIs AGREGADOS -->
+<div class="kpis">
+  <div class="kpi" data-color="blue">
+    <div class="kpi-label">Total de Elementos</div>
+    <div class="kpi-value" id="kpi-total">0</div>
+    <div class="kpi-sub">em todas as bases</div>
+  </div>
+  <div class="kpi" data-color="green">
+    <div class="kpi-label">Finalizados</div>
+    <div class="kpi-value" id="kpi-done">0</div>
+    <div class="kpi-sub" id="kpi-done-pct">0%</div>
+  </div>
+  <div class="kpi" data-color="yellow">
+    <div class="kpi-label">Em Andamento</div>
+    <div class="kpi-value" id="kpi-wip">0</div>
+    <div class="kpi-sub" id="kpi-wip-pct">0%</div>
+  </div>
+  <div class="kpi" data-color="blue">
+    <div class="kpi-label">Pendentes</div>
+    <div class="kpi-value" id="kpi-pend">0</div>
+    <div class="kpi-sub" id="kpi-pend-pct">0%</div>
+  </div>
+  <div class="kpi" data-color="green">
+    <div class="kpi-label">Avanço por Peso</div>
+    <div class="kpi-value" id="kpi-peso-pct">0%</div>
+    <div class="kpi-sub" id="kpi-peso-sub">0 / 0</div>
+  </div>
+</div>
+
+<!-- MACRO BAR -->
+<div class="macro-progress">
+  <div class="macro-head">
+    <span>Avanço Geral — Todas as Bases Civis (por quantidade)</span>
+    <strong id="macro-text">0 / 0 elementos</strong>
+  </div>
+  <div class="macro-bar"><div class="macro-fill" id="macro-fill"></div></div>
+</div>
+<div class="macro-progress" style="margin-top:-8px">
+  <div class="macro-head">
+    <span>Avanço por Peso ponderado</span>
+    <strong id="macro-text-peso">0 / 0</strong>
+  </div>
+  <div class="macro-bar"><div class="macro-fill" id="macro-fill-peso"></div></div>
+</div>
+
+<!-- BASES -->
+<div class="section-label">Bases Civis Cadastradas</div>
+<div class="cards" id="bases-cards">
+
+  <!-- DESTILARIA FASE I -->
+  <a class="card teal" href="destilaria_fase1.html">
+    <div class="card-bar"></div>
+    <div class="card-body">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+      <div class="card-tag">Base Civil · Fase I</div>
+      <div class="card-title">Destilaria Fase I</div>
+    </div>
+    <div class="card-kpis">
+      <div class="card-kpi">
+        <div class="card-kpi-val loading" id="d1-total">—</div>
+        <div class="card-kpi-label">Elementos</div>
+      </div>
+      <div class="card-kpi">
+        <div class="card-kpi-val loading" id="d1-done">—</div>
+        <div class="card-kpi-label">Finalizados</div>
+      </div>
+      <div class="card-kpi">
+        <div class="card-kpi-val loading" id="d1-pct">—</div>
+        <div class="card-kpi-label">Avanço</div>
+      </div>
+    </div>
+    <div class="card-progress">
+      <div class="card-progress-head">
+        <span class="card-progress-label">Progresso por peso</span>
+        <span id="d1-pct-label" style="color:#007D77;font-size:9px;font-weight:700">—</span>
+      </div>
+      <div class="card-prog-bar">
+        <div class="card-prog-fill">
+          <div style="background:#007D77;height:100%;width:0%;transition:width .6s" id="d1-bar-done"></div>
+          <div style="background:var(--gold);height:100%;width:0%;transition:width .6s" id="d1-bar-wip"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-updated" id="d1-updated"></div>
+    <div class="card-footer">
+      <span class="card-cta">Abrir base</span>
+      <span class="card-arrow">→</span>
+    </div>
+  </a>
+
+  <!-- PLACEHOLDER: próxima base -->
+  <div class="card soon">
+    <div class="soon-badge">Em breve</div>
+    <div class="card-bar"></div>
+    <div class="card-body">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+      </div>
+      <div class="card-tag">Base Civil</div>
+      <div class="card-title">Nova Base</div>
+    </div>
+    <div class="card-footer">
+      <span class="card-cta">Disponível em breve</span>
+      <span class="card-arrow">→</span>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+
+/* Session guard */
+if(!sessionStorage.getItem('pco_token') && !SB_KEY){
+  window.location.href = 'login.html';
+}
+
+/* ================================================================
+   SB HELPER
+   ================================================================ */
+async function sbGet(path){
+  const res = await fetch(SB_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN}
+  });
+  const text = await res.text();
+  try{ return JSON.parse(text) }catch(_){ return [] }
+}
+
+/* ================================================================
+   LOAD DATA
+   ================================================================ */
+function pct(a,b){ return b?Math.round(a/b*100):0 }
+function fmt(n)  { return n!=null?String(n):'0' }
+function fmtN(n) { return n>0?Number(n).toLocaleString('pt-BR',{maximumFractionDigits:0}):'0' }
+function timeAgo(){ return 'atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }
+function setEl(id,v){ const e=document.getElementById(id); if(e){e.textContent=v;e.classList.remove('loading')} }
+
+async function loadAll(){
+  try{
+    const data = await sbGet('bases_civis_elementos?select=pagina,status,peso') || [];
+
+    /* ── Destilaria Fase I ── */
+    const d1 = data.filter(e=>e.pagina==='destilaria_fase1');
+    const d1tot  = d1.length;
+    const d1done = d1.filter(e=>e.status==='done').length;
+    const d1wip  = d1.filter(e=>e.status==='wip').length;
+    const d1totP = d1.reduce((a,e)=>a+(e.peso||0),0);
+    const d1donP = d1.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
+    const d1wipP = d1.filter(e=>e.status==='wip').reduce((a,e)=>a+(e.peso||0),0);
+    const d1pct  = pct(d1done,d1tot);
+    const d1ppct = pct(d1donP,d1totP);
+    const d1wppct= pct(d1wipP,d1totP);
+
+    setEl('d1-total', fmt(d1tot));
+    setEl('d1-done',  fmt(d1done));
+    setEl('d1-pct',   d1ppct+'%');
+    setEl('d1-pct-label', d1ppct+'%');
+    setEl('d1-updated', timeAgo());
+    const b1d = document.getElementById('d1-bar-done');
+    const b1w = document.getElementById('d1-bar-wip');
+    if(b1d) b1d.style.width = d1ppct+'%';
+    if(b1w) b1w.style.width = d1wppct+'%';
+
+    /* ── Totais agregados (todas as bases) ── */
+    const total = data.length;
+    const done  = data.filter(e=>e.status==='done').length;
+    const wip   = data.filter(e=>e.status==='wip').length;
+    const pend  = data.filter(e=>e.status==='pend').length;
+    const totP  = data.reduce((a,e)=>a+(e.peso||0),0);
+    const donP  = data.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
+    const wipP  = data.filter(e=>e.status==='wip').reduce((a,e)=>a+(e.peso||0),0);
+    const penP  = data.filter(e=>e.status==='pend').reduce((a,e)=>a+(e.peso||0),0);
+    const ppct  = pct(donP,totP);
+    const wppct = pct(wipP,totP);
+    const nppct = pct(penP,totP);
+
+    setEl('kpi-total',    fmt(total));
+    setEl('kpi-done',     fmt(done));
+    setEl('kpi-wip',      fmt(wip));
+    setEl('kpi-pend',     fmt(pend));
+    setEl('kpi-done-pct', pct(done,total)+'% do total');
+    setEl('kpi-wip-pct',  pct(wip,total)+'% do total');
+    setEl('kpi-pend-pct', pct(pend,total)+'% do total');
+    setEl('kpi-peso-pct', ppct+'%');
+    setEl('kpi-peso-sub', fmtN(donP)+' / '+fmtN(totP));
+
+    document.getElementById('macro-fill').innerHTML=
+      `<span class="seg-done" style="width:${pct(done,total)}%"></span>`+
+      `<span class="seg-wip"  style="width:${pct(wip,total)}%"></span>`+
+      `<span class="seg-pend" style="width:${pct(pend,total)}%"></span>`;
+    document.getElementById('macro-text').textContent=
+      `${done} finalizados · ${wip} em andamento · ${pend} pendentes`;
+
+    document.getElementById('macro-fill-peso').innerHTML=
+      `<span class="seg-done" style="width:${ppct}%"></span>`+
+      `<span class="seg-wip"  style="width:${wppct}%"></span>`+
+      `<span class="seg-pend" style="width:${nppct}%"></span>`;
+    document.getElementById('macro-text-peso').textContent=
+      fmtN(donP)+' finalizados · '+fmtN(wipP)+' em andamento · '+fmtN(penP)+' pendentes';
+
+  } catch(e){ console.error(e) }
+}
+
+window.addEventListener('load', loadAll);
+</script>
+</body>
+</html>
