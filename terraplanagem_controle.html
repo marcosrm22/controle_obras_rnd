@@ -317,7 +317,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="kpi" data-color="blue">
     <div class="kpi-label">Total de Áreas</div>
     <div class="kpi-value" id="kpi-total">0</div>
-    <div class="kpi-sub" id="kpi-area-m2">0 m²</div>
+    <div class="kpi-sub" id="kpi-area-m3">0 m³</div>
   </div>
   <div class="kpi" data-color="green">
     <div class="kpi-label">Finalizadas</div>
@@ -334,6 +334,11 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     <div class="kpi-value" id="kpi-pend">0</div>
     <div class="kpi-sub" id="kpi-pend-pct">0%</div>
   </div>
+  <div class="kpi" data-color="green">
+    <div class="kpi-label">Avanço por Volume</div>
+    <div class="kpi-value" id="kpi-vol-pct">0%</div>
+    <div class="kpi-sub" id="kpi-vol-sub">0 / 0 m³</div>
+  </div>
   <div class="kpi" data-color="red">
     <div class="kpi-label">Atraso Previsto</div>
     <div class="kpi-value" id="kpi-late">0</div>
@@ -344,10 +349,17 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
 <!-- MACRO BAR -->
 <div class="macro-progress">
   <div class="macro-head">
-    <span>Avanço Geral — Áreas de Terraplanagem</span>
+    <span>Avanço por Quantidade — Áreas de Terraplanagem</span>
     <strong id="macro-text">0 / 0 áreas</strong>
   </div>
   <div class="macro-bar"><div class="macro-fill" id="macro-fill"></div></div>
+</div>
+<div class="macro-progress" style="margin-top:-6px">
+  <div class="macro-head">
+    <span>Avanço por Volume (m³ ponderado)</span>
+    <strong id="macro-text-vol">0 / 0 m³</strong>
+  </div>
+  <div class="macro-bar"><div class="macro-fill" id="macro-fill-vol"></div></div>
 </div>
 
 <!-- LEGEND -->
@@ -1183,10 +1195,22 @@ function renderBlock(layer,el){
   if(h > 80 && el.empresa){
     const sub=document.createElementNS(SVG_NS,'text');
     sub.setAttribute('class','block-label-sub');
-    sub.setAttribute('x',cx); sub.setAttribute('y',cy+4);
+    sub.setAttribute('x',cx); sub.setAttribute('y',el.volumeM3&&h>100 ? cy+1 : cy+4);
     sub.setAttribute('fill',cfg.text); sub.setAttribute('font-size',subSize);
     sub.textContent=el.empresa;
     g.appendChild(sub);
+  }
+
+  // volume label
+  if(h > 100 && el.volumeM3){
+    const volLabel=document.createElementNS(SVG_NS,'text');
+    volLabel.setAttribute('class','block-label-sub');
+    volLabel.setAttribute('x',cx); volLabel.setAttribute('y',cy+(el.empresa?subSize*2+2:subSize+2));
+    volLabel.setAttribute('fill',cfg.text);
+    volLabel.setAttribute('font-size',Math.max(7,subSize-1));
+    volLabel.setAttribute('opacity','0.75');
+    volLabel.textContent=Number(el.volumeM3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' m³';
+    g.appendChild(volLabel);
   }
 
   // status badge pill at bottom
@@ -1248,6 +1272,20 @@ function renderKPIs(){
   const pend =elements.filter(e=>e.status==='pend').length;
   const late =elements.filter(e=>isLate(e)).length;
 
+  // Volume calculations
+  const fmtVol=v=>v!=null&&v>0?Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0}):null;
+  const sumVol=arr=>arr.reduce((a,e)=>a+(e.volumeM3||0),0);
+  const totVol  = sumVol(elements);
+  const doneVol = sumVol(elements.filter(e=>e.status==='done'));
+  const wipVol  = sumVol(elements.filter(e=>e.status==='wip'));
+  const pendVol = sumVol(elements.filter(e=>e.status==='pend'));
+  const hasVol  = totVol > 0;
+
+  // Volume-weighted progress %
+  const volPct  = hasVol ? Math.round(doneVol/totVol*100) : 0;
+  const volWipP = hasVol ? Math.round(wipVol/totVol*100)  : 0;
+  const volPenP = hasVol ? Math.round(pendVol/totVol*100) : 0;
+
   const pct=n=>total?Math.round(n/total*100):0;
   document.getElementById('kpi-total').textContent=total;
   document.getElementById('kpi-done').textContent=done;
@@ -1258,6 +1296,18 @@ function renderKPIs(){
   document.getElementById('kpi-wip-pct').textContent=pct(wip)+'% do total';
   document.getElementById('kpi-pend-pct').textContent=pct(pend)+'% do total';
 
+  // Volume KPI card
+  document.getElementById('kpi-vol-pct').textContent = hasVol ? volPct+'%' : '—';
+  document.getElementById('kpi-vol-sub').textContent = hasVol
+    ? (fmtVol(doneVol)||'0')+' / '+(fmtVol(totVol)||'0')+' m³'
+    : 'sem volumes cadastrados';
+
+  // Total m³ in first card
+  document.getElementById('kpi-area-m3').textContent = hasVol
+    ? (fmtVol(totVol)||'0')+' m³ totais'
+    : '— m³ (sem volumes)';
+
+  // Quantity bars
   const dp=pct(done), wp=pct(wip), pp=pct(pend);
   document.getElementById('macro-fill').innerHTML=
     `<span class="seg-done" style="width:${dp}%"></span>`+
@@ -1265,9 +1315,14 @@ function renderKPIs(){
     `<span class="seg-pend" style="width:${pp}%"></span>`;
   document.getElementById('macro-text').textContent=`${done} finalizadas · ${wip} em andamento · ${pend} pendentes`;
 
-  // area total m2 (soma de w*h em unidades SVG — puramente indicativo)
-  const totArea=elements.reduce((a,e)=>a+e.w*e.h,0);
-  document.getElementById('kpi-area-m2').textContent=totArea>0?Math.round(totArea/100).toLocaleString('pt-BR')+' u² canvas':'—';
+  // Volume-weighted bars
+  document.getElementById('macro-fill-vol').innerHTML=
+    `<span class="seg-done" style="width:${volPct}%"></span>`+
+    `<span class="seg-wip"  style="width:${volWipP}%"></span>`+
+    `<span class="seg-pend" style="width:${volPenP}%"></span>`;
+  document.getElementById('macro-text-vol').textContent = hasVol
+    ? (fmtVol(doneVol)||'0')+' finalizados · '+(fmtVol(wipVol)||'0')+' em andamento · '+(fmtVol(pendVol)||'0')+' pendentes (m³)'
+    : 'cadastre volumes para habilitar';
 }
 
 /* ================================================================
