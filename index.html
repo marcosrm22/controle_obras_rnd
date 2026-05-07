@@ -435,6 +435,53 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- BASES CIVIS -->
+    <a class="card teal" href="bases_civis.html" id="card-bases-civis" style="--teal:#007D77">
+      <div class="card-bar" style="background:linear-gradient(90deg,#007D77,#2eada7)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e0f2f1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#007D77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#007D77">Obras Civis · Bases</div>
+        <div class="card-title">Controle de Bases Civis</div>
+      </div>
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-total">—</div>
+          <div class="card-kpi-label">Elementos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-done">—</div>
+          <div class="card-kpi-label">Finalizados</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-pct">—</div>
+          <div class="card-kpi-label">Avanço Peso</div>
+        </div>
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço por peso ponderado</span>
+          <span id="bc-pct-label" style="color:#007D77;font-size:9px;font-weight:700">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#007D77;height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
+            <div style="background:var(--yellow);height:100%;width:0%;transition:width .6s" id="bc-bar-wip"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="bc-updated"></div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#007D77">Ver bases civis</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- ADMIN: USUÁRIOS (only shown for admins) -->
     <a class="card blue" href="admin_usuarios.html" id="card-admin" style="display:none">
       <div class="card-bar"></div>
@@ -651,11 +698,38 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
+  /* ── BASES CIVIS ── */
+  async function loadBasesCivis(){
+    try{
+      const { data } = await sbGet('bases_civis_elementos?select=id,status,peso');
+      const total = data.length;
+      const done  = data.filter(e=>e.status==='done').length;
+      const wip   = data.filter(e=>e.status==='wip').length;
+      const totP  = data.reduce((a,e)=>a+(e.peso||0),0);
+      const donP  = data.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
+      const wipP  = data.filter(e=>e.status==='wip').reduce((a,e)=>a+(e.peso||0),0);
+      const pp    = pct(donP,totP);
+      const wp    = pct(wipP,totP);
+
+      setEl('bc-total', fmt(total));
+      setEl('bc-done',  fmt(done));
+      setEl('bc-pct',   pp+'%');
+      setEl('bc-pct-label', pp+'%');
+      setEl('bc-updated', timeAgo());
+
+      const bd = document.getElementById('bc-bar-done');
+      const bw = document.getElementById('bc-bar-wip');
+      if(bd) bd.style.width = pp+'%';
+      if(bw) bw.style.width = wp+'%';
+    } catch(_){}
+  }
+
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
-    setTimeout(loadAdmin, 300); // slight delay so admin card visibility is already set
+    loadBasesCivis();
+    setTimeout(loadAdmin, 300);
   });
 })();
 </script>
