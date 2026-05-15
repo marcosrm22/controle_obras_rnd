@@ -272,8 +272,8 @@ const TABLE  = 'dornas_chapas';
 
 // Auth guard
 (function(){
-  const user = sessionStorage.getItem('pco_user');
-  if(!user){
+  const token = sessionStorage.getItem('pco_token');
+  if(!token){
     window.location.href = 'login.html';
   }
 })();
