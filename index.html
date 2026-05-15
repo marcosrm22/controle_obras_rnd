@@ -19,6 +19,9 @@
   --red:#CC5121; --red-soft:#f8e2d6;
   --teal:#007D77; --teal-soft:#e0f2f1;
   --purple:#5B2D8E; --purple-soft:#f0eafc;
+  /* aliases semânticos para categorias */
+  --civil:#D97706;        --civil-soft:#FEF3C7;
+  --montagem:#304F7E;     --montagem-soft:#eef2f8;
   --neutral:#BDBFC1;
   --shadow:0 4px 24px -4px rgba(26,35,50,0.10);
   --shadow-hover:0 12px 40px -8px rgba(48,79,126,0.22);
@@ -194,31 +197,31 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   ════════════════════════════════════════════ -->
   <div class="cat-block">
     <div class="cat-header">
-      <div class="cat-icon" style="background:var(--blue-soft)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="cat-icon" style="background:var(--civil-soft)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 00-4 0v2"/><path d="M8 7V5a2 2 0 00-4 0v2"/>
           <path d="M2 12h20"/><path d="M12 12v10"/>
         </svg>
       </div>
       <div>
-        <div class="cat-title" style="color:var(--blue)">Civil</div>
-        <div class="cat-sub">Terraplanagem · Drenagem · Bases e fundações</div>
+        <div class="cat-title" style="color:var(--civil)">Civil</div>
+        <div class="cat-sub">Terraplanagem · Drenagem · Bases e fundações · Equipamentos civis</div>
       </div>
-      <span class="cat-count">3 ferramentas</span>
+      <span class="cat-count">4 ferramentas</span>
     </div>
 
     <div class="cards">
 
       <!-- TERRAPLANAGEM -->
-      <a class="card green" href="terraplanagem_controle.html">
-        <div class="card-bar"></div>
+      <a class="card orange" href="terraplanagem_controle.html">
+        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
         <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="card-icon" style="background:var(--civil-soft)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M2 20h20M6 20V10l6-6 6 6v10"/><path d="M10 20v-6h4v6"/>
             </svg>
           </div>
-          <div class="card-tag">Movimentação de Terra</div>
+          <div class="card-tag" style="color:var(--civil)">Movimentação de Terra</div>
           <div class="card-title">Terraplanagem</div>
         </div>
         <div class="card-kpis">
@@ -229,11 +232,11 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         <div class="card-progress">
           <div class="card-progress-head">
             <span class="card-progress-label">Avanço geral</span>
-            <span id="tr-pct" style="color:var(--green);font-size:9px;font-weight:700">—</span>
+            <span id="tr-pct" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
           </div>
           <div class="card-prog-bar"><div class="card-prog-fill">
-            <div class="prog-done" id="tr-bar-done" style="width:0%"></div>
-            <div class="prog-wip"  id="tr-bar-wip"  style="width:0%"></div>
+            <div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="tr-bar-done"></div>
+            <div class="prog-wip" id="tr-bar-wip" style="width:0%"></div>
           </div></div>
         </div>
         <div class="card-progress" style="padding-top:0">
@@ -243,19 +246,19 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
           </div>
         </div>
         <div class="card-updated" id="tr-updated"></div>
-        <div class="card-footer"><span class="card-cta">Abrir ferramenta</span><span class="card-arrow">→</span></div>
+        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Abrir ferramenta</span><span class="card-arrow">→</span></div>
       </a>
 
       <!-- DRENAGEM -->
-      <a class="card blue" href="drenagem_controle_v3.html">
-        <div class="card-bar"></div>
+      <a class="card orange" href="drenagem_controle_v3.html">
+        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
         <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="card-icon" style="background:var(--civil-soft)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22c5 0 8-4.5 8-9 0-3-1.5-5.5-4-7-1 2-2 3-4 3s-3-1-4-3C5.5 7.5 4 10 4 13c0 4.5 3 9 8 9z"/>
             </svg>
           </div>
-          <div class="card-tag">Infraestrutura · Drenagem</div>
+          <div class="card-tag" style="color:var(--civil)">Infraestrutura · Drenagem</div>
           <div class="card-title">Redes de Drenagem</div>
         </div>
         <div class="card-kpis">
@@ -266,33 +269,33 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         <div class="card-progress">
           <div class="card-progress-head">
             <span class="card-progress-label">Avanço — Trechos</span>
-            <span id="dr-pct" style="color:var(--blue);font-size:9px;font-weight:700">—</span>
+            <span id="dr-pct" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
           </div>
-          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--blue);height:100%;width:0%;transition:width .6s" id="dr-bar"></div></div></div>
+          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="dr-bar"></div></div></div>
         </div>
         <div class="card-progress" style="padding-top:0">
           <div class="card-progress-head">
             <span class="card-progress-label">Avanço — Caixas PV</span>
-            <span id="dr-pct-boxes" style="color:var(--blue);font-size:9px;font-weight:700">—</span>
+            <span id="dr-pct-boxes" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
           </div>
-          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--blue);height:100%;width:0%;transition:width .6s" id="dr-bar-boxes"></div></div></div>
+          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="dr-bar-boxes"></div></div></div>
         </div>
         <div class="card-updated" id="dr-updated"></div>
-        <div class="card-footer"><span class="card-cta">Abrir ferramenta</span><span class="card-arrow">→</span></div>
+        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Abrir ferramenta</span><span class="card-arrow">→</span></div>
       </a>
 
       <!-- BASES CIVIS -->
-      <a class="card teal" href="bases_civis.html">
-        <div class="card-bar"></div>
+      <a class="card orange" href="bases_civis.html">
+        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
         <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="card-icon" style="background:var(--civil-soft)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
               <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
               <rect x="14" y="14" width="7" height="7" rx="1"/>
             </svg>
           </div>
-          <div class="card-tag">Obras Civis · Bases</div>
+          <div class="card-tag" style="color:var(--civil)">Obras Civis · Bases</div>
           <div class="card-title">Controle de Bases Civis</div>
         </div>
         <div class="card-kpis">
@@ -303,15 +306,33 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         <div class="card-progress">
           <div class="card-progress-head">
             <span class="card-progress-label">Avanço por peso ponderado</span>
-            <span id="bc-pct-label" style="color:var(--teal);font-size:9px;font-weight:700">—</span>
+            <span id="bc-pct-label" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
           </div>
           <div class="card-prog-bar"><div class="card-prog-fill">
-            <div style="background:var(--teal);height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
+            <div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
             <div style="background:var(--gold);height:100%;width:0%;transition:width .6s" id="bc-bar-wip"></div>
           </div></div>
         </div>
         <div class="card-updated" id="bc-updated"></div>
-        <div class="card-footer"><span class="card-cta">Ver bases civis</span><span class="card-arrow">→</span></div>
+        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Ver bases civis</span><span class="card-arrow">→</span></div>
+      </a>
+
+      <!-- DESTILARIA — BASES E EQUIPAMENTOS (Civil) -->
+      <a class="card orange" href="destilaria_fase1.html">
+        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
+        <div class="card-body">
+          <div class="card-icon" style="background:var(--civil-soft)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              <path d="M10 6h4M6 10v4M18 10v4M10 18h4"/>
+            </svg>
+          </div>
+          <div class="card-tag" style="color:var(--civil)">Destilaria · Fase I</div>
+          <div class="card-title">Bases e Equipamentos</div>
+          <div class="card-desc">Controle visual de elementos sobre a planta da destilaria — bases, fundações e equipamentos civis.</div>
+        </div>
+        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Abrir planta</span><span class="card-arrow">→</span></div>
       </a>
 
     </div>
@@ -323,49 +344,32 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   ════════════════════════════════════════════ -->
   <div class="cat-block">
     <div class="cat-header">
-      <div class="cat-icon" style="background:var(--orange-soft)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="cat-icon" style="background:var(--montagem-soft)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--montagem)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
         </svg>
       </div>
       <div>
-        <div class="cat-title" style="color:var(--orange)">Montagem Mecânica</div>
-        <div class="cat-sub">Fabricação · Montagem de equipamentos e estruturas</div>
+        <div class="cat-title" style="color:var(--montagem)">Montagem Mecânica</div>
+        <div class="cat-sub">Fabricação · Montagem de equipamentos e estruturas metálicas</div>
       </div>
-      <span class="cat-count">2 ferramentas</span>
+      <span class="cat-count">1 ferramenta</span>
     </div>
 
     <div class="cards">
 
-      <!-- DESTILARIA FASE I -->
-      <a class="card orange" href="destilaria_fase1.html">
-        <div class="card-bar"></div>
-        <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-4"/>
-              <path d="M9 3a3 3 0 006 0M12 12v5M9 17h6"/>
-            </svg>
-          </div>
-          <div class="card-tag">Destilaria · Fase I</div>
-          <div class="card-title">Bases e Equipamentos</div>
-          <div class="card-desc">Controle visual de elementos sobre a planta da destilaria — bases, equipamentos e estruturas.</div>
-        </div>
-        <div class="card-footer"><span class="card-cta">Abrir planta</span><span class="card-arrow">→</span></div>
-      </a>
-
       <!-- DORNAS DE FERMENTAÇÃO -->
-      <a class="card orange" href="dornas_fermentacao.html">
-        <div class="card-bar"></div>
+      <a class="card blue" href="dornas_fermentacao.html">
+        <div class="card-bar" style="background:linear-gradient(90deg,var(--montagem),#4a6fa5)"></div>
         <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="card-icon" style="background:var(--montagem-soft)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--montagem)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <ellipse cx="12" cy="5" rx="9" ry="3"/>
               <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
               <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
             </svg>
           </div>
-          <div class="card-tag">Destilaria · Montagem</div>
+          <div class="card-tag" style="color:var(--montagem)">Destilaria · Montagem</div>
           <div class="card-title">Dornas de Fermentação</div>
           <div class="card-desc">Controle 3D chapa a chapa das 5 dornas (401A/B/C/D e 501A) — biselamento, calandragem, montagem e soldagem.</div>
         </div>
@@ -377,12 +381,12 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         <div class="card-progress">
           <div class="card-progress-head">
             <span class="card-progress-label">Chapas com soldagem concluída</span>
-            <span id="dn-pct-label" style="color:var(--orange);font-size:9px;font-weight:700">—</span>
+            <span id="dn-pct-label" style="color:var(--montagem);font-size:9px;font-weight:700">—</span>
           </div>
-          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--orange);height:100%;width:0%;transition:width .6s" id="dn-bar"></div></div></div>
+          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--montagem);height:100%;width:0%;transition:width .6s" id="dn-bar"></div></div></div>
         </div>
         <div class="card-updated" id="dn-updated"></div>
-        <div class="card-footer"><span class="card-cta">Ver controle 3D</span><span class="card-arrow">→</span></div>
+        <div class="card-footer"><span class="card-cta" style="color:var(--montagem)">Ver controle 3D</span><span class="card-arrow">→</span></div>
       </a>
 
     </div>
