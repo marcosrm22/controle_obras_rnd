@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCO · Dornas de Fermentação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7;--bg-2:#fff;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;
+  --gold:#EAA239;
+  --green:#609346;--green-soft:#e8efe1;
+  --red:#CC5121;--red-soft:#f8e2d6;
+  --neutral:#BDBFC1;
+  --teal:#007D77;--teal-soft:#e0f2f1;
+  --shadow:0 4px 20px -4px rgba(26,35,50,0.12);
+  --shadow-lg:0 12px 40px -12px rgba(26,35,50,0.25);
+
+  /* Status de fabricação */
+  --s-none:#BDBFC1;   --s-none-soft:#f1f3f6;
+  --s-bisel:#D97706;  --s-bisel-soft:#FEF3C7;
+  --s-calan:#304F7E;  --s-calan-soft:#eef2f8;
+  --s-mont:#7C3AED;   --s-mont-soft:#ede9fe;
+  --s-solda:#609346;  --s-solda-soft:#e8efe1;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.app{max-width:1800px;margin:0 auto;padding:18px 22px 60px}
+
+/* ── HEADER ── */
+header{display:flex;justify-content:space-between;align-items:flex-end;
+  padding-bottom:12px;border-bottom:3px solid var(--teal);margin-bottom:16px;
+  flex-wrap:wrap;gap:14px}
+.brand .eyebrow{font-size:9px;color:var(--teal);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:3px}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.4px}
+.brand h1 span{color:var(--text-dim);font-weight:500}
+.header-right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+
+/* ── BREADCRUMB ── */
+.breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:14px;
+  font-size:10px;color:var(--text-mute);font-weight:600}
+.breadcrumb a{color:var(--blue);text-decoration:none;font-weight:700}
+.breadcrumb a:hover{text-decoration:underline}
+
+/* ── BUTTONS ── */
+.tool-btn{background:var(--bg-2);color:var(--text);border:1px solid var(--border-2);
+  padding:7px 12px;font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.5px;
+  text-transform:uppercase;cursor:pointer;font-weight:600;display:inline-flex;
+  align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.tool-btn:hover{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+.tool-btn.active{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700}
+.tool-btn svg{width:14px;height:14px;flex-shrink:0}
+
+/* ── SYNC ── */
+.sync-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace}
+#sync-dot{width:8px;height:8px;border-radius:50%;background:var(--neutral);flex-shrink:0;transition:background .3s}
+
+/* ── DORNA TABS ── */
+.dorna-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border)}
+.dorna-tab{padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  cursor:pointer;border:none;background:none;color:var(--text-mute);border-bottom:2px solid transparent;
+  margin-bottom:-2px;transition:all .15s;font-family:'Montserrat',sans-serif}
+.dorna-tab:hover{color:var(--blue)}
+.dorna-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.area-badge{display:inline-block;font-size:9px;padding:1px 6px;border-radius:2px;
+  background:var(--blue-soft);color:var(--blue);margin-left:5px;font-weight:700}
+
+/* ── MAIN LAYOUT ── */
+.main-grid{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start}
+
+/* ── 3D CANVAS ── */
+.canvas-wrap{background:var(--panel);border:1px solid var(--border);position:relative;overflow:hidden}
+#three-canvas{width:100%;height:560px;display:block;cursor:grab}
+#three-canvas:active{cursor:grabbing}
+.canvas-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--text-mute);background:rgba(255,255,255,.85);
+  padding:3px 10px;border-radius:2px;pointer-events:none;white-space:nowrap}
+.view-btns{position:absolute;bottom:10px;right:10px;display:flex;gap:6px}
+.view-btn{padding:5px 10px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  border:1px solid var(--border-2);background:rgba(255,255,255,.9);cursor:pointer;font-family:'Montserrat',sans-serif;color:var(--text-dim)}
+.view-btn:hover{background:#fff;color:var(--teal);border-color:var(--teal)}
+.view-btn.on{background:var(--teal);border-color:var(--teal);color:#fff}
+
+/* ── LADO DIREITO ── */
+.side-panel{display:flex;flex-direction:column;gap:12px}
+.panel-box{background:var(--panel);border:1px solid var(--border);padding:14px}
+.panel-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text-mute);margin-bottom:10px}
+
+/* ── LEGENDA DE STATUS ── */
+.legend-list{display:flex;flex-direction:column;gap:6px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text)}
+.leg-dot{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+
+/* ── PROGRESSO ── */
+.prog-list{display:flex;flex-direction:column;gap:8px}
+.prog-row{}
+.prog-head{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.prog-name{color:var(--text-dim);font-weight:600}
+.prog-val{color:var(--text-mute);font-family:'JetBrains Mono',monospace}
+.prog-track{height:5px;background:var(--bg);border-radius:0}
+.prog-fill{height:100%;border-radius:0;transition:width .4s ease}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi-card{background:var(--bg);padding:10px;text-align:center}
+.kpi-num{font-size:20px;font-weight:800;line-height:1.1}
+.kpi-lbl{font-size:9px;color:var(--text-mute);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+
+/* ── PAINEL DE EDIÇÃO DA CHAPA ── */
+.edit-panel{background:var(--panel);border:1px solid var(--border);padding:14px;display:none}
+.edit-panel.visible{display:block}
+.edit-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.edit-sub{font-size:10px;color:var(--text-mute);margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+.edit-section-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text-mute);margin-bottom:6px}
+.status-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px}
+.s-btn{padding:7px 6px;font-size:10px;font-weight:700;border:1px solid var(--border-2);
+  cursor:pointer;font-family:'Montserrat',sans-serif;color:var(--text-dim);background:var(--bg);
+  letter-spacing:.3px;transition:all .12s;text-align:center}
+.s-btn:hover{border-color:var(--teal);color:var(--teal)}
+.s-btn.cur{color:#fff;font-weight:700}
+.s-btn.cur.none  {background:var(--s-none); border-color:var(--s-none)}
+.s-btn.cur.bisel {background:var(--s-bisel);border-color:var(--s-bisel)}
+.s-btn.cur.calan {background:var(--s-calan);border-color:var(--s-calan)}
+.s-btn.cur.mont  {background:var(--s-mont); border-color:var(--s-mont)}
+.s-btn.cur.solda {background:var(--s-solda);border-color:var(--s-solda)}
+.obs-area{width:100%;border:1px solid var(--border-2);background:var(--bg);resize:vertical;
+  min-height:60px;padding:8px;font-family:'Montserrat',sans-serif;font-size:11px;color:var(--text);outline:none}
+.obs-area:focus{border-color:var(--teal);background:#fff}
+.btn-save-chapa{width:100%;margin-top:8px;padding:9px;background:var(--teal);border:none;
+  color:#fff;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:background .15s}
+.btn-save-chapa:hover{background:var(--blue-dark)}
+.btn-save-chapa:disabled{opacity:.5;pointer-events:none}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;
+  padding:10px 18px;font-size:11px;font-weight:600;border-radius:2px;
+  opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:9999;max-width:360px}
+.toast.visible{opacity:1;transform:translateY(0)}
+.toast.err{background:var(--red)}
+.toast.ok{background:var(--green)}
+
+/* ── TOOLBAR VIROLA ── */
+.sel-all-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.sel-btn{padding:4px 8px;font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.5px;border:1px solid var(--border-2);background:var(--bg);
+  cursor:pointer;font-family:'Montserrat',sans-serif;color:var(--text-dim)}
+.sel-btn:hover{border-color:var(--teal);color:var(--teal)}
+
+@keyframes syncPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="eyebrow">PCO Digital · Destilaria</div>
+      <h1>Dornas de Fermentação <span>· Fabricação &amp; Montagem</span></h1>
+    </div>
+    <div class="header-right">
+      <div class="sync-row">
+        <div id="sync-dot"></div>
+        <span id="save-status">Conectando...</span>
+      </div>
+      <button class="tool-btn" onclick="window.location.href='index.html'">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 12L6 8l4-4"/></svg>
+        Voltar ao PCO
+      </button>
+    </div>
+  </header>
+
+  <div class="breadcrumb">
+    <a href="index.html">PCO</a>
+    <span>›</span>
+    <span>Destilaria</span>
+    <span>›</span>
+    <span>Dornas de Fermentação</span>
+  </div>
+
+  <!-- TABS DAS DORNAS -->
+  <div class="dorna-tabs" id="dorna-tabs"></div>
+
+  <div class="main-grid">
+
+    <!-- 3D -->
+    <div>
+      <div class="canvas-wrap">
+        <canvas id="three-canvas"></canvas>
+        <div class="canvas-hint">Arraste para girar · Scroll para zoom · Clique em uma chapa para editar</div>
+        <div class="view-btns">
+          <button class="view-btn" id="btn-explode" onclick="toggleExplode()">Explodir</button>
+          <button class="view-btn" id="btn-wire" onclick="toggleWire()">Wireframe</button>
+          <button class="view-btn" onclick="resetCamera()">⟳ Resetar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LADO DIREITO -->
+    <div class="side-panel">
+
+      <!-- LEGENDA -->
+      <div class="panel-box">
+        <div class="panel-label">Status de fabricação</div>
+        <div class="legend-list">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--s-none)"></div>Não iniciado</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--s-bisel)"></div>Biselamento</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--s-calan)"></div>Calandragem</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--s-mont)"></div>Montagem</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--s-solda)"></div>Soldagem concluída</div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="panel-box">
+        <div class="panel-label">Resumo — <span id="kpi-dorna-label">—</span></div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+      </div>
+
+      <!-- PROGRESSO POR VIROLA -->
+      <div class="panel-box">
+        <div class="panel-label">Progresso por virola</div>
+        <div class="prog-list" id="prog-list"></div>
+      </div>
+
+      <!-- PAINEL DE EDIÇÃO -->
+      <div class="edit-panel" id="edit-panel">
+        <div class="panel-label">Editar chapa</div>
+        <div class="edit-title" id="edit-title">—</div>
+        <div class="edit-sub" id="edit-sub">—</div>
+
+        <div class="sel-all-row" id="sel-all-virola-row" style="display:none">
+          <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);align-self:center">Selecionar virola toda:</span>
+          <button class="sel-btn" onclick="setVirolaAll('none')">Não iniciado</button>
+          <button class="sel-btn" onclick="setVirolaAll('bisel')">Biselamento</button>
+          <button class="sel-btn" onclick="setVirolaAll('calan')">Calandragem</button>
+          <button class="sel-btn" onclick="setVirolaAll('mont')">Montagem</button>
+          <button class="sel-btn" onclick="setVirolaAll('solda')">Soldagem</button>
+        </div>
+
+        <div class="edit-section-lbl">Status da chapa</div>
+        <div class="status-btn-grid" id="status-btn-grid"></div>
+        <div class="edit-section-lbl">Observações</div>
+        <textarea class="obs-area" id="obs-input" placeholder="Responsável, data, pendências..."></textarea>
+        <button class="btn-save-chapa" id="btn-save-chapa" onclick="saveChapa()">Salvar alterações</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+/* ================================================================
+   CONFIG & AUTH
+   ================================================================ */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+const TABLE  = 'dornas_chapas';
+
+// Auth guard
+(function(){
+  const user = sessionStorage.getItem('pco_user');
+  if(!user){
+    window.location.href = 'login.html';
+  }
+})();
+
+/* ================================================================
+   DADOS DAS DORNAS
+   ================================================================ */
+const DORNAS = [
+  {id:'401A', area:15, label:'Dorna 401A'},
+  {id:'401B', area:15, label:'Dorna 401B'},
+  {id:'401C', area:15, label:'Dorna 401C'},
+  {id:'401D', area:15, label:'Dorna 401D'},
+  {id:'501A', area:17, label:'Dorna 501A'},
+];
+
+// 9 virolas conforme projeto APLUS-DTE-MEC-2306-101-00
+// Espessuras de baixo para cima, chapas por virola = perímetro / 6000mm
+// Circunferência = π × 17000 ≈ 53.407mm → ~9 chapas de 6000mm por virola
+const VIROLAS = [
+  {i:0, nome:'Virola 1', esp:'#5/16"', h:1500, chapas:9},
+  {i:1, nome:'Virola 2', esp:'#5/16"', h:1500, chapas:9},
+  {i:2, nome:'Virola 3', esp:'#5/16"', h:1500, chapas:9},
+  {i:3, nome:'Virola 4', esp:'#5/16"', h:1500, chapas:9},
+  {i:4, nome:'Virola 5', esp:'#3/8"',  h:1500, chapas:9},
+  {i:5, nome:'Virola 6', esp:'#1/2"',  h:1500, chapas:9},
+  {i:6, nome:'Virola 7', esp:'#5/8"',  h:1500, chapas:9},
+  {i:7, nome:'Virola 8', esp:'#3/4"',  h:1500, chapas:9},
+  {i:8, nome:'Virola 9', esp:'#7/8"',  h:500,  chapas:9},
+];
+
+const STATUS_LIST = [
+  {k:'none',  label:'Não iniciado', color:0xBDBFC1, hex:'#BDBFC1', cssVar:'--s-none'},
+  {k:'bisel', label:'Biselamento',  color:0xD97706, hex:'#D97706', cssVar:'--s-bisel'},
+  {k:'calan', label:'Calandragem',  color:0x304F7E, hex:'#304F7E', cssVar:'--s-calan'},
+  {k:'mont',  label:'Montagem',     color:0x7C3AED, hex:'#7C3AED', cssVar:'--s-mont'},
+  {k:'solda', label:'Soldagem',     color:0x609346, hex:'#609346', cssVar:'--s-solda'},
+];
+
+function getStatusCfg(k){ return STATUS_LIST.find(s=>s.k===k)||STATUS_LIST[0]; }
+
+/* ================================================================
+   STATE
+   ================================================================ */
+const state = {
+  dorna: '401A',
+  selected: null,       // key ex: '401A-3-5' ou '401A-teto'
+  selectedVirola: null, // índice da virola da seleção atual
+  data: {},             // { 'dornaId-vi-ci': {status, obs} }
+  explode: false,
+  wire: false,
+};
+
+// Gera todas as chaves possíveis
+DORNAS.forEach(d=>{
+  VIROLAS.forEach(v=>{
+    for(let c=0;c<v.chapas;c++){
+      state.data[`${d.id}-${v.i}-${c}`] = {status:'none', obs:''};
+    }
+  });
+  state.data[`${d.id}-teto`]  = {status:'none', obs:''};
+  state.data[`${d.id}-fundo`] = {status:'none', obs:''};
+});
+
+/* ================================================================
+   SUPABASE
+   ================================================================ */
+function setSyncStatus(msg, s='idle'){
+  document.getElementById('save-status').textContent = msg;
+  const dot = document.getElementById('sync-dot');
+  const c = {idle:'var(--neutral)',ok:'var(--green)',saving:'var(--gold)',error:'var(--red)'};
+  dot.style.background = c[s]||c.idle;
+  dot.style.animation  = s==='saving' ? 'syncPulse 0.8s infinite' : 'none';
+}
+
+async function sbFetch(path, opts={}){
+  const {method='GET', prefer='', body} = opts;
+  const res = await fetch(SB_URL+'/rest/v1/'+path, {
+    method,
+    headers:{
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer '+TOKEN,
+      'Content-Type': 'application/json',
+      'Prefer': prefer,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if(!res.ok) throw new Error(res.status+' '+text);
+  if(!text||!text.trim()) return null;
+  try{ return JSON.parse(text); } catch(_){ return null; }
+}
+
+async function loadAll(){
+  setSyncStatus('Conectando...','saving');
+  try{
+    const rows = await sbFetch(TABLE+'?select=*') || [];
+    rows.forEach(r=>{
+      const key = `${r.dorna_id}-${r.virola_idx}-${r.chapa_idx}`;
+      if(state.data[key]!==undefined){
+        state.data[key] = {status: r.status||'none', obs: r.obs||''};
+      }
+      // teto / fundo
+      if(r.virola_idx==='teto'||r.virola_idx==='fundo'){
+        const k = `${r.dorna_id}-${r.virola_idx}`;
+        if(state.data[k]!==undefined) state.data[k]={status:r.status||'none',obs:r.obs||''};
+      }
+    });
+    setSyncStatus('Online ✓','ok');
+  }catch(e){
+    setSyncStatus('Offline — dados locais','error');
+    toast('Erro de conexão: '+e.message, true);
+    // fallback localStorage
+    try{
+      const cached = localStorage.getItem('dornas_chapas_cache');
+      if(cached) Object.assign(state.data, JSON.parse(cached));
+    }catch(_){}
+  }
+}
+
+async function saveChapa(){
+  const btn = document.getElementById('btn-save-chapa');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+  const key = state.selected;
+  if(!key){ btn.disabled=false; btn.textContent='Salvar alterações'; return; }
+  const entry = state.data[key];
+  const obs   = document.getElementById('obs-input').value.trim();
+  entry.obs   = obs;
+
+  const parts = key.split('-');
+  const dornaId = parts[0]+'-'+parts[1]; // ex: 401A ou 501A — mas nosso id é simples
+  // key format: dornaId-vi-ci ex: '401A-3-5'
+  // need to split carefully: dorna id can have 1 dash (501A) or none (401A)
+  const dornaIdFull = parts.slice(0, parts.length-2).join('-') || parts[0];
+  const virolaIdx   = parts[parts.length-2];
+  const chapaIdx    = parts[parts.length-1];
+
+  setSyncStatus('Salvando...','saving');
+  try{
+    await sbFetch(TABLE+'?on_conflict=dorna_id,virola_idx,chapa_idx', {
+      method:'POST',
+      prefer:'resolution=merge-duplicates,return=minimal',
+      body:[{
+        dorna_id:   dornaIdFull,
+        virola_idx: virolaIdx,
+        chapa_idx:  chapaIdx,
+        status:     entry.status,
+        obs:        obs,
+      }],
+    });
+    setSyncStatus('Salvo '+new Date().toLocaleTimeString('pt-BR'),'ok');
+    try{ localStorage.setItem('dornas_chapas_cache', JSON.stringify(state.data)); }catch(_){}
+    toast('Chapa salva!');
+  }catch(e){
+    setSyncStatus('Erro','error');
+    toast('Erro ao salvar: '+e.message, true);
+  }
+  rebuildScene();
+  updateKPIs();
+  updateProgress();
+  btn.disabled = false;
+  btn.textContent = 'Salvar alterações';
+}
+
+async function saveBatch(pairs){
+  // pairs = [{dorna_id, virola_idx, chapa_idx, status, obs}]
+  setSyncStatus('Salvando...','saving');
+  try{
+    await sbFetch(TABLE+'?on_conflict=dorna_id,virola_idx,chapa_idx', {
+      method:'POST',
+      prefer:'resolution=merge-duplicates,return=minimal',
+      body: pairs,
+    });
+    setSyncStatus('Salvo '+new Date().toLocaleTimeString('pt-BR'),'ok');
+    try{ localStorage.setItem('dornas_chapas_cache', JSON.stringify(state.data)); }catch(_){}
+  }catch(e){
+    setSyncStatus('Erro','error');
+    toast('Erro ao salvar: '+e.message, true);
+  }
+}
+
+/* ================================================================
+   THREE.JS
+   ================================================================ */
+let renderer, scene, camera, meshMap={};
+let isDragging=false, lastMouse={x:0,y:0};
+let sph={theta:0.5, phi:1.05, r:3.0};
+const TARGET_Y = 0.5;
+
+function initThree(){
+  const canvas = document.getElementById('three-canvas');
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  resizeRenderer();
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(44, canvas.clientWidth/canvas.clientHeight, 0.01, 100);
+  updateCamera();
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.95); d1.position.set(3,5,4); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xffffff, 0.25); d2.position.set(-3,2,-3); scene.add(d2);
+
+  canvas.addEventListener('mousedown', e=>{
+    isDragging=false;
+    lastMouse={x:e.clientX,y:e.clientY};
+  });
+  canvas.addEventListener('mousemove', e=>{
+    if(!(e.buttons&1)) return;
+    isDragging=true;
+    sph.theta -= (e.clientX-lastMouse.x)*0.007;
+    sph.phi    = Math.max(0.15,Math.min(Math.PI-0.15, sph.phi+(e.clientY-lastMouse.y)*0.007));
+    lastMouse  = {x:e.clientX,y:e.clientY};
+    updateCamera();
+  });
+  canvas.addEventListener('mouseup', e=>{
+    if(!isDragging) handlePick(e);
+  });
+  canvas.addEventListener('wheel', e=>{
+    sph.r = Math.max(1.2, Math.min(9, sph.r+e.deltaY*0.003));
+    updateCamera();
+    e.preventDefault();
+  },{passive:false});
+
+  window.addEventListener('resize', resizeRenderer);
+  buildScene();
+  (function loop(){ requestAnimationFrame(loop); renderer.render(scene,camera); })();
+}
+
+function resizeRenderer(){
+  const canvas = document.getElementById('three-canvas');
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  if(camera){ camera.aspect=w/h; camera.updateProjectionMatrix(); }
+}
+
+function updateCamera(){
+  const x = sph.r*Math.sin(sph.phi)*Math.sin(sph.theta);
+  const y = sph.r*Math.cos(sph.phi)+TARGET_Y;
+  const z = sph.r*Math.sin(sph.phi)*Math.cos(sph.theta);
+  camera.position.set(x,y,z);
+  camera.lookAt(0,TARGET_Y,0);
+}
+
+function resetCamera(){
+  sph = {theta:0.5, phi:1.05, r:3.0};
+  updateCamera();
+}
+
+function toggleExplode(){
+  state.explode = !state.explode;
+  document.getElementById('btn-explode').classList.toggle('on', state.explode);
+  buildScene();
+}
+
+function toggleWire(){
+  state.wire = !state.wire;
+  document.getElementById('btn-wire').classList.toggle('on', state.wire);
+  buildScene();
+}
+
+function clearScene(){
+  meshMap = {};
+  const toRm = [];
+  scene.traverse(o=>{ if(o.isMesh||o.isLineSegments) toRm.push(o); });
+  toRm.forEach(o=>{
+    o.geometry?.dispose();
+    (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m?.dispose());
+    scene.remove(o);
+  });
+}
+
+function buildScene(){
+  clearScene();
+  const d = state.dorna;
+  const R = 0.85;
+  const explodeGap = state.explode ? 0.08 : 0;
+  let yBase = 0;
+
+  VIROLAS.forEach((v)=>{
+    const hN = v.h/17000 * 0.85;
+    const nC = v.chapas;
+    const segA = (Math.PI*2)/nC;
+    const yC   = yBase + hN/2 + (state.explode ? v.i*explodeGap : 0);
+
+    for(let ci=0;ci<nC;ci++){
+      const key = `${d}-${v.i}-${ci}`;
+      const st  = state.data[key]?.status || 'none';
+      const col = getStatusCfg(st).color;
+      const isSelected = state.selected===key;
+
+      const startA = ci*segA - segA/2;
+      const geo    = new THREE.CylinderGeometry(R,R,hN,32,1,true,startA,segA*0.96);
+      const mat    = new THREE.MeshLambertMaterial({
+        color: isSelected ? 0xEAA239 : col,
+        side: THREE.DoubleSide,
+        wireframe: state.wire,
+      });
+      const mesh = new THREE.Mesh(geo,mat);
+      mesh.position.y = yC;
+      mesh.userData = {key, type:'chapa', vi:v.i, ci};
+      scene.add(mesh);
+      meshMap[key] = mesh;
+
+      if(!state.wire){
+        const edge = new THREE.EdgesGeometry(geo);
+        const lm   = new THREE.LineBasicMaterial({color:0x000000,opacity:0.12,transparent:true});
+        const ls   = new THREE.LineSegments(edge,lm);
+        ls.position.y = yC;
+        scene.add(ls);
+      }
+    }
+    yBase += hN;
+  });
+
+  // Fundo
+  const topY = yBase + (state.explode ? VIROLAS.length*explodeGap : 0);
+  const fundoSt  = state.data[`${d}-fundo`]?.status||'none';
+  const fundoGeo = new THREE.CircleGeometry(R,48);
+  fundoGeo.rotateX(-Math.PI/2);
+  const fundoMat = new THREE.MeshLambertMaterial({
+    color: state.selected===`${d}-fundo` ? 0xEAA239 : getStatusCfg(fundoSt).color,
+    side:THREE.DoubleSide, wireframe:state.wire,
+  });
+  const fundoM = new THREE.Mesh(fundoGeo, fundoMat);
+  fundoM.position.y = 0.001;
+  fundoM.userData = {key:`${d}-fundo`, type:'chapa'};
+  scene.add(fundoM);
+  meshMap[`${d}-fundo`] = fundoM;
+
+  // Teto cônico
+  const tetoSt  = state.data[`${d}-teto`]?.status||'none';
+  const tetoGeo = new THREE.ConeGeometry(R,0.18,48);
+  const tetoMat = new THREE.MeshLambertMaterial({
+    color: state.selected===`${d}-teto` ? 0xEAA239 : getStatusCfg(tetoSt).color,
+    side:THREE.DoubleSide, wireframe:state.wire,
+  });
+  const tetoM = new THREE.Mesh(tetoGeo, tetoMat);
+  tetoM.position.y = topY+0.09;
+  tetoM.userData = {key:`${d}-teto`, type:'chapa'};
+  scene.add(tetoM);
+  meshMap[`${d}-teto`] = tetoM;
+}
+
+function rebuildScene(){
+  buildScene();
+}
+
+const _raycaster = new THREE.Raycaster();
+const _mouse     = new THREE.Vector2();
+
+function handlePick(e){
+  const canvas = document.getElementById('three-canvas');
+  const rect   = canvas.getBoundingClientRect();
+  _mouse.x     = ((e.clientX-rect.left)/rect.width)*2-1;
+  _mouse.y     = -((e.clientY-rect.top)/rect.height)*2+1;
+  _raycaster.setFromCamera(_mouse, camera);
+  const hits = _raycaster.intersectObjects(Object.values(meshMap));
+  if(hits.length>0){
+    const key = hits[0].object.userData.key;
+    if(key){
+      state.selected = key;
+      buildScene();
+      openEditPanel(key);
+    }
+  } else {
+    state.selected = null;
+    closeEditPanel();
+    buildScene();
+  }
+}
+
+/* ================================================================
+   UI — TABS
+   ================================================================ */
+function buildTabs(){
+  const cont = document.getElementById('dorna-tabs');
+  cont.innerHTML = '';
+  DORNAS.forEach(d=>{
+    const btn = document.createElement('button');
+    btn.className = 'dorna-tab'+(state.dorna===d.id?' active':'');
+    btn.innerHTML = `${d.label}<span class="area-badge">Área ${d.area}</span>`;
+    btn.onclick = ()=>{
+      state.dorna    = d.id;
+      state.selected = null;
+      document.querySelectorAll('.dorna-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      closeEditPanel();
+      buildScene();
+      updateKPIs();
+      updateProgress();
+    };
+    cont.appendChild(btn);
+  });
+}
+
+/* ================================================================
+   UI — KPIs
+   ================================================================ */
+function updateKPIs(){
+  const d = state.dorna;
+  document.getElementById('kpi-dorna-label').textContent = DORNAS.find(x=>x.id===d)?.label||d;
+  const counts = {none:0,bisel:0,calan:0,mont:0,solda:0};
+  const total  = VIROLAS.reduce((a,v)=>a+v.chapas,0)+2; // +teto +fundo
+  Object.keys(state.data).filter(k=>k.startsWith(d+'-')).forEach(k=>{
+    const st = state.data[k]?.status||'none';
+    counts[st] = (counts[st]||0)+1;
+  });
+  const pct = n=>Math.round(n/total*100);
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--s-solda)">${counts.solda}</div><div class="kpi-lbl">Soldagem</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--s-mont)">${counts.mont}</div><div class="kpi-lbl">Montagem</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--s-calan)">${counts.calan}</div><div class="kpi-lbl">Calandragem</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--s-bisel)">${counts.bisel}</div><div class="kpi-lbl">Biselamento</div></div>
+    <div class="kpi-card"><div class="kpi-num">${counts.none}</div><div class="kpi-lbl">Não iniciado</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--teal)">${pct(counts.solda)}%</div><div class="kpi-lbl">Soldagem %</div></div>
+  `;
+}
+
+/* ================================================================
+   UI — PROGRESSO
+   ================================================================ */
+function updateProgress(){
+  const d    = state.dorna;
+  const list = document.getElementById('prog-list');
+  list.innerHTML = '';
+  VIROLAS.forEach(v=>{
+    let done=0;
+    for(let c=0;c<v.chapas;c++){
+      if((state.data[`${d}-${v.i}-${c}`]?.status||'none')==='solda') done++;
+    }
+    const pct = Math.round(done/v.chapas*100);
+    const bar = document.createElement('div');
+    bar.className = 'prog-row';
+    bar.innerHTML = `
+      <div class="prog-head">
+        <span class="prog-name">${v.nome} <span style="color:var(--text-mute);font-weight:400">${v.esp}</span></span>
+        <span class="prog-val">${done}/${v.chapas}</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:${pct}%;background:var(--s-solda)"></div>
+      </div>`;
+    list.appendChild(bar);
+  });
+}
+
+/* ================================================================
+   UI — PAINEL DE EDIÇÃO
+   ================================================================ */
+function openEditPanel(key){
+  const d = state.dorna;
+  const panel = document.getElementById('edit-panel');
+  panel.classList.add('visible');
+
+  let title, sub, vi=null;
+  if(key===`${d}-teto`){
+    title='Teto (chapa cônica)';
+    sub='Espessura #3/16" · Aço Inox · Ø16.400';
+  } else if(key===`${d}-fundo`){
+    title='Fundo';
+    sub='Espessura #1/2" · Aço Inox · Ø19.378';
+  } else {
+    const parts  = key.split('-');
+    const viIdx  = parseInt(parts[parts.length-2]);
+    const ciIdx  = parseInt(parts[parts.length-1]);
+    const v      = VIROLAS[viIdx];
+    vi = viIdx;
+    title = `${v.nome} — Chapa ${ciIdx+1} de ${v.chapas}`;
+    sub   = `Espessura ${v.esp} · Altura ${v.h}mm · Aço Inox`;
+  }
+  state.selectedVirola = vi;
+  document.getElementById('edit-title').textContent = title;
+  document.getElementById('edit-sub').textContent   = sub;
+  document.getElementById('obs-input').value = state.data[key]?.obs||'';
+
+  // mostrar botão de selecionar virola toda apenas para chapas de virola
+  document.getElementById('sel-all-virola-row').style.display = vi!==null ? 'flex' : 'none';
+
+  renderStatusBtns(key);
+}
+
+function renderStatusBtns(key){
+  const cur = state.data[key]?.status||'none';
+  const grid = document.getElementById('status-btn-grid');
+  grid.innerHTML = '';
+  STATUS_LIST.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className = 's-btn'+(s.k===cur?' cur '+s.k:'');
+    btn.textContent = s.label;
+    btn.onclick = ()=>{
+      state.data[key].status = s.k;
+      renderStatusBtns(key);
+      buildScene();
+      updateKPIs();
+      updateProgress();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function closeEditPanel(){
+  document.getElementById('edit-panel').classList.remove('visible');
+  state.selectedVirola = null;
+}
+
+// Aplica status a todas as chapas da virola selecionada
+async function setVirolaAll(status){
+  const d  = state.dorna;
+  const vi = state.selectedVirola;
+  if(vi===null) return;
+  const v = VIROLAS[vi];
+  const pairs = [];
+  for(let c=0;c<v.chapas;c++){
+    const key = `${d}-${vi}-${c}`;
+    state.data[key].status = status;
+    pairs.push({dorna_id:d, virola_idx:String(vi), chapa_idx:String(c), status, obs:state.data[key].obs||''});
+  }
+  buildScene();
+  updateKPIs();
+  updateProgress();
+  if(state.selected) renderStatusBtns(state.selected);
+  await saveBatch(pairs);
+  toast(`Virola ${vi+1} marcada como: ${STATUS_LIST.find(s=>s.k===status)?.label}`);
+}
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+let _toastT;
+function toast(msg, err=false){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast visible'+(err?' err':' ok');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(()=>el.classList.remove('visible'),3200);
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+window.addEventListener('load', async()=>{
+  buildTabs();
+  initThree();
+  await loadAll();
+  buildScene();
+  updateKPIs();
+  updateProgress();
+});
+</script>
+
+<!-- SQL para criar a tabela — rodar no Supabase SQL Editor:
+
+CREATE TABLE IF NOT EXISTS dornas_chapas (
+  id          BIGSERIAL PRIMARY KEY,
+  dorna_id    TEXT NOT NULL,
+  virola_idx  TEXT NOT NULL,
+  chapa_idx   TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'none'
+              CHECK (status IN ('none','bisel','calan','mont','solda')),
+  obs         TEXT DEFAULT '',
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (dorna_id, virola_idx, chapa_idx)
+);
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER dornas_chapas_updated
+  BEFORE UPDATE ON dornas_chapas
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+ALTER TABLE dornas_chapas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all" ON dornas_chapas FOR ALL USING (true) WITH CHECK (true);
+
+-->
+</body>
+</html>
