@@ -28,14 +28,36 @@ body{font-family:'Montserrat',sans-serif;background:var(--cinza);color:var(--tex
 .sb-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
 .sb-dot.ok{background:#4ade80}.sb-dot.err{background:#f87171}.sb-dot.spin{background:#60a5fa;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.area-bar{background:#fff;border-bottom:3px solid var(--azul);padding:0 24px;display:flex;overflow-x:auto;scrollbar-width:none;align-items:stretch}
-.area-bar::-webkit-scrollbar{display:none}
-.grp-sep{width:1px;background:var(--borda);margin:8px 0;flex-shrink:0}
-.grp-lbl{padding:14px 10px 14px 18px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;display:flex;align-items:center;flex-shrink:0}
-.area-tab{padding:12px 16px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:7px;flex-shrink:0}
-.area-tab:hover{color:var(--azul);background:#F9FAFB}
-.area-tab.active{color:var(--azul);border-bottom-color:var(--ouro);background:#F9FAFB}
-.area-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.area-bar{background:#fff;border-bottom:3px solid var(--azul);display:flex;overflow:hidden;min-height:52px;position:relative}
+/* Nível 0: Fases */
+.nav-fases{display:flex;align-items:stretch;flex-shrink:0;border-right:2px solid var(--borda)}
+.nav-fase{padding:0 20px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .15s;white-space:nowrap;border-right:1px solid var(--borda)}
+.nav-fase:last-child{border-right:none}
+.nav-fase:hover{color:var(--azul);background:#F9FAFB}
+.nav-fase.active{color:var(--azul);border-bottom-color:var(--azul);background:#F0F5FF}
+.nav-fase .fase-badge{background:var(--azul);color:#fff;font-size:8px;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:2px}
+.nav-fase.active .fase-badge{background:var(--ouro)}
+/* Nível 1: Grupos macro */
+.nav-grupos{display:flex;align-items:stretch;flex-shrink:0;border-right:2px solid var(--borda);transition:opacity .2s}
+.nav-grp{padding:0 16px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .15s;white-space:nowrap;border-right:1px solid var(--borda);position:relative}
+.nav-grp:last-child{border-right:none}
+.nav-grp:hover{color:var(--azul);background:#F9FAFB}
+.nav-grp.active{color:var(--azul);border-bottom-color:var(--ouro);background:#F9FAFB}
+.nav-grp .grp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.nav-grp .grp-arrow{font-size:9px;opacity:.5;margin-left:2px}
+/* Nível 2: CWAs */
+.nav-cwas{display:flex;align-items:stretch;flex:1;overflow-x:auto;scrollbar-width:none;transition:opacity .2s}
+.nav-cwas::-webkit-scrollbar{display:none}
+.nav-cwa{padding:0 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .15s;white-space:nowrap;border-right:1px solid var(--borda);flex-shrink:0}
+.nav-cwa:hover{color:var(--azul);background:#F9FAFB}
+.nav-cwa.active{color:var(--azul);font-weight:700;border-bottom-color:var(--ouro);background:#FFFBF0}
+.nav-cwa .cwa-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.nav-cwa .cwa-pct{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;opacity:.7}
+/* Breadcrumb e botão voltar */
+.nav-back{padding:0 14px;display:flex;align-items:center;cursor:pointer;color:var(--azul-c);font-size:11px;font-weight:700;gap:6px;border-right:2px solid var(--borda);flex-shrink:0;transition:background .15s;white-space:nowrap}
+.nav-back:hover{background:#EFF6FF}
+.nav-back svg{width:14px;height:14px;flex-shrink:0}
+.nav-placeholder{display:flex;align-items:center;padding:0 20px;color:var(--muted);font-size:11px;font-style:italic}
 .toolbar{background:#fff;border-bottom:1px solid var(--borda);padding:10px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btn{font-family:inherit;font-size:11px;font-weight:700;padding:7px 14px;border-radius:3px;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;transition:all .15s;border:1px solid var(--azul);background:#fff;color:var(--azul)}
 .btn:hover{background:var(--azul);color:#fff}
@@ -225,9 +247,21 @@ td.lk-act{text-align:left;padding-left:12px;font-weight:600;max-width:240px}
   </div>
 </div>
 
-<!-- AREA TABS -->
+<!-- NAV TREE -->
 <div class="area-bar" id="areaBar">
-  <span style="padding:14px 24px;color:var(--muted);font-size:11px">Carregando áreas...</span>
+  <!-- Nível 0: Fases (sempre visível) -->
+  <div class="nav-fases" id="navFases"></div>
+  <!-- Botão Voltar (aparece quando grupo selecionado) -->
+  <div class="nav-back hidden" id="navBack" onclick="navBackTo()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 3L5 8l5 5"/></svg>
+    <span id="navBackLabel">Voltar</span>
+  </div>
+  <!-- Nível 1: Grupos macro -->
+  <div class="nav-grupos" id="navGrupos"></div>
+  <!-- Nível 2: CWAs -->
+  <div class="nav-cwas" id="navCwas">
+    <div class="nav-placeholder">← Selecione uma fase e um grupo</div>
+  </div>
 </div>
 
 <!-- TOOLBAR -->
@@ -504,7 +538,6 @@ async function init(){
     await Promise.all([loadAreas(), loadSnapshots()]);
     buildAreaBar();
     renderPortfolio();
-    if(areas.length) selectArea(areas[0].cwa);
     setSb('ok','Conectado ✓');
   } catch(e) {
     setSb('err','Erro — '+e.message);
@@ -540,29 +573,149 @@ async function loadPpc(cwa){
   if(r.ok) ppcData[cwa]=await r.json();
 }
 
-// ── AREA BAR ─────────────────────────────────────────────────
+// ── NAV TREE ─────────────────────────────────────────────────
+// Estado da navegação
+let navFaseSel = '', navGrpSel = '';
+
+// Mapeamento de fases — você pode ajustar conforme o projeto
+// grupo_1 das areas_config define a qual fase/grupo cada CWA pertence
+// Fases são inferidas da estrutura: "Geral", "Etanol", "DDGS e Óleo",
+//   "Utilidades", "Grãos", "Administração", "Laboratórios", "Efluentes"
+// Definimos dois agrupamentos de fase baseado na natureza das áreas:
+const FASE_MAP = {
+  'Fase I': ['Etanol','DDGS e Óleo','Utilidades','Grãos'],
+  'Fase II': ['Administração','Laboratórios','Efluentes'],
+  'Infraestrutura': ['Geral'],
+};
+
+function gruposDaFase(fase){
+  const grupos = FASE_MAP[fase] || [];
+  // Filtrar apenas grupos que existem nas areas carregadas
+  const gruposExistentes = [...new Set(areas.map(a=>a.grupo_1).filter(Boolean))];
+  return grupos.filter(g=>gruposExistentes.includes(g));
+}
+
+function areasDo(grupo){
+  return areas.filter(a=>a.grupo_1===grupo);
+}
+
 function buildAreaBar(){
-  const bar=g('areaBar');
-  if(!areas.length){ bar.innerHTML='<span style="padding:14px 24px;color:var(--muted);font-size:11px">Nenhuma área — verifique a tabela areas_config no Supabase</span>'; return; }
-  const grupos={};
-  for(const a of areas){ const gk=a.grupo_1||'Geral'; if(!grupos[gk]) grupos[gk]=[]; grupos[gk].push(a); }
-  let html='';
-  let first=true;
-  for(const [grp,list] of Object.entries(grupos)){
-    if(!first) html+='<div class="grp-sep"></div>';
-    first=false;
-    html+=`<span class="grp-lbl">${grp}</span>`;
-    html+=list.map(a=>`<div class="area-tab" id="tab-${tabId(a.cwa)}" onclick="selectArea('${esc(a.cwa)}')">`+
-      `<div class="area-dot" style="background:${a.cor_hex||'#124E81'}"></div>${a.nome_exibicao}</div>`).join('');
+  if(!areas.length){ g('navFases').innerHTML='<span style="padding:14px 20px;color:var(--muted);font-size:11px">Sem áreas — verifique o Supabase</span>'; return; }
+
+  // Montar fases (só exibe fases que têm áreas)
+  const fasesComAreas = Object.entries(FASE_MAP)
+    .filter(([fase,grupos])=>grupos.some(grp=>areas.some(a=>a.grupo_1===grp)));
+
+  g('navFases').innerHTML = fasesComAreas.map(([fase,])=>`
+    <div class="nav-fase" id="fase-${tabId(fase)}" onclick="navSelectFase('${esc(fase)}')">
+      ${fase}
+      <span class="fase-badge">${areasDaFase(fase).length}</span>
+    </div>`).join('');
+
+  // Selecionar a primeira fase automaticamente
+  const primeiraFase = fasesComAreas[0]?.[0] || '';
+  if(primeiraFase) navSelectFase(primeiraFase, false);
+}
+
+function areasDaFase(fase){
+  const grupos = FASE_MAP[fase]||[];
+  return areas.filter(a=>grupos.includes(a.grupo_1));
+}
+
+function navSelectFase(fase, autoSelectPrimeiro=true){
+  navFaseSel = fase;
+  navGrpSel  = '';
+
+  // Marcar fase ativa
+  document.querySelectorAll('.nav-fase').forEach(el=>el.classList.remove('active'));
+  const el = g('fase-'+tabId(fase));
+  if(el) el.classList.add('active');
+
+  // Montar grupos da fase
+  const grupos = gruposDaFase(fase);
+  const navGrps = g('navGrupos');
+  navGrps.innerHTML = grupos.map(grp=>{
+    // Calcular EV médio do grupo para mostrar como indicador
+    const areasGrp = areasDo(grp);
+    const snapsGrp = areasGrp.flatMap(a=>{
+      const s=snapshots[a.cwa]||[]; return s[s.length-1]?[s[s.length-1]]:[];
+    });
+    const evMed = snapsGrp.length ? (snapsGrp.reduce((a,s)=>a+parseFloat(s.ev_pct||0),0)/snapsGrp.length) : null;
+    const evStr = evMed!==null ? `<span style="font-size:9px;opacity:.6;margin-left:4px;font-family:monospace">${evMed.toFixed(0)}%</span>` : '';
+    return `<div class="nav-grp" id="grp-${tabId(grp)}" onclick="navSelectGrp('${esc(grp)}')">
+      <div class="grp-dot" style="background:#607D8B"></div>
+      ${grp}${evStr}
+      <span class="grp-arrow">›</span>
+    </div>`;
+  }).join('');
+
+  // Limpar CWAs e ocultar botão voltar
+  g('navCwas').innerHTML = '<div class="nav-placeholder">← Selecione um grupo</div>';
+  g('navBack').classList.add('hidden');
+
+  // Auto-selecionar primeiro grupo
+  if(autoSelectPrimeiro && grupos.length){
+    navSelectGrp(grupos[0]);
   }
-  bar.innerHTML=html;
+}
+
+function navSelectGrp(grp){
+  navGrpSel = grp;
+
+  // Marcar grupo ativo
+  document.querySelectorAll('.nav-grp').forEach(el=>el.classList.remove('active'));
+  const el = g('grp-'+tabId(grp));
+  if(el) el.classList.add('active');
+
+  // Mostrar botão voltar com breadcrumb
+  const back = g('navBack');
+  back.classList.remove('hidden');
+  g('navBackLabel').textContent = `${navFaseSel} · ${grp}`;
+
+  // Montar CWAs do grupo
+  const areasGrp = areasDo(grp);
+  const cwasEl = g('navCwas');
+  if(!areasGrp.length){
+    cwasEl.innerHTML = '<div class="nav-placeholder">Nenhuma área neste grupo</div>';
+    return;
+  }
+  cwasEl.innerHTML = areasGrp.map(a=>{
+    const snps = snapshots[a.cwa]||[];
+    const last = snps[snps.length-1]||{};
+    const ev   = parseFloat(last.ev_pct)||0;
+    const pv   = parseFloat(last.pv_pct)||0;
+    const cor  = ev>=pv ? 'var(--verde)' : ev>0 ? 'var(--ouro)' : 'var(--muted)';
+    return `<div class="nav-cwa" id="tab-${tabId(a.cwa)}" onclick="selectArea('${esc(a.cwa)}')">
+      <div class="cwa-dot" style="background:${a.cor_hex||'#124E81'}"></div>
+      ${a.nome_exibicao}
+      ${ev>0?`<span class="cwa-pct" style="color:${cor}">${ev.toFixed(0)}%</span>`:''}
+    </div>`;
+  }).join('');
+
+  // Scroll para início dos CWAs
+  cwasEl.scrollLeft = 0;
+
+  // Se só tem uma área no grupo, seleciona automaticamente
+  if(areasGrp.length === 1){
+    selectArea(areasGrp[0].cwa);
+  }
+}
+
+function navBackTo(){
+  // Volta para a visão de grupos (limpa seleção de CWA)
+  navGrpSel = '';
+  document.querySelectorAll('.nav-cwa').forEach(el=>el.classList.remove('active'));
+  g('navCwas').innerHTML = '<div class="nav-placeholder">← Selecione um grupo</div>';
+  g('navBack').classList.add('hidden');
+  document.querySelectorAll('.nav-grp').forEach(el=>el.classList.remove('active'));
 }
 
 function selectArea(cwa){
-  document.querySelectorAll('.area-tab').forEach(t=>t.classList.remove('active'));
-  const tab=g('tab-'+tabId(cwa));
+  // Marcar CWA ativo
+  document.querySelectorAll('.nav-cwa').forEach(t=>t.classList.remove('active'));
+  const tab = g('tab-'+tabId(cwa));
   if(tab){ tab.classList.add('active'); tab.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
-  currentCwa=cwa;
+  currentCwa = cwa;
   renderArea(cwa);
 }
 
@@ -978,7 +1131,7 @@ function renderPortfolio(){
     const pv=parseFloat(last.pv_pct)||0,ev=parseFloat(last.ev_pct)||0,dev=ev-pv;
     const st=a.status||'atencao';
     return `<div class="port-card" style="border-top-color:${a.cor_hex||'#124E81'}">
-<div class="port-card-head"><div class="port-card-title" onclick="selectArea('${esc(a.cwa)}');setView('area')">${a.nome_exibicao}</div>
+<div class="port-card-head"><div class="port-card-title" onclick="navAndSelect('${esc(a.cwa)}');setView('area')">${a.nome_exibicao}</div>
 <span class="pst ${stM[st]||'at'}">${slM[st]||'—'}</span></div>
 <div class="prog-row"><div class="prog-item"><div class="prog-lbl">Planejado</div>
 <div class="prog-bg"><div class="prog-fill" style="width:${Math.min(pv,100)}%;background:${a.cor_hex||'#124E81'}">${pv.toFixed(1)}%</div></div></div></div>
@@ -986,7 +1139,7 @@ function renderPortfolio(){
 <div class="prog-bg"><div class="prog-fill" style="width:${Math.min(ev,100)}%;background:${dev<-10?'var(--vermelho)':dev>=0?'var(--verde)':'var(--ouro)'}">${ev.toFixed(1)}%</div></div></div></div>
 <span class="dev-tag ${dev>=0?'dev-pos':'dev-neg'}">${dev>=0?'+':''}${dev.toFixed(1)}% ${dev<0?'· Atraso':dev>0?'· Adiantado':'· No prazo'}</span>
 ${last.referencia_data?`<div style="margin-top:8px;font-size:9px;color:var(--muted)">Ref: ${last.referencia_data}</div>`:''}
-<div style="margin-top:10px"><button onclick="selectArea('${esc(a.cwa)}');setView('area')" style="font-size:10px;font-weight:700;color:${a.cor_hex||'#124E81'};background:none;border:1px solid ${a.cor_hex||'#124E81'};padding:4px 12px;cursor:pointer;border-radius:3px;font-family:inherit">Ver detalhes →</button></div>
+<div style="margin-top:10px"><button onclick="navAndSelect('${esc(a.cwa)}');setView('area')" style="font-size:10px;font-weight:700;color:${a.cor_hex||'#124E81'};background:none;border:1px solid ${a.cor_hex||'#124E81'};padding:4px 12px;cursor:pointer;border-radius:3px;font-family:inherit">Ver detalhes →</button></div>
 </div>`;}).join('');
 }
 
@@ -1063,13 +1216,22 @@ function loadFallback(){
     {cwa:'Etanol.Fermentação.Dornas de Fermentação',nome_exibicao:'Fermentação',grupo_1:'Etanol',grupo_2:'Fermentação',cor_hex:'#609346',ordem:4},
     {cwa:'Etanol.Destilaria.Destilaria de Etanol Hidratado',nome_exibicao:'Destilaria',grupo_1:'Etanol',grupo_2:'Destilaria',cor_hex:'#CC5121',ordem:5},
   ];
-  buildAreaBar(); renderPortfolio();
-  if(areas.length) selectArea(areas[0].cwa);
+  buildAreaBar();
+  renderPortfolio();
   g('loadingBar').style.display='none';
 }
 
 // ── VIEW / UTILS ──────────────────────────────────────────────
-function setView(v){ viewMode=v;
+function navAndSelect(cwa){
+  // Descobre fase e grupo a partir do CWA e navega pelo tree antes de selecionar
+  const area = areas.find(a=>a.cwa===cwa);
+  if(!area) return;
+  const grp   = area.grupo_1 || 'Geral';
+  const fase  = Object.entries(FASE_MAP).find(([,gs])=>gs.includes(grp))?.[0] || Object.keys(FASE_MAP)[0];
+  navSelectFase(fase, false);
+  navSelectGrp(grp);
+  selectArea(cwa);
+}
   g('viewArea').classList.toggle('hidden',v!=='area'); g('viewPort').classList.toggle('hidden',v!=='portfolio');
   g('btnVArea').classList.toggle('act',v==='area'); g('btnVPort').classList.toggle('act',v==='portfolio'); }
 
