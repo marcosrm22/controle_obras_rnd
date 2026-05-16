@@ -7,152 +7,281 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="config.js"></script>
 <style>
 :root{
-  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4; --border-2:#c1c9d3;
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4;
   --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
   --blue:#304F7E; --blue-dark:#223a60; --blue-soft:#eef2f8;
   --gold:#EAA239;
   --green:#609346; --green-soft:#e8efe1;
   --orange:#D97706; --orange-soft:#FEF3C7;
-  --red:#CC5121; --red-soft:#f8e2d6;
-  --teal:#007D77; --teal-soft:#e0f2f1;
-  --purple:#5B2D8E; --purple-soft:#f0eafc;
-  /* aliases semânticos para categorias */
-  --civil:#D97706;        --civil-soft:#FEF3C7;
-  --montagem:#304F7E;     --montagem-soft:#eef2f8;
+  --red:#CC5121;
   --neutral:#BDBFC1;
-  --shadow:0 4px 24px -4px rgba(26,35,50,0.10);
-  --shadow-hover:0 12px 40px -8px rgba(48,79,126,0.22);
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);
+  --shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+  --shadow-hover:0 12px 40px -8px rgba(48,79,126,0.25);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
-.page{max-width:1200px;margin:0 auto;padding:32px 28px 80px}
+
+/* ── LAYOUT ── */
+.page{max-width:1100px;margin:0 auto;padding:48px 28px 80px}
 
 /* ── HEADER ── */
 .site-header{
   border-bottom:3px solid var(--blue);
-  padding-bottom:16px;margin-bottom:36px;
-  display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;
+  padding-bottom:20px;margin-bottom:48px;
+  display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;
 }
-.site-header .eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:4px}
-.site-header h1{font-size:24px;font-weight:800;letter-spacing:-.5px;line-height:1.15}
+.site-header .eyebrow{
+  font-size:9px;color:var(--blue);letter-spacing:3px;
+  text-transform:uppercase;font-weight:700;margin-bottom:5px;
+}
+.site-header h1{font-size:26px;font-weight:800;letter-spacing:-0.5px;line-height:1.15}
 .site-header h1 span{color:var(--text-dim);font-weight:500}
-.site-header .subtitle{font-size:11px;color:var(--text-dim);margin-top:5px;line-height:1.6}
-
-/* ── USER BAR ── */
-.user-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px;font-size:11px;font-weight:600;color:var(--blue)}
-.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.user-role{font-size:8px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;background:#fff;border:1px solid var(--border);padding:2px 7px;color:var(--text-mute)}
-.admin-btn{
-  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;
-  text-transform:uppercase;padding:5px 12px;border:1px solid var(--border-2);
-  background:var(--panel);color:var(--text-dim);cursor:pointer;
-  display:inline-flex;align-items:center;gap:5px;text-decoration:none;
-  transition:all .15s;position:relative;
+.site-header .subtitle{
+  font-size:12px;color:var(--text-dim);margin-top:6px;line-height:1.6;
 }
-.admin-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
-.admin-btn svg{width:13px;height:13px;flex-shrink:0}
-.notif-badge{
-  position:absolute;top:-6px;right:-6px;
-  background:var(--gold);color:#fff;font-size:8px;font-weight:800;
-  min-width:16px;height:16px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;padding:0 3px;
+.version-tag{
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;
+  background:var(--bg);border:1px solid var(--border);
+  padding:5px 10px;white-space:nowrap;
 }
-.logout-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:var(--panel);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
-.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
-.logout-btn svg{width:12px;height:12px}
 
-/* ── CATEGORIA ── */
-.cat-block{margin-bottom:44px}
-.cat-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--border)}
-.cat-icon{width:32px;height:32px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cat-icon svg{width:17px;height:17px}
-.cat-title{font-size:13px;font-weight:800;letter-spacing:-.2px}
-.cat-sub{font-size:10px;color:var(--text-mute);margin-top:1px}
-.cat-count{margin-left:auto;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text-mute);white-space:nowrap}
+/* ── SECTION TITLE ── */
+.section-label{
+  font-size:9px;color:var(--text-mute);letter-spacing:2px;
+  text-transform:uppercase;font-weight:700;
+  margin-bottom:18px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
 
-/* ── CARDS ── */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+/* ── CARDS GRID ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:48px}
 
 .card{
   background:var(--panel);border:1px solid var(--border);
   text-decoration:none;color:inherit;
   display:flex;flex-direction:column;
-  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   box-shadow:var(--shadow);position:relative;overflow:hidden;
 }
-.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:#b0bfd4}
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-hover);
+  border-color:#b0bfd4;
+}
 .card:hover .card-arrow{transform:translateX(4px)}
-.card-bar{height:4px;width:100%}
-.card-body{padding:20px 20px 16px;flex:1}
-.card-icon{width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;margin-bottom:13px}
-.card-icon svg{width:19px;height:19px}
-.card-tag{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
-.card-title{font-size:16px;font-weight:800;letter-spacing:-.2px;margin-bottom:6px;line-height:1.25}
-.card-desc{font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:0}
 
-/* KPIs */
-.card-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 14px}
-.card-kpi{padding:10px 12px;text-align:center;border-right:1px solid var(--border)}
+/* colored top bar */
+.card-bar{height:5px;width:100%}
+
+.card-body{padding:24px 24px 20px;flex:1}
+.card-icon{
+  width:44px;height:44px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;
+}
+.card-icon svg{width:22px;height:22px}
+
+.card-tag{
+  font-size:9px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:6px;
+}
+.card-title{font-size:19px;font-weight:800;letter-spacing:-0.3px;margin-bottom:8px;line-height:1.2}
+.card-desc{font-size:12px;color:var(--text-dim);line-height:1.65;margin-bottom:18px}
+
+.card-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0}
+.chip{
+  font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:3px 9px;border:1px solid;
+}
+
+.card-footer{
+  padding:12px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  background:#fafbfc;
+}
+.card-cta{
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
+.card-arrow{
+  display:inline-block;font-size:18px;font-weight:300;
+  transition:transform .18s ease;color:var(--text-mute);
+}
+
+/* card color variants */
+.card.blue .card-bar  {background:linear-gradient(90deg,var(--blue),#4a6fa5)}
+.card.blue .card-icon {background:var(--blue-soft)}
+.card.blue .card-icon svg{stroke:var(--blue)}
+.card.blue .card-tag  {color:var(--blue)}
+.card.blue .card-cta  {color:var(--blue)}
+
+.card.green .card-bar  {background:linear-gradient(90deg,var(--green),#7db35a)}
+.card.green .card-icon {background:var(--green-soft)}
+.card.green .card-icon svg{stroke:var(--green)}
+.card.green .card-tag  {color:var(--green)}
+.card.green .card-cta  {color:var(--green)}
+
+.card.orange .card-bar  {background:linear-gradient(90deg,var(--orange),#f0a030)}
+.card.orange .card-icon {background:var(--orange-soft)}
+.card.orange .card-icon svg{stroke:var(--orange)}
+.card.orange .card-tag  {color:var(--orange)}
+.card.orange .card-cta  {color:var(--orange)}
+
+/* chip color helpers */
+.chip-blue  {background:var(--blue-soft);border-color:#b0c0da;color:var(--blue)}
+.chip-green {background:var(--green-soft);border-color:#a8c990;color:#3a6229}
+.chip-orange{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.chip-gray  {background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
+
+
+/* ── CARD DASHBOARD KPIs ── */
+.card-kpis{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  margin:0 0 16px;
+}
+.card-kpi{
+  padding:12px 14px;text-align:center;
+  border-right:1px solid var(--border);
+}
 .card-kpi:last-child{border-right:none}
-.card-kpi-val{font-size:20px;font-weight:800;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:2px}
-.card-kpi-val.loading{font-size:13px;color:var(--text-mute);font-weight:400;letter-spacing:0;animation:pulse 1.2s ease infinite}
+.card-kpi-val{
+  font-size:22px;font-weight:800;letter-spacing:-1px;
+  color:var(--text);line-height:1;margin-bottom:3px;
+}
+.card-kpi-val.loading{
+  font-size:14px;color:var(--text-mute);font-weight:400;letter-spacing:0;
+  animation:pulse 1.2s ease infinite;
+}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.card-kpi-label{font-size:8px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-mute)}
+.card-kpi-label{
+  font-size:8px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-mute);
+}
 
-/* Progress */
-.card-progress{padding:0 16px 12px}
-.card-progress-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+/* progress bar inside card */
+.card-progress{padding:0 20px 16px}
+.card-progress-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:5px;
+  font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
 .card-progress-label{color:var(--text-mute)}
-.card-prog-bar{height:6px;background:#eef0f3;overflow:hidden;border-radius:0}
+.card-progress-pct{font-family:'JetBrains Mono',monospace;font-size:10px}
+.card-prog-bar{height:7px;background:#eef0f3;overflow:hidden;border-radius:0}
 .card-prog-fill{display:flex;height:100%;transition:width .6s ease}
-.prog-done{background:var(--green)}.prog-wip{background:var(--gold)}.prog-pend{background:var(--neutral)}
-.card-updated{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-mute);padding:0 16px 10px}
+.prog-done{background:var(--green)}
+.prog-wip {background:var(--gold)}
+.prog-pend{background:var(--neutral)}
+.prog-blue{background:var(--blue)}
 
-/* Footer */
-.card-footer{padding:10px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#fafbfc}
-.card-cta{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-.card-arrow{display:inline-block;font-size:17px;font-weight:300;transition:transform .18s ease;color:var(--text-mute)}
+/* last-update timestamp */
+.card-updated{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  color:var(--text-mute);padding:0 20px 12px;
+}
 
-/* Color variants */
-.card.blue .card-bar{background:linear-gradient(90deg,var(--blue),#4a6fa5)}
-.card.blue .card-icon{background:var(--blue-soft)}.card.blue .card-icon svg{stroke:var(--blue)}
-.card.blue .card-tag{color:var(--blue)}.card.blue .card-cta{color:var(--blue)}
-
-.card.green .card-bar{background:linear-gradient(90deg,var(--green),#7db35a)}
-.card.green .card-icon{background:var(--green-soft)}.card.green .card-icon svg{stroke:var(--green)}
-.card.green .card-tag{color:var(--green)}.card.green .card-cta{color:var(--green)}
-
-.card.teal .card-bar{background:linear-gradient(90deg,var(--teal),#2eada7)}
-.card.teal .card-icon{background:var(--teal-soft)}.card.teal .card-icon svg{stroke:var(--teal)}
-.card.teal .card-tag{color:var(--teal)}.card.teal .card-cta{color:var(--teal)}
-
-.card.orange .card-bar{background:linear-gradient(90deg,var(--orange),#f0a030)}
-.card.orange .card-icon{background:var(--orange-soft)}.card.orange .card-icon svg{stroke:var(--orange)}
-.card.orange .card-tag{color:var(--orange)}.card.orange .card-cta{color:var(--orange)}
-
-.card.purple .card-bar{background:linear-gradient(90deg,var(--purple),#8b5cf6)}
-.card.purple .card-icon{background:var(--purple-soft)}.card.purple .card-icon svg{stroke:var(--purple)}
-.card.purple .card-tag{color:var(--purple)}.card.purple .card-cta{color:var(--purple)}
-
-/* Soon */
-.card.soon{opacity:.5;pointer-events:none}
+/* ── COMING SOON CARD ── */
+.card.soon{opacity:.55;pointer-events:none}
 .card.soon .card-bar{background:linear-gradient(90deg,var(--neutral),#d0d4d9)}
-.card.soon .card-tag,.card.soon .card-cta{color:var(--text-mute)}
-.soon-badge{position:absolute;top:14px;right:14px;font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;background:var(--neutral);color:#fff;padding:2px 7px}
+.card.soon .card-tag{color:var(--text-mute)}
+.card.soon .card-cta{color:var(--text-mute)}
+.soon-badge{
+  position:absolute;top:16px;right:16px;
+  font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+  background:var(--neutral);color:#fff;padding:3px 8px;
+}
 
-/* No access */
-.card.no-access{opacity:.35;pointer-events:none;filter:grayscale(1)}
-.card.no-access::after{content:'Sem acesso';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);color:#fff;padding:4px 14px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+/* ── INFO ROW ── */
+.info-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;margin-bottom:48px;
+}
+.info-box{
+  background:var(--panel);border:1px solid var(--border);
+  border-left:3px solid var(--blue);
+  padding:14px 16px;box-shadow:var(--shadow);
+}
+.info-box.gold  {border-left-color:var(--gold)}
+.info-box.green {border-left-color:var(--green)}
+.info-box .info-title{
+  font-size:9px;color:var(--text-mute);letter-spacing:1.5px;
+  text-transform:uppercase;font-weight:700;margin-bottom:5px;
+}
+.info-box .info-text{font-size:12px;color:var(--text-dim);line-height:1.6}
+.info-box .info-text strong{color:var(--text);font-weight:700}
+.info-box code{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:#f3f4f6;padding:1px 5px;border:1px solid var(--border);
+}
 
 /* ── FOOTER ── */
-footer{border-top:1px solid var(--border);padding-top:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+footer{
+  border-top:1px solid var(--border);padding-top:20px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+}
 footer .foot-left{font-size:10px;color:var(--text-mute);line-height:1.7}
 footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase}
+
+/* config form */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:600px){.config-grid{grid-template-columns:1fr}}
+.config-field label{font-size:9px;color:var(--text-mute);letter-spacing:1px;
+  text-transform:uppercase;font-weight:700;margin-bottom:4px;display:block}
+.config-field input{
+  width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;
+  border:1px solid var(--border);padding:7px 9px;outline:none;
+  background:var(--bg);transition:border-color .15s;
+}
+.config-field input:focus{border-color:var(--blue)}
+.config-field.span2{grid-column:1/-1}
+
+
+/* ── USER BAR ── */
+.user-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.user-chip{
+  display:flex;align-items:center;gap:7px;
+  background:var(--blue-soft);border:1px solid #b0c0da;
+  padding:5px 11px;font-size:11px;font-weight:600;color:var(--blue);
+}
+.user-chip .user-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--blue);color:#fff;
+  font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+.user-role{
+  font-size:8px;font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;text-transform:uppercase;
+  background:#fff;border:1px solid var(--border);
+  padding:2px 6px;color:var(--text-mute);
+}
+.logout-btn{
+  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;
+  border:1px solid var(--border-2);background:var(--panel);
+  color:var(--text-dim);cursor:pointer;transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.logout-btn svg{width:12px;height:12px}
+
+/* card disabled state */
+.card.no-access{opacity:.4;pointer-events:none;filter:grayscale(1)}
+.card.no-access::after{
+  content:'Sem acesso';
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.6);color:#fff;padding:5px 14px;
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+}
+
 </style>
+<script src="config.js"></script>
 </head>
 <body>
 <div class="page">
@@ -173,17 +302,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
         </div>
       </div>
       <span class="user-role" id="user-role">viewer</span>
-
-      <!-- Botão admin — visível só para admins -->
-      <a class="admin-btn" href="admin_usuarios.html" id="btn-admin" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
-          <path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>
-        </svg>
-        Usuários
-        <span class="notif-badge" id="admin-notif" style="display:none"></span>
-      </a>
-
       <button class="logout-btn" onclick="doLogout()">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5l3 3-3 3M13 8H6"/><path d="M6 3H3v10h3"/></svg>
         Sair
@@ -191,352 +309,392 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     </div>
   </header>
 
+  <!-- TOOLS -->
+  <div class="section-label">Ferramentas disponíveis</div>
+  <div class="cards">
 
-  <!-- ═══════════════════════════════════════════
-       CATEGORIA 1 — CIVIL
-  ════════════════════════════════════════════ -->
-  <div class="cat-block">
-    <div class="cat-header">
-      <div class="cat-icon" style="background:var(--civil-soft)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 00-4 0v2"/><path d="M8 7V5a2 2 0 00-4 0v2"/>
-          <path d="M2 12h20"/><path d="M12 12v10"/>
-        </svg>
+    <!-- DRENAGEM -->
+    <a class="card blue" href="drenagem_controle_v3.html">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 12c0 4 3 7 9 7s9-3 9-7M3 12c0-4 3-7 9-7s9 3 9 7"/>
+            <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="card-tag">Infraestrutura · Drenagem</div>
+        <div class="card-title">Redes de Drenagem</div>
       </div>
-      <div>
-        <div class="cat-title" style="color:var(--civil)">Civil</div>
-        <div class="cat-sub">Terraplanagem · Drenagem · Bases e fundações · Equipamentos civis</div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-total">—</div>
+          <div class="card-kpi-label">Trechos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-done">—</div>
+          <div class="card-kpi-label">Concluídos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-boxes">—</div>
+          <div class="card-kpi-label">Caixas PV</div>
+        </div>
       </div>
-      <span class="cat-count">4 ferramentas</span>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço — Trechos</span>
+          <span class="card-progress-pct blue" id="dr-pct" style="color:var(--blue)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-blue" id="dr-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço — Caixas PV</span>
+          <span class="card-progress-pct blue" id="dr-pct-boxes" style="color:var(--blue)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-blue" id="dr-bar-boxes" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="dr-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- TERRAPLANAGEM -->
+    <a class="card green" href="terraplanagem_controle.html">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="13" rx="2"/>
+            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+            <line x1="12" y1="12" x2="12" y2="16"/>
+            <line x1="10" y1="14" x2="14" y2="14"/>
+          </svg>
+        </div>
+        <div class="card-tag">Movimentação de Terra</div>
+        <div class="card-title">Terraplanagem</div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-total">—</div>
+          <div class="card-kpi-label">Total Áreas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-done">—</div>
+          <div class="card-kpi-label">Finalizadas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-wip">—</div>
+          <div class="card-kpi-label">Em Andamento</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço geral</span>
+          <span class="card-progress-pct" id="tr-pct" style="color:var(--green)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill" id="tr-bar-wrap">
+            <div class="prog-done" id="tr-bar-done" style="width:0%"></div>
+            <div class="prog-wip"  id="tr-bar-wip"  style="width:0%"></div>
+            <div class="prog-pend" id="tr-bar-pend" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Áreas atrasadas</span>
+          <span class="card-progress-pct" id="tr-late" style="color:var(--red)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="tr-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- BASES CIVIS -->
+    <a class="card teal" href="bases_civis.html" id="card-bases-civis" style="--teal:#007D77">
+      <div class="card-bar" style="background:linear-gradient(90deg,#007D77,#2eada7)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e0f2f1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#007D77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#007D77">Obras Civis · Bases</div>
+        <div class="card-title">Controle de Bases Civis</div>
+      </div>
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-total">—</div>
+          <div class="card-kpi-label">Elementos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-done">—</div>
+          <div class="card-kpi-label">Finalizados</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-pct">—</div>
+          <div class="card-kpi-label">Avanço Peso</div>
+        </div>
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço por peso ponderado</span>
+          <span id="bc-pct-label" style="color:#007D77;font-size:9px;font-weight:700">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#007D77;height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
+            <div style="background:var(--yellow);height:100%;width:0%;transition:width .6s" id="bc-bar-wip"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="bc-updated"></div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#007D77">Ver bases civis</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- ADMIN: USUÁRIOS (only shown for admins) -->
+    <a class="card blue" href="admin_usuarios.html" id="card-admin" style="display:none">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+            <path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>
+          </svg>
+        </div>
+        <div class="card-tag">Administração · Acesso</div>
+        <div class="card-title">Gestão de Usuários</div>
+      </div>
+
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="adm-total">—</div>
+          <div class="card-kpi-label">Usuários</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="adm-ativos">—</div>
+          <div class="card-kpi-label">Ativos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="adm-pend">—</div>
+          <div class="card-kpi-label">Pendentes</div>
+        </div>
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Solicitações pendentes</span>
+          <span class="card-progress-pct" id="adm-pend-label" style="color:var(--gold)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-wip" id="adm-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="adm-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta">Gerenciar usuários</span>
+        <span class="card-arrow" id="admin-notif">→</span>
+      </div>
+    </a>
+
+    <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
+    <div class="card orange soon">
+      <div class="soon-badge">Em breve</div>
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="18" rx="2"/>
+            <path d="M2 9h20M2 15h20M9 3v18M15 3v18"/>
+          </svg>
+        </div>
+        <div class="card-tag">Infraestrutura</div>
+        <div class="card-title">Pavimentação</div>
+        <div class="card-desc">Controle de execução de pavimentos por trecho, tipo de revestimento, espessuras e ensaios de compactação.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Trechos</span>
+          <span class="chip chip-gray">Ensaios</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta">Disponível em breve</span>
+        <span class="card-arrow">→</span>
+      </div>
     </div>
 
-    <div class="cards">
-
-      <!-- TERRAPLANAGEM -->
-      <a class="card orange" href="terraplanagem_controle.html">
-        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
-        <div class="card-body">
-          <div class="card-icon" style="background:var(--civil-soft)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 20h20M6 20V10l6-6 6 6v10"/><path d="M10 20v-6h4v6"/>
-            </svg>
-          </div>
-          <div class="card-tag" style="color:var(--civil)">Movimentação de Terra</div>
-          <div class="card-title">Terraplanagem</div>
-        </div>
-        <div class="card-kpis">
-          <div class="card-kpi"><div class="card-kpi-val loading" id="tr-total">—</div><div class="card-kpi-label">Total Áreas</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="tr-done">—</div><div class="card-kpi-label">Finalizadas</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="tr-wip">—</div><div class="card-kpi-label">Em Andamento</div></div>
-        </div>
-        <div class="card-progress">
-          <div class="card-progress-head">
-            <span class="card-progress-label">Avanço geral</span>
-            <span id="tr-pct" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
-          </div>
-          <div class="card-prog-bar"><div class="card-prog-fill">
-            <div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="tr-bar-done"></div>
-            <div class="prog-wip" id="tr-bar-wip" style="width:0%"></div>
-          </div></div>
-        </div>
-        <div class="card-progress" style="padding-top:0">
-          <div class="card-progress-head">
-            <span class="card-progress-label">Áreas atrasadas</span>
-            <span id="tr-late" style="font-size:9px;font-weight:700">—</span>
-          </div>
-        </div>
-        <div class="card-updated" id="tr-updated"></div>
-        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Abrir ferramenta</span><span class="card-arrow">→</span></div>
-      </a>
-
-      <!-- DRENAGEM -->
-      <a class="card orange" href="drenagem_controle_v3.html">
-        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
-        <div class="card-body">
-          <div class="card-icon" style="background:var(--civil-soft)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22c5 0 8-4.5 8-9 0-3-1.5-5.5-4-7-1 2-2 3-4 3s-3-1-4-3C5.5 7.5 4 10 4 13c0 4.5 3 9 8 9z"/>
-            </svg>
-          </div>
-          <div class="card-tag" style="color:var(--civil)">Infraestrutura · Drenagem</div>
-          <div class="card-title">Redes de Drenagem</div>
-        </div>
-        <div class="card-kpis">
-          <div class="card-kpi"><div class="card-kpi-val loading" id="dr-total">—</div><div class="card-kpi-label">Trechos</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="dr-done">—</div><div class="card-kpi-label">Concluídos</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="dr-boxes">—</div><div class="card-kpi-label">Caixas PV</div></div>
-        </div>
-        <div class="card-progress">
-          <div class="card-progress-head">
-            <span class="card-progress-label">Avanço — Trechos</span>
-            <span id="dr-pct" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
-          </div>
-          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="dr-bar"></div></div></div>
-        </div>
-        <div class="card-progress" style="padding-top:0">
-          <div class="card-progress-head">
-            <span class="card-progress-label">Avanço — Caixas PV</span>
-            <span id="dr-pct-boxes" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
-          </div>
-          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="dr-bar-boxes"></div></div></div>
-        </div>
-        <div class="card-updated" id="dr-updated"></div>
-        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Abrir ferramenta</span><span class="card-arrow">→</span></div>
-      </a>
-
-      <!-- BASES CIVIS -->
-      <a class="card orange" href="bases_civis.html">
-        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
-        <div class="card-body">
-          <div class="card-icon" style="background:var(--civil-soft)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
-              <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-              <rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-          </div>
-          <div class="card-tag" style="color:var(--civil)">Obras Civis · Bases</div>
-          <div class="card-title">Controle de Bases Civis</div>
-        </div>
-        <div class="card-kpis">
-          <div class="card-kpi"><div class="card-kpi-val loading" id="bc-total">—</div><div class="card-kpi-label">Elementos</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="bc-done">—</div><div class="card-kpi-label">Finalizados</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="bc-pct">—</div><div class="card-kpi-label">Avanço</div></div>
-        </div>
-        <div class="card-progress">
-          <div class="card-progress-head">
-            <span class="card-progress-label">Avanço por peso ponderado</span>
-            <span id="bc-pct-label" style="color:var(--civil);font-size:9px;font-weight:700">—</span>
-          </div>
-          <div class="card-prog-bar"><div class="card-prog-fill">
-            <div style="background:var(--civil);height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
-            <div style="background:var(--gold);height:100%;width:0%;transition:width .6s" id="bc-bar-wip"></div>
-          </div></div>
-        </div>
-        <div class="card-updated" id="bc-updated"></div>
-        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Ver bases civis</span><span class="card-arrow">→</span></div>
-      </a>
-
-      <!-- DESTILARIA — BASES E EQUIPAMENTOS (Civil) -->
-      <a class="card orange" href="destilaria_fase1.html">
-        <div class="card-bar" style="background:linear-gradient(90deg,var(--civil),#f0a030)"></div>
-        <div class="card-body">
-          <div class="card-icon" style="background:var(--civil-soft)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--civil)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-              <path d="M10 6h4M6 10v4M18 10v4M10 18h4"/>
-            </svg>
-          </div>
-          <div class="card-tag" style="color:var(--civil)">Destilaria · Fase I</div>
-          <div class="card-title">Bases e Equipamentos</div>
-          <div class="card-desc">Controle visual de elementos sobre a planta da destilaria — bases, fundações e equipamentos civis.</div>
-        </div>
-        <div class="card-footer"><span class="card-cta" style="color:var(--civil)">Abrir planta</span><span class="card-arrow">→</span></div>
-      </a>
-
-    </div>
   </div>
 
+  <!-- ── SEÇÃO GERAL ─────────────────────────────────────── -->
+  <div class="section-label" style="border-left:3px solid var(--green);padding-left:10px;color:var(--green)">Planejamento Geral · Cronograma Executivo</div>
+  <div class="cards" style="margin-bottom:48px">
 
-  <!-- ═══════════════════════════════════════════
-       CATEGORIA 2 — MONTAGEM MECÂNICA
-  ════════════════════════════════════════════ -->
-  <div class="cat-block">
-    <div class="cat-header">
-      <div class="cat-icon" style="background:var(--montagem-soft)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--montagem)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
-        </svg>
+    <!-- CRONOGRAMA MULTI-ÁREA -->
+    <a class="card" href="cronograma_multiarea.html" style="--green:#609346;border-top:5px solid #609346">
+      <div class="card-bar" style="background:linear-gradient(90deg,#609346,#4a7a30);height:5px"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e8efe1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#609346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 4v5M15 4v5"/>
+            <path d="M7 14h3M7 17h5M14 14h3"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#609346">Planejamento · Multi-Área</div>
+        <div class="card-title">Cronograma Executivo</div>
+        <div class="card-desc" style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5">
+          Acompanhamento Planejado × Realizado por CWA · Curva S · Six-Week Lookahead · PPC e Pareto de causas · Dados do Supabase.
+        </div>
+        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">56 CWAs</span>
+          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">Curva S</span>
+          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">Lookahead</span>
+          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">Pareto</span>
+        </div>
       </div>
-      <div>
-        <div class="cat-title" style="color:var(--montagem)">Montagem Mecânica</div>
-        <div class="cat-sub">Fabricação · Montagem de equipamentos e estruturas metálicas</div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis" style="border-top:1px solid var(--border)">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="cron-pv">—</div>
+          <div class="card-kpi-label">PV Geral %</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="cron-ev">—</div>
+          <div class="card-kpi-label">EV Geral %</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="cron-cwas">—</div>
+          <div class="card-kpi-label">Áreas Ativas</div>
+        </div>
       </div>
-      <span class="cat-count">1 ferramenta</span>
-    </div>
 
-    <div class="cards">
-
-      <!-- DORNAS DE FERMENTAÇÃO -->
-      <a class="card blue" href="dornas_fermentacao.html">
-        <div class="card-bar" style="background:linear-gradient(90deg,var(--montagem),#4a6fa5)"></div>
-        <div class="card-body">
-          <div class="card-icon" style="background:var(--montagem-soft)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--montagem)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="5" rx="9" ry="3"/>
-              <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
-              <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
-            </svg>
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço geral (EV médio)</span>
+          <span class="card-progress-pct" id="cron-pct" style="color:#609346">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div id="cron-bar-pv" style="background:#609346;height:100%;width:0%;transition:width .6s"></div>
           </div>
-          <div class="card-tag" style="color:var(--montagem)">Destilaria · Montagem</div>
-          <div class="card-title">Dornas de Fermentação</div>
-          <div class="card-desc">Controle 3D chapa a chapa das 5 dornas (401A/B/C/D e 501A) — biselamento, calandragem, montagem e soldagem.</div>
         </div>
-        <div class="card-kpis">
-          <div class="card-kpi"><div class="card-kpi-val loading" id="dn-total">—</div><div class="card-kpi-label">Total chapas</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="dn-solda">—</div><div class="card-kpi-label">Soldagem</div></div>
-          <div class="card-kpi"><div class="card-kpi-val loading" id="dn-pct">—</div><div class="card-kpi-label">Avanço</div></div>
-        </div>
-        <div class="card-progress">
-          <div class="card-progress-head">
-            <span class="card-progress-label">Chapas com soldagem concluída</span>
-            <span id="dn-pct-label" style="color:var(--montagem);font-size:9px;font-weight:700">—</span>
-          </div>
-          <div class="card-prog-bar"><div class="card-prog-fill"><div style="background:var(--montagem);height:100%;width:0%;transition:width .6s" id="dn-bar"></div></div></div>
-        </div>
-        <div class="card-updated" id="dn-updated"></div>
-        <div class="card-footer"><span class="card-cta" style="color:var(--montagem)">Ver controle 3D</span><span class="card-arrow">→</span></div>
-      </a>
+      </div>
+      <div class="card-updated" id="cron-updated"></div>
 
-    </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#609346">Abrir cronograma</span>
+        <span class="card-arrow" style="color:#609346">→</span>
+      </div>
+    </a>
+
+    <!-- IMPORTADOR DE CRONOGRAMA -->
+    <a class="card" href="importador_cronograma.html" style="border-top:5px solid #3d8c5a">
+      <div class="card-bar" style="background:linear-gradient(90deg,#3d8c5a,#2d6e45);height:5px"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e0f0e8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3d8c5a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M12 18v-6M9 15l3 3 3-3"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#3d8c5a">Planejamento · Importação</div>
+        <div class="card-title">Importador de Cronograma</div>
+        <div class="card-desc" style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5">
+          Upload do Excel do MS Project · Sincronização com Supabase · Editor de Lookahead e PPC semanal por área.
+        </div>
+        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">Upload Excel</span>
+          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">Lookahead</span>
+          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">PPC</span>
+          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">Supabase</span>
+        </div>
+      </div>
+
+      <div class="card-kpis" style="border-top:1px solid var(--border)">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="imp-tarefas">—</div>
+          <div class="card-kpi-label">Tarefas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="imp-lk">—</div>
+          <div class="card-kpi-label">Lookahead</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="imp-ref">—</div>
+          <div class="card-kpi-label">Última Ref.</div>
+        </div>
+      </div>
+
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Atividades com restrição bloqueada</span>
+          <span class="card-progress-pct" id="imp-blo-pct" style="color:var(--red)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="imp-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#3d8c5a">Importar / Gerenciar</span>
+        <span class="card-arrow" style="color:#3d8c5a">→</span>
+      </div>
+    </a>
+
   </div>
-
-
-  <!-- ═══════════════════════════════════════════
-       CATEGORIA 3 — ELÉTRICA & AUTOMAÇÃO
-  ════════════════════════════════════════════ -->
-  <div class="cat-block">
-    <div class="cat-header">
-      <div class="cat-icon" style="background:var(--purple-soft)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
-      </div>
-      <div>
-        <div class="cat-title" style="color:var(--purple)">Elétrica &amp; Automação</div>
-        <div class="cat-sub">Instalações elétricas · Instrumentação · Controle</div>
-      </div>
-      <span class="cat-count">Em implantação</span>
-    </div>
-
-    <div class="cards">
-
-      <div class="card purple soon">
-        <div class="soon-badge">Em breve</div>
-        <div class="card-bar"></div>
-        <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-8 0v2"/>
-              <path d="M12 12v3M10 15h4"/>
-            </svg>
-          </div>
-          <div class="card-tag">Elétrica</div>
-          <div class="card-title">Painéis e Quadros</div>
-          <div class="card-desc">Controle de montagem e energização de painéis elétricos, quadros de distribuição e CCMs.</div>
-        </div>
-        <div class="card-footer"><span class="card-cta">Disponível em breve</span><span class="card-arrow">→</span></div>
-      </div>
-
-      <div class="card purple soon">
-        <div class="soon-badge">Em breve</div>
-        <div class="card-bar"></div>
-        <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <div class="card-tag">Instrumentação</div>
-          <div class="card-title">Instrumentação de Campo</div>
-          <div class="card-desc">Rastreamento de instalação, calibração e loop-check de instrumentos e malhas de controle.</div>
-        </div>
-        <div class="card-footer"><span class="card-cta">Disponível em breve</span><span class="card-arrow">→</span></div>
-      </div>
-
-      <div class="card purple soon">
-        <div class="soon-badge">Em breve</div>
-        <div class="card-bar"></div>
-        <div class="card-body">
-          <div class="card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-              <path d="M9 9h6M9 12h6M9 15h4"/>
-            </svg>
-          </div>
-          <div class="card-tag">Automação</div>
-          <div class="card-title">Cabos e Eletrocalhas</div>
-          <div class="card-desc">Controle de lançamento de cabos, identificação, conexão e testes de continuidade por área.</div>
-        </div>
-        <div class="card-footer"><span class="card-cta">Disponível em breve</span><span class="card-arrow">→</span></div>
-      </div>
-
-    </div>
-  </div>
+  <!-- ── FIM SEÇÃO GERAL ─────────────────────────────────── -->
 
 
   <!-- FOOTER -->
   <footer>
     <div class="foot-left">
       Ferramentas de controle visual · dados salvos no Supabase<br>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:9px">PCO Digital · Obras Agroindustriais</span>
+      Abra cada ferramenta e preencha <code style="font-family:'JetBrains Mono',monospace;font-size:9px;background:#f3f4f6;padding:1px 5px;border:1px solid #d8dde4">SB_URL</code> e <code style="font-family:'JetBrains Mono',monospace;font-size:9px;background:#f3f4f6;padding:1px 5px;border:1px solid #d8dde4">SB_KEY</code> para conectar ao banco
     </div>
-    <div class="foot-right">v1.1 · 2026</div>
+    <div class="foot-right">PCO · v1.0 · 2026</div>
   </footer>
 
 </div>
 
 
-<script>
-/* ================================================================
-   SESSION GUARD
-   ================================================================ */
-(function(){
-  const token  = sessionStorage.getItem('pco_token');
-  const nome   = sessionStorage.getItem('pco_nome')   || '';
-  const email  = sessionStorage.getItem('pco_email')  || '';
-  const perfil = sessionStorage.getItem('pco_perfil') || '';
-  const perms  = JSON.parse(sessionStorage.getItem('pco_perms') || '{}');
 
-  if(!token){ window.location.href = 'login.html'; return; }
-
-  // Preenche user bar
-  const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
-  document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-nome').textContent   = nome || email;
-  document.getElementById('user-email').textContent  = email;
-  document.getElementById('user-role').textContent   = perfil;
-
-  // Botão admin
-  const isAdmin = perfil === 'admin' || perms.admin_panel;
-  if(isAdmin){
-    document.getElementById('btn-admin').style.display = '';
-    checkPendingUsers(token);
-  }
-
-  // Acesso condicional às ferramentas de civil
-  if(!perms.drenagem && !isAdmin)
-    document.querySelector('a[href="drenagem_controle_v3.html"]')?.classList.add('no-access');
-  if(!perms.terraplanagem && !isAdmin)
-    document.querySelector('a[href="terraplanagem_controle.html"]')?.classList.add('no-access');
-
-  async function checkPendingUsers(tok){
-    const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
-    const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
-    try{
-      const res  = await fetch(SB_URL+'/rest/v1/pco_usuarios?status=eq.pendente&select=id',
-        {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+tok}});
-      const rows = await res.json().catch(()=>[]);
-      if(rows.length > 0){
-        const badge = document.getElementById('admin-notif');
-        badge.textContent = rows.length;
-        badge.style.display = 'flex';
-      }
-    }catch(_){}
-  }
-})();
-
-function doLogout(){
-  sessionStorage.clear();
-  window.location.href = 'login.html';
-}
-</script>
 
 
 <script>
 /* ================================================================
-   DASHBOARD — carrega indicadores do Supabase
+   DASHBOARD — carrega indicadores do Supabase para os cards
    ================================================================ */
 (function(){
   const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
@@ -546,7 +704,25 @@ function doLogout(){
 
   function pct(a,b){ return b ? Math.round(a/b*100) : 0 }
   function fmt(n)  { return n != null ? String(n) : '0' }
-  function timeAgo(){ return 'atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }
+  function timeAgo(){
+    return 'atualizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  async function sbGet(path){
+    const res = await fetch(SB_URL + '/rest/v1/' + path, {
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + TOKEN,
+        'Prefer': 'count=exact',
+      }
+    });
+    const text = await res.text();
+    const count = res.headers.get('content-range')
+      ? parseInt(res.headers.get('content-range').split('/')[1]) : null;
+    let data;
+    try{ data = JSON.parse(text) } catch(_){ data = [] }
+    return { data: Array.isArray(data) ? data : [], count };
+  }
 
   function setEl(id, val){
     const el = document.getElementById(id);
@@ -555,82 +731,249 @@ function doLogout(){
     el.classList.remove('loading');
   }
 
-  async function sbGet(path){
-    const res  = await fetch(SB_URL+'/rest/v1/'+path,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN}});
-    const text = await res.text();
-    let data; try{ data=JSON.parse(text) }catch(_){ data=[] }
-    return Array.isArray(data) ? data : [];
+  /* ── DRENAGEM ── */
+  async function loadDrenagem(){
+    try{
+      const { data } = await sbGet('drain_elements?select=id,kind,status,length_m');
+      const pipes  = data.filter(e=>e.kind==='pipe');
+      const boxes  = data.filter(e=>e.kind==='box');
+      const donePipes = pipes.filter(e=>e.status==='done');
+      const doneBoxes = boxes.filter(e=>e.status==='done');
+      const pp = pct(donePipes.length, pipes.length);
+      const bp = pct(doneBoxes.length, boxes.length);
+
+      setEl('dr-total', fmt(pipes.length));
+      setEl('dr-done',  fmt(donePipes.length));
+      setEl('dr-boxes', fmt(boxes.length));
+      setEl('dr-pct',   pp + '%');
+      setEl('dr-pct-boxes', bp + '%');
+      setEl('dr-updated', timeAgo());
+
+      const barP = document.getElementById('dr-bar');
+      const barB = document.getElementById('dr-bar-boxes');
+      if(barP) barP.style.width = pp + '%';
+      if(barB) barB.style.width = bp + '%';
+    } catch(_){}
   }
 
-  /* TERRAPLANAGEM */
+  /* ── TERRAPLANAGEM ── */
   async function loadTerra(){
     try{
-      const data  = await sbGet('terra_areas?select=id,status,prev_fim');
+      const { data } = await sbGet('terra_areas?select=id,status,prev_fim');
       const total = data.length;
       const done  = data.filter(e=>e.status==='done').length;
       const wip   = data.filter(e=>e.status==='wip').length;
-      const late  = data.filter(e=>e.status!=='done'&&e.prev_fim&&e.prev_fim<today).length;
-      const dp    = pct(done,total), wp=pct(wip,total);
-      setEl('tr-total',fmt(total)); setEl('tr-done',fmt(done)); setEl('tr-wip',fmt(wip));
-      setEl('tr-pct',dp+'% finalizadas'); setEl('tr-updated',timeAgo());
-      setEl('tr-late', late>0 ? late+' área'+(late>1?'s':'')+' atrasada'+(late>1?'s':'') : 'Nenhuma atrasada');
-      const lateEl=document.getElementById('tr-late');
-      if(lateEl) lateEl.style.color = late>0?'var(--red)':'var(--green)';
-      const bD=document.getElementById('tr-bar-done'), bW=document.getElementById('tr-bar-wip');
-      if(bD) bD.style.width=dp+'%'; if(bW) bW.style.width=wp+'%';
-    }catch(_){}
+      const pend  = data.filter(e=>e.status==='pend').length;
+      const late  = data.filter(e=>
+        e.status!=='done' && e.prev_fim && e.prev_fim < today
+      ).length;
+      const dp = pct(done,  total);
+      const wp = pct(wip,   total);
+      const pp = pct(pend,  total);
+
+      setEl('tr-total', fmt(total));
+      setEl('tr-done',  fmt(done));
+      setEl('tr-wip',   fmt(wip));
+      setEl('tr-pct',   dp + '% finalizadas');
+      setEl('tr-late',  late > 0 ? late + ' área' + (late>1?'s':'') + ' atrasada' + (late>1?'s':'') : 'Nenhuma atrasada');
+      setEl('tr-updated', timeAgo());
+
+      const bDone = document.getElementById('tr-bar-done');
+      const bWip  = document.getElementById('tr-bar-wip');
+      const bPend = document.getElementById('tr-bar-pend');
+      if(bDone) bDone.style.width = dp + '%';
+      if(bWip)  bWip.style.width  = wp + '%';
+      if(bPend) bPend.style.width = pp + '%';
+
+      // color of late indicator
+      const lateEl = document.getElementById('tr-late');
+      if(lateEl) lateEl.style.color = late > 0 ? 'var(--red)' : 'var(--green)';
+    } catch(_){}
   }
 
-  /* DRENAGEM */
-  async function loadDrenagem(){
+  /* ── USUÁRIOS (admin only) ── */
+  async function loadAdmin(){
+    const adminCard = document.getElementById('card-admin');
+    if(!adminCard || adminCard.style.display === 'none') return;
     try{
-      const data  = await sbGet('drain_elements?select=id,kind,status,length_m');
-      const pipes = data.filter(e=>e.kind==='pipe');
-      const boxes = data.filter(e=>e.kind==='box');
-      const pp    = pct(pipes.filter(e=>e.status==='done').length, pipes.length);
-      const bp    = pct(boxes.filter(e=>e.status==='done').length, boxes.length);
-      setEl('dr-total',fmt(pipes.length)); setEl('dr-done',fmt(pipes.filter(e=>e.status==='done').length));
-      setEl('dr-boxes',fmt(boxes.length)); setEl('dr-pct',pp+'%'); setEl('dr-pct-boxes',bp+'%');
-      setEl('dr-updated',timeAgo());
-      const bP=document.getElementById('dr-bar'), bB=document.getElementById('dr-bar-boxes');
-      if(bP) bP.style.width=pp+'%'; if(bB) bB.style.width=bp+'%';
-    }catch(_){}
+      const { data } = await sbGet('pco_usuarios?select=id,status');
+      const total  = data.length;
+      const ativos = data.filter(u=>u.status==='ativo').length;
+      const pend   = data.filter(u=>u.status==='pendente').length;
+      const pp     = pct(pend, total);
+
+      setEl('adm-total',  fmt(total));
+      setEl('adm-ativos', fmt(ativos));
+      setEl('adm-pend',   fmt(pend));
+      setEl('adm-pend-label', pend > 0
+        ? pend + ' aguardando aprovação'
+        : 'Nenhuma pendente');
+      setEl('adm-updated', timeAgo());
+
+      const bar = document.getElementById('adm-bar');
+      if(bar) bar.style.width = Math.min(pp, 100) + '%';
+
+      const lbl = document.getElementById('adm-pend-label');
+      if(lbl) lbl.style.color = pend > 0 ? 'var(--gold)' : 'var(--green)';
+    } catch(_){}
   }
 
-  /* BASES CIVIS */
+  /* ── BASES CIVIS ── */
   async function loadBasesCivis(){
     try{
-      const data = await sbGet('bases_civis_elementos?select=id,status,peso');
-      const totP = data.reduce((a,e)=>a+(e.peso||0),0);
-      const donP = data.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
-      const pp   = pct(donP,totP);
-      setEl('bc-total',fmt(data.length));
-      setEl('bc-done', fmt(data.filter(e=>e.status==='done').length));
-      setEl('bc-pct',  pp+'%'); setEl('bc-pct-label',pp+'%'); setEl('bc-updated',timeAgo());
-      const bd=document.getElementById('bc-bar-done'); if(bd) bd.style.width=pp+'%';
-    }catch(_){}
-  }
-
-  /* DORNAS */
-  async function loadDornas(){
-    try{
-      const data  = await sbGet('dornas_chapas?select=status');
+      const { data } = await sbGet('bases_civis_elementos?select=id,status,peso');
       const total = data.length;
-      const solda = data.filter(e=>e.status==='solda').length;
-      const pp    = pct(solda,total);
-      setEl('dn-total',fmt(total)); setEl('dn-solda',fmt(solda));
-      setEl('dn-pct',pp+'%'); setEl('dn-pct-label',pp+'%'); setEl('dn-updated',timeAgo());
-      const bar=document.getElementById('dn-bar'); if(bar) bar.style.width=pp+'%';
-    }catch(_){}
+      const done  = data.filter(e=>e.status==='done').length;
+      const wip   = data.filter(e=>e.status==='wip').length;
+      const totP  = data.reduce((a,e)=>a+(e.peso||0),0);
+      const donP  = data.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
+      const wipP  = data.filter(e=>e.status==='wip').reduce((a,e)=>a+(e.peso||0),0);
+      const pp    = pct(donP,totP);
+      const wp    = pct(wipP,totP);
+
+      setEl('bc-total', fmt(total));
+      setEl('bc-done',  fmt(done));
+      setEl('bc-pct',   pp+'%');
+      setEl('bc-pct-label', pp+'%');
+      setEl('bc-updated', timeAgo());
+
+      const bd = document.getElementById('bc-bar-done');
+      const bw = document.getElementById('bc-bar-wip');
+      if(bd) bd.style.width = pp+'%';
+      if(bw) bw.style.width = wp+'%';
+    } catch(_){}
   }
 
-  window.addEventListener('load',()=>{
-    loadTerra();
+  /* ── CRONOGRAMA EXECUTIVO ── */
+  async function loadCronograma(){
+    try{
+      // Busca snapshot mais recente por CWA
+      const { data: snaps } = await sbGet(
+        'cronograma_historico_snapshots?select=cwa,pv_pct,ev_pct,referencia_data&order=referencia_data.desc&limit=200'
+      );
+      if(!snaps || !snaps.length) return;
+
+      // Pega data mais recente
+      const maxRef = snaps.reduce((a,s)=> s.referencia_data > a ? s.referencia_data : a, '');
+      const latest = snaps.filter(s=>s.referencia_data===maxRef);
+
+      const cwas = [...new Set(latest.map(s=>s.cwa))];
+      const pvMed = cwas.length ? (latest.reduce((a,s)=>a+parseFloat(s.pv_pct||0),0)/latest.length).toFixed(1) : '—';
+      const evMed = cwas.length ? (latest.reduce((a,s)=>a+parseFloat(s.ev_pct||0),0)/latest.length).toFixed(1) : '—';
+
+      setEl('cron-cwas', cwas.length);
+      setEl('cron-pv',   pvMed + '%');
+      setEl('cron-ev',   evMed + '%');
+      setEl('cron-pct',  evMed + '%');
+      setEl('cron-updated', 'ref: ' + maxRef);
+
+      const bar = document.getElementById('cron-bar-pv');
+      if(bar) bar.style.width = Math.min(parseFloat(evMed)||0, 100) + '%';
+    } catch(_){}
+  }
+
+  /* ── IMPORTADOR — lookahead e tarefas ── */
+  async function loadImportador(){
+    try{
+      // Contar tarefas
+      const { count: nTarefas } = await sbGet('cronograma_tarefas?select=id&limit=1');
+      // Contar lookahead ativo
+      const { count: nLk } = await sbGet('lookahead_atividades?select=id&concluida=eq.false&limit=1');
+      // Bloqueios
+      const { data: bloq } = await sbGet(
+        'lookahead_atividades?select=id,rest_materiais,rest_projeto,rest_mao_obra,rest_equipamento,rest_frente&concluida=eq.false'
+      );
+      const campos=['rest_materiais','rest_projeto','rest_mao_obra','rest_equipamento','rest_frente'];
+      const nBlo = (bloq||[]).filter(a=>campos.some(c=>a[c]==='bloqueado')).length;
+
+      // Última referência
+      const { data: refs } = await sbGet('cronograma_historico_snapshots?select=referencia_data&order=referencia_data.desc&limit=1');
+      const lastRef = refs?.[0]?.referencia_data || '—';
+
+      setEl('imp-tarefas', nTarefas != null ? nTarefas.toLocaleString('pt-BR') : '—');
+      setEl('imp-lk',      nLk != null ? nLk : '—');
+      setEl('imp-ref',     lastRef ? lastRef.slice(5) : '—');
+      setEl('imp-blo-pct', nBlo > 0 ? nBlo + ' bloqueada' + (nBlo>1?'s':'') : 'Nenhuma');
+      setEl('imp-updated', timeAgo());
+
+      const bloEl = document.getElementById('imp-blo-pct');
+      if(bloEl) bloEl.style.color = nBlo > 0 ? 'var(--red)' : 'var(--green)';
+    } catch(_){}
+  }
+
+  // Run all loaders on page load
+  window.addEventListener('load', ()=>{
     loadDrenagem();
+    loadTerra();
     loadBasesCivis();
-    loadDornas();
+    loadCronograma();
+    loadImportador();
+    setTimeout(loadAdmin, 300);
   });
 })();
+</script>
+
+<script>
+/* ================================================================
+   SESSION GUARD — index.html
+   ================================================================ */
+(function(){
+  const token  = sessionStorage.getItem('pco_token');
+  const nome   = sessionStorage.getItem('pco_nome')   || '';
+  const email  = sessionStorage.getItem('pco_email')  || '';
+  const perfil = sessionStorage.getItem('pco_perfil') || '';
+  const perms  = JSON.parse(sessionStorage.getItem('pco_perms') || '{}');
+
+  // Redirect to login if no session
+  if(!token){
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Populate user bar
+  const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-nome').textContent   = nome || email;
+  document.getElementById('user-email').textContent  = email;
+  document.getElementById('user-role').textContent   = perfil;
+
+  // Show admin card + pending badge if admin
+  if(perfil === 'admin' || perms.admin_panel){
+    const adminCard = document.getElementById('card-admin');
+    if(adminCard) adminCard.style.display = '';
+    // check pending users for badge
+    checkPendingUsers();
+  }
+
+  // Hide cards user has no access to
+  if(!perms.drenagem && perfil !== 'admin'){
+    document.querySelector('a[href="drenagem_controle_v3.html"]')?.classList.add('no-access');
+  }
+  if(!perms.terraplanagem && perfil !== 'admin'){
+    document.querySelector('a[href="terraplanagem_controle.html"]')?.classList.add('no-access');
+  }
+
+  async function checkPendingUsers(){
+    const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+    const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+    try{
+      const res = await fetch(
+        SB_URL + '/rest/v1/pco_usuarios?status=eq.pendente&select=id',
+        { headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+token } }
+      );
+      const rows = await res.json().catch(()=>[]);
+      if(rows.length > 0){
+        const notif = document.getElementById('admin-notif');
+        if(notif) notif.textContent = '🔔 ' + rows.length;
+      }
+    }catch(_){}
+  }
+})();
+
+function doLogout(){
+  sessionStorage.clear();
+  window.location.href = 'login.html';
+}
 </script>
 
 </body>
