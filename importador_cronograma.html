@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCO Digital — Importador de Cronograma</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --azul:#124E81;--azul-c:#007CC5;--ouro:#EAA239;
+  --verde:#609346;--vermelho:#CC5121;--cinza:#F7F8FA;
+  --texto:#1F1F1F;--muted:#6B7280;--borda:#E5E7EB;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;background:var(--cinza);color:var(--texto);font-size:13px}
+
+/* HEADER */
+.header{background:var(--azul);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{background:#fff;color:var(--azul);font-weight:800;padding:7px 13px;border-radius:2px;font-size:14px}
+.header h1{font-size:15px;font-weight:600;margin-left:16px}
+.header-sub{font-size:10px;opacity:.8;margin-top:2px}
+.nav-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;padding:7px 14px;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+.nav-btn:hover{background:rgba(255,255,255,.22)}
+
+/* TABS */
+.tabs{background:#fff;border-bottom:2px solid var(--azul);display:flex;padding:0 24px}
+.tab{padding:12px 20px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--azul);border-bottom-color:var(--ouro)}
+
+/* MAIN */
+.main{padding:24px;max-width:1100px;margin:0 auto}
+
+/* CARD */
+.card{background:#fff;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:20px;overflow:hidden}
+.card-head{padding:14px 20px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-head h2{font-size:13px;font-weight:700;color:var(--azul)}
+.card-head p{font-size:10px;color:var(--muted);margin-top:2px}
+.card-body{padding:20px}
+
+/* CONFIG SUPABASE */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select{border:1px solid var(--borda);border-radius:3px;padding:8px 12px;font-family:inherit;font-size:12px;color:var(--texto);width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--azul-c)}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--borda);border-radius:6px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--azul-c);background:#f0f7ff}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:36px;margin-bottom:12px}
+.upload-title{font-size:14px;font-weight:700;color:var(--azul);margin-bottom:4px}
+.upload-sub{font-size:11px;color:var(--muted)}
+
+/* STATUS PANEL */
+.status-box{background:#F7F8FA;border:1px solid var(--borda);border-radius:4px;padding:14px 18px;font-size:11px;min-height:60px}
+.status-line{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:var(--verde)}
+.dot.warn{background:var(--ouro)}
+.dot.err{background:var(--vermelho)}
+.dot.spin{background:var(--azul-c);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* PROGRESS */
+.progress-wrap{margin:16px 0}
+.progress-label{font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between}
+.progress-bar{background:var(--borda);border-radius:10px;height:8px;overflow:hidden}
+.progress-fill{height:100%;background:var(--azul);border-radius:10px;transition:width .4s ease}
+
+/* STATS GRID */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px}
+.stat{background:var(--cinza);border-radius:4px;padding:12px 14px;text-align:center;border-left:3px solid var(--borda)}
+.stat-val{font-size:20px;font-weight:800;color:var(--azul)}
+.stat-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:3px;letter-spacing:.4px}
+
+/* BUTTONS */
+.btn{font-family:inherit;font-size:11px;font-weight:700;padding:9px 18px;border-radius:3px;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;transition:all .15s;border:none}
+.btn-primary{background:var(--azul);color:#fff}
+.btn-primary:hover{background:#0d3d66}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ouro{background:var(--ouro);color:#fff}
+.btn-ouro:hover{background:#d4891e}
+.btn-danger{background:var(--vermelho);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--borda);color:var(--texto)}
+.btn-ghost:hover{background:var(--cinza)}
+.btn-sm{padding:5px 12px;font-size:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{background:var(--azul);color:#fff;padding:8px 10px;font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.3px;text-align:left;white-space:nowrap}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--borda);vertical-align:middle}
+tbody tr:nth-child(even) td{background:#FAFBFC}
+tbody tr:hover td{background:#FFF8EC}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.badge-ok{background:#E6F0DD;color:#3D6B1F}
+.badge-warn{background:#FCEFD4;color:#9A6914}
+.badge-err{background:#FAE0D3;color:var(--vermelho)}
+.badge-pend{background:#E8F0F8;color:var(--azul)}
+.badge-na{background:#F3F4F6;color:var(--muted)}
+
+/* LOOKAHEAD FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.form-grid.full{grid-template-columns:1fr}
+.restr-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.restr-item{display:flex;flex-direction:column;gap:4px}
+.restr-item label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.restr-item select{border:1px solid var(--borda);border-radius:3px;padding:6px 8px;font-family:inherit;font-size:11px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal-overlay.hidden{display:none}
+.modal{background:#fff;border-radius:6px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-head{background:var(--azul);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
+.modal-head h3{font-size:13px;font-weight:700}
+.modal-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;opacity:.7}
+.modal-close:hover{opacity:1}
+.modal-body{padding:20px}
+
+.hidden{display:none}
+.mt{margin-top:12px}
+.info-box{background:#E8F0F8;border-left:4px solid var(--azul-c);padding:10px 14px;font-size:11px;border-radius:0 4px 4px 0;margin-bottom:16px}
+.warn-box{background:#FCEFD4;border-left:4px solid var(--ouro);padding:10px 14px;font-size:11px;border-radius:0 4px 4px 0;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center">
+    <div class="logo">INPASA</div>
+    <div style="margin-left:16px">
+      <div style="font-size:15px;font-weight:600">PCO Digital — Importador de Cronograma</div>
+      <div class="header-sub">Supabase · Sincronização via Excel semanal</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="index.html" class="nav-btn">← Dashboard</a>
+    <a href="cronograma_multiarea.html" class="nav-btn">Cronograma</a>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('importar')">📥 Importar Excel</div>
+  <div class="tab" onclick="setTab('lookahead')">📋 Lookahead</div>
+  <div class="tab" onclick="setTab('ppc')">📊 PPC Semanal</div>
+  <div class="tab" onclick="setTab('config')">⚙ Configuração</div>
+</div>
+
+<!-- ===================== TAB: IMPORTAR ===================== -->
+<div class="main" id="tabImportar">
+
+  <!-- Config Supabase -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>Conexão Supabase</h2>
+        <p>Configure uma vez — salvo no navegador</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div id="sbStatusDot" class="dot warn" style="width:10px;height:10px"></div>
+        <span id="sbStatusTxt" style="font-size:10px;font-weight:600;color:var(--muted)">Não verificado</span>
+        <button class="btn btn-ghost btn-sm" onclick="testConnection()">Testar</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="config-grid">
+        <div class="field">
+          <label>Supabase URL</label>
+          <input id="sbUrl" type="text" placeholder="https://xxxx.supabase.co" oninput="saveConfig()"/>
+        </div>
+        <div class="field">
+          <label>Anon Key (chave pública)</label>
+          <input id="sbKey" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." oninput="saveConfig()"/>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted)">
+        🔒 As credenciais ficam apenas no <code>localStorage</code> do seu navegador e nunca são enviadas para nenhum servidor além do próprio Supabase.
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Excel -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>Upload do Excel do Cronograma</h2>
+        <p>Exportado do MS Project ou P6 · Colunas: Id, Task Name, % Prev., % Concl., % Desvio, Início Baseline, Término Baseline, Predecessoras, Empresa, Disciplina, CWA, CPA</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-box">
+        <strong>Como exportar do MS Project:</strong> Abrir cronograma → Relatório → Exportar → Excel → selecionar as colunas acima.<br>
+        <strong>Estrutura obrigatória:</strong> A primeira linha deve ser o cabeçalho com os nomes exatos das colunas. Somente a aba <em>Planilha1</em> (ou a primeira aba) é lida.
+      </div>
+
+      <div class="field" style="margin-bottom:12px">
+        <label>Data de Referência do Cronograma</label>
+        <input id="refData" type="date" style="max-width:200px"/>
+      </div>
+
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])"/>
+        <div class="upload-icon">📊</div>
+        <div class="upload-title">Clique ou arraste o Excel aqui</div>
+        <div class="upload-sub">.xlsx ou .xls — Exportado do MS Project / P6</div>
+      </div>
+
+      <div class="progress-wrap hidden" id="progressWrap">
+        <div class="progress-label">
+          <span id="progressLabel">Processando...</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+
+      <div class="status-box mt" id="statusBox">
+        <div class="status-line"><div class="dot warn"></div><span>Aguardando arquivo...</span></div>
+      </div>
+
+      <div class="stats hidden" id="statsBox">
+        <div class="stat"><div class="stat-val" id="st-total">0</div><div class="stat-lbl">Tarefas lidas</div></div>
+        <div class="stat"><div class="stat-val" id="st-com-emp">0</div><div class="stat-lbl">Com empresa</div></div>
+        <div class="stat"><div class="stat-val" id="st-cwas">0</div><div class="stat-lbl">CWAs</div></div>
+        <div class="stat"><div class="stat-val" id="st-disc">0</div><div class="stat-lbl">Disciplinas</div></div>
+        <div class="stat"><div class="stat-val" id="st-erros">0</div><div class="stat-lbl">Erros</div></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnSyncAll" onclick="syncAll()" disabled>
+          ↑ Sincronizar com Supabase
+        </button>
+        <button class="btn btn-ghost" onclick="clearAll()">Limpar</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadTemplate()">⬇ Baixar template Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card hidden" id="previewCard">
+    <div class="card-head">
+      <div><h2>Preview — Primeiras 50 linhas</h2><p>Verifique antes de sincronizar</p></div>
+      <div id="cwaSummary" style="font-size:11px;color:var(--muted)"></div>
+    </div>
+    <div class="card-body">
+      <div class="tbl-wrap">
+        <table id="previewTable">
+          <thead><tr>
+            <th>ID</th><th>Nível</th><th>Tarefa</th><th>CWA</th><th>Disciplina</th><th>Empresa</th>
+            <th>PV%</th><th>EV%</th><th>Desvio%</th><th>Início</th><th>Término</th>
+          </tr></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tabImportar -->
+
+<!-- ===================== TAB: LOOKAHEAD ===================== -->
+<div class="main hidden" id="tabLookahead">
+
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Six-Week Lookahead</h2><p>Atividades editáveis · salvas no Supabase</p></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="field" style="min-width:220px">
+          <select id="lkCwaFilter" onchange="loadLookahead()" style="border:1px solid var(--borda);border-radius:3px;padding:7px 10px;font-family:inherit;font-size:11px"></select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModalLookahead(null)">+ Nova Atividade</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="warn-box hidden" id="lkWarn">Configure a conexão Supabase na aba Configuração antes de editar o Lookahead.</div>
+
+      <!-- Resumo restrições -->
+      <div id="lkResumo" style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap"></div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Semana</th><th>Disciplina</th><th style="min-width:200px">Atividade</th><th>Status</th>
+            <th>Mat.</th><th>Proj.</th><th>M.O.</th><th>Equip.</th><th>Frente</th>
+            <th>Responsável</th><th>Data Limite</th><th>Obs.</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="lkBody"><tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px">Selecione uma área e aguarde...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tabLookahead -->
+
+<!-- ===================== TAB: PPC ===================== -->
+<div class="main hidden" id="tabPpc">
+
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Registro de PPC Semanal</h2><p>Percent Plan Complete · fechamento por semana</p></div>
+      <div style="display:flex;gap:8px">
+        <select id="ppcCwaFilter" onchange="loadPpc()" style="border:1px solid var(--borda);border-radius:3px;padding:7px 10px;font-family:inherit;font-size:11px;min-width:200px"></select>
+        <button class="btn btn-primary btn-sm" onclick="openModalPpc(null)">+ Registrar Semana</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Semana</th><th>Período</th><th>Planejadas</th><th>Concluídas</th><th>PPC%</th>
+            <th>C.Mat.</th><th>C.Proj.</th><th>C.M.O.</th><th>C.Equip.</th><th>C.Frente</th>
+            <th>Observações</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="ppcBody"><tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px">Selecione uma área...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tabPpc -->
+
+<!-- ===================== TAB: CONFIG ===================== -->
+<div class="main hidden" id="tabConfig">
+
+  <div class="card">
+    <div class="card-head"><div><h2>Configuração Supabase</h2><p>Credenciais de acesso ao banco de dados</p></div></div>
+    <div class="card-body">
+      <div class="info-box">
+        Acesse <strong>supabase.com → seu projeto → Project Settings → API</strong> para obter a URL e a <em>anon/public key</em>.
+        Execute o arquivo <code>schema_supabase.sql</code> no <strong>SQL Editor</strong> do Supabase antes do primeiro uso.
+      </div>
+      <div class="config-grid">
+        <div class="field"><label>Supabase URL</label><input id="sbUrl2" type="text" oninput="saveConfig2()"/></div>
+        <div class="field"><label>Anon Key</label><input id="sbKey2" type="text" oninput="saveConfig2()"/></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="testConnection()">Testar conexão</button>
+      </div>
+      <div class="status-box mt" id="configStatus">Clique em "Testar conexão".</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>Tabelas Criadas</h2><p>Schema do banco de dados</p></div></div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>Tabela / View</th><th>Tipo</th><th>Descrição</th><th>Alimentada por</th></tr></thead>
+        <tbody>
+          <tr><td><code>cronograma_tarefas</code></td><td><span class="badge badge-pend">Tabela</span></td><td>Todas as tarefas do Excel (4.556 linhas)</td><td>Upload do Excel</td></tr>
+          <tr><td><code>cronograma_historico_snapshots</code></td><td><span class="badge badge-pend">Tabela</span></td><td>PV/EV por CWA por data — base da Curva S</td><td>Upload do Excel</td></tr>
+          <tr><td><code>lookahead_atividades</code></td><td><span class="badge badge-pend">Tabela</span></td><td>Atividades das próximas 6 semanas</td><td>Editor desta página</td></tr>
+          <tr><td><code>ppc_registro</code></td><td><span class="badge badge-pend">Tabela</span></td><td>PPC semanal + causas de não-cumprimento</td><td>Editor desta página</td></tr>
+          <tr><td><code>areas_config</code></td><td><span class="badge badge-pend">Tabela</span></td><td>Metadados dos 56 CWAs (cores, nomes, ordem)</td><td>Schema SQL (carga inicial)</td></tr>
+          <tr><td><code>vw_resumo_por_cwa</code></td><td><span class="badge badge-ok">View</span></td><td>PV/EV mais recente por área — usada no cronograma</td><td>Automática</td></tr>
+          <tr><td><code>vw_curva_s_historica</code></td><td><span class="badge badge-ok">View</span></td><td>Série temporal para Curva S</td><td>Automática</td></tr>
+          <tr><td><code>vw_ppc_historico</code></td><td><span class="badge badge-ok">View</span></td><td>PPC com causas — base do Pareto</td><td>Automática</td></tr>
+          <tr><td><code>vw_lookahead_ativo</code></td><td><span class="badge badge-ok">View</span></td><td>Lookahead ativo com flags de bloqueio</td><td>Automática</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tabConfig -->
+
+<!-- ======= MODAL LOOKAHEAD ======= -->
+<div class="modal-overlay hidden" id="modalLkOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalLkTitle">Nova Atividade</h3>
+      <button class="modal-close" onclick="closeModalLk()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Área / CWA</label>
+          <select id="lkCwa"><option value="">Selecione...</option></select>
+        </div>
+        <div class="field"><label>Semana</label>
+          <input id="lkSemana" type="text" placeholder="ex.: S22"/>
+        </div>
+      </div>
+      <div class="form-grid mt">
+        <div class="field"><label>Início da Semana</label><input id="lkSemIni" type="date"/></div>
+        <div class="field"><label>Fim da Semana</label><input id="lkSemFim" type="date"/></div>
+      </div>
+      <div class="form-grid mt">
+        <div class="field"><label>Disciplina</label>
+          <select id="lkDisc">
+            <option value="">Selecione...</option>
+            <option>01 - Civil</option><option>02 - Mecânica</option>
+            <option>03 - Mecânica de Rotativos</option><option>04 - Elétrica</option>
+            <option>05 - Instrumentação</option><option>06 - Automação</option>
+            <option>07 - Isolamento</option><option>08 - Válvulas Manuais</option>
+            <option>09 - Projetos</option><option>10 - Fornecimentos</option>
+            <option>11 - Comissionamentos</option>
+          </select>
+        </div>
+        <div class="field"><label>Status</label>
+          <select id="lkStatus">
+            <option value="pendente">Pendente</option>
+            <option value="liberado">Liberado</option>
+            <option value="parcial">Parcial</option>
+            <option value="bloqueado">Bloqueado</option>
+          </select>
+        </div>
+      </div>
+      <div class="field mt form-grid full">
+        <label>Descrição da Atividade</label>
+        <input id="lkDesc" type="text" placeholder="ex.: Montagem pilares P1-P8 — Estrutura metálica"/>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Restrições por Categoria</div>
+        <div class="restr-grid">
+          <div class="restr-item"><label>Materiais</label>
+            <select id="lkMat"><option value="ok">✓ OK</option><option value="atencao">! Atenção</option><option value="bloqueado">✕ Bloqueado</option><option value="na">N/A</option></select>
+          </div>
+          <div class="restr-item"><label>Projeto</label>
+            <select id="lkProj"><option value="ok">✓ OK</option><option value="atencao">! Atenção</option><option value="bloqueado">✕ Bloqueado</option><option value="na">N/A</option></select>
+          </div>
+          <div class="restr-item"><label>Mão de Obra</label>
+            <select id="lkMo"><option value="ok">✓ OK</option><option value="atencao">! Atenção</option><option value="bloqueado">✕ Bloqueado</option><option value="na">N/A</option></select>
+          </div>
+          <div class="restr-item"><label>Equipamento</label>
+            <select id="lkEquip"><option value="ok">✓ OK</option><option value="atencao">! Atenção</option><option value="bloqueado">✕ Bloqueado</option><option value="na">N/A</option></select>
+          </div>
+          <div class="restr-item"><label>Frente</label>
+            <select id="lkFrente"><option value="ok">✓ OK</option><option value="atencao">! Atenção</option><option value="bloqueado">✕ Bloqueado</option><option value="na">N/A</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid mt">
+        <div class="field"><label>Responsável</label><input id="lkResp" type="text" placeholder="Nome do responsável"/></div>
+        <div class="field"><label>Empresa</label><input id="lkEmp" type="text" placeholder="Empresa / Contrato"/></div>
+      </div>
+      <div class="form-grid mt">
+        <div class="field"><label>Data Limite de Liberação</label><input id="lkDataLim" type="date"/></div>
+        <div class="field"><label>Concluída?</label>
+          <select id="lkConc"><option value="false">Não</option><option value="true">Sim</option></select>
+        </div>
+      </div>
+      <div class="field mt form-grid full">
+        <label>Observação / Impedimento</label>
+        <input id="lkObs" type="text" placeholder="ex.: Aguardando aprovação datasheet INS-045"/>
+      </div>
+      <input type="hidden" id="lkId"/>
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn btn-primary" onclick="saveLookahead()">Salvar</button>
+        <button class="btn btn-ghost" onclick="closeModalLk()">Cancelar</button>
+        <button class="btn btn-danger btn-sm" id="btnDeleteLk" onclick="deleteLookahead()" style="margin-left:auto">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL PPC ======= -->
+<div class="modal-overlay hidden" id="modalPpcOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalPpcTitle">Registrar PPC da Semana</h3>
+      <button class="modal-close" onclick="closeModalPpc()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Área / CWA</label>
+          <select id="ppcCwa"><option value="">Selecione...</option></select>
+        </div>
+        <div class="field"><label>Semana</label>
+          <input id="ppcSemana" type="text" placeholder="ex.: S22"/>
+        </div>
+      </div>
+      <div class="form-grid mt">
+        <div class="field"><label>Início da Semana</label><input id="ppcIni" type="date"/></div>
+        <div class="field"><label>Fim da Semana</label><input id="ppcFim" type="date"/></div>
+      </div>
+      <div class="form-grid mt">
+        <div class="field"><label>Atividades Planejadas</label><input id="ppcPlan" type="number" min="0" placeholder="0"/></div>
+        <div class="field"><label>Atividades Concluídas</label><input id="ppcConc" type="number" min="0" placeholder="0"/></div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Causas de Não-Cumprimento (qtd. ocorrências)</div>
+        <div class="restr-grid">
+          <div class="restr-item"><label>Materiais</label><input id="ppcCMat" type="number" min="0" value="0"/></div>
+          <div class="restr-item"><label>Projeto</label><input id="ppcCProj" type="number" min="0" value="0"/></div>
+          <div class="restr-item"><label>Mão de Obra</label><input id="ppcCMo" type="number" min="0" value="0"/></div>
+          <div class="restr-item"><label>Equipamento</label><input id="ppcCEquip" type="number" min="0" value="0"/></div>
+          <div class="restr-item"><label>Frente</label><input id="ppcCFrente" type="number" min="0" value="0"/></div>
+        </div>
+      </div>
+      <div class="field mt form-grid full">
+        <label>Observações</label>
+        <input id="ppcObs" type="text" placeholder="Resumo das principais causas e ações..."/>
+      </div>
+      <input type="hidden" id="ppcId"/>
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn btn-primary" onclick="savePpc()">Salvar</button>
+        <button class="btn btn-ghost" onclick="closeModalPpc()">Cancelar</button>
+        <button class="btn btn-danger btn-sm" id="btnDeletePpc" onclick="deletePpc()" style="margin-left:auto">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
+let SB_URL = '', SB_KEY = '';
+let parsedData = [];
+let areasList = [];
+let currentLkData = [];
+let currentPpcData = [];
+
+function loadConfig(){
+  SB_URL = localStorage.getItem('pco_sb_url') || (window.PCO_CONFIG?.supabase?.url) || '';
+  SB_KEY = localStorage.getItem('pco_sb_key') || (window.PCO_CONFIG?.supabase?.key) || '';
+  ['sbUrl','sbUrl2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=SB_URL; });
+  ['sbKey','sbKey2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=SB_KEY; });
+  document.getElementById('refData').value = new Date().toISOString().slice(0,10);
+}
+
+function saveConfig(){
+  SB_URL = document.getElementById('sbUrl').value.trim();
+  SB_KEY = document.getElementById('sbKey').value.trim();
+  localStorage.setItem('pco_sb_url', SB_URL);
+  localStorage.setItem('pco_sb_key', SB_KEY);
+  document.getElementById('sbUrl2').value = SB_URL;
+  document.getElementById('sbKey2').value = SB_KEY;
+}
+function saveConfig2(){
+  SB_URL = document.getElementById('sbUrl2').value.trim();
+  SB_KEY = document.getElementById('sbKey2').value.trim();
+  localStorage.setItem('pco_sb_url', SB_URL);
+  localStorage.setItem('pco_sb_key', SB_KEY);
+  document.getElementById('sbUrl').value = SB_URL;
+  document.getElementById('sbKey').value = SB_KEY;
+}
+
+async function testConnection(){
+  if(!SB_URL || !SB_KEY){ alert('Preencha URL e Key antes de testar.'); return; }
+  try{
+    const r = await sbFetch('areas_config?select=cwa&limit=1');
+    if(r.ok){
+      setSbStatus('ok','Conectado ✓');
+      document.getElementById('configStatus').textContent = 'Conexão OK — Supabase respondeu com sucesso.';
+      await loadAreas();
+    } else {
+      const txt = await r.text();
+      setSbStatus('err','Erro de conexão');
+      document.getElementById('configStatus').textContent = 'Erro: '+txt;
+    }
+  } catch(e){
+    setSbStatus('err','Falha de rede');
+    document.getElementById('configStatus').textContent = 'Erro de rede: '+e.message;
+  }
+}
+
+function setSbStatus(state, txt){
+  const dot = document.getElementById('sbStatusDot');
+  const label = document.getElementById('sbStatusTxt');
+  dot.className = 'dot ' + (state==='ok'?'ok':state==='err'?'err':'warn');
+  if(label) label.textContent = txt;
+}
+
+function sbFetch(path, opts={}){
+  return fetch(`${SB_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers:{
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+      ...opts.headers
+    }
+  });
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function setTab(name){
+  ['Importar','Lookahead','Ppc','Config'].forEach(t=>{
+    document.getElementById('tab'+t).classList.toggle('hidden', t.toLowerCase()!==name);
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active', ['importar','lookahead','ppc','config'][i]===name);
+  });
+  if(name==='lookahead') initLookahead();
+  if(name==='ppc') initPpc();
+}
+
+// ============================================================
+// LEITURA DO EXCEL
+// ============================================================
+function handleFile(file){
+  if(!file) return;
+  setStatus('spin','Lendo arquivo: '+file.name);
+  document.getElementById('progressWrap').classList.remove('hidden');
+  setProgress(5,'Carregando arquivo...');
+  const reader = new FileReader();
+  reader.onload = e => parseExcel(e.target.result);
+  reader.readAsArrayBuffer(file);
+}
+
+function nivel(taskName){
+  if(!taskName) return 0;
+  return Math.floor((taskName.length - taskName.trimStart().length) / 3);
+}
+
+function parseExcel(buffer){
+  try{
+    setProgress(20,'Parseando planilha...');
+    const wb = XLSX.read(buffer,{type:'array',cellDates:true});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+
+    if(raw.length < 2){ setStatus('err','Planilha vazia ou sem cabeçalho.'); return; }
+
+    const head = raw[0].map(h => (h||'').toString().trim().toLowerCase());
+    setProgress(40,'Mapeando colunas...');
+
+    // Mapear colunas pelo cabeçalho (tolerante a variações)
+    const col = (names) => {
+      for(const n of names){
+        const i = head.findIndex(h=>h.includes(n));
+        if(i>=0) return i;
+      }
+      return -1;
+    };
+
+    const COL = {
+      id:    col(['id']),
+      task:  col(['task name','nome','tarefa']),
+      pv:    col(['prev. fís','% prev','pv']),
+      ev:    col(['concl. fís','% concl','ev','realizado']),
+      desv:  col(['desvio']),
+      ini:   col(['início da linha','baseline start','início base']),
+      fim:   col(['término da linha','baseline finish','término base']),
+      pred:  col(['predecessoras','predecessor']),
+      emp:   col(['empresa executora','empresa','contractor']),
+      disc:  col(['disciplina','discipline']),
+      cwa:   col(['cwa']),
+      cpa:   col(['cpa']),
+    };
+
+    const fmtDate = v => {
+      if(!v) return null;
+      if(v instanceof Date) return v.toISOString().slice(0,10);
+      if(typeof v === 'string' && v.match(/\d{4}-\d{2}-\d{2}/)) return v.slice(0,10);
+      return null;
+    };
+
+    setProgress(60,'Processando '+raw.length+' linhas...');
+    parsedData = [];
+    let erros = 0;
+    const cwasFound = new Set(), discFound = new Set();
+
+    for(let i=1; i<raw.length; i++){
+      const r = raw[i];
+      if(!r || r.every(c=>c===null)) continue;
+      try{
+        const taskName = (r[COL.task]||'').toString();
+        const id = r[COL.id];
+        if(!id && !taskName.trim()) continue;
+
+        const cwa = COL.cwa>=0 ? (r[COL.cwa]||null) : null;
+        const disc = COL.disc>=0 ? (r[COL.disc]||null) : null;
+        if(cwa) cwasFound.add(String(cwa));
+        if(disc) discFound.add(String(disc));
+
+        parsedData.push({
+          id:                   parseInt(id)||null,
+          task_name:            taskName,
+          nivel:                nivel(taskName),
+          pv_pct:               parseFloat(r[COL.pv])||0,
+          ev_pct:               parseFloat(r[COL.ev])||0,
+          desvio_pct:           parseFloat(r[COL.desv])||0,
+          data_inicio_baseline: fmtDate(COL.ini>=0?r[COL.ini]:null),
+          data_fim_baseline:    fmtDate(COL.fim>=0?r[COL.fim]:null),
+          predecessoras:        COL.pred>=0?(r[COL.pred]||'').toString()||null:null,
+          empresa_executora:    COL.emp>=0?(r[COL.emp]||null):null,
+          disciplina:           disc,
+          cwa:                  cwa,
+          cpa:                  parseFloat(r[COL.cpa])||null,
+          referencia_data:      document.getElementById('refData').value
+        });
+      } catch(ex){ erros++; }
+    }
+
+    setProgress(85,'Montando preview...');
+    const comEmp = parsedData.filter(r=>r.empresa_executora).length;
+
+    document.getElementById('st-total').textContent  = parsedData.length.toLocaleString('pt-BR');
+    document.getElementById('st-com-emp').textContent= comEmp.toLocaleString('pt-BR');
+    document.getElementById('st-cwas').textContent   = cwasFound.size;
+    document.getElementById('st-disc').textContent   = discFound.size;
+    document.getElementById('st-erros').textContent  = erros;
+    document.getElementById('statsBox').classList.remove('hidden');
+
+    buildPreview(parsedData.slice(0,50));
+    document.getElementById('cwaSummary').textContent = `${cwasFound.size} CWAs · ${discFound.size} disciplinas · ${parsedData.length} tarefas`;
+    document.getElementById('previewCard').classList.remove('hidden');
+    document.getElementById('btnSyncAll').disabled = false;
+
+    setProgress(100,'Pronto para sincronizar!');
+    setStatus('ok', `${parsedData.length} tarefas lidas com sucesso — ${erros} erros ignorados`);
+  } catch(e){
+    setStatus('err','Erro ao ler Excel: '+e.message);
+    console.error(e);
+  }
+}
+
+function buildPreview(rows){
+  const tbody = document.getElementById('previewBody');
+  const DISC_COLOR = {'01 - Civil':'#607D8B','02 - Mecânica':'#EAA239','04 - Elétrica':'#007CC5','05 - Instrumentação':'#609346'};
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.id||'—'}</td>
+      <td><span style="background:#E8F0F8;padding:1px 6px;border-radius:8px;font-size:9px">${r.nivel}</span></td>
+      <td style="padding-left:${r.nivel*8+10}px;max-width:260px;word-break:break-word">${r.task_name.trim()}</td>
+      <td style="font-size:9px;color:var(--muted)">${r.cwa||'—'}</td>
+      <td><span style="background:${DISC_COLOR[r.disciplina]||'#ddd'}22;color:${DISC_COLOR[r.disciplina]||'#555'};padding:1px 6px;border-radius:8px;font-size:9px">${r.disciplina||'—'}</span></td>
+      <td style="font-size:10px">${r.empresa_executora||'—'}</td>
+      <td style="font-weight:700;color:var(--azul)">${r.pv_pct?.toFixed(1)||0}%</td>
+      <td style="font-weight:700;color:var(--ouro)">${r.ev_pct?.toFixed(1)||0}%</td>
+      <td style="font-weight:700;color:${(r.desvio_pct||0)<0?'var(--vermelho)':'var(--verde)'}">${(r.desvio_pct||0).toFixed(1)}%</td>
+      <td style="font-size:10px">${r.data_inicio_baseline||'—'}</td>
+      <td style="font-size:10px">${r.data_fim_baseline||'—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// SINCRONIZAÇÃO COM SUPABASE
+// ============================================================
+async function syncAll(){
+  if(!SB_URL || !SB_KEY){ alert('Configure a conexão Supabase primeiro.'); return; }
+  if(!parsedData.length){ alert('Carregue um arquivo Excel primeiro.'); return; }
+  const refData = document.getElementById('refData').value;
+  if(!refData){ alert('Informe a data de referência do cronograma.'); return; }
+
+  document.getElementById('btnSyncAll').disabled = true;
+  setStatus('spin','Iniciando sincronização...');
+
+  try{
+    // 1. Deletar registros anteriores da mesma data de referência
+    setProgress(10, 'Removendo dados anteriores da data '+refData+'...');
+    const delR = await sbFetch(`cronograma_tarefas?referencia_data=eq.${refData}`,{
+      method:'DELETE', prefer:'return=minimal'
+    });
+    if(!delR.ok && delR.status!==404){ throw new Error('Erro ao limpar dados anteriores: '+await delR.text()); }
+
+    // 2. Inserir em lotes de 500
+    const LOTE = 500;
+    const total = parsedData.length;
+    for(let i=0; i<total; i+=LOTE){
+      const lote = parsedData.slice(i, i+LOTE);
+      const pct = Math.round(10 + (i/total)*70);
+      setProgress(pct, `Enviando tarefas ${i+1}–${Math.min(i+LOTE,total)} de ${total}...`);
+      const r = await sbFetch('cronograma_tarefas', {
+        method:'POST',
+        prefer:'resolution=merge-duplicates,return=minimal',
+        body: JSON.stringify(lote)
+      });
+      if(!r.ok){ throw new Error('Erro no lote '+(i/LOTE+1)+': '+await r.text()); }
+    }
+
+    // 3. Inserir/atualizar snapshots por CWA
+    setProgress(82, 'Calculando snapshots por CWA...');
+    const snapshots = buildSnapshots(parsedData, refData);
+    if(snapshots.length){
+      const r = await sbFetch('cronograma_historico_snapshots', {
+        method:'POST',
+        headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body: JSON.stringify(snapshots)
+      });
+      if(!r.ok){ throw new Error('Erro ao salvar snapshots: '+await r.text()); }
+    }
+
+    setProgress(100, 'Sincronização concluída!');
+    setStatus('ok', `✓ ${total} tarefas sincronizadas · ${snapshots.length} snapshots de CWA registrados · Referência: ${refData}`);
+    setSbStatus('ok','Sincronizado ✓');
+
+  } catch(e){
+    setStatus('err','Erro na sincronização: '+e.message);
+    console.error(e);
+  } finally{
+    document.getElementById('btnSyncAll').disabled = false;
+  }
+}
+
+function buildSnapshots(data, refData){
+  // Agrupa por CWA e calcula PV/EV médios ponderados
+  // Usa somente linhas-folha (com empresa e disciplina) para não duplicar sumários
+  const cwaMap = {};
+  for(const r of data){
+    if(!r.cwa) continue;
+    const k = String(r.cwa);
+    if(!cwaMap[k]) cwaMap[k] = { pv:[], ev:[], ini:[], fim:[], parts: k.split('.') };
+    cwaMap[k].pv.push(r.pv_pct||0);
+    cwaMap[k].ev.push(r.ev_pct||0);
+    if(r.data_inicio_baseline) cwaMap[k].ini.push(r.data_inicio_baseline);
+    if(r.data_fim_baseline)    cwaMap[k].fim.push(r.data_fim_baseline);
+  }
+  return Object.entries(cwaMap).map(([cwa,v])=>({
+    referencia_data: refData,
+    cwa,
+    grupo_1: v.parts[0]||null,
+    grupo_2: v.parts[1]||null,
+    grupo_3: v.parts[2]||null,
+    pv_pct:  avg(v.pv),
+    ev_pct:  avg(v.ev),
+    desvio_pct: avg(v.ev) - avg(v.pv),
+    data_inicio: v.ini.sort()[0]||null,
+    data_fim:    v.fim.sort().reverse()[0]||null,
+  }));
+}
+
+const avg = arr => arr.length ? Math.round((arr.reduce((a,b)=>a+b,0)/arr.length)*100)/100 : 0;
+
+// ============================================================
+// LOOKAHEAD
+// ============================================================
+async function loadAreas(){
+  try{
+    const r = await sbFetch('areas_config?select=cwa,nome_exibicao,grupo_1&order=ordem&ativo=eq.true');
+    if(r.ok){
+      areasList = await r.json();
+      populateCwaSelects();
+    }
+  } catch(e){ console.warn('loadAreas error',e); }
+}
+
+function populateCwaSelects(){
+  const selects = ['lkCwaFilter','ppcCwaFilter','lkCwa','ppcCwa'];
+  selects.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const isFilter = id.includes('Filter');
+    el.innerHTML = (isFilter?'<option value="">Todas as áreas</option>':'<option value="">Selecione...</option>') +
+      areasList.map(a=>`<option value="${a.cwa}">[${a.grupo_1}] ${a.nome_exibicao}</option>`).join('');
+  });
+}
+
+async function initLookahead(){
+  if(!areasList.length) await loadAreas();
+  document.getElementById('lkWarn').classList.toggle('hidden', !!(SB_URL&&SB_KEY));
+  loadLookahead();
+}
+
+async function loadLookahead(){
+  const cwa = document.getElementById('lkCwaFilter').value;
+  let url = 'lookahead_atividades?order=semana,criado_em&concluida=eq.false';
+  if(cwa) url += `&cwa=eq.${encodeURIComponent(cwa)}`;
+
+  try{
+    const r = await sbFetch(url);
+    if(r.ok){
+      currentLkData = await r.json();
+      renderLookahead(currentLkData);
+    }
+  } catch(e){
+    document.getElementById('lkBody').innerHTML = `<tr><td colspan="13" style="color:var(--vermelho);padding:16px">Erro ao carregar: ${e.message}</td></tr>`;
+  }
+}
+
+function renderLookahead(data){
+  const RESTR = {ok:'<span class="badge badge-ok">✓</span>',atencao:'<span class="badge badge-warn">!</span>',bloqueado:'<span class="badge badge-err">✕</span>',na:'<span class="badge badge-na">—</span>'};
+  const STATUS = {liberado:'badge-ok',parcial:'badge-warn',bloqueado:'badge-err',pendente:'badge-pend'};
+  const SLBL   = {liberado:'Liberado',parcial:'Parcial',bloqueado:'Bloqueado',pendente:'Pendente'};
+
+  if(!data.length){
+    document.getElementById('lkBody').innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px">Nenhuma atividade cadastrada. Clique em "+ Nova Atividade" para começar.</td></tr>';
+    return;
+  }
+
+  document.getElementById('lkBody').innerHTML = data.map(a=>`
+    <tr>
+      <td><span class="badge ${a.semana==='S22'?'badge-warn':'badge-pend'}">${a.semana||'—'}</span></td>
+      <td style="font-size:10px;color:var(--muted)">${a.disciplina||'—'}</td>
+      <td style="font-weight:600;max-width:220px;word-break:break-word">${a.descricao}</td>
+      <td><span class="badge ${STATUS[a.status]}">${SLBL[a.status]}</span></td>
+      <td>${RESTR[a.rest_materiais]||'—'}</td>
+      <td>${RESTR[a.rest_projeto]||'—'}</td>
+      <td>${RESTR[a.rest_mao_obra]||'—'}</td>
+      <td>${RESTR[a.rest_equipamento]||'—'}</td>
+      <td>${RESTR[a.rest_frente]||'—'}</td>
+      <td style="font-size:10px"><strong>${a.responsavel||'—'}</strong><br><span style="color:var(--muted)">${a.empresa||''}</span></td>
+      <td style="font-size:10px">${a.data_limite||'—'}</td>
+      <td style="font-size:10px;color:var(--muted);max-width:160px">${a.observacao||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openModalLookahead('${a.id}')">✏</button></td>
+    </tr>
+  `).join('');
+
+  // Resumo
+  const bloq = data.filter(a=>['rest_materiais','rest_projeto','rest_mao_obra','rest_equipamento','rest_frente'].some(k=>a[k]==='bloqueado')).length;
+  const aten = data.filter(a=>['rest_materiais','rest_projeto','rest_mao_obra','rest_equipamento','rest_frente'].some(k=>a[k]==='atencao')).length;
+  document.getElementById('lkResumo').innerHTML = `
+    <span class="badge badge-pend">${data.length} atividades</span>
+    <span class="badge badge-err">${bloq} com bloqueio</span>
+    <span class="badge badge-warn">${aten} com atenção</span>
+    <span class="badge badge-ok">${data.filter(a=>a.status==='liberado').length} liberadas</span>
+  `;
+}
+
+function openModalLookahead(id){
+  const overlay = document.getElementById('modalLkOverlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('lkId').value = id||'';
+  document.getElementById('btnDeleteLk').classList.toggle('hidden', !id);
+
+  // Populate CWA select
+  const sel = document.getElementById('lkCwa');
+  sel.innerHTML = '<option value="">Selecione...</option>' + areasList.map(a=>`<option value="${a.cwa}">[${a.grupo_1}] ${a.nome_exibicao}</option>`).join('');
+
+  if(id){
+    const item = currentLkData.find(a=>a.id===id);
+    if(item){
+      document.getElementById('modalLkTitle').textContent = 'Editar Atividade';
+      sel.value = item.cwa||'';
+      document.getElementById('lkSemana').value = item.semana||'';
+      document.getElementById('lkSemIni').value = item.semana_inicio||'';
+      document.getElementById('lkSemFim').value = item.semana_fim||'';
+      document.getElementById('lkDisc').value = item.disciplina||'';
+      document.getElementById('lkStatus').value = item.status||'pendente';
+      document.getElementById('lkDesc').value = item.descricao||'';
+      document.getElementById('lkMat').value = item.rest_materiais||'ok';
+      document.getElementById('lkProj').value = item.rest_projeto||'ok';
+      document.getElementById('lkMo').value = item.rest_mao_obra||'ok';
+      document.getElementById('lkEquip').value = item.rest_equipamento||'ok';
+      document.getElementById('lkFrente').value = item.rest_frente||'ok';
+      document.getElementById('lkResp').value = item.responsavel||'';
+      document.getElementById('lkEmp').value = item.empresa||'';
+      document.getElementById('lkDataLim').value = item.data_limite||'';
+      document.getElementById('lkConc').value = String(item.concluida||false);
+      document.getElementById('lkObs').value = item.observacao||'';
+    }
+  } else {
+    document.getElementById('modalLkTitle').textContent = 'Nova Atividade';
+    const cwaFilter = document.getElementById('lkCwaFilter').value;
+    if(cwaFilter) sel.value = cwaFilter;
+    ['lkSemana','lkSemIni','lkSemFim','lkDesc','lkResp','lkEmp','lkDataLim','lkObs'].forEach(id=>document.getElementById(id).value='');
+    ['lkDisc','lkStatus','lkMat','lkProj','lkMo','lkEquip','lkFrente'].forEach(id=>{ const el=document.getElementById(id); if(el) el.selectedIndex=0; });
+    document.getElementById('lkConc').value='false';
+  }
+}
+
+function closeModalLk(){ document.getElementById('modalLkOverlay').classList.add('hidden'); }
+
+async function saveLookahead(){
+  const id = document.getElementById('lkId').value;
+  const payload = {
+    cwa:              document.getElementById('lkCwa').value,
+    semana:           document.getElementById('lkSemana').value,
+    semana_inicio:    document.getElementById('lkSemIni').value||null,
+    semana_fim:       document.getElementById('lkSemFim').value||null,
+    disciplina:       document.getElementById('lkDisc').value||null,
+    descricao:        document.getElementById('lkDesc').value,
+    status:           document.getElementById('lkStatus').value,
+    rest_materiais:   document.getElementById('lkMat').value,
+    rest_projeto:     document.getElementById('lkProj').value,
+    rest_mao_obra:    document.getElementById('lkMo').value,
+    rest_equipamento: document.getElementById('lkEquip').value,
+    rest_frente:      document.getElementById('lkFrente').value,
+    responsavel:      document.getElementById('lkResp').value||null,
+    empresa:          document.getElementById('lkEmp').value||null,
+    data_limite:      document.getElementById('lkDataLim').value||null,
+    concluida:        document.getElementById('lkConc').value==='true',
+    observacao:       document.getElementById('lkObs').value||null,
+  };
+  if(!payload.cwa||!payload.semana||!payload.descricao){ alert('Preencha CWA, Semana e Descrição.'); return; }
+  try{
+    let r;
+    if(id){
+      r = await sbFetch(`lookahead_atividades?id=eq.${id}`,{ method:'PATCH', body:JSON.stringify(payload) });
+    } else {
+      r = await sbFetch('lookahead_atividades',{ method:'POST', body:JSON.stringify(payload) });
+    }
+    if(!r.ok) throw new Error(await r.text());
+    closeModalLk();
+    loadLookahead();
+  } catch(e){ alert('Erro ao salvar: '+e.message); }
+}
+
+async function deleteLookahead(){
+  const id = document.getElementById('lkId').value;
+  if(!id||!confirm('Excluir esta atividade?')) return;
+  const r = await sbFetch(`lookahead_atividades?id=eq.${id}`,{ method:'DELETE', prefer:'return=minimal' });
+  if(r.ok){ closeModalLk(); loadLookahead(); } else { alert('Erro ao excluir.'); }
+}
+
+// ============================================================
+// PPC
+// ============================================================
+async function initPpc(){
+  if(!areasList.length) await loadAreas();
+  loadPpc();
+}
+
+async function loadPpc(){
+  const cwa = document.getElementById('ppcCwaFilter').value;
+  let url = 'ppc_registro?order=semana.desc';
+  if(cwa) url += `&cwa=eq.${encodeURIComponent(cwa)}`;
+  try{
+    const r = await sbFetch(url);
+    if(r.ok){ currentPpcData = await r.json(); renderPpc(currentPpcData); }
+  } catch(e){ document.getElementById('ppcBody').innerHTML=`<tr><td colspan="12" style="color:var(--vermelho);padding:16px">${e.message}</td></tr>`; }
+}
+
+function renderPpc(data){
+  if(!data.length){ document.getElementById('ppcBody').innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px">Nenhum registro. Clique em "+ Registrar Semana".</td></tr>'; return; }
+  document.getElementById('ppcBody').innerHTML = data.map(p=>{
+    const ppc = p.ppc_pct||0;
+    const cls = ppc>=85?'badge-ok':ppc>=70?'badge-warn':'badge-err';
+    return `<tr>
+      <td><span class="badge badge-pend">${p.semana}</span></td>
+      <td style="font-size:10px">${p.semana_inicio||''} → ${p.semana_fim||''}</td>
+      <td style="text-align:center">${p.atividades_plan}</td>
+      <td style="text-align:center">${p.atividades_conc}</td>
+      <td><span class="badge ${cls}">${ppc.toFixed(1)}%</span></td>
+      <td style="text-align:center">${p.causa_materiais||0}</td>
+      <td style="text-align:center">${p.causa_projeto||0}</td>
+      <td style="text-align:center">${p.causa_mao_obra||0}</td>
+      <td style="text-align:center">${p.causa_equipamento||0}</td>
+      <td style="text-align:center">${p.causa_frente||0}</td>
+      <td style="font-size:10px;max-width:180px">${p.observacoes||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openModalPpc('${p.id}')">✏</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openModalPpc(id){
+  document.getElementById('modalPpcOverlay').classList.remove('hidden');
+  document.getElementById('ppcId').value = id||'';
+  document.getElementById('btnDeletePpc').classList.toggle('hidden', !id);
+  const sel = document.getElementById('ppcCwa');
+  sel.innerHTML = '<option value="">Selecione...</option>' + areasList.map(a=>`<option value="${a.cwa}">[${a.grupo_1}] ${a.nome_exibicao}</option>`).join('');
+  if(id){
+    const item = currentPpcData.find(p=>p.id===id);
+    if(item){
+      sel.value = item.cwa||'';
+      document.getElementById('ppcSemana').value = item.semana||'';
+      document.getElementById('ppcIni').value = item.semana_inicio||'';
+      document.getElementById('ppcFim').value = item.semana_fim||'';
+      document.getElementById('ppcPlan').value = item.atividades_plan||0;
+      document.getElementById('ppcConc').value = item.atividades_conc||0;
+      document.getElementById('ppcCMat').value = item.causa_materiais||0;
+      document.getElementById('ppcCProj').value = item.causa_projeto||0;
+      document.getElementById('ppcCMo').value = item.causa_mao_obra||0;
+      document.getElementById('ppcCEquip').value = item.causa_equipamento||0;
+      document.getElementById('ppcCFrente').value = item.causa_frente||0;
+      document.getElementById('ppcObs').value = item.observacoes||'';
+    }
+  } else {
+    ['ppcSemana','ppcIni','ppcFim','ppcObs'].forEach(i=>document.getElementById(i).value='');
+    ['ppcPlan','ppcConc','ppcCMat','ppcCProj','ppcCMo','ppcCEquip','ppcCFrente'].forEach(i=>document.getElementById(i).value=0);
+    const cf = document.getElementById('ppcCwaFilter').value;
+    if(cf) sel.value = cf;
+  }
+}
+
+function closeModalPpc(){ document.getElementById('modalPpcOverlay').classList.add('hidden'); }
+
+async function savePpc(){
+  const id = document.getElementById('ppcId').value;
+  const payload = {
+    cwa: document.getElementById('ppcCwa').value,
+    semana: document.getElementById('ppcSemana').value,
+    semana_inicio: document.getElementById('ppcIni').value||null,
+    semana_fim: document.getElementById('ppcFim').value||null,
+    atividades_plan: parseInt(document.getElementById('ppcPlan').value)||0,
+    atividades_conc: parseInt(document.getElementById('ppcConc').value)||0,
+    causa_materiais: parseInt(document.getElementById('ppcCMat').value)||0,
+    causa_projeto: parseInt(document.getElementById('ppcCProj').value)||0,
+    causa_mao_obra: parseInt(document.getElementById('ppcCMo').value)||0,
+    causa_equipamento: parseInt(document.getElementById('ppcCEquip').value)||0,
+    causa_frente: parseInt(document.getElementById('ppcCFrente').value)||0,
+    observacoes: document.getElementById('ppcObs').value||null,
+  };
+  if(!payload.cwa||!payload.semana){ alert('Selecione área e semana.'); return; }
+  try{
+    let r;
+    if(id){
+      r = await sbFetch(`ppc_registro?id=eq.${id}`,{ method:'PATCH', body:JSON.stringify(payload) });
+    } else {
+      r = await sbFetch('ppc_registro',{ method:'POST', body:JSON.stringify(payload), headers:{'Prefer':'resolution=merge-duplicates,return=representation'} });
+    }
+    if(!r.ok) throw new Error(await r.text());
+    closeModalPpc(); loadPpc();
+  } catch(e){ alert('Erro ao salvar: '+e.message); }
+}
+
+async function deletePpc(){
+  const id = document.getElementById('ppcId').value;
+  if(!id||!confirm('Excluir este registro?')) return;
+  const r = await sbFetch(`ppc_registro?id=eq.${id}`,{ method:'DELETE', prefer:'return=minimal' });
+  if(r.ok){ closeModalPpc(); loadPpc(); } else { alert('Erro ao excluir.'); }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function setStatus(type, msg){
+  const box = document.getElementById('statusBox');
+  const icon = type==='ok'?'ok':type==='err'?'err':'spin';
+  box.innerHTML = `<div class="status-line"><div class="dot ${icon}"></div><span>${msg}</span></div>`;
+}
+
+function setProgress(pct, label){
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressLabel').textContent = label;
+  document.getElementById('progressPct').textContent = pct+'%';
+}
+
+function clearAll(){
+  parsedData = [];
+  document.getElementById('previewCard').classList.add('hidden');
+  document.getElementById('statsBox').classList.add('hidden');
+  document.getElementById('progressWrap').classList.add('hidden');
+  document.getElementById('btnSyncAll').disabled = true;
+  document.getElementById('fileInput').value = '';
+  setStatus('warn','Aguardando arquivo...');
+}
+
+function downloadTemplate(){
+  // Gera um Excel template com as colunas esperadas
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([[
+    'Id','Task Name','% Prev. Fís.-EAP','% Concl. Fís.-EAP','% Desvio',
+    'Início da Linha de Base','Término da linha de base','Predecessoras',
+    'Empresa Executora','Disciplina','CWA','CPA'
+  ],[
+    1,'Exemplo de Tarefa',50,40,-10,'2026-01-01','2026-12-31','',
+    'EMPRESA EXEMPLO','01 - Civil','Geral.Pipe Rack',0
+  ]]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Planilha1');
+  XLSX.writeFile(wb, 'template_cronograma_pco.xlsx');
+}
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
+zone.addEventListener('drop', e=>{ e.preventDefault(); zone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+// Init
+loadConfig();
+loadAreas();
+</script>
+</body>
+</html>
