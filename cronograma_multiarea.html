@@ -157,6 +157,46 @@ td.lk-act{text-align:left;padding-left:12px;font-weight:600;max-width:240px}
 .foot-tag{font-style:italic;font-weight:700;color:var(--ouro)}
 .hidden{display:none}
 .no-data-msg{text-align:center;padding:32px;color:var(--muted);font-size:12px}
+
+/* ── GANTT DETALHADO ─────────────────────────────────────── */
+.gantt-box{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:18px}
+.gantt-controls{padding:12px 22px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--borda);flex-wrap:wrap}
+.gantt-ctrl-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.gantt-ctrl-sel{border:1px solid var(--borda);border-radius:3px;padding:5px 10px;font-family:inherit;font-size:11px;color:var(--texto);background:#fff;cursor:pointer}
+.gantt-ctrl-sel:focus{outline:none;border-color:var(--azul-c)}
+.gantt-ctrl-input{border:1px solid var(--borda);border-radius:3px;padding:5px 10px;font-family:inherit;font-size:11px;color:var(--texto);width:120px}
+.gantt-ctrl-input:focus{outline:none;border-color:var(--azul-c)}
+.gantt-wrap{overflow-x:auto}
+.gantt-table{width:100%;border-collapse:collapse;font-size:11px}
+.gantt-table thead th{background:var(--azul);color:#fff;padding:7px 6px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;text-align:center;border-right:1px solid rgba(255,255,255,.15);white-space:nowrap;vertical-align:middle}
+.gantt-table thead th.gt-act{text-align:left;padding-left:12px;min-width:200px;width:200px}
+.gantt-table thead th.gt-info{width:72px;font-size:8.5px}
+.gantt-table thead th.gt-pr{width:28px;font-size:9px}
+.gantt-table thead th.gt-month{width:88px;font-size:9px}
+.gantt-table thead tr.gt-month-row th{background:#1a5c94}
+.gantt-table tbody td{padding:0 3px;border-bottom:1px solid #F0F2F5;border-right:1px solid #F0F2F5;vertical-align:middle;height:16px;font-size:10px;text-align:center}
+.gantt-table tbody tr:nth-child(even) td{background:#FAFBFC}
+.gantt-disc-row td{background:var(--cinza)!important;color:var(--azul);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:5px 12px;text-align:left}
+.gt-act-cell{text-align:left!important;padding-left:10px!important;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.gt-emp{display:block;font-size:8.5px;color:var(--muted);font-weight:400;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gt-date{color:var(--muted);font-size:9px}
+.gt-dur{color:var(--azul);font-weight:700;font-size:9px}
+.gt-pr-p{color:var(--azul);font-weight:800;font-size:9px}
+.gt-pr-r{color:var(--ouro);font-weight:800;font-size:9px}
+.gt-month-cell{position:relative;height:32px!important;border-right:1px solid #F0F2F5;padding:0!important}
+.gt-bar{position:absolute;border-radius:2px}
+.gt-bar-p{background:var(--azul);height:9px;top:5px}
+.gt-bar-r{height:9px;top:17px}
+.gt-bar-r.ok{background:var(--ouro)}
+.gt-bar-r.adv{background:var(--verde)}
+.gt-bar-r.del{background:var(--vermelho)}
+.gt-today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--vermelho);opacity:.6;pointer-events:none;z-index:2}
+.gantt-legend{display:flex;gap:14px;padding:8px 22px 12px;font-size:10px;border-top:1px solid #F0F2F5;flex-wrap:wrap}
+.gl-item{display:flex;align-items:center;gap:6px;font-weight:600;color:#4B5563}
+.gl-sw{width:18px;height:9px;border-radius:2px}
+.gantt-empty{text-align:center;padding:40px;color:var(--muted);font-size:12px}
+.gantt-info-bar{padding:8px 22px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;font-size:10px;color:#1e40af;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.gantt-count-badge{background:#BFDBFE;color:#1e40af;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:800}
 </style>
 </head>
 <body>
@@ -217,6 +257,49 @@ td.lk-act{text-align:left;padding-left:12px;font-weight:600;max-width:240px}
       <div class="kpi"><div class="kpiv" id="kpiReal">—</div><div class="kpil">Realizado</div></div>
       <div class="kpi"><div class="kpiv" id="kpiDes">—</div><div class="kpil">Desvio P×R</div></div>
       <div class="kpi"><div class="kpiv" id="kpiStartup">—</div><div class="kpil">Start-up</div></div>
+    </div>
+  </div>
+
+  <!-- GANTT DETALHADO -->
+  <div class="sec-title">
+    <span>Cronograma Detalhado — Planejado × Realizado</span>
+  </div>
+  <div class="gantt-box">
+    <div class="gantt-controls">
+      <span class="gantt-ctrl-lbl">Disciplina:</span>
+      <select class="gantt-ctrl-sel" id="ganttDiscFilter" onchange="applyGanttFilters()">
+        <option value="">Todas</option>
+      </select>
+      <span class="gantt-ctrl-lbl" style="margin-left:8px">Empresa:</span>
+      <select class="gantt-ctrl-sel" id="ganttEmpFilter" onchange="applyGanttFilters()">
+        <option value="">Todas</option>
+      </select>
+      <span class="gantt-ctrl-lbl" style="margin-left:8px">Busca:</span>
+      <input class="gantt-ctrl-input" id="ganttSearch" type="text" placeholder="nome da atividade..." oninput="applyGanttFilters()"/>
+      <span class="gantt-ctrl-lbl" style="margin-left:8px">Período:</span>
+      <select class="gantt-ctrl-sel" id="ganttPeriod" onchange="applyGanttFilters()">
+        <option value="12">12 meses</option>
+        <option value="18">18 meses</option>
+        <option value="24">24 meses</option>
+        <option value="6">6 meses</option>
+      </select>
+      <button class="btn" style="margin-left:auto;padding:5px 12px;font-size:10px" onclick="resetGanttFilters()">Limpar filtros</button>
+    </div>
+    <div id="ganttInfoBar" class="gantt-info-bar hidden">
+      <span id="ganttInfoTxt">—</span>
+      <span id="ganttCountBadge" class="gantt-count-badge">0 atividades</span>
+    </div>
+    <div class="gantt-wrap">
+      <div id="ganttTableWrap">
+        <div class="gantt-empty">Selecione uma área para carregar o cronograma detalhado.</div>
+      </div>
+    </div>
+    <div class="gantt-legend">
+      <div class="gl-item"><div class="gl-sw" style="background:var(--azul)"></div>Planejado (P)</div>
+      <div class="gl-item"><div class="gl-sw" style="background:var(--ouro)"></div>Realizado — No prazo (R)</div>
+      <div class="gl-item"><div class="gl-sw" style="background:var(--verde)"></div>Realizado — Adiantado (R)</div>
+      <div class="gl-item"><div class="gl-sw" style="background:var(--vermelho)"></div>Realizado — Atrasado (R)</div>
+      <div class="gl-item"><div style="width:2px;height:14px;background:var(--vermelho);opacity:.6"></div>Hoje</div>
     </div>
   </div>
 
@@ -402,7 +485,7 @@ function sbFetch(path, opts={}) {
 }
 
 // ── STATE ────────────────────────────────────────────────────
-let areas=[], snapshots={}, lookahead={}, ppcData={};
+let areas=[], snapshots={}, lookahead={}, ppcData={}, tarefasCache={};
 let currentCwa='', editMode=false, viewMode='area';
 
 // ── INIT ─────────────────────────────────────────────────────
@@ -495,9 +578,225 @@ async function renderArea(cwa){
   g('kpiStartup').textContent=area.data_startup?fmtDate(area.data_startup):'—';
 
   renderCurva(snaps,area);
-  await Promise.all([loadLookahead(cwa),loadPpc(cwa)]);
+  await Promise.all([loadLookahead(cwa),loadPpc(cwa),loadTarefas(cwa)]);
+  renderGantt(cwa);
   renderLookahead(cwa);
   renderPareto(cwa);
+}
+
+// ── TAREFAS (GANTT) ───────────────────────────────────────────
+async function loadTarefas(cwa){
+  if(!SB_URL||!SB_KEY) return;
+  if(tarefasCache[cwa]) return; // usa cache
+  // Busca tarefas folha (com empresa/disciplina) do CWA, da data mais recente
+  // Limita a 300 tarefas para performance — suficiente para qualquer CWA
+  const refMax = Object.values(snapshots).flat()
+    .map(s=>s.referencia_data).sort().reverse()[0] || '';
+  let url = `cronograma_tarefas?cwa=eq.${enc(cwa)}&order=id&limit=300`;
+  if(refMax) url += `&referencia_data=eq.${refMax}`;
+  const r = await sbFetch(url);
+  if(r.ok) tarefasCache[cwa] = await r.json();
+}
+
+// ── MOTOR DO GANTT ────────────────────────────────────────────
+// Estado dos filtros
+let ganttDiscSel='', ganttEmpSel='', ganttSearchTxt='', ganttMonths=12;
+
+function applyGanttFilters(){
+  ganttDiscSel  = g('ganttDiscFilter').value;
+  ganttEmpSel   = g('ganttEmpFilter').value;
+  ganttSearchTxt= g('ganttSearch').value.trim().toLowerCase();
+  ganttMonths   = parseInt(g('ganttPeriod').value)||12;
+  renderGantt(currentCwa);
+}
+
+function resetGanttFilters(){
+  g('ganttDiscFilter').value='';
+  g('ganttEmpFilter').value='';
+  g('ganttSearch').value='';
+  g('ganttPeriod').value='12';
+  ganttDiscSel=''; ganttEmpSel=''; ganttSearchTxt=''; ganttMonths=12;
+  renderGantt(currentCwa);
+}
+
+function renderGantt(cwa){
+  const wrap = g('ganttTableWrap');
+  const raw  = tarefasCache[cwa] || [];
+
+  if(!raw.length){
+    // populate filters com vazio, mostrar mensagem
+    g('ganttDiscFilter').innerHTML = '<option value="">Todas</option>';
+    g('ganttEmpFilter').innerHTML  = '<option value="">Todas</option>';
+    wrap.innerHTML = '<div class="gantt-empty">Sem tarefas para esta área. Faça o upload do Excel no importador.</div>';
+    g('ganttInfoBar').classList.add('hidden');
+    return;
+  }
+
+  // ── Populares filtros ─────────────────────────────────────
+  const discs = [...new Set(raw.map(t=>t.disciplina).filter(Boolean))].sort();
+  const emps  = [...new Set(raw.map(t=>t.empresa_executora).filter(Boolean))].sort();
+  const curDisc = g('ganttDiscFilter').value;
+  const curEmp  = g('ganttEmpFilter').value;
+  g('ganttDiscFilter').innerHTML = '<option value="">Todas</option>' +
+    discs.map(d=>`<option value="${d}" ${d===curDisc?'selected':''}>${d}</option>`).join('');
+  g('ganttEmpFilter').innerHTML = '<option value="">Todas</option>' +
+    emps.map(e=>`<option value="${e}" ${e===curEmp?'selected':''}>${e}</option>`).join('');
+
+  // ── Filtrar tarefas ───────────────────────────────────────
+  let tarefas = raw.filter(t => {
+    if(ganttDiscSel  && t.disciplina       !== ganttDiscSel)  return false;
+    if(ganttEmpSel   && t.empresa_executora !== ganttEmpSel)  return false;
+    if(ganttSearchTxt && !(t.task_name||'').toLowerCase().includes(ganttSearchTxt)) return false;
+    return t.data_inicio_baseline && t.data_fim_baseline;
+  });
+
+  // ── Calcular janela de tempo ──────────────────────────────
+  const today = new Date();
+  // Encontrar a data de início mínima das tarefas
+  const datas = tarefas.flatMap(t=>[new Date(t.data_inicio_baseline),new Date(t.data_fim_baseline)]).filter(d=>!isNaN(d));
+  const minDate = datas.length ? new Date(Math.min(...datas)) : today;
+  // Início da janela: primeiro dia do mês da tarefa mais cedo (ou 3 meses atrás, o que for mais cedo)
+  const janIni = new Date(Math.min(
+    new Date(minDate.getFullYear(), minDate.getMonth(), 1).getTime(),
+    new Date(today.getFullYear(), today.getMonth()-2, 1).getTime()
+  ));
+  const janFim = new Date(janIni.getFullYear(), janIni.getMonth()+ganttMonths, 0);
+
+  // ── Gerar array de meses da janela ────────────────────────
+  const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const meses = [];
+  let cur = new Date(janIni.getFullYear(), janIni.getMonth(), 1);
+  while(cur <= janFim){
+    meses.push({ ano: cur.getFullYear(), mes: cur.getMonth(),
+      label: `${MESES_PT[cur.getMonth()]}/${String(cur.getFullYear()).slice(2)}`,
+      ini: new Date(cur), fim: new Date(cur.getFullYear(), cur.getMonth()+1, 0) });
+    cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
+  }
+
+  const totalDias = (janFim - janIni) / 86400000;
+
+  // Posição relativa de uma data dentro da janela [0..1]
+  function pos(d){ return Math.max(0, Math.min(1, (d-janIni)/(janFim-janIni+86400000))); }
+
+  // Calcular posição e largura da barra dentro de uma célula de mês
+  function barStyle(iniDate, fimDate, mesIni, mesFim){
+    if(fimDate < mesIni || iniDate > mesFim) return null; // fora do mês
+    const start = Math.max(iniDate, mesIni);
+    const end   = Math.min(fimDate, mesFim);
+    const mesDur = mesFim - mesIni + 86400000;
+    const left  = ((start - mesIni) / mesDur) * 100;
+    const right = ((mesFim + 86400000 - end - 86400000) / mesDur) * 100;
+    return { left: left.toFixed(1)+'%', right: Math.max(0,right).toFixed(1)+'%' };
+  }
+
+  // Classificar desvio da barra R
+  function desvioClass(pv_pct, ev_pct){
+    if(ev_pct===null||ev_pct===undefined) return 'ok';
+    const d = parseFloat(ev_pct) - parseFloat(pv_pct||0);
+    if(d > 2)  return 'adv';
+    if(d < -2) return 'del';
+    return 'ok';
+  }
+
+  // ── Agrupar por disciplina ────────────────────────────────
+  const grupos = {};
+  for(const t of tarefas){
+    const disc = t.disciplina || 'Sem Disciplina';
+    if(!grupos[disc]) grupos[disc]=[];
+    grupos[disc].push(t);
+  }
+
+  // Posição do "hoje" na régua
+  const todayPct = pos(today)*100;
+  const nCols = meses.length;
+
+  // ── Construir HTML da tabela ──────────────────────────────
+  let html = `<table class="gantt-table">
+<thead>
+<tr>
+  <th class="gt-act" rowspan="2">Atividade</th>
+  <th class="gt-info" rowspan="2">Início</th>
+  <th class="gt-info" rowspan="2">Fim</th>
+  <th class="gt-info" rowspan="2">Dias</th>
+  <th class="gt-pr" rowspan="2">P/R</th>
+  ${meses.map(m=>`<th class="gt-month">${m.label}</th>`).join('')}
+</tr>
+</thead>
+<tbody>`;
+
+  let totalAtv = 0;
+
+  for(const [disc, tasks] of Object.entries(grupos)){
+    html += `<tr class="gantt-disc-row"><td colspan="${5+nCols}">${disc}</td></tr>`;
+
+    for(const t of tasks){
+      totalAtv++;
+      const iniP = t.data_inicio_baseline ? new Date(t.data_inicio_baseline) : null;
+      const fimP = t.data_fim_baseline    ? new Date(t.data_fim_baseline)    : null;
+      const duDias = iniP&&fimP ? Math.round((fimP-iniP)/86400000) : '—';
+      const taskLabel = (t.task_name||'').trim().replace(/\s+/g,' ');
+      const empLabel  = t.empresa_executora || '';
+      const dcls = desvioClass(t.pv_pct, t.ev_pct);
+
+      // Linha P
+      let cellsP = meses.map(m => {
+        if(!iniP||!fimP) return `<td class="gt-month-cell"></td>`;
+        const s = barStyle(iniP, fimP, m.ini, m.fim);
+        if(!s) return `<td class="gt-month-cell"></td>`;
+        // Marca "hoje" no mês onde hoje cai
+        const isTodayMonth = today >= m.ini && today <= m.fim;
+        const todayInCell  = isTodayMonth ? `<div class="gt-today-line" style="left:${((today-m.ini)/(m.fim-m.ini+86400000)*100).toFixed(1)}%"></div>` : '';
+        return `<td class="gt-month-cell">${todayInCell}<div class="gt-bar gt-bar-p" style="left:${s.left};right:${s.right}"></div></td>`;
+      }).join('');
+
+      // Linha R — só mostra barra se ev_pct > 0
+      let cellsR = meses.map(m => {
+        if(!iniP||!fimP) return `<td class="gt-month-cell"></td>`;
+        const ev = parseFloat(t.ev_pct)||0;
+        if(ev <= 0) return `<td class="gt-month-cell"></td>`;
+        // Barra R termina proporcionalmente ao % realizado
+        const durMs = fimP - iniP;
+        const fimR = new Date(iniP.getTime() + durMs * Math.min(ev/100, 1));
+        const s = barStyle(iniP, fimR, m.ini, m.fim);
+        if(!s) return `<td class="gt-month-cell"></td>`;
+        return `<td class="gt-month-cell"><div class="gt-bar gt-bar-r ${dcls}" style="left:${s.left};right:${s.right}"></div></td>`;
+      }).join('');
+
+      html += `
+<tr>
+  <td class="gt-act-cell" rowspan="2" title="${taskLabel} — ${empLabel}">
+    ${taskLabel}<span class="gt-emp">${empLabel}</span>
+  </td>
+  <td class="gt-date" rowspan="2">${iniP ? fmtDateShort(iniP) : '—'}</td>
+  <td class="gt-date" rowspan="2">${fimP ? fmtDateShort(fimP) : '—'}</td>
+  <td class="gt-dur" rowspan="2">${duDias}</td>
+  <td class="gt-pr-p">P</td>
+  ${cellsP}
+</tr>
+<tr>
+  <td class="gt-pr-r">R</td>
+  ${cellsR}
+</tr>`;
+    }
+  }
+
+  html += '</tbody></table>';
+
+  wrap.innerHTML = html;
+
+  // Info bar
+  const filtrado = ganttDiscSel||ganttEmpSel||ganttSearchTxt;
+  g('ganttInfoBar').classList.toggle('hidden', !filtrado);
+  if(filtrado){
+    g('ganttInfoTxt').textContent = `Filtrado por: ${[ganttDiscSel,ganttEmpSel,ganttSearchTxt].filter(Boolean).join(' · ')}`;
+    g('ganttCountBadge').textContent = `${totalAtv} atividade${totalAtv!==1?'s':''}`;
+  }
+}
+
+function fmtDateShort(d){
+  if(!d) return '—';
+  const dt = d instanceof Date ? d : new Date(d);
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getFullYear()).slice(2)}`;
 }
 
 // ── CURVA S ───────────────────────────────────────────────────
