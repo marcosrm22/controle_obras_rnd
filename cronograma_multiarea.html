@@ -488,8 +488,12 @@ function sbFetch(path, opts={}) {
 let areas=[], snapshots={}, lookahead={}, ppcData={}, tarefasCache={};
 let currentCwa='', editMode=false, viewMode='area';
 
+// Invalida cache de tarefas ao iniciar (garante que os filtros de nivel/empresa sejam aplicados)
+function clearTarefasCache(){ tarefasCache={}; }
+
 // ── INIT ─────────────────────────────────────────────────────
 async function init(){
+  clearTarefasCache(); // garante que o cache antigo não persiste entre versões
   setSb('spin','Conectando...');
   if(!SB_URL||!SB_KEY){
     setSb('err','Sem credenciais — configure no config.js');
@@ -588,11 +592,18 @@ async function renderArea(cwa){
 async function loadTarefas(cwa){
   if(!SB_URL||!SB_KEY) return;
   if(tarefasCache[cwa]) return; // usa cache
-  // Busca tarefas folha (com empresa/disciplina) do CWA, da data mais recente
-  // Limita a 300 tarefas para performance — suficiente para qualquer CWA
+  // Busca APENAS tarefas folha:
+  //   empresa_executora preenchida  →  não é sumário
+  //   nivel >= 4                    →  exclui linhas de comissionamento nivel 3 com empresa INPASA
+  //   data_inicio_baseline e data_fim_baseline preenchidas
   const refMax = Object.values(snapshots).flat()
     .map(s=>s.referencia_data).sort().reverse()[0] || '';
-  let url = `cronograma_tarefas?cwa=eq.${enc(cwa)}&order=id&limit=300`;
+  let url = `cronograma_tarefas?cwa=eq.${enc(cwa)}`
+          + `&empresa_executora=not.is.null`
+          + `&nivel=gte.4`
+          + `&data_inicio_baseline=not.is.null`
+          + `&data_fim_baseline=not.is.null`
+          + `&order=id&limit=500`;
   if(refMax) url += `&referencia_data=eq.${refMax}`;
   const r = await sbFetch(url);
   if(r.ok) tarefasCache[cwa] = await r.json();
@@ -633,21 +644,29 @@ function renderGantt(cwa){
   }
 
   // ── Populares filtros ─────────────────────────────────────
-  const discs = [...new Set(raw.map(t=>t.disciplina).filter(Boolean))].sort();
-  const emps  = [...new Set(raw.map(t=>t.empresa_executora).filter(Boolean))].sort();
+  // Filtros usam o valor original (para comparação), mas exibem o nome limpo
+  const discs = [...new Set(raw.filter(t=>t.empresa_executora&&(t.nivel||0)>=4)
+    .map(t=>t.disciplina).filter(Boolean))].sort();
+  const emps  = [...new Set(raw.filter(t=>t.empresa_executora&&(t.nivel||0)>=4)
+    .map(t=>t.empresa_executora).filter(Boolean))].sort();
   const curDisc = g('ganttDiscFilter').value;
   const curEmp  = g('ganttEmpFilter').value;
   g('ganttDiscFilter').innerHTML = '<option value="">Todas</option>' +
-    discs.map(d=>`<option value="${d}" ${d===curDisc?'selected':''}>${d}</option>`).join('');
+    discs.map(d=>`<option value="${d}" ${d===curDisc?'selected':''}>${d.replace(/^\d+\s*-\s*/,'')}</option>`).join('');
   g('ganttEmpFilter').innerHTML = '<option value="">Todas</option>' +
     emps.map(e=>`<option value="${e}" ${e===curEmp?'selected':''}>${e}</option>`).join('');
 
   // ── Filtrar tarefas ───────────────────────────────────────
+  // A query já retornou só folhas (empresa preenchida, nivel>=4, datas preenchidas)
+  // Aqui aplicamos apenas os filtros do usuário
   let tarefas = raw.filter(t => {
-    if(ganttDiscSel  && t.disciplina       !== ganttDiscSel)  return false;
-    if(ganttEmpSel   && t.empresa_executora !== ganttEmpSel)  return false;
+    if(!t.empresa_executora) return false;           // dupla garantia: sem empresa = sumário
+    if((t.nivel||0) < 4)    return false;           // dupla garantia: nivel baixo = sumário
+    if(!t.data_inicio_baseline || !t.data_fim_baseline) return false;
+    if(ganttDiscSel   && t.disciplina        !== ganttDiscSel)  return false;
+    if(ganttEmpSel    && t.empresa_executora !== ganttEmpSel)   return false;
     if(ganttSearchTxt && !(t.task_name||'').toLowerCase().includes(ganttSearchTxt)) return false;
-    return t.data_inicio_baseline && t.data_fim_baseline;
+    return true;
   });
 
   // ── Calcular janela de tempo ──────────────────────────────
@@ -698,6 +717,21 @@ function renderGantt(cwa){
     return 'ok';
   }
 
+  // ── Limpar nome da disciplina para exibição ───────────────
+  // Ex: "01 - Civil" → "Civil" | "02 - Mecânica" → "Mecânica"
+  function discLabel(disc){
+    if(!disc) return 'Sem Disciplina';
+    return disc.replace(/^\d+\s*-\s*/, '').trim().toUpperCase();
+  }
+
+  // ── Ordenar tarefas por disciplina e depois por data de início
+  tarefas.sort((a,b)=>{
+    const da = a.disciplina||'ZZ', db = b.disciplina||'ZZ';
+    if(da<db) return -1; if(da>db) return 1;
+    const ia = a.data_inicio_baseline||'', ib = b.data_inicio_baseline||'';
+    return ia < ib ? -1 : ia > ib ? 1 : 0;
+  });
+
   // ── Agrupar por disciplina ────────────────────────────────
   const grupos = {};
   for(const t of tarefas){
@@ -727,14 +761,14 @@ function renderGantt(cwa){
   let totalAtv = 0;
 
   for(const [disc, tasks] of Object.entries(grupos)){
-    html += `<tr class="gantt-disc-row"><td colspan="${5+nCols}">${disc}</td></tr>`;
+    html += `<tr class="gantt-disc-row"><td colspan="${5+nCols}">${discLabel(disc)}</td></tr>`;
 
     for(const t of tasks){
       totalAtv++;
-      const iniP = t.data_inicio_baseline ? new Date(t.data_inicio_baseline) : null;
-      const fimP = t.data_fim_baseline    ? new Date(t.data_fim_baseline)    : null;
+      const iniP = t.data_inicio_baseline ? new Date(t.data_inicio_baseline+'T00:00:00') : null;
+      const fimP = t.data_fim_baseline    ? new Date(t.data_fim_baseline+'T00:00:00')    : null;
       const duDias = iniP&&fimP ? Math.round((fimP-iniP)/86400000) : '—';
-      const taskLabel = (t.task_name||'').trim().replace(/\s+/g,' ');
+      const taskLabel = (t.task_name||'').trim().replace(/\s{2,}/g,' ');
       const empLabel  = t.empresa_executora || '';
       const dcls = desvioClass(t.pv_pct, t.ev_pct);
 
@@ -743,7 +777,6 @@ function renderGantt(cwa){
         if(!iniP||!fimP) return `<td class="gt-month-cell"></td>`;
         const s = barStyle(iniP, fimP, m.ini, m.fim);
         if(!s) return `<td class="gt-month-cell"></td>`;
-        // Marca "hoje" no mês onde hoje cai
         const isTodayMonth = today >= m.ini && today <= m.fim;
         const todayInCell  = isTodayMonth ? `<div class="gt-today-line" style="left:${((today-m.ini)/(m.fim-m.ini+86400000)*100).toFixed(1)}%"></div>` : '';
         return `<td class="gt-month-cell">${todayInCell}<div class="gt-bar gt-bar-p" style="left:${s.left};right:${s.right}"></div></td>`;
@@ -754,7 +787,7 @@ function renderGantt(cwa){
         if(!iniP||!fimP) return `<td class="gt-month-cell"></td>`;
         const ev = parseFloat(t.ev_pct)||0;
         if(ev <= 0) return `<td class="gt-month-cell"></td>`;
-        // Barra R termina proporcionalmente ao % realizado
+        // A barra R representa o avanço proporcional sobre a duração planejada
         const durMs = fimP - iniP;
         const fimR = new Date(iniP.getTime() + durMs * Math.min(ev/100, 1));
         const s = barStyle(iniP, fimR, m.ini, m.fim);
@@ -764,7 +797,7 @@ function renderGantt(cwa){
 
       html += `
 <tr>
-  <td class="gt-act-cell" rowspan="2" title="${taskLabel} — ${empLabel}">
+  <td class="gt-act-cell" rowspan="2" title="${taskLabel}\n${empLabel}">
     ${taskLabel}<span class="gt-emp">${empLabel}</span>
   </td>
   <td class="gt-date" rowspan="2">${iniP ? fmtDateShort(iniP) : '—'}</td>
