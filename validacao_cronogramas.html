@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Validação dos Cronogramas · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4; --border-2:#e6e9ee;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-dark:#223a60; --blue-soft:#eef2f8;
+  --gold:#EAA239;
+  --green:#2e7d32; --green-soft:#e8efe1;
+  --orange:#D97706; --orange-soft:#FEF3C7;
+  --red:#C0392B; --red-soft:#fdecea;
+  --neutral:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);
+  --shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+  --shadow-hover:0 12px 40px -8px rgba(48,79,126,0.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1280px;margin:0 auto;padding:36px 28px 80px}
+
+/* HEADER */
+.site-header{
+  border-bottom:3px solid var(--blue);
+  padding-bottom:18px;margin-bottom:28px;
+  display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;
+}
+.site-header .eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:24px;font-weight:800;letter-spacing:-0.5px;line-height:1.15}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.site-header .subtitle{font-size:12px;color:var(--text-dim);margin-top:6px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--text-dim);text-decoration:none;margin-bottom:14px}
+.back-link:hover{color:var(--blue)}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-chip .user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.user-role{font-size:8px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;background:#fff;border:1px solid var(--border);padding:2px 6px;color:var(--text-mute)}
+.logout-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:var(--panel);color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+
+/* TABS */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:26px}
+.tab{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:11px 20px;cursor:pointer;
+  color:var(--text-mute);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab:hover:not(.active){color:var(--text-dim)}
+.view{display:none}
+.view.active{display:block}
+
+/* SECTION LABEL */
+.section-label{font-size:9px;color:var(--text-mute);letter-spacing:2px;text-transform:uppercase;font-weight:700;
+  margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+/* BUTTONS */
+.btn{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:10px 18px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+.btn:hover{background:var(--blue-dark);border-color:var(--blue-dark)}
+.btn.ghost{background:#fff;color:var(--blue)}
+.btn.ghost:hover{background:var(--blue-soft)}
+.btn.green{background:var(--green);border-color:var(--green)}
+.btn.green:hover{filter:brightness(.92)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#3a2c00}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:14px;height:14px}
+
+/* UPLOAD STEPS */
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+@media(max-width:820px){.steps{grid-template-columns:1fr}}
+.step{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);position:relative}
+.step .step-bar{height:4px;background:linear-gradient(90deg,var(--blue),#4a6fa5)}
+.step.base .step-bar{background:linear-gradient(90deg,var(--gold),#f0c060)}
+.step-body{padding:18px 20px 20px}
+.step-num{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-mute);margin-bottom:4px}
+.step-title{font-size:16px;font-weight:800;margin-bottom:3px}
+.step-desc{font-size:11px;color:var(--text-dim);line-height:1.55;margin-bottom:14px}
+.drop{border:2px dashed var(--border);background:var(--bg);padding:20px;text-align:center;cursor:pointer;transition:all .15s}
+.drop:hover,.drop.drag{border-color:var(--blue);background:var(--blue-soft)}
+.drop.loaded{border-style:solid;border-color:var(--green);background:var(--green-soft)}
+.drop-icon{font-size:22px;margin-bottom:6px}
+.drop-text{font-size:12px;font-weight:600;color:var(--text-dim)}
+.drop-hint{font-size:10px;color:var(--text-mute);margin-top:3px;font-family:'JetBrains Mono',monospace}
+.file-info{margin-top:12px;font-size:11px;color:var(--text-dim);line-height:1.7;display:none}
+.file-info.show{display:block}
+.file-info b{color:var(--text);font-weight:700}
+.file-info .pill{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:2px 7px;background:var(--blue-soft);color:var(--blue);border:1px solid #b0c0da;margin-left:4px}
+
+/* CONFIG GRID */
+.cfg-card{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:22px}
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:6px}
+.fld label{font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:5px;display:block}
+.fld input,.fld select{width:100%;font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 10px;outline:none;background:#fff}
+.fld input:focus,.fld select:focus{border-color:var(--blue)}
+.fld .mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+.detect-note{font-size:11px;margin-top:10px;padding:8px 12px;border-left:3px solid var(--gold);background:var(--orange-soft);color:#7c4a00;display:none}
+.detect-note.show{display:block}
+.detect-note.ok{border-left-color:var(--green);background:var(--green-soft);color:#2e5023}
+
+/* INDICATOR PANEL (replica do print) */
+#painel{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:24px}
+.painel-title{background:var(--blue-dark);color:#fff;text-align:center;font-size:17px;font-weight:800;letter-spacing:.5px;padding:12px}
+.painel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:#cdd7e6;font-weight:400;display:block;margin-top:2px;letter-spacing:1px}
+.painel-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;padding:22px}
+@media(max-width:820px){.painel-grid{grid-template-columns:1fr}}
+.ind-box{border:1px solid #cfd5dd}
+.ind-head{color:#fff;text-align:center;font-size:13px;font-weight:800;padding:7px;letter-spacing:.3px}
+.ind-head.gray{background:#7a7f86}
+.ind-head.navy{background:var(--blue)}
+table.ind{width:100%;border-collapse:collapse;font-size:12.5px}
+table.ind td{padding:6px 10px;border-bottom:1px dotted #c2c8d0}
+table.ind tr:last-child td{border-bottom:none}
+table.ind .lbl{color:#222}
+table.ind .num{text-align:right;font-variant-numeric:tabular-nums;color:#333;width:60px}
+table.ind .pct{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;width:78px}
+table.ind tr.total td{font-weight:800;background:#f3f5f8}
+.red{color:var(--red)!important}.green{color:var(--green)!important}.orange{color:var(--orange)!important}
+.arrow{font-size:10px;margin-right:4px}
+
+/* CHANGES SUMMARY */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi.created{border-top-color:var(--green)}.kpi.deleted{border-top-color:var(--red)}
+.kpi.deact{border-top-color:var(--neutral)}.kpi.mod{border-top-color:var(--gold)}
+.kpi.baseline{border-top-color:var(--orange)}.kpi.cost{border-top-color:var(--blue)}
+.kpi .kpi-val{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi .kpi-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+
+/* LISTS / ACCORDION */
+.acc{background:#fff;border:1px solid var(--border);margin-bottom:10px;box-shadow:var(--shadow)}
+.acc-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;gap:10px}
+.acc-head:hover{background:#fafbfc}
+.acc-head .acc-t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:9px}
+.acc-dot{width:9px;height:9px;border-radius:2px;display:inline-block}
+.acc-badge{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;background:var(--bg);border:1px solid var(--border);padding:2px 8px;color:var(--text-dim)}
+.acc-body{display:none;border-top:1px solid var(--border)}
+.acc.open .acc-body{display:block}
+.acc-chev{transition:transform .15s;color:var(--text-mute)}
+.acc.open .acc-chev{transform:rotate(90deg)}
+
+/* TABLE */
+.tbl-wrap{overflow:auto;max-height:560px;border:1px solid var(--border);background:#fff;box-shadow:var(--shadow)}
+table.data{width:100%;border-collapse:collapse;font-size:11.5px;white-space:nowrap}
+table.data th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:9px;letter-spacing:.5px;text-transform:uppercase;
+  font-weight:700;padding:8px 9px;text-align:left;z-index:2}
+table.data td{padding:6px 9px;border-bottom:1px solid var(--border-2)}
+table.data tr:hover td{background:var(--blue-soft)}
+table.data tr.is-summary td{background:#f6f7f9;font-weight:700;color:var(--text-dim)}
+table.data tr.is-summary:hover td{background:#eef0f3}
+.tag{font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 7px;border:1px solid;display:inline-block}
+.t-atras{background:var(--red-soft);border-color:#e8a89f;color:var(--red)}
+.t-adiant{background:var(--green-soft);border-color:#a8c990;color:var(--green)}
+.t-prazo{background:var(--blue-soft);border-color:#b0c0da;color:var(--blue)}
+.t-concl{background:#e9f7ec;border-color:#8fd6a0;color:#1d7a36}
+.t-mudou{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.t-crit{background:#7a0d0d;border-color:#7a0d0d;color:#fff}
+.t-gray{background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
+
+/* FILTER BAR */
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.fbar input,.fbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:7px 10px;background:#fff;outline:none}
+.fbar input:focus,.fbar select:focus{border-color:var(--blue)}
+
+/* HISTORY */
+.hist-card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px}
+.hist-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border-2);gap:12px;flex-wrap:wrap}
+.hist-title{font-size:15px;font-weight:800}
+.hist-meta{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+.rev-list{padding:6px 18px 14px}
+.rev-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dotted var(--border)}
+.rev-row:last-child{border-bottom:none}
+.rev-tag{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border:1px solid var(--border);color:var(--text-dim);background:var(--bg)}
+.rev-tag.base{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.rev-name{font-size:12px;font-weight:600}
+.rev-sub{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace}
+.compare-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 18px;background:#fafbfc;border-top:1px solid var(--border-2)}
+.compare-bar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:7px 10px;background:#fff}
+
+.empty{text-align:center;padding:50px 20px;color:var(--text-mute)}
+.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
+.notice.warn{border-left-color:var(--gold);background:var(--orange-soft);color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+
+#log{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);background:#fff;border:1px solid var(--border);
+  padding:10px 12px;max-height:130px;overflow:auto;margin-bottom:18px;display:none;white-space:pre-wrap;line-height:1.5}
+#log.show{display:block}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--blue-dark);color:#fff;
+  padding:12px 22px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;transition:transform .3s;border-left:4px solid var(--gold)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}
+
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* PRINT */
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{background:#fff}
+  .page{max-width:none;padding:0}
+  .no-print{display:none!important}
+  .site-header{margin-bottom:14px}
+  #painel{box-shadow:none;page-break-inside:avoid}
+  .kpi-row{page-break-inside:avoid}
+  .acc{box-shadow:none;break-inside:avoid}
+  .acc-body{display:block!important}
+  .acc .acc-chev{display:none}
+  .tbl-wrap{max-height:none;overflow:visible;box-shadow:none}
+  table.data{font-size:9px}
+  table.data th{position:static}
+  .print-only{display:block!important}
+  .view{display:block!important}
+}
+.print-only{display:none}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <a class="back-link no-print" href="index.html">← Painel de Ferramentas</a>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle de Obras · Terceiras</div>
+      <h1>Validação dos Cronogramas <span>· das Terceiras</span></h1>
+      <p class="subtitle">Comparação entre revisões de cronogramas MS Project (XML) · análise automática de desvios, prazos e linha de base</p>
+    </div>
+    <div class="user-bar no-print" id="user-bar">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div id="user-nome" style="font-size:11px;font-weight:700">Carregando...</div>
+          <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div>
+        </div>
+      </div>
+      <span class="user-role" id="user-role">viewer</span>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs no-print">
+    <button class="tab active" data-view="historico" onclick="switchView('historico')">Histórico de Cronogramas</button>
+    <button class="tab" data-view="analise" onclick="switchView('analise')">Nova Análise / Subir Revisão</button>
+  </div>
+
+  <!-- ============ VIEW: HISTÓRICO ============ -->
+  <section class="view active" id="view-historico">
+    <div id="setup-notice" class="notice warn" style="display:none">
+      <b>Banco de dados ainda não configurado.</b> Para gravar o histórico permanente, rode o script <code>supabase_validacao.sql</code>
+      no SQL Editor do Supabase. Enquanto isso, a aba <b>Nova Análise</b> já funciona 100% no navegador (sem salvar histórico).
+    </div>
+    <div class="section-label">Cronogramas rastreados · resumo de todas as revisões subidas</div>
+    <div id="hist-content">
+      <div class="empty"><div class="big">⏳</div>Carregando histórico…</div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: NOVA ANÁLISE ============ -->
+  <section class="view" id="view-analise">
+
+    <!-- Upload steps -->
+    <div class="steps">
+      <div class="step base" id="step-base">
+        <div class="step-bar"></div>
+        <div class="step-body">
+          <div class="step-num">Passo 1 · Linha de comparação</div>
+          <div class="step-title">Cronograma Base <span style="font-size:11px;color:var(--text-mute)">(revisão anterior)</span></div>
+          <div class="step-desc">XML do MS Project usado como ponto de partida da comparação. Pode vir do histórico ou de um arquivo.</div>
+          <div class="drop" id="drop-base" onclick="document.getElementById('file-base').click()">
+            <div class="drop-icon">📄</div>
+            <div class="drop-text">Solte o XML ou clique para selecionar</div>
+            <div class="drop-hint">.xml do MS Project</div>
+          </div>
+          <input type="file" id="file-base" accept=".xml" hidden>
+          <div class="file-info" id="info-base"></div>
+        </div>
+      </div>
+
+      <div class="step" id="step-atual">
+        <div class="step-bar"></div>
+        <div class="step-body">
+          <div class="step-num">Passo 2 · Revisão a validar</div>
+          <div class="step-title">Cronograma Atual <span style="font-size:11px;color:var(--text-mute)">(revisão nova)</span></div>
+          <div class="step-desc">XML da revisão mais recente recebida da terceira. É esta que será analisada.</div>
+          <div class="drop" id="drop-atual" onclick="document.getElementById('file-atual').click()">
+            <div class="drop-icon">📄</div>
+            <div class="drop-text">Solte o XML ou clique para selecionar</div>
+            <div class="drop-hint">.xml do MS Project</div>
+          </div>
+          <input type="file" id="file-atual" accept=".xml" hidden>
+          <div class="file-info" id="info-atual"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="log" class="no-print"></div>
+
+    <!-- Config / mapping -->
+    <div class="cfg-card no-print" id="cfg-card" style="display:none">
+      <div class="section-label" style="margin-bottom:14px">Configuração da análise · campos detectados</div>
+      <div class="cfg-grid">
+        <div class="fld">
+          <label>Empresa / Terceira</label>
+          <input id="cf-empresa" placeholder="ex.: ENGEDELTA">
+        </div>
+        <div class="fld">
+          <label>Área / CWA</label>
+          <input id="cf-area" placeholder="ex.: 2308.B - Destilaria">
+        </div>
+        <div class="fld">
+          <label>Disciplina</label>
+          <input id="cf-disc" placeholder="ex.: Montagem Mecânica">
+        </div>
+        <div class="fld">
+          <label>Data de corte</label>
+          <input id="cf-corte" type="date" class="mono">
+        </div>
+        <div class="fld">
+          <label>Campo · % Previsto (planejado)</label>
+          <select id="cf-prev"></select>
+        </div>
+        <div class="fld">
+          <label>Campo · % Concluído (realizado)</label>
+          <select id="cf-concl"></select>
+        </div>
+      </div>
+      <div class="detect-note" id="detect-note"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="btn-analisar" onclick="runAnalysis()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+          Analisar cronograma
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results" style="display:none">
+
+      <!-- toolbar -->
+      <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center">
+        <button class="btn gold" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+          Gerar PDF / Imprimir relatório
+        </button>
+        <button class="btn green" id="btn-salvar" onclick="saveToHistory()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Salvar revisão no histórico
+        </button>
+        <span id="result-meta" style="font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></span>
+      </div>
+
+      <!-- PAINEL -->
+      <div id="painel"></div>
+
+      <!-- print-only report header -->
+      <div class="print-only" style="margin:18px 0 8px">
+        <div class="section-label">Análise de alterações entre revisões</div>
+      </div>
+
+      <!-- mudanças -->
+      <div class="kpi-row" id="kpi-row"></div>
+
+      <!-- listas (accordions) -->
+      <div class="section-label">Resumos e listas de atividades</div>
+      <div id="lists"></div>
+
+      <!-- tabela completa -->
+      <div class="section-label" style="margin-top:26px">Todas as atividades analisadas</div>
+      <div class="fbar no-print">
+        <input id="tbl-search" placeholder="🔎 Filtrar por nome / ID…" style="min-width:240px" oninput="renderTable()">
+        <select id="tbl-status" onchange="renderTable()">
+          <option value="">Todos os status</option>
+          <option>Tarefa Atrasada</option><option>Tarefa Adiantada</option>
+          <option>Tarefa no prazo</option><option>Tarefa concluída</option>
+        </select>
+        <select id="tbl-resumo" onchange="renderTable()">
+          <option value="">Tarefas + Resumos</option>
+          <option value="leaf">Somente tarefas (folhas)</option>
+          <option value="sum">Somente resumos</option>
+        </select>
+        <label style="font-size:11px;display:flex;align-items:center;gap:5px;color:var(--text-dim)">
+          <input type="checkbox" id="tbl-only5" onchange="renderTable()"> Só desvio &gt; 5%
+        </label>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data" id="tbl">
+          <thead><tr>
+            <th>ID</th><th>Tarefa</th><th>Tipo</th><th>%Prev</th><th>%Concl</th><th>Desvio</th>
+            <th>Status</th><th>Avanço</th><th>Início (def.)</th><th>Término (def.)</th>
+            <th>Início LB</th><th>Término LB</th><th>Custo</th><th>Alterações</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div><!-- /results -->
+  </section>
+
+</div><!-- /page -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   VALIDAÇÃO DE CRONOGRAMAS · motor de análise
+   ================================================================ */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+
+/* ---------- util ---------- */
+const $ = id => document.getElementById(id);
+function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.className='toast',3200);}
+function log(msg){const l=$('log');l.classList.add('show');l.textContent+=msg+'\n';l.scrollTop=l.scrollHeight;}
+function clearLog(){$('log').textContent='';}
+function norm(s){return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function fmtNum(n,d){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d??1,maximumFractionDigits:d??1});}
+function fmtMoney(n){return (n==null||isNaN(n)||n===0)?'—':Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+function fmtD(d){if(!d)return 'ND';const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function addDays(iso,n){const dt=new Date(iso+'T00:00:00');dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
+
+/* date in XML 'YYYY-MM-DDTHH:MM:SS' -> 'YYYY-MM-DD' or null (NA/empty) */
+function dOnly(str){
+  if(!str) return null;
+  const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return null;
+  const y = +m[1];
+  if(y < 1990) return null;          // 'NA'/sentinel dates
+  return m[1]+'-'+m[2]+'-'+m[3];
+}
+function dchildText(node,tag){
+  for(const c of node.children){ if(c.localName===tag) return c.textContent; }
+  return null;
+}
+
+/* ================================================================
+   PARSER · MS Project XML  ->  estrutura normalizável
+   ================================================================ */
+function parseXML(text){
+  const doc = new DOMParser().parseFromString(text,'application/xml');
+  if(doc.querySelector('parsererror')) throw new Error('XML inválido / corrompido.');
+  const root = doc.documentElement;
+
+  const statusDate = dOnly(dchildText(root,'StatusDate')) || dOnly(dchildText(root,'CurrentDate'));
+  const projName   = dchildText(root,'Title') || dchildText(root,'Name') || 'Projeto';
+
+  /* ---- definições de campos personalizados ---- */
+  const fieldDefs = {};   // id -> label
+  const fields = [];
+  const defsRoot = [...root.children].find(c=>c.localName==='ExtendedAttributes');
+  if(defsRoot){
+    for(const ea of defsRoot.children){
+      const id = dchildText(ea,'FieldID');
+      const alias = dchildText(ea,'Alias');
+      const fname = dchildText(ea,'FieldName');
+      const label = (alias && alias.trim()) || fname || ('Campo '+id);
+      if(id){ fieldDefs[id]=label; fields.push({id,label}); }
+    }
+  }
+
+  /* ---- recursos + atribuições ---- */
+  const resName = {};
+  const resRoot = [...root.children].find(c=>c.localName==='Resources');
+  if(resRoot) for(const r of resRoot.children){
+    const u=dchildText(r,'UID'); const n=dchildText(r,'Name'); if(u) resName[u]=n||'';
+  }
+  const taskRes = {};
+  const asgRoot = [...root.children].find(c=>c.localName==='Assignments');
+  if(asgRoot) for(const a of asgRoot.children){
+    const tu=dchildText(a,'TaskUID'); const ru=dchildText(a,'ResourceUID');
+    if(tu){ (taskRes[tu]=taskRes[tu]||[]); if(resName[ru]) taskRes[tu].push(resName[ru]); }
+  }
+
+  /* ---- tarefas ---- */
+  const rawTasks = [];
+  const tasksRoot = [...root.children].find(c=>c.localName==='Tasks');
+  if(!tasksRoot) throw new Error('Nenhum bloco <Tasks> encontrado no XML.');
+  for(const t of tasksRoot.children){
+    if(t.localName!=='Task') continue;
+    const uid = dchildText(t,'UID');
+    if(uid==null) continue;
+    const ext = {};
+    let lbStart=null, lbFinish=null, lbCost=null;
+    for(const c of t.children){
+      if(c.localName==='ExtendedAttribute'){
+        const fid=dchildText(c,'FieldID'); const val=dchildText(c,'Value');
+        if(fid!=null) ext[fid]=val;
+      }
+      if(c.localName==='Baseline'){
+        const num=dchildText(c,'Number');
+        if(num==='0' || num==null){
+          lbStart = dOnly(dchildText(c,'Start'));
+          lbFinish= dOnly(dchildText(c,'Finish'));
+          const bc = dchildText(c,'Cost'); lbCost = bc!=null?parseFloat(bc):null;
+        }
+      }
+    }
+    const num = (tag)=>{const v=dchildText(t,tag);return v!=null?parseFloat(v):null;};
+    rawTasks.push({
+      uid:+uid,
+      id: dchildText(t,'ID')!=null?+dchildText(t,'ID'):null,
+      name: dchildText(t,'Name')||'(sem nome)',
+      summary: dchildText(t,'Summary')==='1',
+      active: dchildText(t,'Active')!=='0',
+      level: dchildText(t,'OutlineLevel')!=null?+dchildText(t,'OutlineLevel'):99,
+      milestone: dchildText(t,'Milestone')==='1',
+      cost: num('Cost'),
+      baselineCost: lbCost,
+      start: dOnly(dchildText(t,'Start')),
+      finish: dOnly(dchildText(t,'Finish')),
+      lbStart, lbFinish,
+      aStart: dOnly(dchildText(t,'ActualStart')),
+      aFinish: dOnly(dchildText(t,'ActualFinish')),
+      pct: num('PercentComplete'),
+      physical: num('PhysicalPercentComplete'),
+      recursos: (taskRes[uid]||[]).join(', '),
+      ext
+    });
+  }
+
+  /* ---- heurística de detecção dos campos % ---- */
+  let guessPrev=null, guessConcl=null;
+  for(const f of fields){
+    const l = norm(f.label);
+    if(!guessPrev  && ((l.includes('prev')&&l.includes('fis')) || l.includes('previsto'))) guessPrev=f.id;
+    if(!guessConcl && ((l.includes('concl')&&l.includes('fis')) || l.includes('realizado'))) guessConcl=f.id;
+  }
+  return {statusDate, projName, fields, rawTasks, guessPrev, guessConcl};
+}
+
+/* resolve % a partir do mapeamento escolhido */
+function resolvePct(task, mapId, cut){
+  if(mapId==='__PHYS') return task.physical!=null?task.physical:0;
+  if(mapId==='__PCT')  return task.pct!=null?task.pct:0;
+  if(mapId==='__CALC'){
+    if(!task.lbStart||!task.lbFinish) return 0;
+    const s=new Date(task.lbStart).getTime(), f=new Date(task.lbFinish).getTime(), c=new Date(cut).getTime();
+    if(c>=f) return 100; if(c<=s) return 0;
+    return Math.round((c-s)/(f-s)*1000)/10;
+  }
+  const v = task.ext[mapId];
+  return v!=null&&v!==''?parseFloat(v):0;
+}
+
+/* normaliza tarefas: injeta E (realizado) e F (planejado) */
+function normalize(rawTasks, mapPrev, mapConcl, cut){
+  return rawTasks.map(t=>{
+    if(t.E!=null && t.F!=null) return t;   // já normalizada (vinda do histórico)
+    return {...t,
+      F: Math.round(resolvePct(t,mapPrev,cut)*100)/100,
+      E: Math.round(resolvePct(t,mapConcl,cut)*100)/100
+    };
+  });
+}
+
+/* ================================================================
+   CLASSIFICADORES (réplica das fórmulas do validador)
+   ================================================================ */
+function classStatus(E,F){
+  if(F>E) return 'Tarefa Atrasada';
+  if(F<E) return 'Tarefa Adiantada';
+  if(E<100 && F<100 && E===F) return 'Tarefa no prazo';
+  if(E===100) return 'Tarefa concluída';
+  return 'Tarefa no prazo';
+}
+function classInicio(aS,lbS,cut){
+  if(aS && lbS && aS===lbS) return 'Iniciou no prazo';
+  if(!aS && lbS && lbS<cut)  return 'Atividade não iniciada no prazo';
+  if(aS && lbS && aS<lbS)    return 'Iniciou adiantada';
+  if(aS && lbS && aS>=lbS)   return 'Iniciou atrasada';
+  if(aS && !lbS)             return 'Iniciou atrasada';
+  return 'Atividade futura';
+}
+function classTermino(aF,lbF,aS,lbS,cut){
+  if(aF && lbF && aF===lbF)               return 'Concluído no prazo';
+  if(!aF && !aS && lbF && lbF<cut)        return 'Atividade atrasada';
+  if(!aF && aS && lbF && lbF<cut)         return 'Executando em atraso';
+  if(!aF && aS && aS<=cut)                return 'Executando no prazo';
+  if(!aF && !aS)                          return 'Atividade a iniciar';
+  if(aF && lbF && aF<lbF)                 return 'Concluído antecipado';
+  if(aF && lbF && aF>lbF)                 return 'Concluído atrasado';
+  if(lbS && lbF && lbS>cut && lbF>cut)    return 'Atividade futura';
+  if(aF)                                  return 'Concluído no prazo';
+  return 'Atividade futura';
+}
+
+/* ================================================================
+   MOTOR · compara base x atual e classifica tudo
+   ================================================================ */
+function analyze(baseTasks, atualTasks, cut){
+  const baseByUid = new Map(baseTasks.map(t=>[t.uid,t]));
+  const atualByUid= new Map(atualTasks.map(t=>[t.uid,t]));
+  const cut7 = addDays(cut,7);
+
+  const rows = [];
+  for(const t of atualTasks){
+    const b = baseByUid.get(t.uid);
+    const E=t.E, F=t.F;
+    const prevE = b? b.E : 0;
+    const desvio = Math.round((E-F)*100)/100;
+    const status = classStatus(E,F);
+    const leaf = !t.summary && t.active;
+    const ini  = leaf? classInicio(t.aStart,t.lbStart,cut) : '';
+    const ter  = leaf? classTermino(t.aFinish,t.lbFinish,t.aStart,t.lbStart,cut) : '';
+    const avancou = E>prevE;
+    const flag5 = leaf && desvio<=-5;
+
+    // mudanças
+    const novo = !b;
+    const desativada = b && b.active && !t.active;
+    const lbMudou = b && (b.lbStart!==t.lbStart || b.lbFinish!==t.lbFinish);
+    const custoMudou = b && (b.cost!==t.cost);
+    const custoLBMudou = b && (b.baselineCost!==t.baselineCost);
+    const recMudou = b && ((b.recursos||'')!==(t.recursos||''));
+    const dataMudou = b && (b.start!==t.start || b.finish!==t.finish);
+    const nomeMudou = b && (b.name!==t.name);
+    const modificada = !!(nomeMudou||dataMudou);
+
+    // próxima semana
+    const startRef = t.lbStart || t.start;
+    const iniciarProx = leaf && !t.aStart && startRef && startRef>cut && startRef<=cut7;
+
+    rows.push({...t, E,F,prevE,desvio,status,ini,ter,avancou,flag5,leaf,
+      novo,desativada,lbMudou,custoMudou,custoLBMudou,recMudou,dataMudou,nomeMudou,modificada,iniciarProx});
+  }
+  // excluídas (estavam na base, sumiram na atual)
+  const excluidas = baseTasks.filter(t=>!atualByUid.has(t.uid));
+
+  // raiz do projeto (menor outline level)
+  const rootOf = arr=>{
+    const sums = arr.filter(t=>t.summary);
+    const pool = sums.length?sums:arr;
+    return pool.reduce((a,b)=> (b.level<a.level? b : a), pool[0]||{E:0,F:0});
+  };
+  const rootA = rootOf(atualTasks), rootB = rootOf(baseTasks);
+
+  const leafRows = rows.filter(r=>r.leaf);
+  const cnt = s => leafRows.filter(r=>r.status===s).length;
+  const cntIni = s => leafRows.filter(r=>r.ini===s).length;
+  const cntTer = s => leafRows.filter(r=>r.ter===s).length;
+  const total = leafRows.length;
+
+  const painel = {
+    atividades:{
+      concluida:cnt('Tarefa concluída'), prazo:cnt('Tarefa no prazo'),
+      adiantada:cnt('Tarefa Adiantada'), atrasada:cnt('Tarefa Atrasada'),
+      total, desvio5: leafRows.filter(r=>r.flag5).length
+    },
+    desempenho:{
+      prev: rootA.F||0, concl: rootA.E||0,
+      desvioAc: Math.round(((rootA.E||0)-(rootA.F||0))*100)/100,
+      avancoPrev: Math.round(((rootA.F||0)-(rootB.F||0))*100)/100,
+      avancoReal: Math.round(((rootA.E||0)-(rootB.E||0))*100)/100,
+      get desemp(){return Math.round((this.avancoReal-this.avancoPrev)*100)/100}
+    },
+    inicio:{
+      prazo:cntIni('Iniciou no prazo'), adiant:cntIni('Iniciou adiantada'),
+      atras:cntIni('Iniciou atrasada'), naoIni:cntIni('Atividade não iniciada no prazo'),
+      futura:cntIni('Atividade futura')
+    },
+    termino:{
+      prazo:cntTer('Concluído no prazo'), atras:cntTer('Atividade atrasada'),
+      execPrazo:cntTer('Executando no prazo'), execAtras:cntTer('Executando em atraso'),
+      antecip:cntTer('Concluído antecipado'), conclAtras:cntTer('Concluído atrasado'),
+      futura:cntTer('Atividade futura'), aIniciar:cntTer('Atividade a iniciar')
+    }
+  };
+  painel.desempenho.desemp; // trigger getter snapshot below
+  const mudancas = {
+    criadas: rows.filter(r=>r.novo).length,
+    excluidas: excluidas.length,
+    desativadas: rows.filter(r=>r.desativada).length,
+    modificadas: rows.filter(r=>r.modificada).length,
+    lbAlterada: rows.filter(r=>r.lbMudou).length,
+    custoAlterado: rows.filter(r=>r.custoMudou||r.custoLBMudou).length,
+    avancaram: leafRows.filter(r=>r.avancou).length
+  };
+  return {rows, leafRows, excluidas, painel, mudancas, cut, cut7, rootA, rootB};
+}
+</script>
+
+<script>
+/* ================================================================
+   ESTADO + RENDERIZAÇÃO
+   ================================================================ */
+let state = { baseParsed:null, atualParsed:null };
+let currentResult=null, currentAtualNorm=null, currentMeta=null, dbReady=true;
+
+/* ---------- PAINEL (réplica do print) ---------- */
+function renderPainel(r,meta){
+  const p=r.painel, a=p.atividades, d=p.desempenho, i=p.inicio, te=p.termino;
+  const T=a.total||1;
+  const pc=n=>fmtNum(n/T*100,2)+'%';
+  const arrow=(v)=> v<0 ? '<span class="arrow red">▼</span>' : '<span class="arrow green">▲</span>';
+  const col=(v)=> v<0?'red':'green';
+  const sub = `${meta.empresa||'—'} · ${meta.area||''} &nbsp;|&nbsp; Data de corte: ${fmtD(r.cut)} &nbsp;|&nbsp; ${meta.revAtual||'Revisão atual'} vs ${meta.revBase||'Base'}`;
+  $('painel').innerHTML = `
+    <div class="painel-title">Indicadores — Planejamento<span class="painel-sub">${sub}</span></div>
+    <div class="painel-grid">
+      <div class="ind-box">
+        <div class="ind-head gray">Indicador de Atividades</div>
+        <table class="ind">
+          <tr><td class="lbl">Tarefa concluída</td><td class="num">${a.concluida}</td><td class="pct">${pc(a.concluida)}</td></tr>
+          <tr><td class="lbl">Tarefa no prazo</td><td class="num">${a.prazo}</td><td class="pct">${pc(a.prazo)}</td></tr>
+          <tr><td class="lbl">Tarefa adiantada</td><td class="num">${a.adiantada}</td><td class="pct">${pc(a.adiantada)}</td></tr>
+          <tr><td class="lbl">Tarefa atrasada</td><td class="num">${a.atrasada}</td><td class="pct">${pc(a.atrasada)}</td></tr>
+          <tr class="total"><td class="lbl">Total de Atividades</td><td class="num" colspan="2" style="text-align:center">${a.total}</td></tr>
+          <tr><td class="lbl red">Atividades com desvio &gt;-5%</td><td class="num red">${a.desvio5}</td><td class="pct red">${pc(a.desvio5)}</td></tr>
+        </table>
+      </div>
+      <div class="ind-box">
+        <div class="ind-head gray">Desempenho da semana</div>
+        <table class="ind">
+          <tr><td class="lbl">% Prev. Fís.-EAP</td><td class="pct" colspan="2">${fmtNum(d.prev,2)}</td></tr>
+          <tr><td class="lbl">% Concl. Fís.-EAP</td><td class="pct" colspan="2">${fmtNum(d.concl,2)}</td></tr>
+          <tr><td class="lbl">% Desvio Acumulado</td><td class="pct ${col(d.desvioAc)}" colspan="2">${arrow(d.desvioAc)}${fmtNum(d.desvioAc,2)}</td></tr>
+          <tr><td class="lbl">Avanço Previsto na semana</td><td class="pct" colspan="2">${fmtNum(d.avancoPrev,2)}</td></tr>
+          <tr><td class="lbl">Avanço Real</td><td class="pct" colspan="2">${fmtNum(d.avancoReal,2)}</td></tr>
+          <tr><td class="lbl">Desempenho da Semana</td><td class="pct ${col(d.desemp)}" colspan="2">${arrow(d.desemp)}${fmtNum(d.desemp,2)}</td></tr>
+        </table>
+      </div>
+      <div class="ind-box">
+        <div class="ind-head navy">Indicador de Início</div>
+        <table class="ind">
+          <tr><td class="lbl">Iniciou no prazo</td><td class="num">${i.prazo}</td><td class="pct">${pc(i.prazo)}</td></tr>
+          <tr><td class="lbl">Iniciou adiantada</td><td class="num">${i.adiant}</td><td class="pct">${pc(i.adiant)}</td></tr>
+          <tr><td class="lbl red">Iniciou atrasada</td><td class="num red">${i.atras}</td><td class="pct red">${pc(i.atras)}</td></tr>
+          <tr><td class="lbl red">Atividade não iniciada no prazo</td><td class="num red">${i.naoIni}</td><td class="pct red">${pc(i.naoIni)}</td></tr>
+          <tr><td class="lbl">Atividade futura</td><td class="num">${i.futura}</td><td class="pct">${pc(i.futura)}</td></tr>
+        </table>
+      </div>
+      <div class="ind-box">
+        <div class="ind-head navy">Indicador de Término</div>
+        <table class="ind">
+          <tr><td class="lbl green">Concluído no prazo</td><td class="num green">${te.prazo}</td><td class="pct green">${pc(te.prazo)}</td></tr>
+          <tr><td class="lbl red">Atividade atrasada</td><td class="num red">${te.atras}</td><td class="pct red">${pc(te.atras)}</td></tr>
+          <tr><td class="lbl orange">Executando no prazo</td><td class="num orange">${te.execPrazo}</td><td class="pct orange">${pc(te.execPrazo)}</td></tr>
+          <tr><td class="lbl red">Executando em atraso</td><td class="num red">${te.execAtras}</td><td class="pct red">${pc(te.execAtras)}</td></tr>
+          <tr><td class="lbl green">Concluído antecipado</td><td class="num green">${te.antecip}</td><td class="pct green">${pc(te.antecip)}</td></tr>
+          <tr><td class="lbl red">Concluído atrasado</td><td class="num red">${te.conclAtras}</td><td class="pct red">${pc(te.conclAtras)}</td></tr>
+          <tr><td class="lbl">Atividade futura</td><td class="num">${te.futura}</td><td class="pct">${pc(te.futura)}</td></tr>
+          ${te.aIniciar?`<tr><td class="lbl">Atividade a iniciar</td><td class="num">${te.aIniciar}</td><td class="pct">${pc(te.aIniciar)}</td></tr>`:''}
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ---------- KPIs de mudanças ---------- */
+function renderKPIs(r){
+  const m=r.mudancas;
+  const card=(cls,val,lbl)=>`<div class="kpi ${cls}"><div class="kpi-val">${val}</div><div class="kpi-lbl">${lbl}</div></div>`;
+  $('kpi-row').innerHTML =
+    card('created',m.criadas,'Tarefas criadas')+
+    card('deleted',m.excluidas,'Tarefas excluídas')+
+    card('deact',m.desativadas,'Desativadas')+
+    card('mod',m.modificadas,'Modificadas (nome/datas)')+
+    card('baseline',m.lbAlterada,'Datas da LB alteradas')+
+    card('cost',m.custoAlterado,'Custo / Custo LB alterado')+
+    card('',m.avancaram,'Avançaram nesta revisão');
+}
+
+/* ---------- LISTAS (accordions) ---------- */
+function accBlock(title,dot,rows,bodyHtml){
+  return `<div class="acc">
+    <div class="acc-head" onclick="this.parentNode.classList.toggle('open')">
+      <span class="acc-t"><span class="acc-dot" style="background:${dot}"></span>${title}</span>
+      <span style="display:flex;gap:10px;align-items:center"><span class="acc-badge">${rows}</span>
+      <span class="acc-chev">▶</span></span>
+    </div>
+    <div class="acc-body">${bodyHtml}</div></div>`;
+}
+function miniTable(rows,cols){
+  if(!rows.length) return '<div style="padding:14px 16px;font-size:12px;color:var(--text-mute)">Nenhuma atividade.</div>';
+  const head='<tr>'+cols.map(c=>`<th>${c.h}</th>`).join('')+'</tr>';
+  const body=rows.map(t=>'<tr'+(t.summary?' class="is-summary"':'')+'>'+cols.map(c=>`<td>${c.f(t)}</td>`).join('')+'</tr>').join('');
+  return `<div class="tbl-wrap" style="max-height:340px;border:none">
+    <table class="data"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+const C={
+  id:{h:'ID',f:t=>t.id??t.uid},
+  nome:{h:'Tarefa',f:t=>esc(t.name)},
+  prev:{h:'%Prev',f:t=>fmtNum(t.F,1)},
+  concl:{h:'%Concl',f:t=>fmtNum(t.E,1)},
+  desvio:{h:'Desvio',f:t=>`<b class="${t.desvio<=-5?'red':(t.desvio<0?'orange':'green')}">${fmtNum(t.desvio,1)}</b>`},
+  iniLB:{h:'Início LB',f:t=>fmtD(t.lbStart)},
+  terLB:{h:'Término LB',f:t=>fmtD(t.lbFinish)},
+  aIni:{h:'Início real',f:t=>fmtD(t.aStart)},
+  aTer:{h:'Término real',f:t=>fmtD(t.aFinish)},
+  ini:{h:'Definição início',f:t=>esc(t.ini)},
+  ter:{h:'Definição término',f:t=>esc(t.ter)},
+};
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+function renderLists(r){
+  const R=r.rows;
+  const atras = R.filter(x=>x.leaf&&x.status==='Tarefa Atrasada').sort((a,b)=>a.desvio-b.desvio);
+  const adiant= R.filter(x=>x.leaf&&x.status==='Tarefa Adiantada');
+  const concl = R.filter(x=>x.leaf&&x.status==='Tarefa concluída');
+  const avanc = R.filter(x=>x.leaf&&x.avancou);
+  const prox  = R.filter(x=>x.iniciarProx);
+  const tNoPrazo=R.filter(x=>x.leaf&&x.ter==='Concluído no prazo');
+  const tAntes =R.filter(x=>x.leaf&&x.ter==='Concluído antecipado');
+  const tDepois=R.filter(x=>x.leaf&&x.ter==='Concluído atrasado');
+  const criadas=R.filter(x=>x.novo);
+  const desativ=R.filter(x=>x.desativada);
+  const lbAlt  =R.filter(x=>x.lbMudou);
+  const custoAlt=R.filter(x=>x.custoMudou||x.custoLBMudou);
+
+  // destaque >5% na lista de atrasadas
+  const atrasMini = atras.length? `<div class="tbl-wrap" style="max-height:340px;border:none"><table class="data"><thead><tr>
+      <th>ID</th><th>Tarefa</th><th>%Prev</th><th>%Concl</th><th>Desvio</th><th>Término LB</th></tr></thead><tbody>`+
+      atras.map(t=>`<tr ${t.flag5?'style="background:#fdecea"':''}><td>${t.id??t.uid}</td>
+        <td>${t.flag5?'<span class="tag t-crit" style="margin-right:6px">&gt;5%</span>':''}${esc(t.name)}</td>
+        <td>${fmtNum(t.F,1)}</td><td>${fmtNum(t.E,1)}</td>
+        <td><b class="${t.flag5?'red':'orange'}">${fmtNum(t.desvio,1)}</b></td><td>${fmtD(t.lbFinish)}</td></tr>`).join('')+
+      `</tbody></table></div>` : miniTable([],[]);
+
+  $('lists').innerHTML =
+    accBlock(`Atrasadas <span style="color:var(--red);font-weight:800">(${atras.filter(t=>t.flag5).length} críticas &gt;5%)</span>`,'var(--red)',atras.length,atrasMini)+
+    accBlock('Adiantadas','var(--green)',adiant.length,miniTable(adiant,[C.id,C.nome,C.prev,C.concl,C.desvio,C.terLB]))+
+    accBlock('Concluídas','#1d7a36',concl.length,miniTable(concl,[C.id,C.nome,C.aIni,C.aTer,C.terLB,C.ter]))+
+    accBlock('Avançaram nesta revisão','var(--blue)',avanc.length,miniTable(avanc,[C.id,C.nome,C.prev,C.concl,C.desvio]))+
+    accBlock('A iniciar na próxima semana','var(--gold)',prox.length,miniTable(prox,[C.id,C.nome,C.iniLB,C.terLB,C.prev]))+
+    accBlock(`Término — no prazo (${tNoPrazo.length}) · antecipado (${tAntes.length}) · atrasado (${tDepois.length})`,'#1d7a36',tNoPrazo.length+tAntes.length+tDepois.length,
+      miniTable([...tNoPrazo,...tAntes,...tDepois],[C.id,C.nome,C.aTer,C.terLB,C.ter]))+
+    accBlock('Tarefas criadas','var(--green)',criadas.length,miniTable(criadas,[C.id,C.nome,C.iniLB,C.terLB]))+
+    accBlock('Tarefas desativadas','var(--neutral)',desativ.length,miniTable(desativ,[C.id,C.nome,C.iniLB,C.terLB]))+
+    accBlock('Datas da linha de base alteradas','var(--orange)',lbAlt.length,
+      miniTable(lbAlt,[C.id,C.nome,{h:'Início LB (atual)',f:t=>fmtD(t.lbStart)},{h:'Término LB (atual)',f:t=>fmtD(t.lbFinish)}]))+
+    accBlock('Custo / Custo LB alterado','var(--blue)',custoAlt.length,
+      miniTable(custoAlt,[C.id,C.nome,{h:'Custo',f:t=>fmtMoney(t.cost)},{h:'Custo LB',f:t=>fmtMoney(t.baselineCost)}]))+
+    // excluídas (vêm do array separado)
+    accBlock('Tarefas excluídas (sumiram nesta revisão)','var(--red)',r.excluidas.length,
+      miniTable(r.excluidas.map(t=>({...t,id:t.id})),[C.id,C.nome,{h:'Início LB',f:t=>fmtD(t.lbStart)},{h:'Término LB',f:t=>fmtD(t.lbFinish)}]));
+}
+
+/* ---------- TABELA COMPLETA ---------- */
+function statusTag(s){
+  const m={'Tarefa Atrasada':'t-atras','Tarefa Adiantada':'t-adiant','Tarefa no prazo':'t-prazo','Tarefa concluída':'t-concl'};
+  return `<span class="tag ${m[s]||'t-gray'}">${s}</span>`;
+}
+function changeTags(t){
+  let o='';
+  if(t.novo) o+='<span class="tag t-adiant">Criada</span> ';
+  if(t.desativada) o+='<span class="tag t-gray">Desativada</span> ';
+  if(t.modificada) o+='<span class="tag t-mudou">Modificada</span> ';
+  if(t.lbMudou) o+='<span class="tag t-mudou">LB</span> ';
+  if(t.custoMudou||t.custoLBMudou) o+='<span class="tag t-mudou">Custo</span> ';
+  if(t.recMudou) o+='<span class="tag t-mudou">Recurso</span> ';
+  if(t.avancou) o+='<span class="tag t-concl">Avançou</span> ';
+  return o||'<span style="color:var(--text-mute)">—</span>';
+}
+function renderTable(){
+  if(!currentResult) return;
+  const q=norm($('tbl-search').value), fs=$('tbl-status').value, fr=$('tbl-resumo').value, only5=$('tbl-only5').checked;
+  let rows=currentResult.rows.filter(t=>{
+    if(q && !norm(t.name+' '+(t.id??t.uid)).includes(q)) return false;
+    if(fs && t.status!==fs) return false;
+    if(fr==='leaf' && t.summary) return false;
+    if(fr==='sum' && !t.summary) return false;
+    if(only5 && !t.flag5) return false;
+    return true;
+  });
+  const tb=$('tbl').querySelector('tbody');
+  tb.innerHTML = rows.slice(0,1500).map(t=>`<tr class="${t.summary?'is-summary':''}">
+    <td>${t.id??t.uid}</td>
+    <td title="${esc(t.name)}">${t.flag5?'<span class="tag t-crit" style="margin-right:5px">&gt;5%</span>':''}${esc(t.name).slice(0,70)}</td>
+    <td>${t.summary?'<span class="tag t-gray">Resumo</span>':'Tarefa'}</td>
+    <td>${fmtNum(t.F,1)}</td><td>${fmtNum(t.E,1)}</td>
+    <td><b class="${t.desvio<=-5?'red':(t.desvio<0?'orange':'green')}">${fmtNum(t.desvio,1)}</b></td>
+    <td>${t.leaf?statusTag(t.status):'—'}</td>
+    <td>${t.avancou?'<span class="green">↑</span>':'—'}</td>
+    <td style="font-size:10px">${esc(t.ini)}</td>
+    <td style="font-size:10px">${esc(t.ter)}</td>
+    <td>${fmtD(t.lbStart)}</td><td>${fmtD(t.lbFinish)}</td>
+    <td>${fmtMoney(t.cost)}</td>
+    <td>${changeTags(t)}</td></tr>`).join('');
+  if(rows.length>1500) tb.innerHTML+=`<tr><td colspan="14" style="text-align:center;color:var(--text-mute)">… ${rows.length-1500} linhas ocultas (refine o filtro)</td></tr>`;
+}
+
+function renderAll(r,meta){
+  renderPainel(r,meta); renderKPIs(r); renderLists(r); 
+  currentResult=r;
+  $('result-meta').textContent = `${r.rows.length} tarefas · ${r.leafRows.length} folhas · corte ${fmtD(r.cut)}`;
+  $('tbl-search').value=''; $('tbl-status').value=''; $('tbl-resumo').value=''; $('tbl-only5').checked=false;
+  renderTable();
+  $('results').style.display='';
+  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+
+<script>
+/* ================================================================
+   UPLOAD + MAPEAMENTO + EXECUÇÃO
+   ================================================================ */
+function setupDrop(which){
+  const drop=$('drop-'+which), input=$('file-'+which);
+  ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop',ev=>{const f=ev.dataTransfer.files[0]; if(f) readFile(which,f);});
+  input.addEventListener('change',ev=>{const f=ev.target.files[0]; if(f) readFile(which,f);});
+}
+function readFile(which,file){
+  if(!/\.xml$/i.test(file.name)){ toast('Selecione um arquivo .xml','err'); return; }
+  clearLog(); log('Lendo '+which.toUpperCase()+': '+file.name+' ('+(file.size/1024).toFixed(0)+' KB)…');
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const parsed=parseXML(rd.result);
+      parsed.fileName=file.name;
+      state[which==='base'?'baseParsed':'atualParsed']=parsed;
+      const drop=$('drop-'+which); drop.classList.add('loaded');
+      drop.querySelector('.drop-text').textContent=file.name;
+      const info=$('info-'+which);
+      info.className='file-info show';
+      info.innerHTML=`<b>${parsed.rawTasks.length}</b> tarefas · <b>${parsed.fields.length}</b> campos personalizados`+
+        (parsed.statusDate?` · corte detectado <span class="pill">${fmtD(parsed.statusDate)}</span>`:'');
+      log('  → '+parsed.rawTasks.length+' tarefas, '+parsed.fields.length+' campos personalizados.');
+      onAfterLoad();
+    }catch(err){ log('  ✗ ERRO: '+err.message); toast('Erro ao ler XML: '+err.message,'err'); }
+  };
+  rd.readAsText(file,'UTF-8');
+}
+function onAfterLoad(){
+  const a=state.atualParsed;
+  if(a){
+    populateMapping(a);
+    $('cfg-card').style.display='';
+    if(!$('cf-corte').value) $('cf-corte').value = a.statusDate || new Date().toISOString().slice(0,10);
+  }
+  $('btn-analisar').disabled = !(state.baseParsed && state.atualParsed);
+}
+function populateMapping(parsed){
+  const base=[{id:'__PHYS',label:'% físico concluído (PhysicalPercentComplete)'},
+              {id:'__PCT',label:'% concluído (PercentComplete)'}];
+  const calc={id:'__CALC',label:'Calcular pela linha de base × data de corte'};
+  const opts=[...parsed.fields, ...base];
+  const fill=(sel,guess,withCalc)=>{
+    const list=withCalc?[...opts,calc]:opts;
+    sel.innerHTML=list.map(f=>`<option value="${f.id}">${esc(f.label)}</option>`).join('');
+    if(guess) sel.value=guess;
+  };
+  fill($('cf-prev'), parsed.guessPrev || '__CALC', true);
+  fill($('cf-concl'), parsed.guessConcl || '__PHYS', false);
+  const note=$('detect-note');
+  if(parsed.guessPrev && parsed.guessConcl){
+    note.className='detect-note ok show';
+    note.innerHTML='✓ Campos detectados automaticamente: <b>'+esc(parsed.fields.find(f=>f.id===parsed.guessPrev)?.label||'')+
+      '</b> (previsto) e <b>'+esc(parsed.fields.find(f=>f.id===parsed.guessConcl)?.label||'')+'</b> (concluído). Confira e ajuste se necessário.';
+  }else{
+    note.className='detect-note show';
+    note.innerHTML='⚠ Não consegui identificar com certeza os campos de % previsto/concluído. Selecione-os manualmente acima.';
+  }
+}
+function runAnalysis(){
+  try{
+    const cut=$('cf-corte').value || new Date().toISOString().slice(0,10);
+    const mp=$('cf-prev').value, mc=$('cf-concl').value;
+    const baseN =normalize(state.baseParsed.rawTasks, mp, mc, cut);
+    const atualN=normalize(state.atualParsed.rawTasks, mp, mc, cut);
+    currentAtualNorm=atualN;
+    const r=analyze(baseN, atualN, cut);
+    currentMeta={
+      empresa:$('cf-empresa').value, area:$('cf-area').value, disc:$('cf-disc').value,
+      revBase:state.baseParsed.fileName, revAtual:state.atualParsed.fileName, cut
+    };
+    renderAll(r,currentMeta);
+    toast('Análise concluída ✓','ok');
+  }catch(err){ console.error(err); toast('Erro na análise: '+err.message,'err'); log('✗ '+err.message); }
+}
+
+/* ================================================================
+   SUPABASE · histórico
+   ================================================================ */
+async function sb(method,path,body){
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{
+    method, headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN,
+      'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':'return=minimal'},
+    body: body?JSON.stringify(body):undefined
+  });
+  if(!res.ok){ const t=await res.text(); throw new Error(res.status+': '+t.slice(0,160)); }
+  const txt=await res.text(); try{return JSON.parse(txt);}catch(_){return [];}
+}
+
+async function saveToHistory(){
+  if(!currentResult){ toast('Rode uma análise primeiro','err'); return; }
+  const emp=$('cf-empresa').value.trim();
+  if(!emp){ toast('Preencha a Empresa antes de salvar','err'); $('cf-empresa').focus(); return; }
+  const btn=$('btn-salvar'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
+  try{
+    const area=$('cf-area').value.trim()||null, disc=$('cf-disc').value.trim()||null;
+    // localizar/criar cronograma
+    let q=`val_cronogramas?empresa=eq.${encodeURIComponent(emp)}&select=id`;
+    if(area) q+=`&area=eq.${encodeURIComponent(area)}`; else q+=`&area=is.null`;
+    if(disc) q+=`&disciplina=eq.${encodeURIComponent(disc)}`; else q+=`&disciplina=is.null`;
+    let cr=await sb('GET',q);
+    let cronoId;
+    if(cr.length){ cronoId=cr[0].id; }
+    else{ const ins=await sb('POST','val_cronogramas',{empresa:emp,area,disciplina:disc,descricao:null}); cronoId=ins[0].id; }
+    // número da revisão
+    const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao&order=revisao.desc&limit=1`);
+    const nextRev=(revs.length?revs[0].revisao:0)+1;
+    // tarefas compactas (sem o ext bruto, mantém E/F resolvidos)
+    const compact=currentAtualNorm.map(t=>{const {ext,...rest}=t; return rest;});
+    await sb('POST','val_revisoes',{
+      cronograma_id:cronoId, revisao:nextRev,
+      rotulo:'REV '+String(nextRev).padStart(2,'0')+' · '+fmtD(currentResult.cut),
+      nome_arquivo:currentMeta.revAtual, data_corte:currentResult.cut, eh_base:false,
+      total_tarefas:currentResult.leafRows.length,
+      planejado:currentResult.painel.desempenho.prev, realizado:currentResult.painel.desempenho.concl,
+      resumo_json:{painel:currentResult.painel, mudancas:currentResult.mudancas},
+      tarefas_json:compact
+    });
+    toast('Revisão '+nextRev+' salva no histórico ✓','ok');
+    loadHistory();
+  }catch(err){
+    console.error(err);
+    if(/relation .* does not exist|42P01|PGRST205/i.test(err.message)){
+      $('setup-notice').style.display=''; toast('Tabelas não criadas — veja o aviso no Histórico','err');
+    } else toast('Erro ao salvar: '+err.message,'err');
+  } finally { btn.disabled=false; btn.innerHTML=old; }
+}
+
+async function loadHistory(){
+  const box=$('hist-content');
+  try{
+    const cronos=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
+    if(!cronos.length){ box.innerHTML='<div class="empty"><div class="big">📋</div>Nenhum cronograma no histórico ainda.<br>Suba uma revisão na aba <b>Nova Análise</b> e clique em <b>Salvar revisão no histórico</b>.</div>'; return; }
+    const revs=await sb('GET','val_revisoes?select=id,cronograma_id,revisao,rotulo,nome_arquivo,data_corte,total_tarefas,planejado,realizado,criado_em,eh_base&order=revisao.desc');
+    const byC={}; revs.forEach(r=>{(byC[r.cronograma_id]=byC[r.cronograma_id]||[]).push(r);});
+    box.innerHTML=cronos.map(c=>{
+      const rs=byC[c.id]||[];
+      const opts=rs.map(r=>`<option value="${r.id}">${esc(r.rotulo||('REV '+r.revisao))}</option>`).join('');
+      const revRows=rs.map(r=>`<div class="rev-row">
+        <span class="rev-tag ${r.eh_base?'base':''}">REV ${String(r.revisao).padStart(2,'0')}</span>
+        <span><div class="rev-name">${esc(r.rotulo||r.nome_arquivo||'—')}</div>
+          <div class="rev-sub">${esc(r.nome_arquivo||'')}</div></span>
+        <span class="rev-sub">corte ${fmtD(r.data_corte)} · ${r.total_tarefas||0} tarefas</span>
+        <span class="rev-sub">Prev ${fmtNum(r.planejado,1)} · Concl ${fmtNum(r.realizado,1)}</span>
+      </div>`).join('');
+      return `<div class="hist-card">
+        <div class="hist-head">
+          <div><div class="hist-title">${esc(c.empresa)}</div>
+            <div class="hist-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões</div></div>
+        </div>
+        <div class="rev-list">${revRows||'<div class="rev-sub">sem revisões</div>'}</div>
+        ${rs.length>=2?`<div class="compare-bar">
+          <span style="font-size:11px;font-weight:700;color:var(--text-dim)">Comparar:</span>
+          <select id="cmpB-${c.id}">${opts}</select>
+          <span style="font-size:11px;color:var(--text-mute)">(base) vs</span>
+          <select id="cmpA-${c.id}">${opts}</select>
+          <button class="btn ghost" onclick="openComparison('${c.id}','${esc(c.empresa)}','${esc(c.area||'')}')">Analisar</button>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  }catch(err){
+    if(/relation .* does not exist|42P01|PGRST205|PGRST20[0-9]/i.test(err.message)){
+      dbReady=false; $('setup-notice').style.display='';
+      box.innerHTML='<div class="empty"><div class="big">🗄️</div>Histórico indisponível até criar as tabelas no Supabase.<br>A aba <b>Nova Análise</b> funciona normalmente.</div>';
+    }else{
+      box.innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar histórico: '+esc(err.message)+'</div>';
+    }
+  }
+}
+
+async function openComparison(cId,emp,area){
+  const bId=$('cmpB-'+cId).value, aId=$('cmpA-'+cId).value;
+  if(bId===aId){ toast('Selecione revisões diferentes','err'); return; }
+  toast('Carregando revisões…');
+  try{
+    const [b,a]=await Promise.all([
+      sb('GET',`val_revisoes?id=eq.${bId}&select=tarefas_json,rotulo,data_corte`),
+      sb('GET',`val_revisoes?id=eq.${aId}&select=tarefas_json,rotulo,data_corte`)
+    ]);
+    const baseN=b[0].tarefas_json, atualN=a[0].tarefas_json, cut=a[0].data_corte;
+    currentAtualNorm=atualN;
+    const r=analyze(baseN, atualN, cut);
+    currentMeta={empresa:emp,area,revBase:b[0].rotulo,revAtual:a[0].rotulo,cut};
+    switchView('analise');
+    $('cf-empresa').value=emp; $('cf-area').value=area;
+    renderAll(r,currentMeta);
+  }catch(err){ toast('Erro: '+err.message,'err'); }
+}
+
+/* ================================================================
+   NAV + AUTH
+   ================================================================ */
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+}
+function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
+
+(function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){ window.location.href='login.html'; return; }
+  const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'', perfil=sessionStorage.getItem('pco_perfil')||'viewer';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email; $('user-email').textContent=email; $('user-role').textContent=perfil;
+  setupDrop('base'); setupDrop('atual');
+  loadHistory();
+})();
+</script>
+</body>
+</html>

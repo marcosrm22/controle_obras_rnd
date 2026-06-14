@@ -313,6 +313,31 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   <div class="section-label">Ferramentas disponíveis</div>
   <div class="cards">
 
+    <!-- VALIDAÇÃO DE CRONOGRAMAS DAS TERCEIRAS -->
+    <a class="card blue" href="validacao_cronogramas.html">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <path d="M3 9h18"/><path d="M8 14l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="card-tag">Planejamento · Terceiras</div>
+        <div class="card-title">Validação dos Cronogramas</div>
+        <div class="card-desc">Compare revisões de cronogramas MS Project (XML). Análise automática de desvios, prazos, linha de base e custos, com painel de indicadores e relatório em PDF.</div>
+        <div class="card-chips">
+          <span class="chip chip-blue">XML · MS Project</span>
+          <span class="chip chip-orange">Desvios &gt;5%</span>
+          <span class="chip chip-gray">PDF</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- DRENAGEM -->
     <a class="card blue" href="drenagem_controle_v3.html">
       <div class="card-bar"></div>
@@ -556,126 +581,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
 
   </div>
 
-  <!-- ── SEÇÃO GERAL ─────────────────────────────────────── -->
-  <div class="section-label" style="border-left:3px solid var(--green);padding-left:10px;color:var(--green)">Planejamento Geral · Cronograma Executivo</div>
-  <div class="cards" style="margin-bottom:48px">
-
-    <!-- CRONOGRAMA MULTI-ÁREA -->
-    <a class="card" href="cronograma_multiarea.html" style="--green:#609346;border-top:5px solid #609346">
-      <div class="card-bar" style="background:linear-gradient(90deg,#609346,#4a7a30);height:5px"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#e8efe1">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#609346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="16" rx="2"/>
-            <path d="M3 9h18"/>
-            <path d="M9 4v5M15 4v5"/>
-            <path d="M7 14h3M7 17h5M14 14h3"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#609346">Planejamento · Multi-Área</div>
-        <div class="card-title">Cronograma Executivo</div>
-        <div class="card-desc" style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5">
-          Acompanhamento Planejado × Realizado por CWA · Curva S · Six-Week Lookahead · PPC e Pareto de causas · Dados do Supabase.
-        </div>
-        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
-          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">56 CWAs</span>
-          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">Curva S</span>
-          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">Lookahead</span>
-          <span class="chip chip-green" style="background:#e8efe1;border-color:#b5cfa0;color:#3d6b1f;font-size:9px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:10px">Pareto</span>
-        </div>
-      </div>
-
-      <!-- KPI strip -->
-      <div class="card-kpis" style="border-top:1px solid var(--border)">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="cron-pv">—</div>
-          <div class="card-kpi-label">PV Geral %</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="cron-ev">—</div>
-          <div class="card-kpi-label">EV Geral %</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="cron-cwas">—</div>
-          <div class="card-kpi-label">Áreas Ativas</div>
-        </div>
-      </div>
-
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço geral (EV médio)</span>
-          <span class="card-progress-pct" id="cron-pct" style="color:#609346">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div id="cron-bar-pv" style="background:#609346;height:100%;width:0%;transition:width .6s"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-updated" id="cron-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#609346">Abrir cronograma</span>
-        <span class="card-arrow" style="color:#609346">→</span>
-      </div>
-    </a>
-
-    <!-- IMPORTADOR DE CRONOGRAMA -->
-    <a class="card" href="importador_cronograma.html" style="border-top:5px solid #3d8c5a">
-      <div class="card-bar" style="background:linear-gradient(90deg,#3d8c5a,#2d6e45);height:5px"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#e0f0e8">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#3d8c5a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-            <path d="M14 2v6h6"/>
-            <path d="M12 18v-6M9 15l3 3 3-3"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#3d8c5a">Planejamento · Importação</div>
-        <div class="card-title">Importador de Cronograma</div>
-        <div class="card-desc" style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5">
-          Upload do Excel do MS Project · Sincronização com Supabase · Editor de Lookahead e PPC semanal por área.
-        </div>
-        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
-          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">Upload Excel</span>
-          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">Lookahead</span>
-          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">PPC</span>
-          <span style="background:#e0f0e8;border:1px solid #9ccdb0;color:#2d6e45;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px">Supabase</span>
-        </div>
-      </div>
-
-      <div class="card-kpis" style="border-top:1px solid var(--border)">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="imp-tarefas">—</div>
-          <div class="card-kpi-label">Tarefas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="imp-lk">—</div>
-          <div class="card-kpi-label">Lookahead</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="imp-ref">—</div>
-          <div class="card-kpi-label">Última Ref.</div>
-        </div>
-      </div>
-
-      <div class="card-progress" style="padding-top:0">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Atividades com restrição bloqueada</span>
-          <span class="card-progress-pct" id="imp-blo-pct" style="color:var(--red)">—</span>
-        </div>
-      </div>
-      <div class="card-updated" id="imp-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#3d8c5a">Importar / Gerenciar</span>
-        <span class="card-arrow" style="color:#3d8c5a">→</span>
-      </div>
-    </a>
-
-  </div>
-  <!-- ── FIM SEÇÃO GERAL ─────────────────────────────────── -->
-
 
   <!-- FOOTER -->
   <footer>
@@ -844,70 +749,11 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
-  /* ── CRONOGRAMA EXECUTIVO ── */
-  async function loadCronograma(){
-    try{
-      // Busca snapshot mais recente por CWA
-      const { data: snaps } = await sbGet(
-        'cronograma_historico_snapshots?select=cwa,pv_pct,ev_pct,referencia_data&order=referencia_data.desc&limit=200'
-      );
-      if(!snaps || !snaps.length) return;
-
-      // Pega data mais recente
-      const maxRef = snaps.reduce((a,s)=> s.referencia_data > a ? s.referencia_data : a, '');
-      const latest = snaps.filter(s=>s.referencia_data===maxRef);
-
-      const cwas = [...new Set(latest.map(s=>s.cwa))];
-      const pvMed = cwas.length ? (latest.reduce((a,s)=>a+parseFloat(s.pv_pct||0),0)/latest.length).toFixed(1) : '—';
-      const evMed = cwas.length ? (latest.reduce((a,s)=>a+parseFloat(s.ev_pct||0),0)/latest.length).toFixed(1) : '—';
-
-      setEl('cron-cwas', cwas.length);
-      setEl('cron-pv',   pvMed + '%');
-      setEl('cron-ev',   evMed + '%');
-      setEl('cron-pct',  evMed + '%');
-      setEl('cron-updated', 'ref: ' + maxRef);
-
-      const bar = document.getElementById('cron-bar-pv');
-      if(bar) bar.style.width = Math.min(parseFloat(evMed)||0, 100) + '%';
-    } catch(_){}
-  }
-
-  /* ── IMPORTADOR — lookahead e tarefas ── */
-  async function loadImportador(){
-    try{
-      // Contar tarefas
-      const { count: nTarefas } = await sbGet('cronograma_tarefas?select=id&limit=1');
-      // Contar lookahead ativo
-      const { count: nLk } = await sbGet('lookahead_atividades?select=id&concluida=eq.false&limit=1');
-      // Bloqueios
-      const { data: bloq } = await sbGet(
-        'lookahead_atividades?select=id,rest_materiais,rest_projeto,rest_mao_obra,rest_equipamento,rest_frente&concluida=eq.false'
-      );
-      const campos=['rest_materiais','rest_projeto','rest_mao_obra','rest_equipamento','rest_frente'];
-      const nBlo = (bloq||[]).filter(a=>campos.some(c=>a[c]==='bloqueado')).length;
-
-      // Última referência
-      const { data: refs } = await sbGet('cronograma_historico_snapshots?select=referencia_data&order=referencia_data.desc&limit=1');
-      const lastRef = refs?.[0]?.referencia_data || '—';
-
-      setEl('imp-tarefas', nTarefas != null ? nTarefas.toLocaleString('pt-BR') : '—');
-      setEl('imp-lk',      nLk != null ? nLk : '—');
-      setEl('imp-ref',     lastRef ? lastRef.slice(5) : '—');
-      setEl('imp-blo-pct', nBlo > 0 ? nBlo + ' bloqueada' + (nBlo>1?'s':'') : 'Nenhuma');
-      setEl('imp-updated', timeAgo());
-
-      const bloEl = document.getElementById('imp-blo-pct');
-      if(bloEl) bloEl.style.color = nBlo > 0 ? 'var(--red)' : 'var(--green)';
-    } catch(_){}
-  }
-
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
     loadBasesCivis();
-    loadCronograma();
-    loadImportador();
     setTimeout(loadAdmin, 300);
   });
 })();
