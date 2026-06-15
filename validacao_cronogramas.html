@@ -415,7 +415,9 @@ table.data tr.is-summary:hover td{background:#eef0f3}
    ================================================================ */
 const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
 const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
-const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+// Para tabelas com RLS "allow all", usamos a publishable key (não expira).
+// O pco_token da sessão é um JWT que expira e causaria PGRST303 (JWT expired).
+const TOKEN  = SB_KEY;
 
 /* ---------- util ---------- */
 const $ = id => document.getElementById(id);
