@@ -144,6 +144,22 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 
 .handle{fill:var(--inpasa-gold);stroke:#fff;stroke-width:1.5;cursor:grab}
 .draw-preview{stroke:var(--inpasa-blue);stroke-linecap:round;stroke-dasharray:12 8;opacity:.6;pointer-events:none}
+.draw-preview.locked{stroke:var(--inpasa-gold);stroke-dasharray:none;opacity:.85}
+.draw-ghost-box{fill:none;stroke:var(--inpasa-gold);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+.draw-tip{font-family:'JetBrains Mono',monospace;font-weight:700;fill:var(--inpasa-blue);paint-order:stroke;stroke:#fff;stroke-width:3;stroke-linejoin:round;pointer-events:none}
+
+/* ── LENGTH INPUT (estilo CAD) ── */
+#len-input-wrap{position:absolute;display:none;z-index:40;background:var(--inpasa-blue);color:#fff;
+  border:1px solid var(--inpasa-blue-dark);box-shadow:var(--shadow-lg);padding:8px 10px;min-width:172px}
+#len-input-wrap.visible{display:block}
+.len-input-title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;opacity:.85;margin-bottom:5px}
+.len-input-row{display:flex;align-items:center;gap:6px}
+#len-input{flex:1;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
+  border:none;outline:2px solid var(--inpasa-gold);background:#fff;color:var(--text);padding:5px 8px;width:90px}
+#len-input::-webkit-outer-spin-button,#len-input::-webkit-inner-spin-button{opacity:1}
+.len-input-unit{font-size:12px;font-weight:700;opacity:.9}
+.len-input-hint{font-size:8px;margin-top:5px;opacity:.75;letter-spacing:.5px}
+.len-input-hint kbd{background:rgba(255,255,255,.2);padding:1px 4px;border-radius:2px;font-family:'JetBrains Mono',monospace}
 
 /* ── SIDE PANEL ── */
 .side{background:var(--panel);border:1px solid var(--border);padding:14px;height:fit-content;position:sticky;top:14px;box-shadow:var(--shadow)}
@@ -342,7 +358,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
 </div>
 
 <!-- HINTS -->
-<div class="map-hint" id="hint-pipe">✏ Clique e arraste para traçar um trecho · <kbd>Esc</kbd> cancela</div>
+<div class="map-hint" id="hint-pipe">✏ <b>1)</b> Clique numa caixa PV · <b>2)</b> aponte a direção com o mouse (<kbd>Shift</kbd> trava em 45°) · <b>3)</b> clique p/ travar · <b>4)</b> digite o comprimento + <kbd>Enter</kbd> → caixa PV de fim é criada · <kbd>Esc</kbd> cancela</div>
 <div class="map-hint" id="hint-box">✏ Clique para posicionar uma caixa PV · <kbd>Esc</kbd> cancela</div>
 <div class="map-hint" id="hint-pan" style="background:#f0fbf0;border-color:var(--green);color:var(--green)">🖐 Clique e arraste para mover o canvas · Scroll do mouse = zoom</div>
 
@@ -377,6 +393,14 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         <g id="elements-layer"></g>
         <g id="preview-layer"></g>
       </svg>
+      <div id="len-input-wrap">
+        <div class="len-input-title">Comprimento do trecho</div>
+        <div class="len-input-row">
+          <input id="len-input" type="text" inputmode="decimal" placeholder="metros" autocomplete="off"/>
+          <span class="len-input-unit">m</span>
+        </div>
+        <div class="len-input-hint"><kbd>Enter</kbd> confirma · <kbd>Esc</kbd> cancela</div>
+      </div>
     </div>
   </div>
 
@@ -532,6 +556,14 @@ const SNAP          = 20;
 const PV_SIZE       = 40;
 const MIN_PIPE      = 30;
 
+/* ── ESCALA REAL (estilo CAD) ──
+   Quantos pixels-do-mundo equivalem a 1 metro. Configurável via config.js
+   (PCO_CONFIG.system.pxPorMetro). Padrão = 10 px/m  →  grade de 20px = 2 m. */
+const PX_PER_M = Number((window.PCO_CONFIG||{system:{}}).system.pxPorMetro) || 10;
+/* Se o fim do trecho cair a até este raio (px) do centro de uma caixa
+   já existente, conecta nela (vira nó) em vez de criar caixa nova. */
+const BOX_JUNCTION_SNAP = PV_SIZE; // 40 px
+
 /* Espessura visual da linha por diâmetro (em SVG units) */
 const PIPE_TH = {400:10,600:14,800:18,1000:22,1200:26,1500:32};
 
@@ -629,9 +661,11 @@ function toRow(el){
   if(el.kind === 'pipe')
     return { ...base, diam: el.diam, length_m: el.lengthM||0,
              x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2,
+             from_box: el.fromBox||null, to_box: el.toBox||null,
              pv_num: null, pv_x: null, pv_y: null };
   else
     return { ...base, pv_num: el.pvNum, pv_x: el.x, pv_y: el.y,
+             from_box: null, to_box: null,
              diam: null, length_m: null, x1: null, y1: null, x2: null, y2: null };
 }
 
@@ -640,7 +674,8 @@ function fromRow(r){
   if(r.kind === 'pipe')
     return { id:r.id, kind:'pipe', status:r.status, note:r.note||'',
              diam:r.diam, lengthM:Number(r.length_m)||0,
-             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2) };
+             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2),
+             fromBox:r.from_box||null, toBox:r.to_box||null };
   else
     return { id:r.id, kind:'box', status:r.status, note:r.note||'',
              pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y) };
@@ -755,6 +790,32 @@ function evToWorld(ev){
   return vpToWorld(ev.clientX - rect.left, ev.clientY - rect.top);
 }
 
+/* Convert world SVG coords → viewport pixel (relativo ao .canvas-viewport) */
+function worldToVp(wx, wy){
+  return { x: wx*vpScale + vpTx, y: wy*vpScale + vpTy };
+}
+
+/* Centro de uma caixa (PV) em coordenadas do mundo */
+function boxCenter(b){ return { x: b.x + PV_SIZE/2, y: b.y + PV_SIZE/2 }; }
+
+/* Caixa sob o ponto (wx,wy) — usado p/ iniciar trecho clicando na caixa */
+function findBoxUnder(wx, wy){
+  return elements.find(e => e.kind==='box'
+    && wx >= e.x && wx <= e.x+PV_SIZE
+    && wy >= e.y && wy <= e.y+PV_SIZE);
+}
+
+/* Caixa cujo CENTRO está a até `thresh` px do ponto — usado p/ junção no fim */
+function findBoxNear(wx, wy, thresh, exceptId){
+  let best=null, bestD=Infinity;
+  elements.forEach(e=>{
+    if(e.kind!=='box' || e.id===exceptId) return;
+    const c=boxCenter(e); const d=Math.hypot(c.x-wx, c.y-wy);
+    if(d<=thresh && d<bestD){ best=e; bestD=d; }
+  });
+  return best;
+}
+
 /* ================================================================
    LOCK / UNLOCK
    ================================================================ */
@@ -790,6 +851,7 @@ function updateLockUI(){
    TOOLS
    ================================================================ */
 function setTool(t){
+  if(typeof cancelLine==='function') cancelLine();   // encerra desenho em andamento
   tool=t;
   ['select','pan','pipe','box'].forEach(k=>{
     document.getElementById('btn-'+k)?.classList.toggle('active',t===k);
@@ -802,51 +864,156 @@ function setTool(t){
 }
 
 /* ================================================================
-   DRAW — PIPE
-   ================================================================ */
-let pipeStart = null;
+   DRAW — TRECHO  (estilo CAD: caixa → direção → comprimento → caixa)
+   ================================================================
+   Máquina de estados do desenho (variável `line`):
+     null         → ocioso, aguardando 1º clique numa caixa PV (origem)
+     'direction'  → origem definida; o mouse define a direção; 2º clique trava
+     'length'     → direção travada; aguardando o comprimento digitado (Enter) */
+let line = null;   // { state, fromBoxId, ox, oy, dirX, dirY, angle }
 
-function startPipe(ev){
+function drawLayer(){ return document.getElementById('preview-layer'); }
+function clearLinePreview(){
+  ['pipe-prev','line-tip','line-ghost'].forEach(id=>document.getElementById(id)?.remove());
+}
+
+/* 1º clique — inicia o trecho a partir de uma caixa existente */
+function startLineFromBox(box){
   if(!isUnlocked) return;
-  const w = evToWorld(ev);
-  pipeStart = {x:snapV(w.x), y:snapV(w.y)};
-  // preview line
-  const layer = document.getElementById('preview-layer');
-  const line  = document.createElementNS(SVG_NS,'line');
-  line.id='pipe-prev';
-  line.setAttribute('class','draw-preview');
-  line.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
-  line.setAttribute('x1',pipeStart.x); line.setAttribute('y1',pipeStart.y);
-  line.setAttribute('x2',pipeStart.x); line.setAttribute('y2',pipeStart.y);
-  layer.appendChild(line);
-  ev.preventDefault();
+  const c = boxCenter(box);
+  line = { state:'direction', fromBoxId:box.id, ox:c.x, oy:c.y, dirX:1, dirY:0, angle:0 };
+  const ln = document.createElementNS(SVG_NS,'line');
+  ln.id='pipe-prev'; ln.setAttribute('class','draw-preview');
+  ln.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
+  ln.setAttribute('x1',c.x); ln.setAttribute('y1',c.y);
+  ln.setAttribute('x2',c.x); ln.setAttribute('y2',c.y);
+  drawLayer().appendChild(ln);
 }
 
-function movePipe(ev){
-  if(!pipeStart) return;
+/* ângulo origem→cursor (snap de 45° com Shift) */
+function aimFromEvent(ev){
   const w = evToWorld(ev);
+  let ang = Math.atan2(w.y-line.oy, w.x-line.ox);
+  if(ev.shiftKey){ const step=Math.PI/4; ang = Math.round(ang/step)*step; }
+  return { angle:ang, dirX:Math.cos(ang), dirY:Math.sin(ang),
+           dist:Math.hypot(w.x-line.ox, w.y-line.oy) };
+}
+
+/* fase de direção — estica o preview até o cursor */
+function moveLineDir(ev){
+  if(!line || line.state!=='direction') return;
+  const a = aimFromEvent(ev);
   const prev = document.getElementById('pipe-prev');
-  if(prev){ prev.setAttribute('x2',snapV(w.x)); prev.setAttribute('y2',snapV(w.y)); }
+  if(prev){ prev.setAttribute('x2', line.ox + a.dirX*a.dist);
+            prev.setAttribute('y2', line.oy + a.dirY*a.dist); }
+  line.dirX=a.dirX; line.dirY=a.dirY; line.angle=a.angle;
 }
 
-function endPipe(ev){
-  if(!pipeStart) return;
-  const w  = evToWorld(ev);
-  const x2 = snapV(w.x), y2 = snapV(w.y);
-  document.getElementById('pipe-prev')?.remove();
-  const dx=x2-pipeStart.x, dy=y2-pipeStart.y;
-  const dist=Math.sqrt(dx*dx+dy*dy);
-  if(dist<MIN_PIPE){ toast('Trecho muito curto · descartado'); pipeStart=null; return; }
-  const el={
-    id:uid(), kind:'pipe',
-    x1:pipeStart.x, y1:pipeStart.y, x2, y2,
-    diam:getDiam(), lengthM:0, status:'pend', note:''
-  };
-  elements.push(el);
-  selectedId=el.id;
-  pipeStart=null;
-  save(); render();
+/* 2º clique — trava a direção e abre o campo de comprimento */
+function lockLineDirection(ev){
+  const a = aimFromEvent(ev);
+  if(a.dist < 4){ toast('Afaste o cursor para definir a direção'); return; }
+  line.dirX=a.dirX; line.dirY=a.dirY; line.angle=a.angle; line.state='length';
+  document.getElementById('pipe-prev')?.classList.add('locked');
+  openLengthInput();
+  updateLineLengthPreview();
 }
+
+/* campo flutuante de comprimento */
+function openLengthInput(){
+  const wrap = document.getElementById('len-input-wrap');
+  const inp  = document.getElementById('len-input');
+  const p = worldToVp(line.ox, line.oy);
+  const vp = document.getElementById('canvas-viewport');
+  const maxL = vp.clientWidth - 185, maxT = vp.clientHeight - 80;
+  wrap.style.left = Math.min(maxL, Math.max(6, p.x + 14)) + 'px';
+  wrap.style.top  = Math.min(maxT, Math.max(6, p.y + 14)) + 'px';
+  wrap.classList.add('visible');
+  inp.value=''; setTimeout(()=>inp.focus(),30);
+}
+function closeLengthInput(){ document.getElementById('len-input-wrap')?.classList.remove('visible'); }
+
+function currentLengthM(){
+  const raw = String(document.getElementById('len-input').value).replace(',', '.').trim();
+  const v = parseFloat(raw);
+  return (!isNaN(v) && v>0) ? v : 0;
+}
+function lineEndpoint(){
+  const len = currentLengthM();
+  return { x: Math.round(line.ox + line.dirX*len*PX_PER_M),
+           y: Math.round(line.oy + line.dirY*len*PX_PER_M) };
+}
+
+/* atualiza preview do tubo + caixa-fantasma + rótulo enquanto digita */
+function updateLineLengthPreview(){
+  if(!line || line.state!=='length') return;
+  const len = currentLengthM();
+  const e   = lineEndpoint();
+  const layer = drawLayer();
+  const prev = document.getElementById('pipe-prev');
+  if(prev){ prev.setAttribute('x2',e.x); prev.setAttribute('y2',e.y); }
+
+  let ghost = document.getElementById('line-ghost');
+  if(!ghost){
+    ghost=document.createElementNS(SVG_NS,'rect'); ghost.id='line-ghost';
+    ghost.setAttribute('class','draw-ghost-box');
+    ghost.setAttribute('width',PV_SIZE); ghost.setAttribute('height',PV_SIZE);
+    layer.appendChild(ghost);
+  }
+  ghost.setAttribute('x', e.x-PV_SIZE/2); ghost.setAttribute('y', e.y-PV_SIZE/2);
+  ghost.style.display = len>0 ? '' : 'none';
+
+  let tip = document.getElementById('line-tip');
+  if(!tip){
+    tip=document.createElementNS(SVG_NS,'text'); tip.id='line-tip';
+    tip.setAttribute('class','draw-tip'); tip.setAttribute('font-size','13');
+    tip.setAttribute('text-anchor','middle'); layer.appendChild(tip);
+  }
+  tip.setAttribute('x',(line.ox+e.x)/2); tip.setAttribute('y',(line.oy+e.y)/2 - 10);
+  tip.textContent = len>0 ? (len.toLocaleString('pt-BR')+' m') : '';
+}
+
+/* confirma — cria o tubo + caixa de fim (ou conecta numa caixa existente = nó) */
+function commitLine(){
+  if(!line || line.state!=='length') return;
+  const len = currentLengthM();
+  if(len<=0){ toast('Informe um comprimento maior que zero', true); return; }
+  const e = lineEndpoint();
+
+  let endBox = findBoxNear(e.x, e.y, BOX_JUNCTION_SNAP, line.fromBoxId);
+  let endX, endY, toBoxId, novaCaixa=false;
+  if(endBox){
+    const c = boxCenter(endBox); endX=c.x; endY=c.y; toBoxId=endBox.id;
+  } else {
+    endBox = { id:uid(), kind:'box', x:e.x-PV_SIZE/2, y:e.y-PV_SIZE/2,
+               pvNum:nextPvNum(), status:'pend', note:'' };
+    elements.push(endBox); endX=e.x; endY=e.y; toBoxId=endBox.id; novaCaixa=true;
+  }
+
+  const pipe = {
+    id:uid(), kind:'pipe',
+    x1:line.ox, y1:line.oy, x2:endX, y2:endY,
+    diam:getDiam(), lengthM:len, status:'pend', note:'',
+    fromBox:line.fromBoxId, toBox:toBoxId
+  };
+  elements.push(pipe);
+  selectedId = pipe.id;
+
+  cancelLine();
+  save(); render();
+  toast(novaCaixa ? `Trecho de ${len.toLocaleString('pt-BR')} m criado · nova caixa PV ${endBox.pvNum}`
+                  : `Trecho de ${len.toLocaleString('pt-BR')} m · conectado à caixa PV ${endBox.pvNum}`);
+}
+
+/* cancela / encerra o desenho em andamento */
+function cancelLine(){ line=null; clearLinePreview(); closeLengthInput(); }
+
+/* eventos do campo de comprimento */
+document.getElementById('len-input').addEventListener('input', updateLineLengthPreview);
+document.getElementById('len-input').addEventListener('keydown', ev=>{
+  if(ev.key==='Enter'){ ev.preventDefault(); ev.stopPropagation(); commitLine(); }
+  else if(ev.key==='Escape'){ ev.preventDefault(); ev.stopPropagation(); cancelLine(); }
+});
 
 /* ================================================================
    PLACE BOX (PV)
@@ -913,7 +1080,16 @@ vp.addEventListener('mousedown', ev=>{
   if(tool==='pan'){ startPan(ev); return }
 
   if(tool==='pipe'){
-    if(isUnlocked && !onEl) startPipe(ev);
+    if(!isUnlocked){ toast('Libere a edição primeiro', true); return; }
+    const w = evToWorld(ev);
+    if(!line){
+      const b = findBoxUnder(w.x, w.y);
+      if(b) startLineFromBox(b);
+      else  toast('Clique numa caixa PV para iniciar o trecho');
+    } else if(line.state==='direction'){
+      lockLineDirection(ev);
+    }
+    // se já está em 'length', o canvas é ignorado — use o campo de comprimento
     return;
   }
   if(tool==='box'){
@@ -926,7 +1102,7 @@ vp.addEventListener('mousedown', ev=>{
 
 window.addEventListener('mousemove', ev=>{
   if(panStart){ movePan(ev); return }
-  if(pipeStart){ movePipe(ev); return }
+  if(line && line.state==='direction'){ moveLineDir(ev); return }
   if(dragging){
     const w  = evToWorld(ev);
     const dx = w.x - dragging.startW.x;
@@ -939,6 +1115,13 @@ window.addEventListener('mousemove', ev=>{
       el.x2=snapV(s.x2+dx); el.y2=snapV(s.y2+dy);
     } else {
       el.x=snapV(s.x+dx); el.y=snapV(s.y+dy);
+      // arrasta junto as pontas dos trechos conectados a esta caixa
+      const c = boxCenter(el);
+      elements.forEach(p=>{
+        if(p.kind!=='pipe') return;
+        if(p.fromBox===el.id){ p.x1=c.x; p.y1=c.y; }
+        if(p.toBox===el.id){ p.x2=c.x; p.y2=c.y; }
+      });
     }
     renderSVG();
   }
@@ -946,7 +1129,6 @@ window.addEventListener('mousemove', ev=>{
 
 window.addEventListener('mouseup', ev=>{
   if(panStart){ endPan(); return }
-  if(pipeStart){ endPipe(ev); return }
   if(dragging){ dragging=null; save(); render() }
 });
 
@@ -1091,7 +1273,10 @@ function renderPipe(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else { selectEl(el.id); } });
+  g.addEventListener('mousedown',ev=>{
+    if(tool==='select'){ if(el.fromBox||el.toBox) selectEl(el.id); else startDrag(ev,el.id); }
+    else if(tool!=='pipe'){ selectEl(el.id); }
+  });
   layer.appendChild(g);
 }
 
@@ -1131,7 +1316,10 @@ function renderBox(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else selectEl(el.id); });
+  g.addEventListener('mousedown',ev=>{
+    if(tool==='select') startDrag(ev,el.id);
+    else if(tool!=='pipe') selectEl(el.id);
+  });
   layer.appendChild(g);
 }
 
@@ -1445,7 +1633,11 @@ function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
 window.addEventListener('keydown',ev=>{
   const active=document.activeElement;
   const typing=active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT');
-  if(ev.key==='Escape'){ setTool('select'); deselect(); pipeStart=null; document.getElementById('pipe-prev')?.remove() }
+  if(ev.key==='Escape'){
+    if(line){ cancelLine(); }            // cancela só o desenho em andamento, mantém ferramenta
+    else { setTool('select'); deselect(); }
+    document.getElementById('pipe-prev')?.remove();
+  }
   if(!typing){
     if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedId) deleteSelected() }
     if(ev.key==='p'||ev.key==='P') setTool('pipe');
