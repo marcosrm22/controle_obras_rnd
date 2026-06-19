@@ -339,6 +339,9 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     <button class="tool-btn" id="btn-box" onclick="setTool('box')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa
     </button>
+    <button class="tool-btn" id="btn-selectall" onclick="selectAll()" title="Selecionar tudo para mover em conjunto (Ctrl+A)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="2.5 1.8"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/></svg>Selecionar Tudo
+    </button>
   </div>
   <div class="toolbar-section">
     <span class="toolbar-label">Diâmetro</span>
@@ -617,6 +620,7 @@ function boxName(el){  const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return
    ================================================================ */
 let elements   = [];
 let selectedId = null;
+let selectedIds = new Set();   // seleção múltipla (para mover em conjunto)
 let tool       = 'select';
 let isUnlocked = false;
 let modalCb    = null;
@@ -1025,7 +1029,7 @@ function commitLine(){
     fromBox:line.fromBoxId, toBox:toBoxId
   };
   elements.push(pipe);
-  selectedId = pipe.id;
+  selectedId = pipe.id; selectedIds = new Set([pipe.id]);
 
   cancelLine();
   save(); render();
@@ -1053,7 +1057,7 @@ function placeBox(ev){
   const bt = getBoxType();
   const el={id:uid(), kind:'box', boxType:bt, x, y, pvNum:nextBoxNum(bt), status:'pend', note:''};
   elements.push(el);
-  selectedId=el.id;
+  selectedId=el.id; selectedIds = new Set([el.id]);
   save(); render();
 }
 
@@ -1093,11 +1097,35 @@ let dragging = null;
 function startDrag(ev,id){
   if(!isUnlocked) return;
   ev.stopPropagation();
-  selectEl(id);
   const w = evToWorld(ev);
-  const el = elements.find(e=>e.id===id);
-  dragging={id, startW:{x:w.x,y:w.y}, snap0:JSON.parse(JSON.stringify(el))};
+  // se o item clicado já faz parte de uma seleção múltipla, move o GRUPO
+  const groupMove = selectedIds.has(id) && selectedIds.size>1;
+  if(!groupMove) selectEl(id);          // clique simples → seleciona só ele
+  const ids  = groupMove ? [...selectedIds] : [id];
+  const orig = ids.map(i=>{ const el=elements.find(e=>e.id===i); return el?{id:i, snap:JSON.parse(JSON.stringify(el))}:null; }).filter(Boolean);
+  dragging = { group:groupMove, startW:{x:w.x,y:w.y}, orig };
   ev.preventDefault();
+}
+
+/* clique em um elemento (caixa ou tubo) na ferramenta Selecionar */
+function elementMouseDown(ev, el){
+  if(tool==='pipe') return;                       // ferramenta de trecho é tratada no viewport
+  if(tool!=='select'){ selectEl(el.id); return; }
+
+  const additive = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+  if(additive){ ev.stopPropagation(); toggleInSelection(el.id); return; }
+
+  // já é parte de uma seleção múltipla → inicia arraste do grupo
+  if(selectedIds.has(el.id) && selectedIds.size>1){
+    if(isUnlocked) startDrag(ev, el.id);
+    else ev.stopPropagation();
+    return;
+  }
+
+  // seleção simples
+  const connectedPipe = el.kind==='pipe' && (el.fromBox||el.toBox);
+  if(connectedPipe || !isUnlocked){ ev.stopPropagation(); selectEl(el.id); }  // tubo conectado: seleciona, não arrasta sozinho
+  else { startDrag(ev, el.id); }                                              // caixa ou tubo livre: seleciona e arrasta
 }
 
 /* ================================================================
@@ -1128,31 +1156,47 @@ vp.addEventListener('mousedown', ev=>{
     return;
   }
   // select tool
-  if(!onEl) deselect();
+  if(!onEl && !(ev.shiftKey||ev.ctrlKey||ev.metaKey)) deselect();
 });
 
 window.addEventListener('mousemove', ev=>{
   if(panStart){ movePan(ev); return }
   if(line && line.state==='direction'){ moveLineDir(ev); return }
   if(dragging){
-    const w  = evToWorld(ev);
-    const dx = w.x - dragging.startW.x;
-    const dy = w.y - dragging.startW.y;
-    const el = elements.find(e=>e.id===dragging.id);
-    const s  = dragging.snap0;
-    if(!el) return;
-    if(el.kind==='pipe'){
-      el.x1=snapV(s.x1+dx); el.y1=snapV(s.y1+dy);
-      el.x2=snapV(s.x2+dx); el.y2=snapV(s.y2+dy);
-    } else {
-      el.x=snapV(s.x+dx); el.y=snapV(s.y+dy);
-      // arrasta junto as pontas dos trechos conectados a esta caixa
-      const c = boxCenter(el);
-      elements.forEach(p=>{
-        if(p.kind!=='pipe') return;
-        if(p.fromBox===el.id){ p.x1=c.x; p.y1=c.y; }
-        if(p.toBox===el.id){ p.x2=c.x; p.y2=c.y; }
+    const w   = evToWorld(ev);
+    const rdx = w.x - dragging.startW.x;
+    const rdy = w.y - dragging.startW.y;
+
+    if(dragging.group){
+      // translação rígida do grupo — delta arredondado ao passo da grade
+      const sdx = Math.round(rdx/SNAP)*SNAP, sdy = Math.round(rdy/SNAP)*SNAP;
+      dragging.orig.forEach(o=>{
+        const el=elements.find(e=>e.id===o.id); if(!el) return;
+        const s=o.snap;
+        if(el.kind==='box'){ el.x=s.x+sdx; el.y=s.y+sdy; }
+        else if(!s.fromBox && !s.toBox){            // tubo livre (sem caixas)
+          el.x1=s.x1+sdx; el.y1=s.y1+sdy; el.x2=s.x2+sdx; el.y2=s.y2+sdy;
+        }
+        // tubos conectados: geometria vem das caixas → resync abaixo
       });
+      resyncConnectedPipes();
+    } else {
+      // arraste individual (comportamento original)
+      const o=dragging.orig[0]; const el=o&&elements.find(e=>e.id===o.id); const s=o&&o.snap;
+      if(el){
+        if(el.kind==='pipe'){
+          el.x1=snapV(s.x1+rdx); el.y1=snapV(s.y1+rdy);
+          el.x2=snapV(s.x2+rdx); el.y2=snapV(s.y2+rdy);
+        } else {
+          el.x=snapV(s.x+rdx); el.y=snapV(s.y+rdy);
+          const c = boxCenter(el);
+          elements.forEach(p=>{
+            if(p.kind!=='pipe') return;
+            if(p.fromBox===el.id){ p.x1=c.x; p.y1=c.y; }
+            if(p.toBox===el.id){ p.x2=c.x; p.y2=c.y; }
+          });
+        }
+      }
     }
     renderSVG();
   }
@@ -1176,31 +1220,60 @@ vp.addEventListener('wheel', ev=>{
 /* ================================================================
    SELECT
    ================================================================ */
-function selectEl(id){ selectedId=id; render() }
-function deselect(){ selectedId=null; render() }
+function selectEl(id){ selectedId=id; selectedIds = new Set(id!=null?[id]:[]); render() }
+function deselect(){ selectedId=null; selectedIds.clear(); render() }
+
+/* adiciona/remove um elemento da seleção (Shift/Ctrl+clique) */
+function toggleInSelection(id){
+  if(selectedIds.has(id)){
+    selectedIds.delete(id);
+    if(selectedId===id) selectedId = selectedIds.size ? [...selectedIds][selectedIds.size-1] : null;
+  } else {
+    selectedIds.add(id);
+    selectedId = id;
+  }
+  render();
+}
+
+/* seleciona TODOS os elementos (para mover o desenho inteiro) */
+function selectAll(){
+  if(!elements.length){ toast('Nada para selecionar'); return; }
+  if(tool!=='select') setTool('select');
+  selectedIds = new Set(elements.map(e=>e.id));
+  selectedId = elements[elements.length-1].id;
+  render();
+  toast(`${selectedIds.size} elementos selecionados · arraste qualquer um para mover em conjunto`);
+}
+
+/* realinha as pontas dos tubos conectados ao centro de suas caixas */
+function resyncConnectedPipes(){
+  elements.forEach(p=>{
+    if(p.kind!=='pipe') return;
+    if(p.fromBox){ const b=elements.find(e=>e.id===p.fromBox); if(b){ const c=boxCenter(b); p.x1=c.x; p.y1=c.y; } }
+    if(p.toBox){  const b=elements.find(e=>e.id===p.toBox);  if(b){ const c=boxCenter(b); p.x2=c.x; p.y2=c.y; } }
+  });
+}
 
 /* ================================================================
    DELETE
    ================================================================ */
 function deleteSelected(){
   if(!isUnlocked){ toast('Libere a edição primeiro',true); return }
-  if(selectedId==null){ toast('Selecione um elemento primeiro'); return }
-  const el=elements.find(e=>e.id===selectedId);
-  if(!el){ toast('Elemento não encontrado',true); return }
-  const idToDelete = selectedId; // captura AGORA antes de qualquer render
-  const name=el.kind==='pipe'?`Trecho Ø${el.diam} mm`:boxName(el);
-  openModal('Excluir elemento','Confirmar exclusão: '+name+'?', async ()=>{
-    elements = elements.filter(e => e.id !== idToDelete);
-    selectedId = null;
+  const ids = selectedIds.size ? [...selectedIds] : (selectedId!=null?[selectedId]:[]);
+  if(!ids.length){ toast('Selecione um elemento primeiro'); return }
+  const label = ids.length===1
+    ? (()=>{ const el=elements.find(e=>e.id===ids[0]); return el?(el.kind==='pipe'?`Trecho Ø${el.diam} mm`:boxName(el)):'elemento'; })()
+    : `${ids.length} elementos`;
+  openModal('Excluir', 'Confirmar exclusão: '+label+'?', async ()=>{
+    elements = elements.filter(e => !ids.includes(e.id));
+    selectedId = null; selectedIds.clear();
     render();
-    // remove no banco primeiro, depois salva o estado restante
-    try {
-      await deleteFromDB(idToDelete);
-      toast('Elemento excluído ✓');
-    } catch(e){
-      toast('Removido localmente · erro no banco: ' + e.message, true);
+    let errCount=0;
+    for(const id of ids){
+      try { await deleteFromDB(id); } catch(e){ errCount++; }
     }
-    // salva o array atualizado (upsert dos restantes)
+    if(errCount) toast(`Removidos localmente · ${errCount} erro(s) no banco`, true);
+    else toast(ids.length===1?'Elemento excluído ✓':`${ids.length} elementos excluídos ✓`);
     if(elements.length > 0) await save();
     else setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
   });
@@ -1211,7 +1284,7 @@ function clearAll(){
   if(elements.length===0) return;
   openModal('Limpar tudo',`Remover todos os ${elements.length} elementos? Não pode ser desfeito.`, async ()=>{
     const ids = elements.map(e => e.id);
-    elements=[]; selectedId=null; render();
+    elements=[]; selectedId=null; selectedIds.clear(); render();
     try {
       // deleta todos pelo array de IDs
       await sbFetch(TABLE + '?id=in.(' + ids.map(i=>`"${i}"`).join(',') + ')', { method:'DELETE' });
@@ -1243,7 +1316,7 @@ function colorOf(diam,status){ return status==='done'?PIPE_DONE:PIPE_PEND }
 function strokeOf(diam,status){ return status==='done'?PIPE_DONE_STROKE:PIPE_PEND_STROKE }
 
 function renderPipe(layer,el){
-  const sel = el.id===selectedId;
+  const sel = selectedIds.has(el.id);
   const th  = PIPE_TH[el.diam]||18;
   const fill= colorOf(el.diam,el.status);
   const strk= strokeOf(el.diam,el.status);
@@ -1296,7 +1369,7 @@ function renderPipe(layer,el){
   g.appendChild(lbl);
 
   // handles
-  if(sel && isUnlocked){
+  if(sel && isUnlocked && selectedIds.size===1){
     [{x:el.x1,y:el.y1},{x:el.x2,y:el.y2}].forEach(pt=>{
       const c=document.createElementNS(SVG_NS,'circle');
       c.setAttribute('class','handle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r',9);
@@ -1304,15 +1377,12 @@ function renderPipe(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>{
-    if(tool==='select'){ if(el.fromBox||el.toBox) selectEl(el.id); else startDrag(ev,el.id); }
-    else if(tool!=='pipe'){ selectEl(el.id); }
-  });
+  g.addEventListener('mousedown',ev=>elementMouseDown(ev,el));
   layer.appendChild(g);
 }
 
 function renderBox(layer,el){
-  const sel  = el.id===selectedId;
+  const sel  = selectedIds.has(el.id);
   const fill = el.status==='done'?'#304F7E':'#e5e7eb';
   const tc   = el.status==='done'?'#fff':'#374151';
   const lbl  = boxLabel(el);
@@ -1339,7 +1409,7 @@ function renderBox(layer,el){
   txt.textContent=lbl;
   g.appendChild(txt);
 
-  if(sel && isUnlocked){
+  if(sel && isUnlocked && selectedIds.size===1){
     [[0,0],[PV_SIZE,0],[PV_SIZE,PV_SIZE],[0,PV_SIZE]].forEach(([cx,cy])=>{
       const c=document.createElementNS(SVG_NS,'circle');
       c.setAttribute('class','handle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',7);
@@ -1347,10 +1417,7 @@ function renderBox(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>{
-    if(tool==='select') startDrag(ev,el.id);
-    else if(tool!=='pipe') selectEl(el.id);
-  });
+  g.addEventListener('mousedown',ev=>elementMouseDown(ev,el));
   layer.appendChild(g);
 }
 
@@ -1404,7 +1471,7 @@ function renderTable(){
     const lenCell=isPipe?(el.lengthM?el.lengthM+' m':'—'):'—';
     const tr=document.createElement('tr');
     tr.dataset.id=el.id;
-    if(el.id===selectedId) tr.classList.add('selected');
+    if(selectedIds.has(el.id)) tr.classList.add('selected');
     tr.innerHTML=`
       <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute)">${el.id}</td>
       <td style="font-weight:700">${isPipe?'Tubulação':BOX_TYPES[el.boxType||'PV'].name}</td>
@@ -1423,8 +1490,21 @@ function renderTable(){
 function renderDetail(){
   const empty  = document.getElementById('side-empty');
   const detail = document.getElementById('detail-panel');
+  const emsg   = document.getElementById('empty-msg');
+  // 2+ selecionados → painel de grupo
+  if(selectedIds.size>1){
+    detail.classList.remove('active'); empty.style.display='block';
+    emsg.innerHTML =
+      `<strong>${selectedIds.size} elementos selecionados</strong><br>`+
+      `Arraste qualquer um deles para mover todos juntos.<br>`+
+      `<span style="font-size:11px;color:var(--text-mute)">Shift+clique adiciona/remove · Del exclui todos · Esc limpa</span>`;
+    return;
+  }
   if(selectedId==null){
-    empty.style.display='block'; detail.classList.remove('active'); return;
+    empty.style.display='block'; detail.classList.remove('active');
+    if(elements.length>0)
+      emsg.innerHTML='<strong>Nenhum elemento selecionado</strong><br>Clique para selecionar · Shift+clique para vários · "Selecionar Tudo" move o desenho inteiro.';
+    return;
   }
   const el=elements.find(e=>e.id===selectedId);
   if(!el){ deselect(); return; }
@@ -1683,8 +1763,11 @@ window.addEventListener('keydown',ev=>{
     else { setTool('select'); deselect(); }
     document.getElementById('pipe-prev')?.remove();
   }
+  if((ev.ctrlKey||ev.metaKey) && (ev.key==='a'||ev.key==='A') && !typing){
+    ev.preventDefault(); selectAll(); return;
+  }
   if(!typing){
-    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedId) deleteSelected() }
+    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedIds.size) deleteSelected() }
     if(ev.key==='p'||ev.key==='P') setTool('pipe');
     if(ev.key==='b'||ev.key==='B') setTool('box');
     if(ev.key==='v'||ev.key==='V') setTool('select');
