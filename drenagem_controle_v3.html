@@ -117,7 +117,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 /* The actual large SVG canvas inside the viewport */
 #drain-svg{
   position:absolute;top:0;left:0;
-  /* world size = 8000×5000 px; viewport will be scaled/translated via transform */
+  /* world size = 8000×10000 px; viewport will be scaled/translated via transform */
 }
 
 /* Grid lines via SVG pattern — drawn inside SVG */
@@ -385,7 +385,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       </div>
     </div>
     <div class="canvas-viewport" id="canvas-viewport">
-      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="5000">
+      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="10000">
         <defs>
           <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e4e7ec" stroke-width="0.5"/>
@@ -395,7 +395,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
             <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#d4d8e0" stroke-width="1"/>
           </pattern>
         </defs>
-        <rect width="8000" height="5000" fill="url(#grid)"/>
+        <rect width="8000" height="10000" fill="url(#grid)"/>
         <g id="elements-layer"></g>
         <g id="preview-layer"></g>
       </svg>
@@ -565,7 +565,7 @@ const SB_KEY = (window.PCO_CONFIG||{supabase:{}}).supabase.key || '';           
 const TABLE  = 'drain_elements';
 const SVG_NS        = 'http://www.w3.org/2000/svg';
 const WORLD_W       = 8000;
-const WORLD_H       = 5000;
+const WORLD_H       = 10000;
 const SNAP          = 20;
 const PV_SIZE       = 40;
 const MIN_PIPE      = 30;
