@@ -286,7 +286,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     <div class="kpi-sub" id="kpi-pipes-m">0 m lineares</div>
   </div>
   <div class="kpi" data-color="green">
-    <div class="kpi-label">Caixas PV</div>
+    <div class="kpi-label">Caixas</div>
     <div class="kpi-value" id="kpi-boxes">0</div>
     <div class="kpi-sub">Poços de visita</div>
   </div>
@@ -313,13 +313,13 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-pipes"></div></div>
 </div>
 <div class="macro-progress" style="margin-top:-6px">
-  <div class="macro-head"><span>Avanço — Caixas PV</span><strong id="macro-text-boxes">0 / 0</strong></div>
+  <div class="macro-head"><span>Avanço — Caixas</span><strong id="macro-text-boxes">0 / 0</strong></div>
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-boxes"></div></div>
 </div>
 
 <!-- LEGEND -->
 <div class="legend-wrap">
-  <div class="legend-title">Legenda — Diâmetros e Status</div>
+  <div class="legend-title">Legenda — Status e Tipos de Caixa</div>
   <div class="legend-grid" id="legend-grid"></div>
 </div>
 
@@ -337,7 +337,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 8h12" stroke-linecap="round"/></svg>Traçar Tubo
     </button>
     <button class="tool-btn" id="btn-box" onclick="setTool('box')">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa PV
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa
     </button>
   </div>
   <div class="toolbar-section">
@@ -349,6 +349,12 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <option value="1000">Ø 1000 mm</option>
       <option value="1200" selected>Ø 1200 mm</option>
       <option value="1500">Ø 1500 mm</option>
+    </select>
+    <span class="toolbar-label">Tipo de Caixa</span>
+    <select class="diam-select" id="box-type-default" title="Tipo da caixa a inserir (também usado na caixa de fim do trecho)">
+      <option value="PV" selected>PV · Poço de Visita</option>
+      <option value="BL">BL · Boca de Lobo</option>
+      <option value="CP">CP · Caixa de Passagem</option>
     </select>
     <div class="toolbar-sep"></div>
     <button class="tool-btn danger" onclick="clearAll()">
@@ -438,8 +444,16 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         <span class="field-label">Comprimento (m)</span>
         <input type="number" class="input" id="op-len" min="0" step="0.5" placeholder="ex.: 50"/>
       </div>
+      <div class="field" id="field-boxtype" style="display:none">
+        <span class="field-label">Tipo de Caixa</span>
+        <select class="input" id="op-boxtype" onchange="setBoxType(this.value)">
+          <option value="PV">PV · Poço de Visita</option>
+          <option value="BL">BL · Boca de Lobo</option>
+          <option value="CP">CP · Caixa de Passagem</option>
+        </select>
+      </div>
       <div class="field" id="field-pvnum" style="display:none">
-        <span class="field-label">Número PV (1–500)</span>
+        <span class="field-label">Número (1–500)</span>
         <input type="number" class="input" id="op-pvnum" min="1" max="500" step="1" placeholder="1–500"/>
       </div>
       <div class="field">
@@ -578,6 +592,26 @@ const DIAM_C = {
 };
 const DIAMS = [400,600,800,1000,1200,1500];
 
+/* ── COR DO TUBO POR STATUS (sem código por diâmetro) ──
+   O diâmetro continua existindo (controle + espessura do traço),
+   só a COR passa a ser: cinza = pendente · verde = concluído. */
+const PIPE_DONE        = '#609346';  // verde concluído
+const PIPE_PEND        = '#aab2bd';  // cinza pendente
+const PIPE_DONE_STROKE = '#4c7637';
+const PIPE_PEND_STROKE = '#7c8694';
+
+/* ── TIPOS DE CAIXA ──
+   Todos com a MESMA função: ponto de partida e de interligação de ramais.
+   No indicador do topo todos contam como "Caixas". */
+const BOX_TYPES = {
+  PV: { label:'PV', name:'Poço de Visita' },
+  BL: { label:'BL', name:'Boca de Lobo' },
+  CP: { label:'CP', name:'Caixa de Passagem' },
+};
+const BOX_TYPE_KEYS = ['PV','BL','CP'];
+function boxLabel(el){ const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return t.label + (el.pvNum||'?'); }
+function boxName(el){  const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return t.name + ' ' + (el.pvNum||'?'); }
+
 /* ================================================================
    STATE
    ================================================================ */
@@ -604,24 +638,14 @@ function snapV(v){ return Math.round(v/SNAP)*SNAP }
    ================================================================ */
 function buildLegend(){
   const g = document.getElementById('legend-grid');
-  g.innerHTML = '';
-  DIAMS.forEach(d => {
-    const c = DIAM_C[d];
-    g.innerHTML += `
-      <div class="legend-item">
-        <span class="legend-swatch" style="background:${c.done}"></span>Ø${d} concluído
-      </div>
-      <div class="legend-item">
-        <span class="legend-swatch pend" style="background:${c.pend};border-color:${c.done}"></span>Ø${d} pendente
-      </div>`;
-  });
-  g.innerHTML += `
-    <div class="legend-item">
-      <div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente
-    </div>
-    <div class="legend-item">
-      <div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída
-    </div>`;
+  g.innerHTML = `
+    <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_PEND}"></span>Tubo pendente</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_DONE}"></span>Tubo concluído</div>
+    <div class="legend-item"><div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente</div>
+    <div class="legend-item"><div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída</div>
+    <div class="legend-item" style="opacity:.8;font-weight:500">PV · Poço de Visita</div>
+    <div class="legend-item" style="opacity:.8;font-weight:500">BL · Boca de Lobo</div>
+    <div class="legend-item" style="opacity:.8;font-weight:500">CP · Caixa de Passagem</div>`;
 }
 
 /* ================================================================
@@ -662,9 +686,11 @@ function toRow(el){
     return { ...base, diam: el.diam, length_m: el.lengthM||0,
              x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2,
              from_box: el.fromBox||null, to_box: el.toBox||null,
+             box_type: null,
              pv_num: null, pv_x: null, pv_y: null };
   else
     return { ...base, pv_num: el.pvNum, pv_x: el.x, pv_y: el.y,
+             box_type: el.boxType||'PV',
              from_box: null, to_box: null,
              diam: null, length_m: null, x1: null, y1: null, x2: null, y2: null };
 }
@@ -678,7 +704,8 @@ function fromRow(r){
              fromBox:r.from_box||null, toBox:r.to_box||null };
   else
     return { id:r.id, kind:'box', status:r.status, note:r.note||'',
-             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y) };
+             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y),
+             boxType:r.box_type||'PV' };
 }
 
 /* ================================================================
@@ -985,8 +1012,9 @@ function commitLine(){
   if(endBox){
     const c = boxCenter(endBox); endX=c.x; endY=c.y; toBoxId=endBox.id;
   } else {
-    endBox = { id:uid(), kind:'box', x:e.x-PV_SIZE/2, y:e.y-PV_SIZE/2,
-               pvNum:nextPvNum(), status:'pend', note:'' };
+    const bt = getBoxType();
+    endBox = { id:uid(), kind:'box', boxType:bt, x:e.x-PV_SIZE/2, y:e.y-PV_SIZE/2,
+               pvNum:nextBoxNum(bt), status:'pend', note:'' };
     elements.push(endBox); endX=e.x; endY=e.y; toBoxId=endBox.id; novaCaixa=true;
   }
 
@@ -1001,8 +1029,8 @@ function commitLine(){
 
   cancelLine();
   save(); render();
-  toast(novaCaixa ? `Trecho de ${len.toLocaleString('pt-BR')} m criado · nova caixa PV ${endBox.pvNum}`
-                  : `Trecho de ${len.toLocaleString('pt-BR')} m · conectado à caixa PV ${endBox.pvNum}`);
+  toast(novaCaixa ? `Trecho de ${len.toLocaleString('pt-BR')} m criado · nova caixa ${boxLabel(endBox)}`
+                  : `Trecho de ${len.toLocaleString('pt-BR')} m · conectado à caixa ${boxLabel(endBox)}`);
 }
 
 /* cancela / encerra o desenho em andamento */
@@ -1022,16 +1050,19 @@ function placeBox(ev){
   if(!isUnlocked) return;
   const w = evToWorld(ev);
   const x = snapV(w.x)-PV_SIZE/2, y = snapV(w.y)-PV_SIZE/2;
-  const el={id:uid(), kind:'box', x, y, pvNum:nextPvNum(), status:'pend', note:''};
+  const bt = getBoxType();
+  const el={id:uid(), kind:'box', boxType:bt, x, y, pvNum:nextBoxNum(bt), status:'pend', note:''};
   elements.push(el);
   selectedId=el.id;
   save(); render();
 }
 
 function getDiam(){ return Number(document.getElementById('diam-default').value)||1200 }
+function getBoxType(){ const v=document.getElementById('box-type-default')?.value; return BOX_TYPES[v]?v:'PV'; }
 
-function nextPvNum(){
-  const used=elements.filter(e=>e.kind==='box').map(e=>e.pvNum||0);
+/* próximo número livre POR TIPO (PV, BL e CP numerados de forma independente) */
+function nextBoxNum(type){
+  const used=elements.filter(e=>e.kind==='box' && (e.boxType||'PV')===type).map(e=>e.pvNum||0);
   let n=1; while(used.includes(n)) n++; return Math.min(n,500);
 }
 
@@ -1157,7 +1188,7 @@ function deleteSelected(){
   const el=elements.find(e=>e.id===selectedId);
   if(!el){ toast('Elemento não encontrado',true); return }
   const idToDelete = selectedId; // captura AGORA antes de qualquer render
-  const name=el.kind==='pipe'?`Trecho Ø${el.diam} mm`:`Caixa PV Nº ${el.pvNum||'?'}`;
+  const name=el.kind==='pipe'?`Trecho Ø${el.diam} mm`:boxName(el);
   openModal('Excluir elemento','Confirmar exclusão: '+name+'?', async ()=>{
     elements = elements.filter(e => e.id !== idToDelete);
     selectedId = null;
@@ -1208,8 +1239,8 @@ function renderSVG(){
   document.getElementById('map-count').textContent=`${elements.length} elemento${elements.length!==1?'s':''}`;
 }
 
-function colorOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.done:c.pend }
-function strokeOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.stroke:'#9ca3af' }
+function colorOf(diam,status){ return status==='done'?PIPE_DONE:PIPE_PEND }
+function strokeOf(diam,status){ return status==='done'?PIPE_DONE_STROKE:PIPE_PEND_STROKE }
 
 function renderPipe(layer,el){
   const sel = el.id===selectedId;
@@ -1284,7 +1315,7 @@ function renderBox(layer,el){
   const sel  = el.id===selectedId;
   const fill = el.status==='done'?'#304F7E':'#e5e7eb';
   const tc   = el.status==='done'?'#fff':'#374151';
-  const lbl  = String(el.pvNum||'?');
+  const lbl  = boxLabel(el);
 
   const g=document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pv-group'+(sel?' selected':''));
@@ -1304,7 +1335,7 @@ function renderBox(layer,el){
   txt.setAttribute('class','pv-label');
   txt.setAttribute('x',PV_SIZE/2); txt.setAttribute('y',PV_SIZE/2);
   txt.setAttribute('fill',tc);
-  txt.setAttribute('font-size',lbl.length>2?'10':'13');
+  txt.setAttribute('font-size',lbl.length<=2?'13':lbl.length<=3?'11':'9');
   txt.textContent=lbl;
   g.appendChild(txt);
 
@@ -1367,17 +1398,16 @@ function renderTable(){
   elements.forEach(el=>{
     const isPipe=el.kind==='pipe';
     const st=el.status||'pend';
-    const c=DIAM_C[el.diam]||DIAM_C[1200];
     const diamCell=isPipe
-      ?`<span class="diam-chip" style="background:${c.done};color:#fff">Ø${el.diam} mm</span>`
-      :`<strong>Nº ${String(el.pvNum||'?').padStart(3,'0')}</strong>`;
+      ?`<span class="diam-chip" style="background:#eef2f8;color:#304F7E;border:1px solid #cdd6e4">Ø${el.diam} mm</span>`
+      :`<strong>${boxLabel(el)}</strong>`;
     const lenCell=isPipe?(el.lengthM?el.lengthM+' m':'—'):'—';
     const tr=document.createElement('tr');
     tr.dataset.id=el.id;
     if(el.id===selectedId) tr.classList.add('selected');
     tr.innerHTML=`
       <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute)">${el.id}</td>
-      <td style="font-weight:700">${isPipe?'Tubulação':'Caixa PV'}</td>
+      <td style="font-weight:700">${isPipe?'Tubulação':BOX_TYPES[el.boxType||'PV'].name}</td>
       <td>${diamCell}</td>
       <td class="num">${lenCell}</td>
       <td><span class="inline-badge ${st}">${st==='done'?'✔ Concluído':'⏳ Pendente'}</span></td>
@@ -1401,11 +1431,11 @@ function renderDetail(){
   empty.style.display='none'; detail.classList.add('active');
 
   const isPipe=el.kind==='pipe';
-  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA PV';
-  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:`Caixa PV · Nº ${el.pvNum||'?'}`;
+  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA';
+  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:boxLabel(el);
   document.getElementById('detail-sub').textContent=isPipe
     ?(el.lengthM?el.lengthM+' metros':'Comprimento não informado')
-    :'Poço de Visita';
+    :(BOX_TYPES[el.boxType||'PV'].name+' · Nº '+(el.pvNum||'?'));
 
   const st=el.status||'pend';
   const badge=document.getElementById('detail-badge');
@@ -1416,12 +1446,14 @@ function renderDetail(){
 
   document.getElementById('field-diam').style.display=isPipe?'block':'none';
   document.getElementById('field-len').style.display=isPipe?'block':'none';
+  document.getElementById('field-boxtype').style.display=!isPipe?'block':'none';
   document.getElementById('field-pvnum').style.display=!isPipe?'block':'none';
 
   if(isPipe){
     document.getElementById('op-diam').value=el.diam;
     document.getElementById('op-len').value=el.lengthM||'';
   } else {
+    document.getElementById('op-boxtype').value=el.boxType||'PV';
     document.getElementById('op-pvnum').value=el.pvNum||'';
   }
   document.getElementById('op-note').value=el.note||'';
@@ -1434,6 +1466,17 @@ function setStatus(s){
 function setDiam(d){
   const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='pipe') return;
   el.diam=Number(d); renderSVG(); renderDetail();
+}
+function setBoxType(v){
+  const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='box') return;
+  if(!BOX_TYPES[v]) return;
+  if((el.boxType||'PV')!==v){
+    el.boxType=v;
+    // renumera para o próximo número livre do novo tipo (evita duplicar)
+    const used=elements.filter(e=>e.kind==='box'&&e.id!==el.id&&(e.boxType||'PV')===v).map(e=>e.pvNum||0);
+    let n=1; while(used.includes(n)) n++; el.pvNum=Math.min(500,n);
+  }
+  renderSVG(); renderDetail();
 }
 function saveSelected(){
   const el=elements.find(e=>e.id===selectedId); if(!el) return;
@@ -1449,7 +1492,7 @@ function updateEmptyMsg(){
   const msg=document.getElementById('empty-msg');
   if(elements.length===0){
     msg.innerHTML=isUnlocked
-      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa PV" para começar a desenhar a rede.'
+      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa" para começar a desenhar a rede.'
       :'<strong>Planta vazia</strong><br>Libere a edição com a senha para cadastrar elementos.';
   }
 }
@@ -1467,18 +1510,18 @@ function csvEsc(v){
 
 function exportCSV(){
   const SEP = ';'; // ponto-e-vírgula para Excel brasileiro
-  const cols = ['id','tipo','diametro_mm','pv_numero','comprimento_m','status','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
+  const cols = ['id','tipo','tipo_caixa','diametro_mm','pv_numero','comprimento_m','status','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
   const header = cols.join(SEP);
   const rows = elements.map(el => {
     let vals;
     if(el.kind==='pipe'){
       vals = [
-        el.id, 'tubulacao', el.diam, '', el.lengthM||0, el.status, el.note||'',
+        el.id, 'tubulacao', '', el.diam, '', el.lengthM||0, el.status, el.note||'',
         el.x1, el.y1, el.x2, el.y2, '', ''
       ];
     } else {
       vals = [
-        el.id, 'caixa_pv', '', el.pvNum||'', 0, el.status, el.note||'',
+        el.id, 'caixa', el.boxType||'PV', '', el.pvNum||'', 0, el.status, el.note||'',
         '', '', '', '', el.x, el.y
       ];
     }
@@ -1586,6 +1629,8 @@ function confirmImport(){
     } else {
       const pv=parseInt(row['pv_numero']);
       if(!isNaN(pv)&&pv>=1&&pv<=500) el.pvNum=pv;
+      const bt=(row['tipo_caixa']||'').trim().toUpperCase();
+      if(BOX_TYPES[bt]) el.boxType=bt;
     }
     updated++;
   });
