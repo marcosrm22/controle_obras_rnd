@@ -114,6 +114,25 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 .canvas-viewport.mode-pipe{cursor:crosshair}
 .canvas-viewport.mode-box{cursor:cell}
 
+/* ── TELA CHEIA (map-stage = ferramentas + canvas + painel de edição) ── */
+#map-stage:fullscreen,
+#map-stage:-webkit-full-screen{
+  background:var(--bg); padding:12px;
+  display:flex; flex-direction:column; gap:10px; overflow:auto;
+}
+#map-stage:fullscreen .layout,
+#map-stage:-webkit-full-screen .layout{ flex:1 1 auto; min-height:0; align-items:stretch; }
+#map-stage:fullscreen .map-wrap,
+#map-stage:-webkit-full-screen .map-wrap{ height:100%; }
+#map-stage:fullscreen .canvas-viewport,
+#map-stage:-webkit-full-screen .canvas-viewport{ min-height:0; }
+#map-stage:fullscreen .side,
+#map-stage:-webkit-full-screen .side{ overflow:auto; }
+body.fs-on #btn-fullscreen{ background:var(--inpasa-blue); color:#fff; border-color:var(--inpasa-blue); }
+#btn-lock-fs{ display:none; }
+body.fs-on #btn-lock-fs{ display:inline-flex; }
+body.fs-on.unlocked #btn-lock-fs{ background:var(--green); border-color:var(--green); color:#fff; }
+
 /* The actual large SVG canvas inside the viewport */
 #drain-svg{
   position:absolute;top:0;left:0;
@@ -323,6 +342,8 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="legend-grid" id="legend-grid"></div>
 </div>
 
+<!-- MAP STAGE (área que vai para tela cheia: ferramentas + canvas + painel) -->
+<div id="map-stage">
 <!-- TOOLBAR -->
 <div class="toolbar">
   <div class="toolbar-section">
@@ -363,6 +384,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     <button class="tool-btn danger" onclick="clearAll()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>Limpar Tudo
     </button>
+    <button class="tool-btn" id="btn-lock-fs" onclick="toggleLock()" title="Liberar / Trancar edição">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+      <span id="lock-label-fs">Liberar</span>
+    </button>
   </div>
 </div>
 
@@ -384,6 +409,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
           <button class="zoom-btn" onclick="zoom(0.8)" title="Zoom out">−</button>
           <button class="zoom-btn" onclick="zoomFit()" title="Encaixar tudo" style="font-size:11px;font-weight:800;width:auto;padding:0 6px">⊞</button>
           <button class="zoom-btn" onclick="zoomReset()" title="100%%" style="font-size:10px;width:auto;padding:0 6px">1:1</button>
+          <button class="zoom-btn" id="btn-fullscreen" onclick="toggleFullscreen()" title="Tela cheia" style="width:auto;padding:0 7px;font-size:14px">⛶</button>
         </div>
       </div>
     </div>
@@ -476,6 +502,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     </div>
   </div>
 </div>
+</div><!-- /map-stage -->
 
 <!-- TABLE SECTION -->
 <div class="table-section">
@@ -602,6 +629,11 @@ const PIPE_DONE        = '#609346';  // verde concluído
 const PIPE_PEND        = '#aab2bd';  // cinza pendente
 const PIPE_DONE_STROKE = '#4c7637';
 const PIPE_PEND_STROKE = '#7c8694';
+
+/* Translucidez dos PENDENTES (cinza) — quanto menor, mais "apagado" fica o
+   pendente, fazendo o concluído (verde/azul) se destacar ao tirar o zoom. */
+const PEND_PIPE_OPACITY = 0.4;
+const PEND_BOX_OPACITY  = 0.55;
 
 /* ── TIPOS DE CAIXA ──
    Todos com a MESMA função: ponto de partida e de interligação de ramais.
@@ -809,6 +841,42 @@ function zoomReset(){
   applyTransform();
 }
 
+/* ================================================================
+   TELA CHEIA (visualização + edição do mapa)
+   ================================================================ */
+function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function toggleFullscreen(){
+  const stage = document.getElementById('map-stage');
+  if(!fsElement()){
+    const req = stage.requestFullscreen || stage.webkitRequestFullscreen || stage.msRequestFullscreen;
+    if(req) req.call(stage);
+    else toast('Tela cheia não suportada neste navegador', true);
+  } else {
+    const ex = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if(ex) ex.call(document);
+  }
+}
+function onFullscreenChange(){
+  const on = !!fsElement();
+  document.body.classList.toggle('fs-on', on);
+  const stage = document.getElementById('map-stage');
+  // modais/toast precisam estar DENTRO do elemento em tela cheia para aparecerem
+  ['modal-confirm','modal-pwd','modal-import','toast'].forEach(id=>{
+    const elx = document.getElementById(id);
+    if(!elx) return;
+    if(on) stage.appendChild(elx); else document.body.appendChild(elx);
+  });
+  const btn = document.getElementById('btn-fullscreen');
+  if(btn){
+    btn.textContent = on ? '🗗' : '⛶';
+    btn.title = on ? 'Sair da tela cheia (Esc)' : 'Tela cheia';
+  }
+  // o viewport mudou de tamanho → reaplica a transformação (preserva a vista atual)
+  setTimeout(applyTransform, 60);
+}
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
 /* Convert viewport pixel → world SVG coordinates */
 function vpToWorld(px, py){
   return { x:(px-vpTx)/vpScale, y:(py-vpTy)/vpScale };
@@ -876,6 +944,7 @@ function updateLockUI(){
   document.body.classList.toggle('locked',!isUnlocked);
   document.body.classList.toggle('unlocked',isUnlocked);
   document.getElementById('lock-label').textContent=isUnlocked?'Edição liberada · Trancar':'Bloqueado · Liberar';
+  const l2=document.getElementById('lock-label-fs'); if(l2) l2.textContent=isUnlocked?'Trancar':'Liberar';
 }
 
 /* ================================================================
@@ -1324,6 +1393,7 @@ function renderPipe(layer,el){
   const g = document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pipe-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
+  if(el.status!=='done' && !sel) g.setAttribute('opacity', PEND_PIPE_OPACITY);
 
   // hit area
   const hit=document.createElementNS(SVG_NS,'line');
@@ -1391,6 +1461,7 @@ function renderBox(layer,el){
   g.setAttribute('class','pv-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
   g.setAttribute('transform',`translate(${el.x},${el.y})`);
+  if(el.status!=='done' && !sel) g.setAttribute('opacity', PEND_BOX_OPACITY);
 
   const rect=document.createElementNS(SVG_NS,'rect');
   rect.setAttribute('class','pv-rect');
