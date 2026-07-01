@@ -305,15 +305,23 @@ table.data tr.is-summary:hover td{background:#eef0f3}
       <div class="cfg-grid">
         <div class="fld">
           <label>Empresa / Terceira</label>
-          <input id="cf-empresa" placeholder="ex.: ENGEDELTA">
+          <input id="cf-empresa" placeholder="ex.: FORTYS">
+        </div>
+        <div class="fld">
+          <label>Escopo / Contrato</label>
+          <input id="cf-escopo" placeholder="ex.: CT-29489">
         </div>
         <div class="fld">
           <label>Área / CWA</label>
-          <input id="cf-area" placeholder="ex.: 2308.B - Destilaria">
+          <input id="cf-area" placeholder="ex.: geral">
         </div>
         <div class="fld">
           <label>Disciplina</label>
           <input id="cf-disc" placeholder="ex.: Montagem Mecânica">
+        </div>
+        <div class="fld">
+          <label>Revisão (do arquivo)</label>
+          <input id="cf-rev" class="mono" placeholder="—" readonly style="background:#eef2f8;font-weight:700">
         </div>
         <div class="fld">
           <label>Data de corte</label>
@@ -704,7 +712,7 @@ function renderPainel(r,meta){
   const pc=n=>fmtNum(n/T*100,2)+'%';
   const arrow=(v)=> v<0 ? '<span class="arrow red">▼</span>' : '<span class="arrow green">▲</span>';
   const col=(v)=> v<0?'red':'green';
-  const sub = `${meta.empresa||'—'} · ${meta.area||''} &nbsp;|&nbsp; Data de corte: ${fmtD(r.cut)} &nbsp;|&nbsp; ${meta.revAtual||'Revisão atual'}${meta.revBase?(' vs '+meta.revBase):' · 1ª revisão'}`;
+  const sub = `${meta.empresa||'—'}${meta.escopo?(' · '+meta.escopo):''} · ${meta.area||''} &nbsp;|&nbsp; Data de corte: ${fmtD(r.cut)} &nbsp;|&nbsp; ${meta.revAtual||'Revisão atual'}${meta.revBase?(' vs '+meta.revBase):' · 1ª revisão'}`;
   const blank = v => v==null;
   const wow = (v) => blank(v) ? '<span style="color:var(--text-mute)">—</span>'
                               : `<span class="${col(v)}">${arrow(v)}${fmtNum(v,2)}</span>`;
@@ -897,7 +905,7 @@ function fillPrintHeader(r,meta){
   $('print-header').innerHTML = `
     <div class="ph-title">Relatório de Validação de Cronograma — Terceiras</div>
     <div class="ph-meta">
-      <b>Empresa:</b> ${esc(meta.empresa||'—')} &nbsp;&nbsp; <b>Área/CWA:</b> ${esc(meta.area||'—')} &nbsp;&nbsp; <b>Disciplina:</b> ${esc(meta.disc||'—')}<br>
+      <b>Empresa:</b> ${esc(meta.empresa||'—')} &nbsp;&nbsp; <b>Escopo/Contrato:</b> ${esc(meta.escopo||'—')} &nbsp;&nbsp; <b>Área/CWA:</b> ${esc(meta.area||'—')} &nbsp;&nbsp; <b>Disciplina:</b> ${esc(meta.disc||'—')}<br>
       <b>Revisão:</b> ${esc(meta.revAtual||'—')} ${meta.revBase?('&nbsp; vs &nbsp;<b>Anterior:</b> '+esc(meta.revBase)):'&nbsp;(1ª revisão — sem comparativo)'}
       &nbsp;&nbsp; <b>Data de corte:</b> ${fmtD(r.cut)} &nbsp;&nbsp; <b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}
     </div>`;
@@ -956,6 +964,17 @@ function setupDrop(which){
   drop.addEventListener('drop',ev=>{const f=ev.dataTransfer.files[0]; if(f) readFile(which,f);});
   input.addEventListener('change',ev=>{const f=ev.target.files[0]; if(f) readFile(which,f);});
 }
+/* extrai EMPRESA-CR-ESCOPO-REVnn do nome do arquivo */
+function parseFilename(name){
+  let base = (name||'').replace(/\.[^.]+$/,'');                     // remove extensão
+  const out = {empresa:'', escopo:'', rev:null, revLabel:''};
+  const mRev = base.match(/[-_ ]?R(?:EV)?\.?[ _-]?0*(\d+)\s*$/i);   // ...REV03 / R3 / rev-3
+  if(mRev){ out.rev=parseInt(mRev[1],10); out.revLabel='REV'+String(out.rev).padStart(2,'0'); base=base.slice(0,mRev.index); }
+  const mCR = base.match(/^(.*?)[-_ ]+CR[-_ ]+(.*)$/i);            // EMPRESA -CR- ESCOPO
+  if(mCR){ out.empresa=mCR[1].trim(); out.escopo=mCR[2].replace(/[-_ ]+$/,'').trim(); }
+  else { out.empresa=base.replace(/[-_ ]+$/,'').trim(); }
+  return out;
+}
 function readFile(which,file){
   if(!/\.xml$/i.test(file.name)){ toast('Selecione um arquivo .xml','err'); return; }
   clearLog(); log('Lendo: '+file.name+' ('+(file.size/1024).toFixed(0)+' KB)…');
@@ -984,6 +1003,13 @@ function onAfterLoad(){
     populateMapping(a);
     $('cfg-card').style.display='';
     if(!$('cf-corte').value) $('cf-corte').value = a.statusDate || new Date().toISOString().slice(0,10);
+    // pré-preenche a partir do nome do arquivo (empresa, escopo/contrato, revisão)
+    const fm = parseFilename(a.fileName);
+    state.fileMeta = fm;
+    if(fm.empresa && !$('cf-empresa').value) $('cf-empresa').value = fm.empresa;
+    if(fm.escopo  && !$('cf-escopo').value)  $('cf-escopo').value  = fm.escopo;
+    $('cf-rev').value = fm.revLabel || '—';
+    log('  → arquivo: empresa="'+fm.empresa+'", escopo="'+fm.escopo+'", revisão='+(fm.revLabel||'não detectada'));
     $('btn-analisar').disabled=false;
   }
 }
@@ -1013,47 +1039,55 @@ let busy=false;
 async function runAnalysis(){
   if(busy) return;
   const emp=$('cf-empresa').value.trim();
+  const escopo=$('cf-escopo').value.trim()||null;
   const area=$('cf-area').value.trim()||null, disc=$('cf-disc').value.trim()||null;
   if(!state.atualParsed){ toast('Suba o XML primeiro','err'); return; }
-  if(!emp){ toast('Preencha a Empresa (usada para localizar a revisão anterior)','err'); $('cf-empresa').focus(); return; }
+  if(!emp){ toast('Preencha a Empresa','err'); $('cf-empresa').focus(); return; }
   const cut=$('cf-corte').value || new Date().toISOString().slice(0,10);
   const mp=$('cf-prev').value, mc=$('cf-concl').value;
+  const fm=state.fileMeta||{};
   const btn=$('btn-analisar'); const old=btn.innerHTML; busy=true; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Processando…';
   $('save-status').textContent=''; $('save-status').style.color='var(--green)';
   try{
     const atualN=normalize(state.atualParsed.rawTasks, mp, mc, cut);
     currentAtualNorm=atualN;
 
-    // localizar cronograma + revisão anterior (base) no banco
-    let cronoId=null, baseN=null, baseRot=null, nextRev=1;
+    // localizar cronograma (Empresa + Escopo) + revisão anterior no banco
+    let cronoId=null, baseN=null, baseRot=null, curRev=fm.rev||null;
     try{
       let q=`val_cronogramas?empresa=eq.${encodeURIComponent(emp)}&select=id`;
-      q += area?`&area=eq.${encodeURIComponent(area)}`:`&area=is.null`;
-      q += disc?`&disciplina=eq.${encodeURIComponent(disc)}`:`&disciplina=is.null`;
+      q += escopo?`&escopo=eq.${encodeURIComponent(escopo)}`:`&escopo=is.null`;
       const cr=await sb('GET',q);
       if(cr.length){
         cronoId=cr[0].id;
-        const prev=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
-        if(prev.length){ baseN=prev[0].tarefas_json; baseRot=prev[0].rotulo||('REV '+prev[0].revisao); nextRev=prev[0].revisao+1; }
+        if(curRev){
+          // base = revisão anterior mais recente (revisao < revisão atual do arquivo)
+          const prev=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=lt.${curRev}&select=revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
+          if(prev.length){ baseN=prev[0].tarefas_json; baseRot=prev[0].rotulo||('REV'+String(prev[0].revisao).padStart(2,'0')); }
+        }else{
+          const top=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
+          if(top.length){ baseN=top[0].tarefas_json; baseRot=top[0].rotulo||('REV'+String(top[0].revisao).padStart(2,'0')); curRev=top[0].revisao+1; }
+        }
       }
+      if(!curRev) curRev=1;
       dbReady=true;
     }catch(dberr){
-      if(/42P01|PGRST205|does not exist/i.test(dberr.message)){ dbReady=false; $('setup-notice').style.display=''; }
+      if(/42P01|PGRST205|does not exist/i.test(dberr.message)){ dbReady=false; $('setup-notice').style.display=''; if(!curRev) curRev=1; }
       else throw dberr;
     }
 
     const firstRev = !baseN;
+    const revLabel = 'REV'+String(curRev).padStart(2,'0');
     const r=analyze(baseN, atualN, cut, firstRev);
-    currentMeta={empresa:emp,area,disc, revBase:baseRot,
-      revAtual:'REV '+String(nextRev).padStart(2,'0'), cut};
+    currentMeta={empresa:emp,escopo,area,disc, revBase:baseRot, revAtual:revLabel, cut};
     renderAll(r,currentMeta);
 
     // gravar XML + análise no banco
     if(dbReady){
       try{
-        await saveRevision({emp,area,disc,cronoId,nextRev,cut,mp,mc});
-        $('save-status').textContent='✓ revisão '+nextRev+' gravada no banco';
-        toast('Analisado e salvo — revisão '+nextRev+(firstRev?' (1ª)':'')+' ✓','ok');
+        await saveRevision({emp,escopo,area,disc,cronoId,revisao:curRev,revLabel,cut,mp,mc});
+        $('save-status').textContent='✓ '+revLabel+' gravada no banco';
+        toast('Analisado e salvo — '+revLabel+(firstRev?' (1ª revisão)':'')+' ✓','ok');
         loadHistory();
       }catch(serr){
         console.error(serr);
@@ -1082,17 +1116,22 @@ async function sb(method,path,body){
   const txt=await res.text(); try{return JSON.parse(txt);}catch(_){return [];}
 }
 
-async function saveRevision({emp,area,disc,cronoId,nextRev,cut,mp,mc}){
+async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,mp,mc}){
   if(!cronoId){
-    const ins=await sb('POST','val_cronogramas',{empresa:emp,area:area||null,disciplina:disc||null,descricao:null});
+    const ins=await sb('POST','val_cronogramas',{empresa:emp,escopo:escopo||null,area:area||null,disciplina:disc||null,descricao:null});
     cronoId=ins[0].id;
+  }else{
+    // atualiza atributos descritivos (área/disciplina podem mudar entre revisões)
+    await sb('PATCH',`val_cronogramas?id=eq.${cronoId}`,{area:area||null,disciplina:disc||null});
   }
+  // se esta revisão já existe (reenvio), sobrescreve
+  await sb('DELETE',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=eq.${revisao}`);
   const compact=currentAtualNorm.map(t=>{const {ext,...rest}=t; return rest;});  // descarta ext bruto, mantém E/F
   await sb('POST','val_revisoes',{
-    cronograma_id:cronoId, revisao:nextRev,
-    rotulo:'REV '+String(nextRev).padStart(2,'0')+' · '+fmtD(cut),
+    cronograma_id:cronoId, revisao:revisao,
+    rotulo:revLabel+' · '+fmtD(cut),
     nome_arquivo: (state.atualParsed&&state.atualParsed.fileName)||null,
-    data_corte:cut, eh_base:(nextRev===1),
+    data_corte:cut, eh_base:(revisao===1),
     total_tarefas:currentResult.leafRows.length,
     planejado:currentResult.painel.desempenho.prev,
     realizado:currentResult.painel.desempenho.concl,
@@ -1122,7 +1161,7 @@ async function loadHistory(){
       </div>`).join('');
       return `<div class="hist-card">
         <div class="hist-head">
-          <div><div class="hist-title">${esc(c.empresa)}</div>
+          <div><div class="hist-title">${esc(c.empresa)}${c.escopo?' <span style="color:var(--text-mute);font-weight:600">· '+esc(c.escopo)+'</span>':''}</div>
             <div class="hist-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões</div></div>
         </div>
         <div class="rev-list">${revRows||'<div class="rev-sub">sem revisões</div>'}</div>
@@ -1131,7 +1170,7 @@ async function loadHistory(){
           <select id="cmpB-${c.id}">${opts}</select>
           <span style="font-size:11px;color:var(--text-mute)">(base) vs</span>
           <select id="cmpA-${c.id}">${opts}</select>
-          <button class="btn ghost" onclick="openComparison('${c.id}','${esc(c.empresa)}','${esc(c.area||'')}')">Analisar</button>
+          <button class="btn ghost" onclick="openComparison('${c.id}','${esc(c.empresa)}','${esc(c.area||'')}','${esc(c.escopo||'')}')">Analisar</button>
         </div>`:''}
       </div>`;
     }).join('');
@@ -1145,7 +1184,7 @@ async function loadHistory(){
   }
 }
 
-async function openComparison(cId,emp,area){
+async function openComparison(cId,emp,area,escopo){
   const bId=$('cmpB-'+cId).value, aId=$('cmpA-'+cId).value;
   if(bId===aId){ toast('Selecione revisões diferentes','err'); return; }
   toast('Carregando revisões…');
@@ -1157,9 +1196,9 @@ async function openComparison(cId,emp,area){
     const baseN=b[0].tarefas_json, atualN=a[0].tarefas_json, cut=a[0].data_corte;
     currentAtualNorm=atualN;
     const r=analyze(baseN, atualN, cut, false);
-    currentMeta={empresa:emp,area,disc:'',revBase:b[0].rotulo,revAtual:a[0].rotulo,cut};
+    currentMeta={empresa:emp,escopo:escopo||'',area,disc:'',revBase:b[0].rotulo,revAtual:a[0].rotulo,cut};
     switchView('analise');
-    $('cf-empresa').value=emp; $('cf-area').value=area;
+    $('cf-empresa').value=emp; $('cf-area').value=area; if($('cf-escopo')) $('cf-escopo').value=escopo||'';
     renderAll(r,currentMeta);
   }catch(err){ toast('Erro: '+err.message,'err'); }
 }
