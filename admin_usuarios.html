@@ -343,6 +343,10 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
         🏔 Terraplanagem
       </label>
       <label class="perm-item">
+        <input type="checkbox" id="perm-validar"/>
+        📊 Validar Cronogramas (subir XML)
+      </label>
+      <label class="perm-item">
         <input type="checkbox" id="perm-editar"/>
         ✏️ Pode acionar edição
       </label>
@@ -444,6 +448,7 @@ function permLabel(p){
   const list = [];
   if(p?.drenagem)      list.push('<span style="color:var(--blue);font-weight:700">Drenagem</span>');
   if(p?.terraplanagem) list.push('<span style="color:var(--green);font-weight:700">Terra</span>');
+  if(p?.validar_cronogramas) list.push('<span style="color:#304F7E;font-weight:700">Validação</span>');
   if(p?.pode_editar)   list.push('<span style="color:var(--gold);font-weight:700">Edição</span>');
   if(p?.admin_panel)   list.push('<span style="color:var(--red);font-weight:700">Admin</span>');
   return list.length ? list.join(' · ') : '<span style="color:var(--text-mute)">—</span>';
@@ -601,6 +606,7 @@ function openEdit(id){
   const p = u.permissoes || {};
   document.getElementById('perm-drenagem').checked   = !!p.drenagem;
   document.getElementById('perm-terra').checked      = !!p.terraplanagem;
+  document.getElementById('perm-validar').checked    = !!p.validar_cronogramas;
   document.getElementById('perm-editar').checked     = !!p.pode_editar;
   document.getElementById('perm-admin-panel').checked= !!p.admin_panel;
   document.getElementById('modal-edit').classList.add('visible');
@@ -612,6 +618,7 @@ async function saveUserEdit(){
   const permissoes = {
     drenagem:      document.getElementById('perm-drenagem').checked,
     terraplanagem: document.getElementById('perm-terra').checked,
+    validar_cronogramas: document.getElementById('perm-validar').checked,
     pode_editar:   document.getElementById('perm-editar').checked,
     admin_panel:   document.getElementById('perm-admin-panel').checked,
   };

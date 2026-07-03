@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard de Desempenho · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--gold:#EAA239;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;--red:#C0392B;--red-soft:#fdecea;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1300px;margin:0 auto;padding:28px 24px 80px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
+.back-link:hover{color:var(--blue)}
+.nav-group{display:flex;gap:8px;flex-wrap:wrap}
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:23px;font-weight:800;letter-spacing:-0.5px}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.subtitle{font-size:12px;color:var(--text-dim);margin-top:6px}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.logout-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:#fff;color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.section-label{font-size:9px;color:var(--text-mute);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin:22px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.fbar select{font-family:inherit;font-size:13px;border:1px solid var(--border);padding:9px 12px;background:#fff;outline:none;min-width:280px;font-weight:600}
+.fbar select:focus{border-color:var(--blue)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:8px}
+.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .v{font-size:24px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi .l{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.kpi.red{border-top-color:var(--red)}.kpi.green{border-top-color:var(--green)}.kpi.gold{border-top-color:var(--gold)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.chart-card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);padding:16px 18px}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-size:13px;font-weight:800;margin-bottom:2px}
+.chart-hint{font-size:10px;color:var(--text-mute);margin-bottom:12px}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap.tall{height:360px}
+.empty{text-align:center;padding:50px 20px;color:var(--text-mute)}.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
+.notice.warn{border-left-color:var(--gold);background:#FEF3C7;color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+</style>
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="nav-row">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div class="nav-group">
+      <a class="back-link" href="validacao_cronogramas.html" style="color:var(--blue)">📊 Validação</a>
+      <a class="back-link" href="gestao_escopos.html" style="color:var(--blue)">📁 Gestão de Escopos</a>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle · Terceiras</div>
+      <h1>Dashboard de Desempenho <span>· das Empresas</span></h1>
+      <p class="subtitle">Desempenho semanal, curva S, avanço previsto × real e desvio acumulado por contrato</p>
+    </div>
+    <div class="user-bar">
+      <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
+        <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
+        <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div id="setup-notice" class="notice warn" style="display:none">
+    <b>Banco não configurado.</b> Rode o script <code>supabase_validacao.sql</code> no Supabase.
+  </div>
+  <div id="cdn-notice" class="notice warn" style="display:none">
+    <b>Biblioteca de gráficos não carregou.</b> Verifique a conexão (Chart.js é carregado via CDN).
+  </div>
+
+  <div id="dash" style="display:none">
+    <!-- Comparativo entre empresas (todos os contratos) -->
+    <div class="section-label">Comparativo entre empresas · última revisão de cada contrato</div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="chart-card full">
+        <div class="chart-title">Desvio acumulado por contrato (última revisão)</div>
+        <div class="chart-hint">% Concl − % Prev · negativo (vermelho) = atrasado · positivo (verde) = adiantado</div>
+        <div class="chart-wrap tall"><canvas id="ch-desvio"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Por contrato -->
+    <div class="section-label">Análise por contrato</div>
+    <div class="fbar">
+      <select id="sel-contrato" onchange="renderContract()"></select>
+    </div>
+    <div class="grid">
+      <div class="chart-card full">
+        <div class="chart-title">Curva S — Previsto × Realizado (EAP)</div>
+        <div class="chart-hint">Evolução do % previsto e % concluído do projeto ao longo das revisões</div>
+        <div class="chart-wrap"><canvas id="ch-curva"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Avanço semanal — Previsto × Real</div>
+        <div class="chart-hint">Barras por revisão; linha = desempenho da semana (real − previsto)</div>
+        <div class="chart-wrap"><canvas id="ch-avanco"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Atividades por status — última revisão</div>
+        <div class="chart-hint">Distribuição das tarefas folha na revisão mais recente</div>
+        <div class="chart-wrap"><canvas id="ch-status"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="empty-state"></div>
+</div>
+
+<script>
+const SB_URL=(window.PCO_CONFIG||{}).supabase?.url||'';
+const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
+const TOKEN=SB_KEY;
+const CLR={blue:'#304F7E',gold:'#EAA239',green:'#2e7d32',red:'#C0392B',orange:'#D97706',mute:'#8a95a6'};
+let cronos=[], byC={}, charts={};
+
+const $=id=>document.getElementById(id);
+function esc(s){return (s||'').toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function fmtN(n,d){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d??1,maximumFractionDigits:d??1});}
+function fmtD(d){if(!d)return '';const p=String(d).slice(0,10).split('-');return p.length===3?p[2]+'/'+p[1]:'';}
+function cLabel(c){return (c.empresa||'')+(c.escopo?(' · '+c.escopo):'');}
+
+async function sb(method,path){
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN}});
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,160));}
+  const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
+}
+
+async function load(){
+  if(typeof Chart==='undefined'){ $('cdn-notice').style.display=''; }
+  try{
+    cronos=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
+    const revs=await sb('GET','val_revisoes?select=cronograma_id,revisao,rotulo,data_corte,planejado,realizado,resumo_json&order=revisao.asc');
+    byC={};
+    revs.forEach(r=>{
+      const p=(r.resumo_json&&r.resumo_json.painel)||{};
+      r.d=p.desempenho||{}; r.a=p.atividades||{};
+      (byC[r.cronograma_id]=byC[r.cronograma_id]||[]).push(r);
+    });
+    const withRevs=cronos.filter(c=>(byC[c.id]||[]).length);
+    if(!withRevs.length){ $('empty-state').innerHTML='<div class="empty"><div class="big">📈</div>Ainda não há revisões analisadas.<br>Suba cronogramas na tela de Validação para gerar os indicadores.</div>'; return; }
+    if(typeof Chart==='undefined') return;
+    $('dash').style.display='';
+    // selector de contrato
+    $('sel-contrato').innerHTML=withRevs.map(c=>`<option value="${c.id}">${esc(cLabel(c))}${c.disciplina?(' — '+esc(c.disciplina)):''}</option>`).join('');
+    renderKPIs(withRevs);
+    renderDesvioRanking(withRevs);
+    renderContract();
+  }catch(err){
+    if(/42P01|PGRST205|does not exist/i.test(err.message)){ $('setup-notice').style.display=''; }
+    else $('empty-state').innerHTML='<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+  }
+}
+
+function latest(cId){ const a=byC[cId]||[]; return a[a.length-1]; }
+
+function renderKPIs(list){
+  const desvios=list.map(c=>latest(c.id)?.d?.desvioAc).filter(v=>v!=null&&!isNaN(v));
+  const media=desvios.length?desvios.reduce((a,b)=>a+b,0)/desvios.length:null;
+  const atrasados=list.filter(c=>{const v=latest(c.id)?.d?.desvioAc; return v!=null&&v<-5;}).length;
+  const totalRev=list.reduce((s,c)=>s+(byC[c.id]||[]).length,0);
+  $('kpis').innerHTML=
+    `<div class="kpi"><div class="v">${list.length}</div><div class="l">Contratos ativos</div></div>`+
+    `<div class="kpi"><div class="v">${totalRev}</div><div class="l">Revisões analisadas</div></div>`+
+    `<div class="kpi ${media!=null&&media<0?'red':'green'}"><div class="v">${media!=null?fmtN(media,1):'—'}</div><div class="l">Desvio médio acumulado</div></div>`+
+    `<div class="kpi ${atrasados?'red':'green'}"><div class="v">${atrasados}</div><div class="l">Contratos atrasados (&gt;5%)</div></div>`;
+}
+
+function destroy(k){ if(charts[k]){ charts[k].destroy(); delete charts[k]; } }
+const baseOpts=(extra)=>Object.assign({responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{labels:{font:{family:'Montserrat',size:11}}}},
+  scales:{x:{ticks:{font:{family:'Montserrat',size:10}},grid:{display:false}},
+          y:{ticks:{font:{family:'Montserrat',size:10}},grid:{color:'#eef0f3'}}}},extra||{});
+
+function renderDesvioRanking(list){
+  destroy('desvio');
+  const rows=list.map(c=>({label:cLabel(c),v:latest(c.id)?.d?.desvioAc})).filter(r=>r.v!=null&&!isNaN(r.v)).sort((a,b)=>a.v-b.v);
+  charts.desvio=new Chart($('ch-desvio'),{type:'bar',
+    data:{labels:rows.map(r=>r.label),datasets:[{label:'Desvio acumulado (%)',data:rows.map(r=>r.v),
+      backgroundColor:rows.map(r=>r.v<0?CLR.red:CLR.green),borderWidth:0}]},
+    options:baseOpts({indexAxis:'y',plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>' '+fmtN(c.parsed.x,1)+'%'}}},
+      scales:{x:{ticks:{font:{size:10}},grid:{color:'#eef0f3'}},y:{ticks:{font:{size:10}},grid:{display:false}}}})});
+}
+
+function renderContract(){
+  const cId=$('sel-contrato').value; const arr=byC[cId]||[]; if(!arr.length) return;
+  const labels=arr.map(r=>'REV'+String(r.revisao).padStart(2,'0')+(r.data_corte?(' · '+fmtD(r.data_corte)):''));
+
+  // Curva S
+  destroy('curva');
+  charts.curva=new Chart($('ch-curva'),{type:'line',
+    data:{labels,datasets:[
+      {label:'% Previsto (EAP)',data:arr.map(r=>r.planejado),borderColor:CLR.blue,backgroundColor:'rgba(48,79,126,.08)',fill:true,tension:.3,borderWidth:2,pointRadius:3},
+      {label:'% Concluído (EAP)',data:arr.map(r=>r.realizado),borderColor:CLR.green,backgroundColor:'rgba(46,125,50,.08)',fill:true,tension:.3,borderWidth:2,pointRadius:3}
+    ]},
+    options:baseOpts({plugins:{tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmtN(c.parsed.y,1)+'%'}}},
+      scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}})});
+
+  // Avanço semanal (previsto x real) + desempenho
+  destroy('avanco');
+  charts.avanco=new Chart($('ch-avanco'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'bar',label:'Avanço previsto',data:arr.map(r=>r.d?.avancoPrev),backgroundColor:CLR.blue,borderWidth:0},
+      {type:'bar',label:'Avanço real',data:arr.map(r=>r.d?.avancoReal),backgroundColor:CLR.green,borderWidth:0},
+      {type:'line',label:'Desempenho',data:arr.map(r=>r.d?.desemp),borderColor:CLR.gold,backgroundColor:CLR.gold,borderWidth:2,tension:.3,pointRadius:3}
+    ]},
+    options:baseOpts({plugins:{tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmtN(c.parsed.y,2)}}}})});
+
+  // Status (última revisão)
+  destroy('status');
+  const a=arr[arr.length-1].a||{};
+  charts.status=new Chart($('ch-status'),{type:'doughnut',
+    data:{labels:['Concluída','No prazo','Adiantada','Atrasada'],
+      datasets:[{data:[a.concluida||0,a.prazo||0,a.adiantada||0,a.atrasada||0],
+        backgroundColor:[CLR.green,CLR.blue,'#7cb342',CLR.red],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:'Montserrat',size:11},padding:12}}}}});
+}
+
+function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
+
+(function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){ window.location.href='login.html'; return; }
+  const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+  load();
+})();
+</script>
+</body>
+</html>

@@ -230,7 +230,13 @@ table.data tr.is-summary:hover td{background:#eef0f3}
 <body>
 <div class="page">
 
-  <a class="back-link no-print" href="index.html">← Painel de Ferramentas</a>
+  <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="back-link" href="gestao_escopos.html" style="color:var(--blue)">📁 Gestão de Escopos</a>
+      <a class="back-link" href="dashboard_desempenho.html" style="color:var(--blue)">📈 Dashboard de Desempenho</a>
+    </div>
+  </div>
 
   <!-- HEADER -->
   <header class="site-header">
@@ -273,10 +279,17 @@ table.data tr.is-summary:hover td{background:#eef0f3}
   <!-- ============ VIEW: NOVA ANÁLISE ============ -->
   <section class="view" id="view-analise">
 
+    <!-- bloqueio por permissão -->
+    <div class="notice warn no-print" id="lock-notice" style="display:none">
+      🔒 <b>Você não tem permissão para subir cronogramas.</b> A validação/upload é restrita a usuários autorizados.
+      Você ainda pode consultar o histórico e abrir análises já salvas. Para solicitar acesso, contate um administrador.
+    </div>
+
     <!-- Upload único -->
+    <div id="upload-block">
     <div class="notice no-print">
       Suba <b>um único XML</b> — a revisão mais recente do cronograma da terceira. O sistema compara automaticamente
-      com a <b>revisão anterior</b> já salva para a mesma Empresa + Área + Disciplina. Se for a <b>primeira</b> revisão,
+      com a <b>revisão anterior</b> já salva para o mesmo Empresa + Escopo/Contrato. Se for a <b>primeira</b> revisão,
       o "Desempenho da semana" e as comparações ficam em branco.
     </div>
     <div class="steps" style="grid-template-columns:1fr">
@@ -345,6 +358,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
         <span style="font-size:11px;color:var(--text-mute)">A análise e o XML são gravados no banco automaticamente.</span>
       </div>
     </div>
+    </div><!-- /upload-block -->
 
     <!-- RESULTS -->
     <div id="results" style="display:none">
@@ -1038,6 +1052,7 @@ function populateMapping(parsed){
 let busy=false;
 async function runAnalysis(){
   if(busy) return;
+  if(!CAN_UPLOAD){ toast('Você não tem permissão para subir cronogramas','err'); return; }
   const emp=$('cf-empresa').value.trim();
   const escopo=$('cf-escopo').value.trim()||null;
   const area=$('cf-area').value.trim()||null, disc=$('cf-disc').value.trim()||null;
@@ -1085,7 +1100,8 @@ async function runAnalysis(){
     // gravar XML + análise no banco
     if(dbReady){
       try{
-        await saveRevision({emp,escopo,area,disc,cronoId,revisao:curRev,revLabel,cut,mp,mc});
+        const savedCronoId = await saveRevision({emp,escopo,area,disc,cronoId,revisao:curRev,revLabel,cut,mp,mc});
+        await pruneOldRevisions(savedCronoId);   // mantém tarefas completas só nas últimas 3
         $('save-status').textContent='✓ '+revLabel+' gravada no banco';
         toast('Analisado e salvo — '+revLabel+(firstRev?' (1ª revisão)':'')+' ✓','ok');
         loadHistory();
@@ -1138,8 +1154,25 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
     resumo_json:{painel:currentResult.painel, mudancas:currentResult.mudancas, firstRev:currentResult.firstRev},
     tarefas_json:compact,
     mapeamento:{prev:mp, concl:mc, corte:cut},
-    xml_raw: state.atualXML || null
+    xml_raw: state.atualXML || null,
+    detalhe_podado:false
   });
+  return cronoId;
+}
+
+/* Retenção: mantém tarefas completas + XML só nas ÚLTIMAS 3 revisões.
+   Revisões mais antigas guardam apenas os indicadores (resumo_json). */
+const RETER_COMPLETO = 3;
+async function pruneOldRevisions(cronoId){
+  if(!cronoId) return;
+  try{
+    const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=id,revisao,detalhe_podado&order=revisao.desc`);
+    const antigas=revs.slice(RETER_COMPLETO).filter(r=>!r.detalhe_podado);
+    for(const r of antigas){
+      await sb('PATCH',`val_revisoes?id=eq.${r.id}`,{tarefas_json:null, xml_raw:null, detalhe_podado:true});
+    }
+    if(antigas.length) log('Retenção: '+antigas.length+' revisão(ões) antiga(s) reduzida(s) a indicadores.');
+  }catch(e){ console.warn('poda falhou',e); }
 }
 
 async function loadHistory(){
@@ -1194,6 +1227,10 @@ async function openComparison(cId,emp,area,escopo){
       sb('GET',`val_revisoes?id=eq.${aId}&select=tarefas_json,rotulo,data_corte`)
     ]);
     const baseN=b[0].tarefas_json, atualN=a[0].tarefas_json, cut=a[0].data_corte;
+    if(!atualN || !baseN){
+      toast('Uma das revisões teve o detalhe removido pela retenção — só há indicadores. Reenvie o XML para reanalisar.','err');
+      return;
+    }
     currentAtualNorm=atualN;
     const r=analyze(baseN, atualN, cut, false);
     currentMeta={empresa:emp,escopo:escopo||'',area,disc:'',revBase:b[0].rotulo,revAtual:a[0].rotulo,cut};
@@ -1212,12 +1249,23 @@ function switchView(v){
 }
 function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
 
+let CAN_UPLOAD=false;
+function readPerms(){
+  const perfil=sessionStorage.getItem('pco_perfil')||'viewer';
+  let perms={}; try{ perms=JSON.parse(sessionStorage.getItem('pco_perms')||'{}'); }catch(_){}
+  return perfil==='admin' || !!perms.validar_cronogramas;
+}
 (function init(){
   const token=sessionStorage.getItem('pco_token');
   if(!token){ window.location.href='login.html'; return; }
   const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'', perfil=sessionStorage.getItem('pco_perfil')||'viewer';
   $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
   $('user-nome').textContent=nome||email; $('user-email').textContent=email; $('user-role').textContent=perfil;
+  CAN_UPLOAD=readPerms();
+  if(!CAN_UPLOAD){
+    $('upload-block').style.display='none';
+    $('lock-notice').style.display='';
+  }
   setupDrop('atual');
   loadHistory();
 })();
