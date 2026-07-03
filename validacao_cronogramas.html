@@ -414,7 +414,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
       <div class="tbl-wrap no-print" id="tbl-screen">
         <table class="data" id="tbl">
           <thead><tr>
-            <th>ID</th><th>Tarefa</th><th>Tipo</th><th>%Prev</th><th>%Concl</th><th>Desvio</th>
+            <th>ID</th><th>WBS</th><th>Resumo / Área</th><th>Tarefa</th><th>Tipo</th><th>%Prev</th><th>%Concl</th><th>Desvio</th>
             <th>Status</th><th>Avanço</th><th>Início (def.)</th><th>Término (def.)</th>
             <th>Início LB</th><th>Término LB</th><th>Custo</th><th>Alterações</th>
           </tr></thead>
@@ -537,6 +537,7 @@ function parseXML(text){
       active: dchildText(t,'Active')!=='0',
       level: dchildText(t,'OutlineLevel')!=null?+dchildText(t,'OutlineLevel'):99,
       milestone: dchildText(t,'Milestone')==='1',
+      wbs: dchildText(t,'WBS')||'',
       cost: num('Cost'),
       baselineCost: lbCost,
       start: dOnly(dchildText(t,'Start')),
@@ -549,6 +550,16 @@ function parseXML(text){
       recursos: (taskRes[uid]||[]).join(', '),
       ext
     });
+  }
+
+  /* ---- reconstrói a hierarquia (WBS) pela ordem + OutlineLevel ----
+     parentName = tarefa resumo imediata (a "área"); caminho = trilha de resumos */
+  const stack=[];
+  for(const t of rawTasks){
+    while(stack.length && stack[stack.length-1].level >= t.level) stack.pop();
+    t.parentName = stack.length ? stack[stack.length-1].name : '';
+    t.caminho    = stack.filter(s=>s.level>1).map(s=>s.name).join(' / ');  // ignora a raiz/contrato
+    stack.push({level:t.level, name:t.name});
   }
 
   /* ---- heurística de detecção dos campos % ---- */
@@ -815,7 +826,7 @@ function miniTable(rows,cols){
 }
 const C={
   id:{h:'ID',f:t=>t.id??t.uid},
-  nome:{h:'Tarefa',f:t=>esc(t.name)},
+  nome:{h:'Tarefa',f:t=>esc(nomeCtx(t))},
   prev:{h:'%Prev',f:t=>fmtNum(t.F,1)},
   concl:{h:'%Concl',f:t=>fmtNum(t.E,1)},
   desvio:{h:'Desvio',f:t=>`<b class="${t.desvio<=-5?'red':(t.desvio<0?'orange':'green')}">${fmtNum(t.desvio,1)}</b>`},
@@ -827,6 +838,8 @@ const C={
   ter:{h:'Definição término',f:t=>esc(t.ter)},
 };
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+/* nome da atividade concatenado com a tarefa resumo (área): "2300.A Pipe Rack - Escavação" */
+function nomeCtx(t){ return (t.parentName && !t.summary) ? (t.parentName+' - '+t.name) : t.name; }
 
 function renderLists(r){
   const R=r.rows;
@@ -847,7 +860,7 @@ function renderLists(r){
   const atrasMini = atras.length? `<div class="tbl-wrap" style="max-height:340px;border:none"><table class="data"><thead><tr>
       <th>ID</th><th>Tarefa</th><th>%Prev</th><th>%Concl</th><th>Desvio</th><th>Término LB</th></tr></thead><tbody>`+
       atras.map(t=>`<tr ${t.flag5?'style="background:#fdecea"':''}><td>${t.id??t.uid}</td>
-        <td>${t.flag5?'<span class="tag t-crit" style="margin-right:6px">&gt;5%</span>':''}${esc(t.name)}</td>
+        <td>${t.flag5?'<span class="tag t-crit" style="margin-right:6px">&gt;5%</span>':''}${esc(nomeCtx(t))}</td>
         <td>${fmtNum(t.F,1)}</td><td>${fmtNum(t.E,1)}</td>
         <td><b class="${t.flag5?'red':'orange'}">${fmtNum(t.desvio,1)}</b></td><td>${fmtD(t.lbFinish)}</td></tr>`).join('')+
       `</tbody></table></div>` : miniTable([],[]);
@@ -891,7 +904,7 @@ function renderTable(){
   if(!currentResult) return;
   const q=norm($('tbl-search').value), fs=$('tbl-status').value, fr=$('tbl-resumo').value, only5=$('tbl-only5').checked;
   let rows=currentResult.rows.filter(t=>{
-    if(q && !norm(t.name+' '+(t.id??t.uid)).includes(q)) return false;
+    if(q && !norm(nomeCtx(t)+' '+(t.parentName||'')+' '+(t.wbs||'')+' '+(t.id??t.uid)).includes(q)) return false;
     if(fs && t.status!==fs) return false;
     if(fr==='leaf' && t.summary) return false;
     if(fr==='sum' && !t.summary) return false;
@@ -901,6 +914,8 @@ function renderTable(){
   const tb=$('tbl').querySelector('tbody');
   tb.innerHTML = rows.slice(0,1500).map(t=>`<tr class="${t.summary?'is-summary':''}">
     <td>${t.id??t.uid}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute)">${esc(t.wbs||'')}</td>
+    <td title="${esc(t.caminho||'')}" style="font-size:10px;color:var(--text-dim)">${esc(t.parentName||'—')}</td>
     <td title="${esc(t.name)}">${t.flag5?'<span class="tag t-crit" style="margin-right:5px">&gt;5%</span>':''}${esc(t.name).slice(0,70)}</td>
     <td>${t.summary?'<span class="tag t-gray">Resumo</span>':'Tarefa'}</td>
     <td>${fmtNum(t.F,1)}</td><td>${fmtNum(t.E,1)}</td>
@@ -912,7 +927,7 @@ function renderTable(){
     <td>${fmtD(t.lbStart)}</td><td>${fmtD(t.lbFinish)}</td>
     <td>${fmtMoney(t.cost)}</td>
     <td>${changeTags(t)}</td></tr>`).join('');
-  if(rows.length>1500) tb.innerHTML+=`<tr><td colspan="14" style="text-align:center;color:var(--text-mute)">… ${rows.length-1500} linhas ocultas (refine o filtro)</td></tr>`;
+  if(rows.length>1500) tb.innerHTML+=`<tr><td colspan="16" style="text-align:center;color:var(--text-mute)">… ${rows.length-1500} linhas ocultas (refine o filtro)</td></tr>`;
 }
 
 function fillPrintHeader(r,meta){
@@ -928,12 +943,13 @@ function buildPrintTable(r){
   // somente folhas (sem resumos), todas as atividades
   const rows=r.rows.filter(t=>t.leaf);
   const head=`<thead><tr>
-    <th>ID</th><th>Tarefa</th><th>%Prev</th><th>%Concl</th><th>Desvio</th><th>Status</th>
+    <th>ID</th><th>WBS</th><th>Atividade (Resumo · Área)</th><th>%Prev</th><th>%Concl</th><th>Desvio</th><th>Status</th>
     <th>Início (def.)</th><th>Término (def.)</th><th>Início LB</th><th>Término LB</th>
     <th>Início real</th><th>Término real</th>${r.firstRev?'':'<th>Alterações</th>'}</tr></thead>`;
   const body=rows.map(t=>`<tr>
     <td>${t.id??t.uid}</td>
-    <td>${t.flag5?'<span class="tag t-crit" style="margin-right:4px">&gt;5%</span>':''}${esc(t.name)}</td>
+    <td style="font-family:'JetBrains Mono',monospace">${esc(t.wbs||'')}</td>
+    <td>${t.flag5?'<span class="tag t-crit" style="margin-right:4px">&gt;5%</span>':''}${esc(nomeCtx(t))}</td>
     <td>${fmtNum(t.F,1)}</td><td>${fmtNum(t.E,1)}</td>
     <td><b class="${t.desvio<=-5?'red':(t.desvio<0?'orange':'green')}">${fmtNum(t.desvio,1)}</b></td>
     <td>${statusTag(t.status)}</td>
