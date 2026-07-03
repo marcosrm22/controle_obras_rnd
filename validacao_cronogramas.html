@@ -1108,8 +1108,20 @@ async function runAnalysis(){
       }catch(serr){
         console.error(serr);
         $('save-status').style.color='var(--red)';
-        if(/42P01|PGRST205|does not exist/i.test(serr.message)){ $('setup-notice').style.display=''; $('save-status').textContent='⚠ banco não configurado — não salvo'; toast('Análise OK; rode o SQL para habilitar o salvamento','err'); }
-        else { $('save-status').textContent='⚠ falha ao salvar'; toast('Análise OK, mas falhou ao salvar: '+serr.message,'err'); }
+        const m=serr.message||'';
+        log('✗ Falha ao salvar no banco → '+m);
+        if(/42P01|PGRST205|relation .* does not exist/i.test(m)){
+          $('setup-notice').style.display=''; $('save-status').textContent='⚠ banco não configurado — não salvo';
+          toast('Análise OK; rode o supabase_validacao.sql para habilitar o salvamento','err');
+        }else if(/PGRST204|could not find|column .* does not exist|42703/i.test(m)){
+          $('setup-notice').style.display=''; $('save-status').textContent='⚠ faltam colunas novas — rode o SQL atualizado';
+          toast('Falta rodar a versão mais recente do supabase_validacao.sql (colunas novas). Veja o log.','err');
+        }else if(/413|payload|too large|entity too large|body/i.test(m)){
+          $('save-status').textContent='⚠ arquivo grande demais para salvar';
+          toast('O XML é grande demais para o banco. Reduza os dados diários no MS Project ou avise que ajusto o armazenamento.','err');
+        }else{
+          $('save-status').textContent='⚠ falha ao salvar'; toast('Análise OK, mas falhou ao salvar: '+m,'err');
+        }
       }
     }else{
       $('save-status').style.color='var(--red)'; $('save-status').textContent='⚠ banco não configurado — não salvo';
@@ -1143,6 +1155,12 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
   // se esta revisão já existe (reenvio), sobrescreve
   await sb('DELETE',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=eq.${revisao}`);
   const compact=currentAtualNorm.map(t=>{const {ext,...rest}=t; return rest;});  // descarta ext bruto, mantém E/F
+  // O XML do MS Project costuma ser enorme (dados diários por tarefa). Só guardamos
+  // o XML bruto se for pequeno; o tarefas_json normalizado já tem o necessário p/ o lookahead.
+  const LIMITE_XML = 3_000_000; // ~3 MB
+  let xml = state.atualXML || null;
+  let xmlNota = '';
+  if(xml && xml.length > LIMITE_XML){ xmlNota = ' (XML de '+(xml.length/1048576).toFixed(1)+' MB não armazenado — usando só o resumo normalizado)'; xml = null; }
   await sb('POST','val_revisoes',{
     cronograma_id:cronoId, revisao:revisao,
     rotulo:revLabel+' · '+fmtD(cut),
@@ -1154,9 +1172,9 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
     resumo_json:{painel:currentResult.painel, mudancas:currentResult.mudancas, firstRev:currentResult.firstRev},
     tarefas_json:compact,
     mapeamento:{prev:mp, concl:mc, corte:cut},
-    xml_raw: state.atualXML || null,
-    detalhe_podado:false
+    xml_raw: xml
   });
+  if(xmlNota) log('Aviso'+xmlNota);
   return cronoId;
 }
 
