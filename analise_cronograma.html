@@ -339,12 +339,14 @@ function clearProgress(){ setTimeout(()=>{ document.getElementById('progress-wra
 async function handleXmlUpload(input){
   const file = input.files ? input.files[0] : null;
   if(!file) return;
-  if(file.size > 64*1024*1024){ toast('Arquivo muito grande (>64 MB)',true); return; }
-  setProgress(5,'Lendo arquivo XML…');
+  if(file.size > 500*1024*1024){ toast('Arquivo muito grande (>500 MB). Exporte o XML sem dados de fases de tempo (timephased) no MS Project.',true); return; }
+  const bigFile = file.size > 50*1024*1024;
+  setProgress(5, bigFile ? 'Lendo arquivo XML ('+Math.round(file.size/1024/1024)+' MB)… isso pode levar alguns segundos' : 'Lendo arquivo XML…');
   setSyncStatus('Processando XML…','saving');
   try{
     const text = await file.text();
-    setProgress(25,'Analisando tarefas…');
+    setProgress(25, bigFile ? 'Analisando tarefas… (arquivo grande, aguarde)' : 'Analisando tarefas…');
+    await new Promise(r=>setTimeout(r,50)); // deixa a UI atualizar antes do parse pesado
     const D = parseXmlToAnalysis(text);
     if(!D){ clearProgress(); setSyncStatus('Erro','error'); return; }
     setProgress(65,'Salvando no banco…');
