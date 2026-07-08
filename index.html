@@ -313,78 +313,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   <div class="section-label">Ferramentas disponíveis</div>
   <div class="cards">
 
-    <!-- VALIDAÇÃO DE CRONOGRAMAS DAS TERCEIRAS -->
-    <a class="card blue" href="validacao_cronogramas.html">
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="16" rx="2"/>
-            <path d="M3 9h18"/><path d="M8 14l2 2 4-4"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Terceiras</div>
-        <div class="card-title">Validação dos Cronogramas</div>
-        <div class="card-desc">Compare revisões de cronogramas MS Project (XML). Análise automática de desvios, prazos, linha de base e custos, com painel de indicadores e relatório em PDF.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">XML · MS Project</span>
-          <span class="chip chip-orange">Desvios &gt;5%</span>
-          <span class="chip chip-gray">PDF</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- GESTÃO DE ESCOPOS -->
-    <a class="card green" href="gestao_escopos.html">
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7a2 2 0 012-2h5l2 3h7a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Terceiras</div>
-        <div class="card-title">Gestão de Escopos</div>
-        <div class="card-desc">Cadastro dos contratos rastreados: empresa, escopo, revisões subidas e responsáveis (especialista, analista e supervisor).</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Contratos</span>
-          <span class="chip chip-gray">Responsáveis</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- DASHBOARD DE DESEMPENHO -->
-    <a class="card orange" href="dashboard_desempenho.html">
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 4-6"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Terceiras</div>
-        <div class="card-title">Dashboard de Desempenho</div>
-        <div class="card-desc">Gráficos de desempenho semanal das empresas: curva S, avanço previsto × real e desvio acumulado por contrato, com histórico.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Curva S</span>
-          <span class="chip chip-orange">Desvios</span>
-          <span class="chip chip-gray">Histórico</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
     <!-- DRENAGEM -->
     <a class="card blue" href="drenagem_controle_v3.html">
       <div class="card-bar"></div>
@@ -602,6 +530,42 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     </a>
 
     <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
+    <!-- ANÁLISE DE CRONOGRAMA -->
+    <a class="card" href="analise_cronograma.html" style="--card-accent:#304F7E">
+      <div class="card-bar" style="background:linear-gradient(90deg,#172943,#304F7E)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="color:#304F7E">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M7 16l4-4 4 4 4-8"/>
+          </svg>
+        </div>
+        <div class="card-tag">Planejamento · Cronograma Executivo</div>
+        <div class="card-title">Análise de Cronograma</div>
+        <div class="card-desc">Upload do XML do MS Project, detecção automática de atrasos, estagnações, antecipações e suspeitas de apontamento. Histórico por data de status.</div>
+        <div class="card-chips">
+          <span class="chip chip-blue">Fase 1</span>
+          <span class="chip chip-blue">Fase 2</span>
+          <span class="chip chip-gray">CPA</span>
+          <span class="chip chip-gray">Desvios</span>
+        </div>
+      </div>
+      <div class="card-kpis" id="cron-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="cron-versoes">—</div>
+          <div class="card-kpi-label">Versões salvas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="cron-ultima">—</div>
+          <div class="card-kpi-label">Última análise</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta">Abrir análise</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <div class="card orange soon">
       <div class="soon-badge">Em breve</div>
       <div class="card-bar"></div>
@@ -796,11 +760,25 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
+  /* ── ANÁLISE DE CRONOGRAMA ── */
+  async function loadCronograma(){
+    try{
+      const res = await fetch(SB_URL + '/rest/v1/cronograma_analises?select=data_status&order=data_status.desc', {
+        headers:{ 'apikey': SB_KEY, 'Authorization': 'Bearer '+TOKEN, 'Prefer':'count=exact' }
+      });
+      const count = parseInt(res.headers.get('content-range')?.split('/')[1]) || 0;
+      const rows  = await res.json().catch(()=>[]);
+      setEl('cron-versoes', fmt(count));
+      setEl('cron-ultima', rows[0] ? rows[0].data_status : '—');
+    }catch(_){}
+  }
+
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
     loadBasesCivis();
+    loadCronograma();
     setTimeout(loadAdmin, 300);
   });
 })();

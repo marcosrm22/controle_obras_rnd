@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Análise de Cronograma · PCO Digital</title>
+<script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --azul:#304F7E;--azul-d:#22395c;--azul-dd:#172943;--ouro:#EAA239;--ouro-d:#c9842a;
+  --ink:#19222e;--muted:#5b6776;--line:#dfe5ec;--line-2:#eef2f6;
+  --paper:#eef1f5;--card:#ffffff;
+  --bad:#c0392b;--bad-bg:#fbeae8;--good:#1d8a5e;--good-bg:#e7f5ee;
+  --warn:#cf8717;--warn-bg:#fcf3e2;--neutral:#6b7785;
+  --disp:'Barlow Semi Condensed','Arial Narrow',sans-serif;
+  --body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono','Roboto Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{background:linear-gradient(120deg,var(--azul-dd),var(--azul));color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.topbar .mark{width:34px;height:34px;border:2px solid var(--ouro);border-radius:6px;display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:18px;color:var(--ouro)}
+.topbar h1{font-family:var(--disp);font-weight:600;font-size:18px;margin:0;letter-spacing:.3px}
+.topbar .sub{font-size:10px;color:#c4d2e6;letter-spacing:.6px;text-transform:uppercase}
+.topbar .spacer{flex:1}
+.sync-pill{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);padding:5px 11px;border-radius:5px;color:#eaf1fb;display:flex;align-items:center;gap:6px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--neutral)}
+.back-btn{font-family:var(--mono);font-size:11px;color:#c4d2e6;text-decoration:none;padding:5px 10px;border:1px solid rgba(255,255,255,.2);border-radius:5px;white-space:nowrap}
+.back-btn:hover{background:rgba(255,255,255,.1)}
+
+/* CONTROL BAR */
+.ctrl-bar{background:var(--card);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ctrl-bar label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.ctrl-bar select{font-family:var(--body);font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);min-width:220px;cursor:pointer}
+.ctrl-bar select:focus{outline:none;border-color:var(--azul)}
+.btn{font-family:var(--body);font-weight:600;font-size:12.5px;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s,opacity .15s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--azul);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--azul-d)}
+.btn-warn{background:var(--ouro);color:#3a2a08}
+.btn-warn:hover:not(:disabled){background:var(--ouro-d)}
+.btn-bad{background:var(--bad-bg);color:var(--bad);border:1px solid #f5c0b8}
+.btn-bad:hover:not(:disabled){background:#fad5d0}
+.ctrl-sep{width:1px;height:28px;background:var(--line);flex-shrink:0}
+.ver-tag{font-family:var(--mono);font-size:11px;background:var(--line-2);border:1px solid var(--line);padding:3px 9px;border-radius:4px;color:var(--muted)}
+
+/* UPLOAD ZONE */
+.upload-zone{max-width:860px;margin:48px auto;background:var(--card);border:2px dashed var(--line);border-radius:14px;padding:56px 32px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--azul);background:#f6f9fd}
+.uz-icon{font-size:44px;margin-bottom:14px}
+.uz-title{font-family:var(--disp);font-weight:600;font-size:22px;color:var(--azul-d);margin-bottom:8px}
+.uz-sub{color:var(--muted);font-size:13px;line-height:1.7}
+.uz-sub b{color:var(--ink)}
+
+/* PROGRESS */
+.progress-wrap{max-width:860px;margin:20px auto;display:none}
+.progress-bar{height:6px;background:var(--line-2);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--azul),#3f67a0);border-radius:3px;transition:width .3s;width:0%}
+.progress-msg{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:7px;text-align:center}
+
+/* PHASE GAUGES */
+.rail{max-width:1320px;margin:0 auto;padding:18px 24px 4px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.gauge{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px 18px;box-shadow:0 1px 2px rgba(20,40,70,.05)}
+.gauge .gh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+.gauge .gh .n{font-family:var(--disp);font-weight:600;font-size:17px;color:var(--azul-d);letter-spacing:.3px}
+.gauge .gh .tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+.track{position:relative;height:26px;background:var(--line-2);border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+.track .real{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--azul),#3f67a0);border-radius:5px 0 0 5px}
+.track .prevtick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ouro)}
+.track .prevtick::after{content:attr(data-l);position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--ouro-d);white-space:nowrap}
+.gstats{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap}
+.gstats .s .lab{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.gstats .s .val{font-family:var(--mono);font-weight:600;font-size:15px}
+.gstats .s .val small{font-weight:400;font-size:11px;color:var(--muted)}
+.delta-up{color:var(--bad)}.delta-dn{color:var(--good)}
+
+/* TABS */
+.tabwrap{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(20,40,70,.04)}
+.tabs{max-width:1320px;margin:0 auto;padding:0 22px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
+.tab{flex:0 0 auto;border:none;background:none;padding:13px 13px 11px;font-family:var(--disp);font-weight:600;font-size:14px;letter-spacing:.2px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.tab:hover{color:var(--azul-d)}.tab.active{color:var(--azul-d);border-bottom-color:var(--ouro)}
+.tab .cnt{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--line-2);color:var(--muted);padding:1px 7px;border-radius:20px;min-width:22px;text-align:center}
+.tab.active .cnt{background:var(--ouro);color:#3a2a08}
+.tab.flag.active .cnt{background:var(--bad);color:#fff}.tab.flag .cnt{color:var(--bad)}
+
+/* MAIN */
+main{max-width:1320px;margin:0 auto;padding:20px 24px 80px}
+.panel{display:none;animation:fade .25s ease}.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.phead{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.phead .pt{font-family:var(--disp);font-weight:700;font-size:22px;color:var(--azul-d);letter-spacing:.3px;line-height:1.1}
+.phead .dir{flex:1;min-width:280px;color:var(--muted);font-size:13px;border-left:3px solid var(--ouro);padding:2px 0 2px 12px;align-self:center}
+.phead .dir b{color:var(--ink);font-weight:600}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;padding:9px 12px 9px 32px;border:1px solid var(--line);border-radius:7px;font-family:var(--body);font-size:13px;background:var(--card)}
+.search input:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(48,79,126,.1)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted)}
+.filters{display:flex;gap:3px;background:var(--line-2);padding:3px;border-radius:8px}
+.filters button{border:none;background:none;padding:7px 13px;border-radius:6px;font-family:var(--body);font-weight:500;font-size:12.5px;color:var(--muted);cursor:pointer}
+.filters button.on{background:var(--card);color:var(--azul-d);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.rowcount{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+.discbar{display:flex;align-items:stretch;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.disc-label{display:flex;flex-direction:column;justify-content:center;padding-right:4px;min-width:96px}
+.disc-label .t{font-family:var(--disp);font-weight:600;font-size:12.5px;color:var(--azul-d)}
+.disc-label .s{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.disc-card{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 12px 8px;cursor:pointer;min-width:104px;display:flex;flex-direction:column;gap:1px;transition:border-color .12s,box-shadow .12s,background .12s}
+.disc-card:hover{border-color:#b9c6d8}
+.disc-card.on{border-color:var(--azul);box-shadow:0 0 0 2px rgba(48,79,126,.14);background:#f6f9fd}
+.disc-card .dn{font-family:var(--body);font-weight:600;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:6px}
+.disc-card .dn .led{width:8px;height:8px;border-radius:50%}
+.disc-card .dv{font-family:var(--mono);font-weight:600;font-size:15px;line-height:1.1}
+.disc-card .dd{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.disc-card.reset{justify-content:center;min-width:74px}
+.disc-card.reset .dn{font-weight:600;color:var(--muted)}.disc-card.reset.on .dn{color:var(--azul-d)}
+.cpa-neg{color:var(--bad)}.cpa-pos{color:var(--good)}.cpa-zero{color:var(--neutral)}
+.led-neg{background:var(--bad)}.led-pos{background:var(--good)}.led-zero{background:#c4ccd6}
+.tblwrap{background:var(--card);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--azul-dd);color:#dce6f3;font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;padding:10px 11px;text-align:left;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
+thead th.num{text-align:right}thead th:hover{color:#fff}
+thead th .ar{color:var(--ouro);font-size:10px;margin-left:3px;opacity:0}thead th.sorted .ar{opacity:1}
+tbody td{padding:9px 11px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tbody tr:hover{background:#f7f9fc}tbody tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);text-align:right;white-space:nowrap;font-size:12.5px}
+.act-name{font-weight:500;color:var(--ink);max-width:340px}
+.area-cell{color:var(--muted);font-size:12px;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.fase-pill{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;letter-spacing:.3px}
+.f1{background:#e7edf6;color:var(--azul-d)}.f2{background:#fcf0db;color:var(--ouro-d)}
+.disc-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;letter-spacing:.2px}
+.d-civil{background:#e9eef5;color:#3a5e8c}.d-mecanica{background:#e6f1ec;color:#1d7a55}
+.d-eletrica{background:#fbf0d8;color:#a9740f}.d-instrumentacao{background:#f0eafa;color:#6b4caa}
+.d-automacao{background:#eaf3fa;color:#2f7da3}.d-isolamento{background:#f4eee8;color:#8a6a45}
+.d-rotativos{background:#f7e9ee;color:#9c4763}.d-pintura{background:#eef3e6;color:#5e7a2e}
+.d-outros{background:var(--line-2);color:var(--neutral)}
+.muted{color:var(--muted)}.dash{color:#c4ccd6}
+.pc{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.pc .a{color:var(--muted)}.pc .b{color:var(--ink);font-weight:600}.pc .ar{color:var(--ouro-d);margin:0 3px}
+.chip2{display:inline-block;font-family:var(--mono);font-weight:600;font-size:12px;padding:2px 8px;border-radius:20px;min-width:46px;text-align:center}
+.c-bad{background:var(--bad-bg);color:var(--bad)}.c-good{background:var(--good-bg);color:var(--good)}
+.c-warn{background:var(--warn-bg);color:var(--warn)}.c-zero{background:var(--line-2);color:var(--neutral)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:13px;font-size:11.5px;color:var(--muted);padding:0 2px}
+.legend b{color:var(--ink)}.legend .li{display:flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+.note{background:var(--warn-bg);border:1px solid #f0dcb4;border-radius:9px;padding:12px 15px;margin-bottom:14px;font-size:13px;color:#6b5018}
+.note b{color:#5a4310}.empty{padding:40px;text-align:center;color:var(--muted);font-style:italic}
+footer{max-width:1320px;margin:0 auto;padding:18px 24px 40px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a2332;color:#fff;font-size:13px;padding:10px 20px;border-radius:8px;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:760px){.rail{grid-template-columns:1fr}.phead .pt{font-size:19px}.act-name{max-width:200px}}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="index.html">
+    <div class="mark">IN</div>
+    <div><div style="font-family:var(--disp);font-weight:600;font-size:17px">PCO Digital</div>
+    <div class="sub">INPASA · RDN</div></div>
+  </a>
+  <span class="spacer"></span>
+  <span class="sync-pill"><span class="sync-dot" id="sync-dot"></span><span id="sync-msg">Pronto</span></span>
+  <a class="back-btn" href="index.html">← Início</a>
+</div>
+
+<div class="ctrl-bar">
+  <label>Versão:</label>
+  <select id="sel-versao" onchange="loadVersion(this.value)">
+    <option value="">— selecione ou carregue XML —</option>
+  </select>
+  <span class="ver-tag" id="ver-tag" style="display:none"></span>
+  <span class="ctrl-sep"></span>
+  <button class="btn btn-primary" onclick="document.getElementById('xml-input').click()">⬆ Subir XML do MS Project</button>
+  <input type="file" id="xml-input" accept=".xml,application/xml,text/xml" style="display:none" onchange="handleXmlUpload(this)">
+  <button class="btn btn-warn" id="btn-export" style="display:none" onclick="exportHtml()">⬇ Exportar HTML</button>
+  <button class="btn btn-bad" id="btn-delete" style="display:none" onclick="deleteVersion()">🗑 Excluir</button>
+</div>
+
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="progress-msg" id="progress-msg">Processando…</div>
+</div>
+
+<div class="upload-zone" id="upload-zone"
+  onclick="document.getElementById('xml-input').click()"
+  ondragover="event.preventDefault();this.classList.add('drag')"
+  ondragleave="this.classList.remove('drag')"
+  ondrop="event.preventDefault();this.classList.remove('drag');handleXmlUpload({files:event.dataTransfer.files})">
+  <div class="uz-icon">📋</div>
+  <div class="uz-title">Análise de Performance do Cronograma</div>
+  <div class="uz-sub">Arraste um <b>arquivo XML do MS Project</b> aqui ou clique para selecionar.<br>
+  Ou selecione uma versão já salva no seletor acima.</div>
+</div>
+
+<div id="analysis-view" style="display:none">
+  <section class="rail" id="rail"></section>
+  <div class="tabwrap"><div class="tabs" id="tabs"></div></div>
+  <main id="main"></main>
+  <footer>
+    Desvio = % Concluído Fís.−EAP menos % Previsto Fís.−EAP. <b>Negativo = atrasado</b>, positivo = adiantado.
+    CPA = contribuição ao desvio acumulado do projeto (positivo puxa pra frente, negativo puxa pra trás).
+    Escopo: somente trecho executivo (OutlineNumber 1.3.4.* / 1.4.4.*).
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════
+   CONFIG
+════════════════════════ */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+const TABLE  = 'cronograma_analises';
+
+function setSyncStatus(msg, state='idle'){
+  document.getElementById('sync-msg').textContent = msg;
+  const dot = document.getElementById('sync-dot');
+  const colors = {idle:'#BDBFC1',ok:'#609346',saving:'#EAA239',error:'#CC5121'};
+  dot.style.background = colors[state]||colors.idle;
+  dot.style.animation  = state==='saving'?'syncPulse 0.8s infinite':'none';
+}
+
+function toast(msg, err=false){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = err ? '#CC5121' : '#1a2332';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3400);
+}
+
+async function sbFetch(path, opts={}){
+  const {prefer='',body,...rest} = opts;
+  const headers = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+  if(prefer) headers['Prefer'] = prefer;
+  const res = await fetch(SB_URL+'/rest/v1/'+path, {headers, body:body?JSON.stringify(body):undefined, ...rest});
+  const text = await res.text();
+  if(!res.ok) throw new Error(res.status+': '+text.substring(0,200));
+  if(!text||!text.trim()) return null;
+  try{return JSON.parse(text)}catch(_){return null}
+}
+
+/* ════════════════════════
+   AUTH
+════════════════════════ */
+(function(){
+  if(!sessionStorage.getItem('pco_token')){ window.location.href='login.html'; return; }
+  loadVersionList();
+})();
+
+/* ════════════════════════
+   VERSION LIST
+════════════════════════ */
+async function loadVersionList(){
+  try{
+    const rows = await sbFetch(TABLE+'?select=id,data_status,label,created_at&order=data_status.desc');
+    const sel = document.getElementById('sel-versao');
+    sel.innerHTML = '<option value="">— selecione ou carregue XML —</option>';
+    if(rows && rows.length){
+      rows.forEach(r=>{
+        const opt = document.createElement('option');
+        opt.value = r.data_status;
+        const lbl = r.label ? `  ·  ${r.label}` : '';
+        opt.textContent = `${r.data_status}${lbl}`;
+        sel.appendChild(opt);
+      });
+    }
+  }catch(e){
+    setSyncStatus('Erro ao carregar versões','error');
+    console.error('loadVersionList:', e);
+  }
+}
+
+async function loadVersion(dataStatus){
+  if(!dataStatus) return;
+  setSyncStatus('Carregando…','saving');
+  try{
+    const rows = await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(dataStatus)+'&select=*&limit=1');
+    if(!rows||!rows.length){ toast('Versão não encontrada',true); setSyncStatus('Pronto'); return; }
+    const row = rows[0];
+    const D = JSON.parse(row.dados_json);
+    showAnalysis(D, row.data_status, row.label);
+    document.getElementById('ver-tag').textContent = row.data_status+(row.label?'  ·  '+row.label:'');
+    document.getElementById('ver-tag').style.display = '';
+    document.getElementById('btn-export').style.display = '';
+    document.getElementById('btn-delete').style.display = '';
+    window._currentD = D;
+    window._currentStatus = row.data_status;
+    window._currentLabel = row.label;
+    setSyncStatus('Versão '+row.data_status+' carregada','ok');
+  }catch(e){
+    toast('Erro ao carregar: '+e.message, true);
+    setSyncStatus('Erro','error');
+    console.error('loadVersion:', e);
+  }
+}
+
+async function deleteVersion(){
+  const status = window._currentStatus;
+  if(!status) return;
+  if(!confirm('Excluir versão "'+status+'"? Esta ação não pode ser desfeita.')) return;
+  setSyncStatus('Excluindo…','saving');
+  try{
+    await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(status), {method:'DELETE',prefer:'return=minimal'});
+    toast('Versão excluída');
+    document.getElementById('analysis-view').style.display='none';
+    document.getElementById('upload-zone').style.display='';
+    document.getElementById('btn-export').style.display='none';
+    document.getElementById('btn-delete').style.display='none';
+    document.getElementById('ver-tag').style.display='none';
+    document.getElementById('sel-versao').value='';
+    window._currentD=null; window._currentStatus=null;
+    await loadVersionList();
+    setSyncStatus('Pronto');
+  }catch(e){
+    toast('Erro ao excluir: '+e.message, true);
+    setSyncStatus('Erro','error');
+  }
+}
+
+/* ════════════════════════
+   UPLOAD
+════════════════════════ */
+function setProgress(pct,msg){
+  document.getElementById('progress-wrap').style.display='block';
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-msg').textContent=msg;
+}
+function clearProgress(){ setTimeout(()=>{ document.getElementById('progress-wrap').style.display='none'; }, 1200); }
+
+async function handleXmlUpload(input){
+  const file = input.files ? input.files[0] : null;
+  if(!file) return;
+  if(file.size > 64*1024*1024){ toast('Arquivo muito grande (>64 MB)',true); return; }
+  setProgress(5,'Lendo arquivo XML…');
+  setSyncStatus('Processando XML…','saving');
+  try{
+    const text = await file.text();
+    setProgress(25,'Analisando tarefas…');
+    const D = parseXmlToAnalysis(text);
+    if(!D){ clearProgress(); setSyncStatus('Erro','error'); return; }
+    setProgress(65,'Salvando no banco…');
+    const existing = await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(D.meta.data_status)+'&select=id');
+    const now = new Date().toISOString();
+    const payload = { data_status:D.meta.data_status, label:D.meta.label, dados_json:JSON.stringify(D), updated_at:now };
+    if(existing && existing.length){
+      await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(D.meta.data_status), {method:'PATCH',prefer:'return=minimal',body:payload});
+      toast('Versão '+D.meta.data_status+' atualizada (sobrescrita)');
+    } else {
+      await sbFetch(TABLE, {method:'POST',prefer:'return=minimal',body:{...payload,created_at:now}});
+      toast('Versão '+D.meta.data_status+' salva');
+    }
+    setProgress(95,'Renderizando…');
+    await loadVersionList();
+    document.getElementById('sel-versao').value = D.meta.data_status;
+    showAnalysis(D, D.meta.data_status, D.meta.label);
+    document.getElementById('ver-tag').textContent = D.meta.data_status+(D.meta.label?'  ·  '+D.meta.label:'');
+    document.getElementById('ver-tag').style.display='';
+    document.getElementById('btn-export').style.display='';
+    document.getElementById('btn-delete').style.display='';
+    window._currentD=D; window._currentStatus=D.meta.data_status; window._currentLabel=D.meta.label;
+    setSyncStatus('Salvo','ok');
+    setProgress(100,'Concluído!');
+    clearProgress();
+  }catch(e){
+    toast('Erro: '+e.message, true);
+    setSyncStatus('Erro','error');
+    clearProgress();
+    console.error('handleXmlUpload:', e);
+  }
+  input.value='';
+}
+
+/* ════════════════════════
+   XML PARSE
+════════════════════════ */
+function parseXmlToAnalysis(xmlText){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText,'application/xml');
+  if(doc.querySelector('parsererror')){ toast('XML inválido ou corrompido',true); return null; }
+
+  // Status date
+  let statusDateRaw = doc.querySelector('StatusDate')?.textContent?.trim() || doc.querySelector('CurrentDate')?.textContent?.trim() || '';
+  if(!statusDateRaw && doc.querySelector('FinishDate')){ statusDateRaw = doc.querySelector('FinishDate').textContent.trim(); }
+  if(!statusDateRaw){ toast('StatusDate não encontrado no XML. Defina a data de status no MS Project antes de exportar.',true); return null; }
+  const statusDate = statusDateRaw.substring(0,10); // YYYY-MM-DD
+  const fmtDate = s=>{ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+  const label = doc.querySelector('Title')?.textContent?.trim() || statusDate;
+
+  // Extract tasks
+  const tasks = [];
+  doc.querySelectorAll('Task').forEach(t=>{
+    const outnum = t.querySelector('OutlineNumber')?.textContent?.trim() || '';
+    if(!outnum.startsWith('1.3.4.')&&!outnum.startsWith('1.4.4.')) return;
+    if(t.querySelector('Summary')?.textContent==='1') return; // skip summaries
+    const name = t.querySelector('Name')?.textContent?.trim() || '';
+    if(!name) return;
+
+    // Physical % (try PhysicalPercentComplete first, fall back to PercentComplete)
+    let concl = parseFloat(t.querySelector('PhysicalPercentComplete')?.textContent||'');
+    if(isNaN(concl)) concl = parseFloat(t.querySelector('PercentComplete')?.textContent||'0');
+
+    // Planned % from baseline dates vs status date
+    const bStart = t.querySelector('BaselineStart')?.textContent?.substring(0,10)||null;
+    const bFinish = t.querySelector('BaselineFinish')?.textContent?.substring(0,10)||null;
+    let prev = null;
+    if(bStart && bFinish && bStart!=='NA' && bFinish!=='NA'){
+      const s=new Date(bStart),f=new Date(bFinish),d=new Date(statusDate);
+      if(d<=s) prev=0;
+      else if(d>=f) prev=100;
+      else prev=Math.round((d-s)/(f-s)*10000)/100;
+    }
+
+    const dur = parseFloat(t.querySelector('Duration')?.textContent||'PT8H')||8;
+    tasks.push({
+      outnum, name,
+      fase: outnum.startsWith('1.3.4.')?'Fase 1':'Fase 2',
+      area: inferArea(outnum),
+      disc: inferDisc(name),
+      concl, prev, dur, id:null
+    });
+  });
+
+  if(!tasks.length){ toast('Nenhuma tarefa executiva encontrada (OutlineNumber 1.3.4.* / 1.4.4.*). Verifique a estrutura do XML.',true); return null; }
+
+  const D = buildAnalysis(tasks, statusDate, fmtDate(statusDate), label);
+  D.meta.data_status = statusDate;
+  D.meta.label = label;
+  return D;
+}
+
+function inferArea(outnum){
+  const map=[
+    ['1.3.4.1.1','2300.A Pipe Rack'],['1.3.4.1.2','2300.B Terraplanagem'],
+    ['1.3.4.1.3','2300.C Drenagem'],['1.3.4.1.4','2300.D Pavimentação'],
+    ['1.3.4.2.1','2311. Moinho de Grãos'],['1.3.4.2.2','2302. Cozimento'],
+    ['1.3.4.2.3','2306. Fermentação'],['1.3.4.2.4','2308. Destilaria'],
+    ['1.3.4.2.5','2327. Armazenamento e expedição de etanol'],
+    ['1.3.4.3.1','2309. Separação de sólidos e secagem de DDGS'],
+    ['1.3.4.3.2','2317. Sistema de Evaporação de Vinhaça'],
+    ['1.3.4.3.3','2320. Fábrica de óleo'],
+    ['1.3.4.4.1','2301. Geração de vapor'],['1.3.4.4.2','2304. Geração de energia'],
+    ['1.3.4.4.3','2310. Estação de tratamento de água (ETA)'],
+    ['1.3.4.4.5','2314. Sistema de refrigeração de água'],
+    ['1.3.4.4.6','2316. Sistema de combate a incêndio'],
+    ['1.3.4.5.1','2315. Recebimento de Grãos'],
+    ['1.3.4.6.1','2323. Administração'],
+    ['1.3.4.7.1','2326.A/2326.B Laboratório / COI'],
+    ['1.3.4.8.1','2303. ETE'],
+    ['1.4.4.1.1','2400.A Pipe Rack'],['1.4.4.1.2','2400.B Terraplanagem'],
+    ['1.4.4.2.1','2411. Moinho de Grãos'],['1.4.4.2.2','2402. Cozimento'],
+    ['1.4.4.2.3','2406. Fermentação'],['1.4.4.2.4','2408. Destilaria'],
+    ['1.4.4.3.1','2409. Separação de sólidos e secagem de DDGS'],
+    ['1.4.4.3.3','2422. Fábrica de óleo'],
+    ['1.4.4.4.1','2401. Geração de vapor'],['1.4.4.4.2','2431. Biomassa'],
+    ['1.4.4.5.1','2415.B Balanças rodoviárias 03'],
+  ];
+  for(const [pfx,name] of map){
+    if(outnum.startsWith(pfx+'.') || outnum===pfx) return name;
+  }
+  return outnum.split('.').slice(0,5).join('.');
+}
+
+function inferDisc(name){
+  const n = name.toLowerCase();
+  if(/aterramento|elétric|eletric|alimentaç|alimentacao|eletromontagem/.test(n)) return 'Elétrica';
+  if(/instrument/.test(n)) return 'Instrumentação';
+  if(/automa/.test(n)) return 'Automação';
+  if(/isolamento/.test(n)) return 'Isolamento';
+  if(/pintura/.test(n)) return 'Pintura';
+  if(/rotativ/.test(n)) return 'Rotativos';
+  if(/montagem|fabricaç|fabricacao|tubulação|tubulacao|dorna|estrutura metál|estrutura metal|calandrag|biselamento/.test(n)) return 'Mecânica';
+  return 'Civil';
+}
+
+function buildAnalysis(tasks, statusDate, statusDateFmt, label){
+  const tw = tasks.reduce((s,t)=>s+t.dur,0)||1;
+
+  function sStats(arr){
+    const w = arr.reduce((s,t)=>s+t.dur,0)||1;
+    const concl = arr.reduce((s,t)=>s+(isNaN(t.concl)?0:t.concl)*t.dur,0)/w;
+    const prev  = arr.reduce((s,t)=>s+(t.prev===null?0:t.prev)*t.dur,0)/w;
+    return {prev2:Math.round(prev*100)/100, concl2:Math.round(concl*100)/100, cpa2:Math.round((concl-prev)*100)/10000};
+  }
+
+  function discCpa(arr){
+    const w=arr.reduce((s,t)=>s+t.dur,0)||1;
+    const map={};
+    arr.forEach(t=>{if(!map[t.disc])map[t.disc]={cW:0,pW:0};map[t.disc].cW+=(isNaN(t.concl)?0:t.concl)*t.dur;map[t.disc].pW+=(t.prev===null?0:t.prev)*t.dur;});
+    return Object.entries(map).map(([disc,v])=>({disc, cpa:Math.round((v.cW-v.pW)/w)/100, dcpa:0})).sort((a,b)=>a.cpa-b.cpa);
+  }
+
+  const f1=tasks.filter(t=>t.fase==='Fase 1'), f2=tasks.filter(t=>t.fase==='Fase 2');
+
+  function rowOf(t){
+    const dv = t.prev===null ? t.concl : Math.round((t.concl-t.prev)*100)/100;
+    const cpa2 = t.prev===null ? null : Math.round((t.concl-t.prev)*t.dur/tw)/100;
+    return {...t, prev1:null,prev2:t.prev,concl1:null,concl2:t.concl,dv1:null,dv2:dv,ddesvio:null,act:0,plan:0,cpa2,dcpa:0};
+  }
+
+  const all = tasks.map(rowOf);
+  const withPrev = all.filter(r=>r.prev2!==null);
+
+  // Categories
+  const inc = withPrev.filter(r=>r.dv2<0).sort((a,b)=>a.dv2-b.dv2);
+  const dec = withPrev.filter(r=>r.dv2>0).sort((a,b)=>b.dv2-a.dv2);
+  const stalled = withPrev.filter(r=>r.prev2>0&&r.concl2===0);
+  const shouldArr = withPrev.filter(r=>r.prev2>=99&&r.concl2<100).sort((a,b)=>a.concl2-b.concl2);
+  const antic = all.filter(r=>(!r.prev2||r.prev2===0)&&r.concl2>0).sort((a,b)=>b.concl2-a.concl2);
+  const cpaArr = all.filter(r=>r.cpa2!==null).sort((a,b)=>a.cpa2-b.cpa2);
+
+  // Detect regressions (would need prior version — mark as empty for now)
+  const dq_regress = [];
+  const dq_fake = [];
+
+  return {
+    meta:{ v1:statusDateFmt, v2:statusDateFmt, data_status:statusDate, label },
+    disc_order:['Civil','Mecânica','Elétrica','Instrumentação','Automação','Isolamento','Rotativos','Pintura','Outros'],
+    disc_cpa:{ all:discCpa(tasks), 'Fase 1':discCpa(f1), 'Fase 2':discCpa(f2) },
+    sect:{
+      f1:{prev1:null,concl1:null,cpa1:null,...sStats(f1)},
+      f2:{prev1:null,concl1:null,cpa1:null,...sStats(f2)}
+    },
+    inc, dec, stalled, should:shouldArr, antic, cpa:cpaArr,
+    areas:[], rem:[], incl:[], dq_regress, dq_fake, cpa_worsen:[]
+  };
+}
+
+/* ════════════════════════
+   EXPORT HTML
+════════════════════════ */
+function exportHtml(){
+  const D = window._currentD;
+  if(!D){ toast('Carregue uma versão primeiro',true); return; }
+  const dataStr = JSON.stringify(D).replace(/<\/script>/gi,'<\\/script>');
+  const status = window._currentStatus || D.meta.data_status;
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Análise · ${status} · ${D.meta.label||''}</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#304F7E;--azul-d:#22395c;--azul-dd:#172943;--ouro:#EAA239;--ouro-d:#c9842a;--ink:#19222e;--muted:#5b6776;--line:#dfe5ec;--line-2:#eef2f6;--paper:#eef1f5;--card:#ffffff;--bad:#c0392b;--bad-bg:#fbeae8;--good:#1d8a5e;--good-bg:#e7f5ee;--warn:#cf8717;--warn-bg:#fcf3e2;--neutral:#6b7785;--disp:'Barlow Semi Condensed','Arial Narrow',sans-serif;--body:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+header.top{background:linear-gradient(120deg,var(--azul-dd),var(--azul));color:#fff;padding:18px 26px 16px}
+.top-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;max-width:1320px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px}.brand .mark{width:40px;height:40px;border:2px solid var(--ouro);border-radius:7px;display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:21px;color:var(--ouro)}
+.brand h1{font-family:var(--disp);font-weight:600;font-size:21px;margin:0;letter-spacing:.4px;line-height:1.05}
+.brand .sub{font-size:11.5px;color:#c4d2e6;letter-spacing:.7px;text-transform:uppercase;margin-top:2px}
+.cut{margin-left:auto}.cut .chip{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);padding:6px 11px;border-radius:6px;color:#eaf1fb}
+.rail{max-width:1320px;margin:0 auto;padding:18px 26px 4px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.gauge{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px 18px;box-shadow:0 1px 2px rgba(20,40,70,.05)}
+.gauge .gh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+.gauge .gh .n{font-family:var(--disp);font-weight:600;font-size:17px;color:var(--azul-d)}
+.gauge .gh .tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+.track{position:relative;height:26px;background:var(--line-2);border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+.track .real{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--azul),#3f67a0);border-radius:5px 0 0 5px}
+.track .prevtick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ouro)}
+.track .prevtick::after{content:attr(data-l);position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--ouro-d);white-space:nowrap}
+.gstats{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap}
+.gstats .s .lab{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.gstats .s .val{font-family:var(--mono);font-weight:600;font-size:15px}
+.gstats .s .val small{font-weight:400;font-size:11px;color:var(--muted)}
+.delta-up{color:var(--bad)}.delta-dn{color:var(--good)}
+.tabwrap{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(20,40,70,.04)}
+.tabs{max-width:1320px;margin:0 auto;padding:0 22px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
+.tab{flex:0 0 auto;border:none;background:none;padding:13px 13px 11px;font-family:var(--disp);font-weight:600;font-size:14px;letter-spacing:.2px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.tab:hover{color:var(--azul-d)}.tab.active{color:var(--azul-d);border-bottom-color:var(--ouro)}
+.tab .cnt{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--line-2);color:var(--muted);padding:1px 7px;border-radius:20px;min-width:22px;text-align:center}
+.tab.active .cnt{background:var(--ouro);color:#3a2a08}.tab.flag.active .cnt{background:var(--bad);color:#fff}.tab.flag .cnt{color:var(--bad)}
+main{max-width:1320px;margin:0 auto;padding:20px 26px 80px}
+.panel{display:none;animation:fade .25s ease}.panel.active{display:block}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.phead{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.phead .pt{font-family:var(--disp);font-weight:700;font-size:22px;color:var(--azul-d);letter-spacing:.3px;line-height:1.1}
+.phead .dir{flex:1;min-width:280px;color:var(--muted);font-size:13px;border-left:3px solid var(--ouro);padding:2px 0 2px 12px;align-self:center}
+.phead .dir b{color:var(--ink);font-weight:600}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;padding:9px 12px 9px 32px;border:1px solid var(--line);border-radius:7px;font-family:var(--body);font-size:13px;background:var(--card)}
+.search input:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(48,79,126,.1)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted)}
+.filters{display:flex;gap:3px;background:var(--line-2);padding:3px;border-radius:8px}
+.filters button{border:none;background:none;padding:7px 13px;border-radius:6px;font-family:var(--body);font-weight:500;font-size:12.5px;color:var(--muted);cursor:pointer}
+.filters button.on{background:var(--card);color:var(--azul-d);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.rowcount{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+.discbar{display:flex;align-items:stretch;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.disc-label{display:flex;flex-direction:column;justify-content:center;padding-right:4px;min-width:96px}
+.disc-label .t{font-family:var(--disp);font-weight:600;font-size:12.5px;color:var(--azul-d)}
+.disc-label .s{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.disc-card{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 12px 8px;cursor:pointer;min-width:104px;display:flex;flex-direction:column;gap:1px;transition:border-color .12s,box-shadow .12s,background .12s}
+.disc-card:hover{border-color:#b9c6d8}.disc-card.on{border-color:var(--azul);box-shadow:0 0 0 2px rgba(48,79,126,.14);background:#f6f9fd}
+.disc-card .dn{font-family:var(--body);font-weight:600;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:6px}
+.disc-card .dn .led{width:8px;height:8px;border-radius:50%}
+.disc-card .dv{font-family:var(--mono);font-weight:600;font-size:15px;line-height:1.1}
+.disc-card .dd{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.disc-card.reset{justify-content:center;min-width:74px}.disc-card.reset .dn{font-weight:600;color:var(--muted)}.disc-card.reset.on .dn{color:var(--azul-d)}
+.cpa-neg{color:var(--bad)}.cpa-pos{color:var(--good)}.cpa-zero{color:var(--neutral)}
+.led-neg{background:var(--bad)}.led-pos{background:var(--good)}.led-zero{background:#c4ccd6}
+.tblwrap{background:var(--card);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--azul-dd);color:#dce6f3;font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;padding:10px 11px;text-align:left;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
+thead th.num{text-align:right}thead th:hover{color:#fff}
+thead th .ar{color:var(--ouro);font-size:10px;margin-left:3px;opacity:0}thead th.sorted .ar{opacity:1}
+tbody td{padding:9px 11px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tbody tr:hover{background:#f7f9fc}tbody tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);text-align:right;white-space:nowrap;font-size:12.5px}
+.act-name{font-weight:500;color:var(--ink);max-width:340px}.area-cell{color:var(--muted);font-size:12px;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.fase-pill{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;letter-spacing:.3px}
+.f1{background:#e7edf6;color:var(--azul-d)}.f2{background:#fcf0db;color:var(--ouro-d)}
+.disc-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;letter-spacing:.2px}
+.d-civil{background:#e9eef5;color:#3a5e8c}.d-mecanica{background:#e6f1ec;color:#1d7a55}.d-eletrica{background:#fbf0d8;color:#a9740f}.d-instrumentacao{background:#f0eafa;color:#6b4caa}.d-automacao{background:#eaf3fa;color:#2f7da3}.d-isolamento{background:#f4eee8;color:#8a6a45}.d-rotativos{background:#f7e9ee;color:#9c4763}.d-pintura{background:#eef3e6;color:#5e7a2e}.d-outros{background:var(--line-2);color:var(--neutral)}
+.muted{color:var(--muted)}.dash{color:#c4ccd6}
+.chip2{display:inline-block;font-family:var(--mono);font-weight:600;font-size:12px;padding:2px 8px;border-radius:20px;min-width:46px;text-align:center}
+.c-bad{background:var(--bad-bg);color:var(--bad)}.c-good{background:var(--good-bg);color:var(--good)}.c-warn{background:var(--warn-bg);color:var(--warn)}.c-zero{background:var(--line-2);color:var(--neutral)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:13px;font-size:11.5px;color:var(--muted);padding:0 2px}
+.legend b{color:var(--ink)}.legend .li{display:flex;align-items:center;gap:6px}.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+.note{background:var(--warn-bg);border:1px solid #f0dcb4;border-radius:9px;padding:12px 15px;margin-bottom:14px;font-size:13px;color:#6b5018}.note b{color:#5a4310}
+.empty{padding:40px;text-align:center;color:var(--muted);font-style:italic}
+footer{max-width:1320px;margin:0 auto;padding:18px 26px 40px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
+@media(max-width:760px){.rail{grid-template-columns:1fr}.phead .pt{font-size:19px}.act-name{max-width:200px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <div class="brand"><div class="mark">IN</div>
+    <div><h1>Análise de Performance · Cronograma Executivo</h1>
+    <div class="sub">Rondonópolis · Fase 1 &amp; Fase 2 · ${D.meta.data_status}${D.meta.label?' · '+D.meta.label:''}</div></div></div>
+    <div class="cut"><span class="chip">${D.meta.data_status}</span></div>
+  </div>
+</header>
+<section class="rail" id="rail"></section>
+<div class="tabwrap"><div class="tabs" id="tabs"></div></div>
+<main id="main"></main>
+<footer>Exportado em ${new Date().toLocaleString('pt-BR')} · Data de status: ${D.meta.data_status}. Desvio = % Concluído − % Previsto. Negativo = atrasado. CPA = contribuição ao desvio acumulado do projeto.</footer>
+<script id="data" type="application/json">${dataStr}<\/script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const fmt=(v,d=2)=>(v===null||v===undefined)?null:Number(v).toFixed(d);
+const num=v=>(v===null||v===undefined)?'<span class="dash">—<\\/span>':\`<span>\${fmt(v)}<\\/span>\`;
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fasePill(f){return \`<span class="fase-pill \${f.includes('1')?'f1':'f2'}">\${f.replace('Fase ','F')}<\\/span>\`;}
+function chipVal(v){if(v===null||v===undefined)return'<span class="dash">—<\\/span>';const n=Number(v);return \`<span class="chip2 \${Math.abs(n)<0.005?'c-zero':n<0?'c-bad':'c-good'}">\${n>0?'+':''}\${fmt(v)}<\\/span>\`;}
+function discTag(d){const k=(d||'').toLowerCase().replace(/[^a-z]/g,'');const m={civil:'civil',mecanica:'mecanica',eletrica:'eletrica',instrumentacao:'instrumentacao',automacao:'automacao',isolamento:'isolamento',rotativos:'rotativos',pintura:'pintura'};return \`<span class="disc-tag d-\${m[k]||'outros'}">\${esc(d)}<\\/span>\`;}
+function legendFor(){return \`<div class="legend"><span class="li"><span class="sw" style="background:var(--azul)"><\\/span><b>Previsto→Realizado<\\/b>: % concluído físico<\\/span><span class="li"><span class="chip2 c-bad" style="font-size:10px">–X<\\/span> Desvio negativo (atraso)<\\/span><span class="li"><span class="chip2 c-good" style="font-size:10px">+X<\\/span> Adiantado<\\/span><\\/div>\`;}
+const TABS=[
+  {id:'inc',label:'Maiores Desvios',flag:true,dir:'Tarefas com maior desvio previsto × realizado. Negativo = atrasado.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'stalled',label:'Estagnadas',flag:true,dir:'Tinham avanço previsto mas zero realizado na semana.',cols:['fase','area','name','disc','prev2','concl2','dv2']},
+  {id:'should',label:'Deveriam estar 100%',flag:true,dir:'Previsto ≥ 100% mas realizado ainda não chegou lá.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'dec',label:'Destaques Positivos',dir:'Tarefas mais adiantadas em relação ao previsto.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'antic',label:'Antecipações',dir:'Execução iniciou antes do previsto.',cols:['fase','area','name','disc','concl2','cpa2']},
+  {id:'cpa',label:'Por CPA',dir:'Todas as tarefas ordenadas por Contribuição ao Desvio Acumulado.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'dq',label:'Suspeitas',flag:true,dir:'Possíveis inconsistências de apontamento.'},
+];
+const state={};TABS.forEach(t=>{state[t.id]={fase:'all',disc:'all',q:'',sortKey:null,sortDir:1};});
+const COL={
+  fase:{h:'Fase',cls:'',get:r=>r.fase,cell:r=>fasePill(r.fase)},
+  area:{h:'Área',cls:'area-cell',get:r=>r.area,cell:r=>\`<span class="area-cell" title="\${esc(r.area)}">\${esc(r.area)}<\\/span>\`},
+  name:{h:'Atividade',cls:'act-name',get:r=>r.name,cell:r=>\`<span class="act-name">\${esc(r.name)}<\\/span>\`},
+  disc:{h:'Disciplina',cls:'',get:r=>r.disc,cell:r=>discTag(r.disc)},
+  prev2:{h:'Previsto %',cls:'num',get:r=>r.prev2,cell:r=>num(r.prev2)},
+  concl2:{h:'Realizado %',cls:'num',get:r=>r.concl2,cell:r=>num(r.concl2)},
+  dv2:{h:'Desvio',cls:'num',get:r=>r.dv2,cell:r=>chipVal(r.dv2)},
+  cpa2:{h:'CPA',cls:'num',get:r=>r.cpa2,cell:r=>chipVal(r.cpa2)},
+};
+function cpaClass(v){return Math.abs(v)<0.005?'cpa-zero':(v<0?'cpa-neg':'cpa-pos');}
+function ledClass(v){return Math.abs(v)<0.005?'led-zero':(v<0?'led-neg':'led-pos');}
+function renderRail(){
+  const rail=document.getElementById('rail');
+  rail.innerHTML=[{id:'f1',label:'Fase 1'},{id:'f2',label:'Fase 2'}].map(ph=>{
+    const s=D.sect[ph.id];if(!s)return'';
+    const c=Math.min(s.concl2||0,100),p=Math.min(s.prev2||0,100),dv=(c-p).toFixed(2);
+    return \`<div class="gauge"><div class="gh"><span class="n">\${ph.label}<\\/span><span class="tag">% físico-EAP<\\/span><\\/div>
+      <div class="track"><div class="real" style="width:\${c}%"><\\/div>\${p>0?\`<div class="prevtick" style="left:\${p}%" data-l="\${p.toFixed(1)}%"><\\/div>\`:''}<\\/div>
+      <div class="gstats">
+        <div class="s"><div class="lab">Realizado<\\/div><div class="val">\${c.toFixed(2)}<small>%<\\/small><\\/div><\\/div>
+        <div class="s"><div class="lab">Previsto<\\/div><div class="val">\${p.toFixed(2)}<small>%<\\/small><\\/div><\\/div>
+        <div class="s"><div class="lab">Desvio<\\/div><div class="val \${parseFloat(dv)<0?'delta-up':'delta-dn'}">\${parseFloat(dv)>0?'+':''}\${dv}<small>pp<\\/small><\\/div><\\/div>
+        \${s.cpa2!=null?\`<div class="s"><div class="lab">CPA<\\/div><div class="val \${parseFloat(s.cpa2)<0?'delta-up':'delta-dn'}">\${parseFloat(s.cpa2)>0?'+':''}\${s.cpa2.toFixed(2)}<\\/div><\\/div>\`:''}\n<\\/div><\\/div>\`;
+  }).join('');
+}
+function renderTabs(){
+  const tabs=document.getElementById('tabs');
+  tabs.innerHTML=TABS.map(t=>{const data=t.id==='dq'?(D.dq_regress||[]).concat(D.dq_fake||[]):(D[t.id]||[]);return \`<button class="tab\${t.flag?' flag':''}" data-id="\${t.id}" onclick="activate('\${t.id}')">\${t.label}<span class="cnt">\${data.length}<\\/span><\\/button>\`;}).join('');
+  document.getElementById('main').innerHTML=TABS.map(t=>\`<div class="panel" id="panel-\${t.id}"><\\/div>\`).join('');
+}
+function renderDiscbar(t){
+  const st=state[t.id],el=document.getElementById('discbar-'+t.id);
+  const items=D.disc_cpa[st.fase==='all'?'all':st.fase]||[];
+  const reset=\`<div class="disc-card reset \${st.disc==='all'?'on':''}" data-d="all"><span class="dn">Todas<\\/span><\\/div>\`;
+  const cards=items.map(it=>\`<div class="disc-card \${st.disc===it.disc?'on':''}" data-d="\${it.disc}"><span class="dn"><span class="led \${ledClass(it.cpa)}"><\\/span>\${it.disc}<\\/span><span class="dv \${cpaClass(it.cpa)}">\${(it.cpa>0?'+':'')+it.cpa.toFixed(2)}<\\/span><span class="dd">Δ \${it.dcpa.toFixed(2)}<\\/span><\\/div>\`).join('');
+  el.innerHTML=\`<div class="disc-label"><span class="t">CPA por disciplina<\\/span><span class="s">\${st.fase==='all'?'Fase 1 + 2':st.fase}<\\/span><\\/div>\${reset}\${cards}\`;
+  el.querySelectorAll('.disc-card').forEach(c=>c.onclick=()=>{st.disc=(st.disc===c.dataset.d?'all':c.dataset.d);renderDiscbar(t);drawTable(t);});
+}
+function drawTable(t){
+  const st=state[t.id],cols=t.cols.map(k=>COL[k]);
+  let rows=(D[t.id]||[]).filter(r=>{if(st.fase!=='all'&&r.fase!==st.fase)return false;if(st.disc!=='all'&&r.disc!==st.disc)return false;if(st.q){const h=(r.name+' '+(r.area||'')).toLowerCase();if(!h.includes(st.q))return false;}return true;});
+  if(st.sortKey!==null){const col=COL[st.sortKey];rows.sort((a,b)=>{let x=col.get(a),y=col.get(b);const xn=x===null||x===undefined,yn=y===null||y===undefined;if(xn&&yn)return 0;if(xn)return 1;if(yn)return -1;if(typeof x==='number')return(x-y)*st.sortDir;return(''+x).localeCompare(''+y,'pt')*st.sortDir;});}
+  const tbl=document.getElementById('tbl-'+t.id);
+  let thead='<thead><tr>'+t.cols.map(k=>{const c=COL[k],sorted=st.sortKey===k?'sorted':'';const ar=st.sortKey===k?(st.sortDir>0?'▲':'▼'):'';return \`<th class="\${c.cls} \${sorted}" data-k="\${k}">\${c.h}<span class="ar">\${ar}<\\/span><\\/th>\`;}).join('')+'<\\/tr><\\/thead>';
+  let body=rows.length?'<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>\`<td class="\${c.cls}">\${c.cell(r)}<\\/td>\`).join('')+'<\\/tr>').join('')+'<\\/tbody>':\`<tbody><tr><td colspan="\${cols.length}" class="empty">Nenhuma atividade.<\\/td><\\/tr><\\/tbody>\`;
+  tbl.innerHTML=thead+body;
+  tbl.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(st.sortKey===k)st.sortDir*=-1;else{st.sortKey=k;st.sortDir=COL[k].cls==='num'?-1:1;}drawTable(t);});
+  const rc=document.getElementById('rc-'+t.id);if(rc)rc.textContent=\`\${rows.length} de \${(D[t.id]||[]).length}\`;
+}
+function renderPanel(t){
+  const p=document.getElementById('panel-'+t.id);
+  if(t.id==='dq'){const reg=D.dq_regress||[],fk=D.dq_fake||[];const mk=(arr,lbl,desc)=>\`<div class="phead" style="margin-top:6px"><div class="pt" style="font-size:17px">\${lbl} (\${arr.length})<\\/div><div class="dir">\${desc}<\\/div><\\/div><div class="tblwrap"><div class="scroll"><table><thead><tr><th>Fase<\\/th><th>Área<\\/th><th>Atividade<\\/th><th class="num">Previsto<\\/th><th class="num">Realizado<\\/th><\\/tr><\\/thead><tbody>\${arr.length?arr.map(r=>\`<tr><td>\${fasePill(r.fase)}<\\/td><td class="area-cell">\${esc(r.area)}<\\/td><td class="act-name">\${esc(r.name)}<\\/td><td class="num">\${num(r.prev2)}<\\/td><td class="num">\${num(r.concl2)}<\\/td><\\/tr>\`).join(''):'<tr><td colspan="5" class="empty">Nenhuma ocorrência.<\\/td><\\/tr>'}<\\/tbody><\\/table><\\/div><\\/div>\`;p.innerHTML=\`<div class="phead"><div class="pt">Suspeitas de apontamento<\\/div><div class="dir">\${t.dir}<\\/div><\\/div><div class="note"><b>Por que olhar aqui:<\\/b> físico não volta atrás; previsto zerado sem justificativa reduz o desvio artificialmente.<\\/div>\${mk(reg,'① Realizado regrediu','Físico estava maior e voltou para valor menor.')}\${mk(fk,'② Previsto zerado / removido','Tarefas com previsto que agora aparecem sem previsto.')}\`;return;}
+  const st=state[t.id];
+  p.innerHTML=\`<div class="phead"><div class="pt">\${t.label}<\\/div><div class="dir">\${t.dir}<\\/div><\\/div>
+    <div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><\\/svg><input id="q-\${t.id}" placeholder="Buscar…" oninput="state['\${t.id}'].q=this.value.toLowerCase();drawTable(TABS.find(x=>x.id==='\${t.id}'))"><\\/div>
+    <div class="filters"><button class="\${st.fase==='all'?'on':''}" onclick="state['\${t.id}'].fase='all';[...this.parentNode.querySelectorAll('button')].forEach(b=>b.classList.remove('on'));this.classList.add('on');renderDiscbar(TABS.find(x=>x.id==='\${t.id}'));drawTable(TABS.find(x=>x.id==='\${t.id}'))">Todas<\\/button><button class="\${st.fase==='Fase 1'?'on':''}" onclick="state['\${t.id}'].fase='Fase 1';[...this.parentNode.querySelectorAll('button')].forEach(b=>b.classList.remove('on'));this.classList.add('on');renderDiscbar(TABS.find(x=>x.id==='\${t.id}'));drawTable(TABS.find(x=>x.id==='\${t.id}'))">Fase 1<\\/button><button class="\${st.fase==='Fase 2'?'on':''}" onclick="state['\${t.id}'].fase='Fase 2';[...this.parentNode.querySelectorAll('button')].forEach(b=>b.classList.remove('on'));this.classList.add('on');renderDiscbar(TABS.find(x=>x.id==='\${t.id}'));drawTable(TABS.find(x=>x.id==='\${t.id}'))">Fase 2<\\/button><\\/div>
+    <span class="rowcount" id="rc-\${t.id}"><\\/span><\\/div>
+    <div class="discbar" id="discbar-\${t.id}"><\\/div>
+    <div class="tblwrap"><div class="scroll"><table id="tbl-\${t.id}"><\\/table><\\/div><\\/div>\${legendFor()}\`;
+  renderDiscbar(t);drawTable(t);
+}
+function activate(id){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.id===id));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));const t=TABS.find(x=>x.id===id);if(!document.getElementById('panel-'+id).dataset.built){renderPanel(t);document.getElementById('panel-'+id).dataset.built='1';}}
+renderRail();renderTabs();activate(TABS[0].id);renderPanel(TABS[0]);document.getElementById('panel-'+TABS[0].id).dataset.built='1';
+<\/script>
+</body></html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'analise_cronograma_'+status+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  toast('HTML exportado: analise_cronograma_'+status+'.html');
+}
+
+/* ════════════════════════
+   RENDER ENGINE
+════════════════════════ */
+const fmt  = (v,d=2)=>(v===null||v===undefined)?null:Number(v).toFixed(d);
+const num  = v=>(v===null||v===undefined)?'<span class="dash">—</span>':`<span>${fmt(v)}</span>`;
+const esc  = s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fasePill = f=>`<span class="fase-pill ${f.includes('1')?'f1':'f2'}">${f.replace('Fase ','F')}</span>`;
+const chipVal  = v=>{ if(v===null||v===undefined)return'<span class="dash">—</span>'; const n=Number(v); return `<span class="chip2 ${Math.abs(n)<0.005?'c-zero':n<0?'c-bad':'c-good'}">${n>0?'+':''}${fmt(v)}</span>`; };
+const discTag  = d=>{ const k=(d||'').toLowerCase().replace(/[^a-z]/g,''); const m={civil:'civil',mecanica:'mecanica',eletrica:'eletrica',instrumentacao:'instrumentacao',automacao:'automacao',isolamento:'isolamento',rotativos:'rotativos',pintura:'pintura'}; return `<span class="disc-tag d-${m[k]||'outros'}">${esc(d)}</span>`; };
+const legendFor = ()=>`<div class="legend"><span class="li"><span class="sw" style="background:var(--azul)"></span><b>Previsto→Realizado</b>: % concluído físico</span><span class="li"><span class="chip2 c-bad" style="font-size:10px">–X</span> Desvio negativo (atraso)</span><span class="li"><span class="chip2 c-good" style="font-size:10px">+X</span> Adiantado</span></div>`;
+
+const TABS=[
+  {id:'inc',    label:'Maiores Desvios',     flag:true, dir:'Tarefas com maior desvio previsto × realizado (negativo = atrasado). Ordenado pelo pior desvio.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'stalled',label:'Estagnadas',          flag:true, dir:'Tinham avanço previsto na semana mas o realizado foi zero — o plano esperava mais.',cols:['fase','area','name','disc','prev2','concl2','dv2']},
+  {id:'should', label:'Deveriam estar 100%', flag:true, dir:'Previsto ≥ 100% mas o realizado ainda não chegou lá. Atenção imediata: são as entregas em atraso crítico.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'dec',    label:'Destaques Positivos', flag:false,dir:'Tarefas mais adiantadas em relação ao previsto — reconheça o esforço do time.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'antic',  label:'Antecipações',        flag:false,dir:'Execução iniciou antes do previsto no cronograma-base. Verifique se o cronograma reflete a realidade.',cols:['fase','area','name','disc','concl2','cpa2']},
+  {id:'cpa',    label:'Por CPA',             flag:false,dir:'Todas as tarefas ordenadas pela Contribuição ao Desvio Acumulado do Projeto. Positivo puxa pra frente; negativo, pra trás.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
+  {id:'dq',     label:'Suspeitas',           flag:true, dir:'Possíveis inconsistências de apontamento: físico que regrediu ou previsto zerado sem justificativa.'},
+];
+
+const tabState = {};
+TABS.forEach(t=>{ tabState[t.id]={fase:'all',disc:'all',q:'',sortKey:null,sortDir:1}; });
+
+const COL = {
+  fase:  {h:'Fase',      cls:'',        get:r=>r.fase,   cell:r=>fasePill(r.fase)},
+  area:  {h:'Área',      cls:'area-cell',get:r=>r.area,  cell:r=>`<span class="area-cell" title="${esc(r.area)}">${esc(r.area)}</span>`},
+  name:  {h:'Atividade', cls:'act-name', get:r=>r.name,  cell:r=>`<span class="act-name">${esc(r.name)}</span>`},
+  disc:  {h:'Disciplina',cls:'',         get:r=>r.disc,  cell:r=>discTag(r.disc)},
+  prev2: {h:'Previsto %',cls:'num',      get:r=>r.prev2, cell:r=>num(r.prev2)},
+  concl2:{h:'Realizado %',cls:'num',     get:r=>r.concl2,cell:r=>num(r.concl2)},
+  dv2:   {h:'Desvio',   cls:'num',       get:r=>r.dv2,   cell:r=>chipVal(r.dv2)},
+  cpa2:  {h:'CPA',      cls:'num',       get:r=>r.cpa2,  cell:r=>chipVal(r.cpa2)},
+};
+
+const cpaClass = v=>Math.abs(v)<0.005?'cpa-zero':(v<0?'cpa-neg':'cpa-pos');
+const ledClass  = v=>Math.abs(v)<0.005?'led-zero':(v<0?'led-neg':'led-pos');
+
+function showAnalysis(D, statusDate, label){
+  document.getElementById('upload-zone').style.display = 'none';
+  document.getElementById('analysis-view').style.display = '';
+  // Reset panel state
+  TABS.forEach(t=>{ tabState[t.id]={fase:'all',disc:'all',q:'',sortKey:null,sortDir:1}; });
+  renderRail(D);
+  renderTabsUI(D);
+  document.querySelectorAll('.panel').forEach(p=>p.removeAttribute('data-built'));
+  activateTab(D, TABS[0].id);
+  renderPanelFor(D, TABS[0]);
+  document.getElementById('panel-'+TABS[0].id).dataset.built='1';
+}
+
+function renderRail(D){
+  document.getElementById('rail').innerHTML = [{id:'f1',label:'Fase 1'},{id:'f2',label:'Fase 2'}].map(ph=>{
+    const s = D.sect[ph.id]; if(!s) return '';
+    const c = Math.min(s.concl2||0,100), p = Math.min(s.prev2||0,100);
+    const dv = (c-p).toFixed(2);
+    return `<div class="gauge">
+      <div class="gh"><span class="n">${ph.label}</span><span class="tag">% físico-EAP</span></div>
+      <div class="track">
+        <div class="real" style="width:${c}%"></div>
+        ${p>0?`<div class="prevtick" style="left:${p}%" data-l="${p.toFixed(1)}%"></div>`:''}
+      </div>
+      <div class="gstats">
+        <div class="s"><div class="lab">Realizado</div><div class="val">${c.toFixed(2)}<small>%</small></div></div>
+        <div class="s"><div class="lab">Previsto</div><div class="val">${p.toFixed(2)}<small>%</small></div></div>
+        <div class="s"><div class="lab">Desvio</div><div class="val ${parseFloat(dv)<0?'delta-up':'delta-dn'}">${parseFloat(dv)>0?'+':''}${dv}<small>pp</small></div></div>
+        ${s.cpa2!=null?`<div class="s"><div class="lab">CPA</div><div class="val ${parseFloat(s.cpa2)<0?'delta-up':'delta-dn'}">${parseFloat(s.cpa2)>0?'+':''}${s.cpa2.toFixed(2)}</div></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTabsUI(D){
+  document.getElementById('tabs').innerHTML = TABS.map(t=>{
+    const data = t.id==='dq' ? (D.dq_regress||[]).concat(D.dq_fake||[]) : (D[t.id]||[]);
+    return `<button class="tab${t.flag?' flag':''}" data-id="${t.id}" onclick="activateTab(window._currentD,'${t.id}')">
+      ${t.label}<span class="cnt">${data.length}</span>
+    </button>`;
+  }).join('');
+  document.getElementById('main').innerHTML = TABS.map(t=>`<div class="panel" id="panel-${t.id}"></div>`).join('');
+}
+
+function renderDiscbarFor(D, t){
+  const st = tabState[t.id];
+  const el = document.getElementById('discbar-'+t.id);
+  const items = D.disc_cpa[st.fase==='all'?'all':st.fase] || [];
+  const reset = `<div class="disc-card reset ${st.disc==='all'?'on':''}" data-d="all"><span class="dn">Todas</span></div>`;
+  const cards = items.map(it=>`<div class="disc-card ${st.disc===it.disc?'on':''}" data-d="${it.disc}">
+    <span class="dn"><span class="led ${ledClass(it.cpa)}"></span>${it.disc}</span>
+    <span class="dv ${cpaClass(it.cpa)}">${(it.cpa>0?'+':'')+it.cpa.toFixed(2)}</span>
+    <span class="dd">Δ ${it.dcpa.toFixed(2)}</span></div>`).join('');
+  el.innerHTML = `<div class="disc-label"><span class="t">CPA por disciplina</span><span class="s">${st.fase==='all'?'Fase 1 + 2':st.fase}</span></div>${reset}${cards}`;
+  el.querySelectorAll('.disc-card').forEach(c=>c.onclick=()=>{
+    st.disc = (st.disc===c.dataset.d ? 'all' : c.dataset.d);
+    renderDiscbarFor(D,t); drawTableFor(D,t);
+  });
+}
+
+function drawTableFor(D, t){
+  const st = tabState[t.id];
+  const cols = t.cols.map(k=>COL[k]);
+  let rows = (D[t.id]||[]).filter(r=>{
+    if(st.fase!=='all' && r.fase!==st.fase) return false;
+    if(st.disc!=='all' && r.disc!==st.disc) return false;
+    if(st.q){ const h=(r.name+' '+(r.area||'')).toLowerCase(); if(!h.includes(st.q)) return false; }
+    return true;
+  });
+  if(st.sortKey!==null){
+    const col = COL[st.sortKey];
+    rows.sort((a,b)=>{
+      let x=col.get(a), y=col.get(b);
+      const xn=x===null||x===undefined, yn=y===null||y===undefined;
+      if(xn&&yn)return 0; if(xn)return 1; if(yn)return -1;
+      if(typeof x==='number') return (x-y)*st.sortDir;
+      return (''+x).localeCompare(''+y,'pt')*st.sortDir;
+    });
+  }
+  const tbl = document.getElementById('tbl-'+t.id);
+  const thead = '<thead><tr>'+t.cols.map(k=>{
+    const c=COL[k], sorted=st.sortKey===k?'sorted':'';
+    const ar=st.sortKey===k?(st.sortDir>0?'▲':'▼'):'';
+    return `<th class="${c.cls} ${sorted}" data-k="${k}">${c.h}<span class="ar">${ar}</span></th>`;
+  }).join('')+'</tr></thead>';
+  const body = rows.length
+    ? '<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td class="${c.cls}">${c.cell(r)}</td>`).join('')+'</tr>').join('')+'</tbody>'
+    : `<tbody><tr><td colspan="${cols.length}" class="empty">Nenhuma atividade nesta combinação de filtros.</td></tr></tbody>`;
+  tbl.innerHTML = thead+body;
+  tbl.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(st.sortKey===k) st.sortDir*=-1;
+    else { st.sortKey=k; st.sortDir=COL[k].cls==='num'?-1:1; }
+    drawTableFor(D,t);
+  });
+  const rc = document.getElementById('rc-'+t.id);
+  if(rc) rc.textContent = `${rows.length} de ${(D[t.id]||[]).length}`;
+}
+
+function renderPanelFor(D, t){
+  const p = document.getElementById('panel-'+t.id);
+  if(t.id==='dq'){
+    const reg=D.dq_regress||[], fk=D.dq_fake||[];
+    const mk=(arr,lbl,desc)=>`<div class="phead" style="margin-top:6px"><div class="pt" style="font-size:17px">${lbl} (${arr.length})</div><div class="dir">${desc}</div></div>
+      <div class="tblwrap"><div class="scroll"><table><thead><tr><th>Fase</th><th>Área</th><th>Atividade</th><th class="num">Previsto</th><th class="num">Realizado</th></tr></thead>
+      <tbody>${arr.length?arr.map(r=>`<tr><td>${fasePill(r.fase)}</td><td class="area-cell">${esc(r.area)}</td><td class="act-name">${esc(r.name)}</td><td class="num">${num(r.prev2)}</td><td class="num">${num(r.concl2)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nenhuma ocorrência.</td></tr>'}</tbody></table></div></div>`;
+    p.innerHTML = `<div class="phead"><div class="pt">Suspeitas de apontamento</div><div class="dir">${t.dir}</div></div>
+      <div class="note"><b>Por que olhar aqui:</b> físico não volta atrás; previsto zerado sem justificativa reduz o desvio artificialmente.</div>
+      ${mk(reg,'① Realizado regrediu','Físico estava maior e voltou para valor menor ou em branco — provável apagamento acidental.')}
+      ${mk(fk,'② Previsto zerado / removido','Tarefas com previsto que agora aparecem sem previsto, sem avanço real.')}`;
+    return;
+  }
+  const st = tabState[t.id];
+  p.innerHTML = `<div class="phead"><div class="pt">${t.label}</div><div class="dir">${t.dir}</div></div>
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="q-${t.id}" placeholder="Buscar atividade ou área…"
+          oninput="tabState['${t.id}'].q=this.value.toLowerCase();drawTableFor(window._currentD,TABS.find(x=>x.id==='${t.id}'))">
+      </div>
+      <div class="filters">
+        <button class="${st.fase==='all'?'on':''}" onclick="setFaseFilter('${t.id}','all',this)">Todas</button>
+        <button class="${st.fase==='Fase 1'?'on':''}" onclick="setFaseFilter('${t.id}','Fase 1',this)">Fase 1</button>
+        <button class="${st.fase==='Fase 2'?'on':''}" onclick="setFaseFilter('${t.id}','Fase 2',this)">Fase 2</button>
+      </div>
+      <span class="rowcount" id="rc-${t.id}"></span>
+    </div>
+    <div class="discbar" id="discbar-${t.id}"></div>
+    <div class="tblwrap"><div class="scroll"><table id="tbl-${t.id}"></table></div></div>
+    ${legendFor()}`;
+  renderDiscbarFor(D, t);
+  drawTableFor(D, t);
+}
+
+function setFaseFilter(tabId, fase, btn){
+  tabState[tabId].fase = fase;
+  btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const t = TABS.find(x=>x.id===tabId);
+  renderDiscbarFor(window._currentD, t);
+  drawTableFor(window._currentD, t);
+}
+
+function activateTab(D, id){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.id===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+id));
+  const t = TABS.find(x=>x.id===id);
+  const panel = document.getElementById('panel-'+id);
+  if(!panel.dataset.built){ renderPanelFor(D, t); panel.dataset.built='1'; }
+}
+</script>
+</body>
+</html>
