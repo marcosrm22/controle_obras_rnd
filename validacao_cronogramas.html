@@ -99,6 +99,10 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .fld input,.fld select{width:100%;font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 10px;outline:none;background:#fff}
 .fld input:focus,.fld select:focus{border-color:var(--blue)}
 .fld .mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+.contract-note{font-size:11px;margin-top:10px;padding:9px 12px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);display:none;line-height:1.6}
+.contract-note.show{display:block}
+.contract-note.new{border-left-color:var(--gold);background:var(--orange-soft);color:#7c4a00}
+.contract-note a{color:inherit;font-weight:700}
 .detect-note{font-size:11px;margin-top:10px;padding:8px 12px;border-left:3px solid var(--gold);background:var(--orange-soft);color:#7c4a00;display:none}
 .detect-note.show{display:block}
 .detect-note.ok{border-left-color:var(--green);background:var(--green-soft);color:#2e5023}
@@ -255,7 +259,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
   <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
     <a class="back-link" href="index.html">← Painel de Ferramentas</a>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a class="back-link" href="gestao_escopos.html" style="color:var(--blue)">📁 Gestão de Escopos</a>
+      <a class="back-link" href="gestao_contratos.html" style="color:var(--blue)">📁 Gestão de Contratos</a>
       <a class="back-link" href="dashboard_desempenho.html" style="color:var(--blue)">📈 Dashboard de Desempenho</a>
     </div>
   </div>
@@ -340,19 +344,19 @@ table.data tr.is-summary:hover td{background:#eef0f3}
       <div class="cfg-grid">
         <div class="fld">
           <label>Empresa / Terceira</label>
-          <input id="cf-empresa" placeholder="ex.: FORTYS">
+          <input id="cf-empresa" placeholder="ex.: FORTYS" list="dl-empresas" oninput="onEmpresaChange()" onchange="onEmpresaChange()">
         </div>
         <div class="fld">
           <label>Escopo / Contrato</label>
-          <input id="cf-escopo" placeholder="ex.: CT-29489">
+          <input id="cf-escopo" placeholder="ex.: CT-29489" list="dl-escopos" oninput="onEscopoChange()" onchange="onEscopoChange()">
         </div>
         <div class="fld">
           <label>Área / CWA</label>
-          <input id="cf-area" placeholder="ex.: geral">
+          <input id="cf-area" placeholder="ex.: geral" list="dl-areas">
         </div>
         <div class="fld">
           <label>Disciplina</label>
-          <input id="cf-disc" placeholder="ex.: Montagem Mecânica">
+          <input id="cf-disc" placeholder="ex.: Montagem Mecânica" list="dl-disciplinas">
         </div>
         <div class="fld">
           <label>Revisão (do arquivo)</label>
@@ -371,6 +375,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
           <select id="cf-concl"></select>
         </div>
       </div>
+      <div class="contract-note" id="contract-note"></div>
       <div class="detect-note" id="detect-note"></div>
       <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn" id="btn-analisar" onclick="runAnalysis()" disabled>
@@ -493,6 +498,11 @@ table.data tr.is-summary:hover td{background:#eef0f3}
     </div>
   </div>
 </div>
+
+<datalist id="dl-empresas"></datalist>
+<datalist id="dl-escopos"></datalist>
+<datalist id="dl-disciplinas"></datalist>
+<datalist id="dl-areas"></datalist>
 
 <div class="toast" id="toast"></div>
 
@@ -1106,6 +1116,7 @@ function onAfterLoad(){
     if(fm.escopo  && !$('cf-escopo').value)  $('cf-escopo').value  = fm.escopo;
     $('cf-rev').value = fm.revLabel || '—';
     log('  → arquivo: empresa="'+fm.empresa+'", escopo="'+fm.escopo+'", revisão='+(fm.revLabel||'não detectada'));
+    onEmpresaChange();   // filtra escopos e reconhece o contrato cadastrado
     $('btn-analisar').disabled=false;
   }
 }
@@ -1231,8 +1242,9 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
     const ins=await sb('POST','val_cronogramas',{empresa:emp,escopo:escopo||null,area:area||null,disciplina:disc||null,descricao:null});
     cronoId=ins[0].id;
   }else{
-    // atualiza atributos descritivos (área/disciplina podem mudar entre revisões)
-    await sb('PATCH',`val_cronogramas?id=eq.${cronoId}`,{area:area||null,disciplina:disc||null});
+    // atualiza só o que foi informado (não apaga o cadastro feito em Gestão de Contratos)
+    const upd={}; if(area) upd.area=area; if(disc) upd.disciplina=disc;
+    if(Object.keys(upd).length) await sb('PATCH',`val_cronogramas?id=eq.${cronoId}`,upd);
   }
   // se esta revisão já existe (reenvio), sobrescreve
   await sb('DELETE',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=eq.${revisao}`);
@@ -1421,6 +1433,55 @@ function switchView(v){
 function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
 
 let CAN_UPLOAD=false;
+/* ---------- contratos cadastrados (autocomplete + reconhecimento) ---------- */
+let CONTRATOS=[];
+const DISC_PADRAO=['Civil','Montagem Mecânica','Elétrica','Instrumentação','Automação','Isolamento','Pintura','Tubulação','Terraplanagem','Estrutura Metálica'];
+function fillDL(id,vals){ const el=$(id); if(el) el.innerHTML=[...new Set(vals.filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">`).join(''); }
+
+async function loadContratos(){
+  try{
+    CONTRATOS=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
+    fillDL('dl-empresas',CONTRATOS.map(c=>c.empresa));
+    fillDL('dl-disciplinas',[...DISC_PADRAO,...CONTRATOS.map(c=>c.disciplina)]);
+    fillDL('dl-areas',CONTRATOS.map(c=>c.area));
+    onEmpresaChange();
+  }catch(_){ /* banco ainda não configurado — segue sem sugestões */ }
+}
+/* ao escolher a empresa, filtra os escopos dela */
+function onEmpresaChange(){
+  const emp=($('cf-empresa').value||'').trim().toLowerCase();
+  const escopos=CONTRATOS.filter(c=>!emp || (c.empresa||'').toLowerCase()===emp).map(c=>c.escopo);
+  fillDL('dl-escopos',escopos);
+  onEscopoChange();
+}
+function achaContrato(){
+  const emp=($('cf-empresa').value||'').trim().toLowerCase();
+  const esc_=($('cf-escopo').value||'').trim().toLowerCase();
+  if(!emp) return null;
+  return CONTRATOS.find(c=>(c.empresa||'').toLowerCase()===emp && ((c.escopo||'').toLowerCase()===esc_)) || null;
+}
+/* ao reconhecer o contrato, autopreenche disciplina/área e mostra os responsáveis */
+function onEscopoChange(){
+  const note=$('contract-note');
+  const c=achaContrato();
+  if(c){
+    if(!$('cf-disc').value && c.disciplina) $('cf-disc').value=c.disciplina;
+    if(!$('cf-area').value && c.area)       $('cf-area').value=c.area;
+    const resp=[c.especialista&&('Especialista: <b>'+esc(c.especialista)+'</b>'),
+                c.analista&&('Analista: <b>'+esc(c.analista)+'</b>'),
+                c.supervisor&&('Supervisor: <b>'+esc(c.supervisor)+'</b>')].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    const vig=(c.data_inicio||c.data_termino)?`<br>Vigência: ${fmtD(c.data_inicio)} → ${fmtD(c.data_termino)}`:'';
+    note.className='contract-note show';
+    note.innerHTML=`✓ <b>Contrato reconhecido</b>${c.numero_contrato?(' · nº '+esc(c.numero_contrato)):''}${c.descricao?('<br>'+esc(c.descricao)):''}`+
+      (resp?('<br>'+resp):'')+vig;
+  }else if(($('cf-empresa').value||'').trim()){
+    note.className='contract-note new show';
+    note.innerHTML='⚠ <b>Contrato novo.</b> Será criado ao salvar. Depois, cadastre número, vigência e responsáveis em <a href="gestao_contratos.html">Gestão de Contratos</a>.';
+  }else{
+    note.className='contract-note';
+  }
+}
+
 function readPerms(){
   const perfil=sessionStorage.getItem('pco_perfil')||'viewer';
   let perms={}; try{ perms=JSON.parse(sessionStorage.getItem('pco_perms')||'{}'); }catch(_){}
@@ -1438,6 +1499,7 @@ function readPerms(){
     $('lock-notice').style.display='';
   }
   setupDrop('atual');
+  loadContratos();
   loadHistory();
 })();
 </script>

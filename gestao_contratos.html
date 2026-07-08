@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gestão de Contratos · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--gold:#EAA239;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;--orange-soft:#FEF3C7;
+  --red:#C0392B;--red-soft:#fdecea;--neutral:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
+.back-link:hover{color:var(--blue)}
+.nav-group{display:flex;gap:8px;flex-wrap:wrap}
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:23px;font-weight:800;letter-spacing:-0.5px}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.subtitle{font-size:12px;color:var(--text-dim);margin-top:6px}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.logout-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:#fff;color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.section-label{font-size:9px;color:var(--text-mute);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.fbar input,.fbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 11px;background:#fff;outline:none}
+.fbar input:focus,.fbar select:focus{border-color:var(--blue)}
+.btn{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:9px 16px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--blue-dark)}
+.btn.ghost{background:#fff;color:var(--blue)}.btn.ghost:hover{background:var(--blue-soft)}
+.btn.sm{font-size:10px;padding:6px 11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .v{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi .l{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;padding:15px 18px;border-bottom:1px solid var(--border-2);gap:12px;flex-wrap:wrap}
+.card-title{font-size:16px;font-weight:800}
+.card-title .esc{color:var(--text-mute);font-weight:600;font-size:14px}
+.card-meta{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+.card-desc-line{font-size:12px;color:var(--text-dim);margin-top:5px;line-height:1.45;max-width:820px}
+.num-badge{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;background:var(--blue-soft);border:1px solid #b0c0da;color:var(--blue);padding:2px 8px;margin-left:8px;vertical-align:middle}
+.vig{display:inline-block;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-top:6px}
+.vig-tag{font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 6px;border:1px solid;margin-left:4px;font-family:'Montserrat',sans-serif}
+.vig-tag.vigente{background:var(--green-soft);border-color:#a8c990;color:var(--green)}
+.vig-tag.vencendo{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.vig-tag.encerrado{background:#f3f4f6;border-color:#d1d5db;color:#6b7280}
+.ident-box{background:var(--blue-soft);border:1px solid #b0c0da;padding:13px 14px 2px;margin-bottom:16px}
+.ident-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;color:var(--blue);margin-bottom:3px}
+.ident-hint{font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:12px}
+.resp-row{display:flex;gap:18px;flex-wrap:wrap;padding:10px 18px;background:#fafbfc;border-bottom:1px solid var(--border-2)}
+.resp{font-size:11px;color:var(--text-dim)}
+.resp b{display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);font-weight:700;margin-bottom:2px}
+.resp .val{font-weight:600;color:var(--text)}
+.rev-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.rev-tbl th{background:var(--blue);color:#fff;font-size:8.5px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:7px 10px;text-align:left}
+.rev-tbl td{padding:6px 10px;border-bottom:1px solid var(--border-2)}
+.rev-tbl tr:last-child td{border-bottom:none}
+.tag{font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 7px;border:1px solid;display:inline-block}
+.t-full{background:var(--green-soft);border-color:#a8c990;color:var(--green)}
+.t-pruned{background:#f3f4f6;border-color:#d1d5db;color:#6b7280}
+.t-base{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.empty{text-align:center;padding:50px 20px;color:var(--text-mute)}.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
+.notice.warn{border-left-color:var(--gold);background:var(--orange-soft);color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,35,50,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-overlay.visible{display:flex}
+.modal-box{background:#fff;max-width:560px;width:100%;box-shadow:var(--shadow-lg);max-height:90vh;overflow:auto}
+.modal-box h3{font-size:18px;font-weight:800;padding:18px 22px 4px}
+.modal-box .sub{font-size:12px;color:var(--text-dim);padding:0 22px 14px;border-bottom:1px solid var(--border-2)}
+.modal-body{padding:18px 22px}
+.mf{margin-bottom:14px}
+.mf label{font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:5px;display:block}
+.mf input,.mf textarea{width:100%;font-family:inherit;font-size:13px;border:1px solid var(--border);padding:9px 11px;outline:none}
+.mf input:focus,.mf textarea:focus{border-color:var(--blue)}
+.mf textarea{min-height:64px;resize:vertical}
+.mf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.mf-grid{grid-template-columns:1fr}}
+.modal-btns{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 22px;border-top:1px solid var(--border-2);flex-wrap:wrap}
+.btn-sec{background:#fff;color:var(--text-dim);border-color:var(--border)}.btn-sec:hover{background:var(--bg)}
+.btn-danger{background:#fff;color:var(--red);border-color:#e8a89f}
+.btn-danger:hover{background:var(--red-soft);border-color:var(--red)}
+.btn-del-card{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:6px 11px;border:1px solid #e8a89f;background:#fff;color:var(--red);cursor:pointer}
+.btn-del-card:hover{background:var(--red-soft);border-color:var(--red)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--blue-dark);color:#fff;padding:12px 22px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:2000;transition:transform .3s;border-left:4px solid var(--gold)}
+.toast.show{transform:translateX(-50%) translateY(0)}.toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="nav-row">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div class="nav-group">
+      <a class="back-link" href="validacao_cronogramas.html" style="color:var(--blue)">📊 Validação</a>
+      <a class="back-link" href="dashboard_desempenho.html" style="color:var(--blue)">📈 Dashboard</a>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle · Terceiras</div>
+      <h1>Gestão de Contratos <span>· Escopos &amp; Responsáveis</span></h1>
+      <p class="subtitle">Cadastro dos contratos: número, vigência, escopo, disciplina, responsáveis e revisões subidas</p>
+    </div>
+    <div class="user-bar">
+      <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
+        <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
+        <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div id="setup-notice" class="notice warn" style="display:none">
+    <b>Banco não configurado.</b> Rode o script <code>supabase_validacao.sql</code> no Supabase para habilitar o cadastro.
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="section-label">Contratos cadastrados</div>
+  <div class="fbar">
+    <input id="search" placeholder="🔎 Filtrar por empresa, escopo, disciplina…" style="min-width:260px" oninput="render()">
+    <select id="f-empresa" onchange="render()"><option value="">Todas as empresas</option></select>
+    <button class="btn" id="btn-novo" onclick="openNew()" style="margin-left:auto">+ Novo contrato</button>
+  </div>
+  <div id="content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+</div>
+
+<!-- MODAL: editar cadastro -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <h3 id="modal-title">Cadastro do Contrato</h3>
+    <div class="sub" id="modal-sub">—</div>
+    <div class="modal-body">
+      <div class="ident-box">
+        <div class="ident-lbl">Identificação do contrato</div>
+        <div class="ident-hint">A junção de revisões usa <b>Empresa + Escopo</b>. Corrija aqui quando o cronograma vier fora do padrão.</div>
+        <div class="mf-grid">
+          <div class="mf"><label>Empresa / Terceira *</label><input id="m-emp" placeholder="ex.: ACX" list="dl-empresas"></div>
+          <div class="mf"><label>Escopo / Contrato *</label><input id="m-esc" placeholder="ex.: CT-29489"></div>
+        </div>
+      </div>
+
+      <div class="mf-grid">
+        <div class="mf"><label>Número do contrato</label><input id="m-num" placeholder="ex.: 29489"></div>
+        <div class="mf"><label>Disciplina</label><input id="m-disc" placeholder="ex.: Montagem Mecânica" list="dl-disciplinas"></div>
+      </div>
+      <div class="mf-grid">
+        <div class="mf"><label>Início do contrato</label><input id="m-ini" type="date"></div>
+        <div class="mf"><label>Término do contrato</label><input id="m-fim" type="date"></div>
+      </div>
+      <div class="mf"><label>Área / CWA</label><input id="m-area" placeholder="ex.: geral"></div>
+      <div class="mf"><label>Descrição do escopo</label><input id="m-desc" placeholder="ex.: Montagem mecânica da destilaria"></div>
+      <div class="mf-grid">
+        <div class="mf"><label>Especialista responsável</label><input id="m-esp" placeholder="Nome" list="dl-esp"></div>
+        <div class="mf"><label>Analista responsável</label><input id="m-ana" placeholder="Nome" list="dl-ana"></div>
+      </div>
+      <div class="mf-grid">
+        <div class="mf"><label>Supervisor responsável</label><input id="m-sup" placeholder="Nome" list="dl-sup"></div>
+        <div class="mf"><label>Contato da empresa</label><input id="m-cont" placeholder="e-mail / telefone"></div>
+      </div>
+      <div class="mf"><label>Observações</label><textarea id="m-obs" placeholder="Anotações do contrato…"></textarea></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-danger" id="btn-del" onclick="deleteCadastro()">🗑️ Excluir contrato</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-sec" onclick="closeModal()">Cancelar</button>
+        <button class="btn" id="btn-save" onclick="saveCadastro()">Salvar cadastro</button>
+      </div>
+    </div>
+  </div>
+</div>
+<datalist id="dl-empresas"></datalist>
+<datalist id="dl-disciplinas"></datalist>
+<datalist id="dl-esp"></datalist>
+<datalist id="dl-ana"></datalist>
+<datalist id="dl-sup"></datalist>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL=(window.PCO_CONFIG||{}).supabase?.url||'';
+const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
+const TOKEN=SB_KEY;  // publishable key (RLS allow-all) — não expira
+let CAN_EDIT=false, allCronos=[], revsByC={}, editingId=null;
+
+const $=id=>document.getElementById(id);
+function toast(m,t){const e=$('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',3000);}
+function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtN(n,d){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d??1,maximumFractionDigits:d??1});}
+function fmtD(d){if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:'—';}
+
+async function sb(method,path,body){
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json',
+      'Prefer':method==='POST'?'return=representation':'return=minimal'},
+    body:body?JSON.stringify(body):undefined});
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,160));}
+  const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
+}
+
+const DISC_PADRAO=['Civil','Montagem Mecânica','Elétrica','Instrumentação','Automação','Isolamento','Pintura','Tubulação','Terraplanagem','Estrutura Metálica'];
+function fillDatalist(id,vals){ $(id).innerHTML=[...new Set(vals.filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">`).join(''); }
+
+async function load(){
+  try{
+    allCronos=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
+    const revs=await sb('GET','val_revisoes?select=id,cronograma_id,revisao,rotulo,data_corte,total_tarefas,planejado,realizado,detalhe_podado,eh_base,criado_em&order=revisao.desc');
+    revsByC={}; revs.forEach(r=>{(revsByC[r.cronograma_id]=revsByC[r.cronograma_id]||[]).push(r);});
+    // filtro de empresa
+    const emps=[...new Set(allCronos.map(c=>c.empresa))].sort();
+    $('f-empresa').innerHTML='<option value="">Todas as empresas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
+    // sugestões (datalists)
+    fillDatalist('dl-empresas',emps);
+    fillDatalist('dl-disciplinas',[...DISC_PADRAO,...allCronos.map(c=>c.disciplina)]);
+    fillDatalist('dl-esp',allCronos.map(c=>c.especialista));
+    fillDatalist('dl-ana',allCronos.map(c=>c.analista));
+    fillDatalist('dl-sup',allCronos.map(c=>c.supervisor));
+    renderKPIs(revs);
+    render();
+  }catch(err){
+    if(/42P01|PGRST205|does not exist/i.test(err.message)){ $('setup-notice').style.display=''; $('content').innerHTML='<div class="empty"><div class="big">🗄️</div>Rode o SQL no Supabase para começar.</div>'; }
+    else $('content').innerHTML='<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+  }
+}
+
+function renderKPIs(revs){
+  const nC=allCronos.length, nR=revs.length;
+  const comResp=allCronos.filter(c=>c.especialista||c.analista||c.supervisor).length;
+  const semResp=nC-comResp;
+  $('kpis').innerHTML=
+    `<div class="kpi"><div class="v">${nC}</div><div class="l">Contratos / Escopos</div></div>`+
+    `<div class="kpi"><div class="v">${nR}</div><div class="l">Revisões subidas</div></div>`+
+    `<div class="kpi" style="border-top-color:var(--green)"><div class="v">${comResp}</div><div class="l">Com responsáveis</div></div>`+
+    `<div class="kpi" style="border-top-color:${semResp?'var(--gold)':'var(--green)'}"><div class="v">${semResp}</div><div class="l">Sem responsáveis</div></div>`;
+}
+
+function render(){
+  const q=(($('search').value)||'').toLowerCase(), fe=$('f-empresa').value;
+  const list=allCronos.filter(c=>{
+    if(fe && c.empresa!==fe) return false;
+    if(q && !((c.empresa||'')+' '+(c.escopo||'')+' '+(c.disciplina||'')+' '+(c.area||'')+' '+(c.descricao||'')+' '+(c.numero_contrato||'')).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if(!list.length){ $('content').innerHTML='<div class="empty"><div class="big">📁</div>Nenhum contrato encontrado.</div>'; return; }
+  $('content').innerHTML=list.map(c=>{
+    const rs=revsByC[c.id]||[];
+    const last=rs[0];
+    const resp=(lbl,v)=>`<div class="resp"><b>${lbl}</b><span class="val">${v?esc(v):'—'}</span></div>`;
+    const vig = (c.data_inicio||c.data_termino)
+      ? `<span class="vig">📅 ${fmtD(c.data_inicio)} → ${fmtD(c.data_termino)}${vigStatus(c)}</span>` : '';
+    const revRows=rs.map(r=>`<tr>
+      <td><b>REV ${String(r.revisao).padStart(2,'0')}</b> ${r.eh_base?'<span class="tag t-base">base</span>':''}</td>
+      <td>${fmtD(r.data_corte)}</td>
+      <td>${r.total_tarefas||0}</td>
+      <td>${fmtN(r.planejado,1)}</td>
+      <td>${fmtN(r.realizado,1)}</td>
+      <td>${r.detalhe_podado?'<span class="tag t-pruned">só indicadores</span>':'<span class="tag t-full">detalhe completo</span>'}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text-mute)">Sem revisões.</td></tr>';
+    return `<div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${esc(c.empresa)} <span class="esc">· ${esc(c.escopo||'—')}</span>${c.numero_contrato?`<span class="num-badge">Contrato ${esc(c.numero_contrato)}</span>`:''}</div>
+          ${c.descricao?`<div class="card-desc-line">${esc(c.descricao)}</div>`:''}
+          <div class="card-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões${last?(' · última: REV '+String(last.revisao).padStart(2,'0')+' ('+fmtD(last.data_corte)+')'):''}</div>
+          ${vig}
+        </div>
+        ${CAN_EDIT?`<div style="display:flex;gap:8px;align-items:center">
+          <button class="btn sm ghost" onclick="openEdit('${c.id}')">✏️ Editar cadastro</button>
+          <button class="btn-del-card" title="Excluir contrato" onclick="deleteFromCard('${c.id}',event)">🗑️ Excluir</button>
+        </div>`:''}
+      </div>
+      <div class="resp-row">
+        ${resp('Especialista',c.especialista)}${resp('Analista',c.analista)}${resp('Supervisor',c.supervisor)}${resp('Contato',c.contato)}
+      </div>
+      <table class="rev-tbl">
+        <thead><tr><th>Revisão</th><th>Data de corte</th><th>Tarefas</th><th>% Prev</th><th>% Concl</th><th>Retenção</th></tr></thead>
+        <tbody>${revRows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+/* status da vigência (encerrado / a vencer) */
+function vigStatus(c){
+  if(!c.data_termino) return '';
+  const hoje=new Date().toISOString().slice(0,10);
+  const fim=String(c.data_termino).slice(0,10);
+  if(fim<hoje) return ' <span class="vig-tag encerrado">encerrado</span>';
+  const dias=Math.round((new Date(fim)-new Date(hoje))/86400000);
+  if(dias<=60) return ` <span class="vig-tag vencendo">vence em ${dias}d</span>`;
+  return ' <span class="vig-tag vigente">vigente</span>';
+}
+
+function fillModal(c){
+  $('m-emp').value=c.empresa||''; $('m-esc').value=c.escopo||'';
+  $('m-num').value=c.numero_contrato||''; $('m-disc').value=c.disciplina||'';
+  $('m-ini').value=(c.data_inicio||'').slice(0,10); $('m-fim').value=(c.data_termino||'').slice(0,10);
+  $('m-area').value=c.area||''; $('m-desc').value=c.descricao||'';
+  $('m-esp').value=c.especialista||''; $('m-ana').value=c.analista||''; $('m-sup').value=c.supervisor||'';
+  $('m-cont').value=c.contato||''; $('m-obs').value=c.observacoes||'';
+}
+
+function openNew(){
+  editingId=null;
+  $('modal-title').textContent='Novo Contrato';
+  $('modal-sub').textContent='Cadastre o contrato para que o upload de cronogramas reconheça o escopo automaticamente.';
+  fillModal({});
+  $('btn-del').style.display='none';
+  $('btn-save').textContent='Criar contrato';
+  $('modal').classList.add('visible');
+  $('m-emp').focus();
+}
+
+function openEdit(id){
+  const c=allCronos.find(x=>x.id===id); if(!c) return;
+  editingId=id;
+  $('modal-title').textContent='Cadastro do Contrato';
+  $('modal-sub').textContent=(c.empresa||'')+' · '+(c.escopo||'—');
+  fillModal(c);
+  $('btn-del').style.display='';
+  $('btn-save').textContent='Salvar cadastro';
+  $('modal').classList.add('visible');
+}
+function closeModal(){ $('modal').classList.remove('visible'); editingId=null; }
+
+async function saveCadastro(){
+  const emp=$('m-emp').value.trim(), esco=$('m-esc').value.trim()||null;
+  if(!emp){ toast('Empresa é obrigatória','err'); $('m-emp').focus(); return; }
+  const ini=$('m-ini').value||null, fim=$('m-fim').value||null;
+  if(ini && fim && fim<ini){ toast('O término não pode ser anterior ao início','err'); $('m-fim').focus(); return; }
+  const dup=allCronos.find(c=>c.id!==editingId && (c.empresa||'')===emp && (c.escopo||null)===esco);
+  if(dup){ toast('Já existe um contrato com essa Empresa + Escopo.','err'); return; }
+
+  const payload={
+    empresa:emp, escopo:esco,
+    numero_contrato:$('m-num').value.trim()||null,
+    data_inicio:ini, data_termino:fim,
+    area:$('m-area').value.trim()||null, disciplina:$('m-disc').value.trim()||null, descricao:$('m-desc').value.trim()||null,
+    especialista:$('m-esp').value.trim()||null, analista:$('m-ana').value.trim()||null, supervisor:$('m-sup').value.trim()||null,
+    contato:$('m-cont').value.trim()||null, observacoes:$('m-obs').value.trim()||null
+  };
+  const btn=$('btn-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
+  try{
+    if(editingId) await sb('PATCH',`val_cronogramas?id=eq.${editingId}`,payload);
+    else          await sb('POST','val_cronogramas',payload);
+    toast(editingId?'Cadastro salvo ✓':'Contrato criado ✓','ok'); closeModal(); load();
+  }catch(err){
+    if(/23505|duplicate|unique/i.test(err.message)) toast('Já existe um contrato com essa Empresa + Escopo.','err');
+    else if(/PGRST204|column .* does not exist|42703/i.test(err.message)) toast('Faltam colunas novas — rode o supabase_validacao.sql atualizado.','err');
+    else toast('Erro: '+err.message,'err');
+  }
+  finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+
+async function deleteCadastro(){
+  if(!editingId) return;
+  const c=allCronos.find(x=>x.id===editingId); if(!c) return;
+  const n=(revsByC[editingId]||[]).length;
+  const nome=(c.empresa||'')+(c.escopo?(' · '+c.escopo):'');
+  let msg;
+  if(n===0){ msg=`Excluir o contrato "${nome}"?\n\nEle não possui revisões. Esta ação não pode ser desfeita.`; }
+  else{
+    msg=`ATENÇÃO: excluir "${nome}" apagará também as ${n} revisão(ões) salvas, com todas as tarefas e indicadores.\n\nEsta ação não pode ser desfeita. Deseja continuar?`;
+  }
+  if(!confirm(msg)) return;
+  // segunda confirmação quando há dados relevantes
+  if(n>0 && !confirm(`Confirme novamente: apagar ${n} revisão(ões) de "${nome}"?`)) return;
+  const btn=$('btn-del'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Excluindo…';
+  try{
+    await sb('DELETE',`val_cronogramas?id=eq.${editingId}`);   // revisões caem por ON DELETE CASCADE
+    toast('Contrato excluído ✓','ok'); closeModal(); load();
+  }catch(err){ toast('Erro ao excluir: '+err.message,'err'); }
+  finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+
+/* exclusão direta pelo card (sem abrir o modal) */
+async function deleteFromCard(id,ev){
+  if(ev) ev.stopPropagation();
+  editingId=id;
+  await deleteCadastro();
+  if(!$('modal').classList.contains('visible')) editingId=null;
+}
+
+function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
+
+(function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){ window.location.href='login.html'; return; }
+  const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'', perfil=sessionStorage.getItem('pco_perfil')||'viewer';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+  let perms={}; try{perms=JSON.parse(sessionStorage.getItem('pco_perms')||'{}');}catch(_){}
+  CAN_EDIT = perfil==='admin' || !!perms.validar_cronogramas;
+  if(!CAN_EDIT) $('btn-novo').style.display='none';
+  load();
+})();
+</script>
+</body>
+</html>
