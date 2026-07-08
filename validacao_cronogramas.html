@@ -173,7 +173,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
 .hist-title{font-size:15px;font-weight:800}
 .hist-meta{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
 .rev-list{padding:6px 18px 14px}
-.rev-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dotted var(--border)}
+.rev-row{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dotted var(--border)}
 .rev-row:last-child{border-bottom:none}
 .rev-tag{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border:1px solid var(--border);color:var(--text-dim);background:var(--bg)}
 .rev-tag.base{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
@@ -181,6 +181,28 @@ table.data tr.is-summary:hover td{background:#eef0f3}
 .rev-sub{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace}
 .compare-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 18px;background:#fafbfc;border-top:1px solid var(--border-2)}
 .compare-bar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:7px 10px;background:#fff}
+/* ações do histórico */
+.btn.sm{font-size:10px;padding:6px 11px;letter-spacing:.3px}
+.btn.danger-o{background:#fff;color:var(--red);border-color:#e8a89f}
+.btn.danger-o:hover{background:var(--red-soft)}
+.rev-actions{display:flex;gap:5px;justify-content:flex-end}
+.mini-btn{font-family:inherit;font-size:13px;line-height:1;padding:5px 7px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:3px}
+.mini-btn:hover{background:var(--blue-soft);border-color:var(--blue)}
+.mini-btn.danger:hover{background:var(--red-soft);border-color:var(--red)}
+/* modais do histórico */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,35,50,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-overlay.visible{display:flex}
+.modal-box{background:#fff;max-width:480px;width:100%;box-shadow:var(--shadow-lg)}
+.modal-box h3{font-size:17px;font-weight:800;padding:18px 22px 4px}
+.modal-box .msub{font-size:12px;color:var(--text-dim);padding:0 22px 14px;border-bottom:1px solid var(--border-2)}
+.modal-body{padding:18px 22px}
+.mf{margin-bottom:13px}
+.mf label{font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:5px;display:block}
+.mf input,.mf select{width:100%;font-family:inherit;font-size:13px;border:1px solid var(--border);padding:9px 11px;outline:none;background:#fff}
+.mf input:focus,.mf select:focus{border-color:var(--blue)}
+.mf-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.modal-btns{display:flex;justify-content:space-between;gap:10px;padding:16px 22px;border-top:1px solid var(--border-2)}
+.btn-sec{background:#fff;color:var(--text-dim);border-color:var(--border)}.btn-sec:hover{background:var(--bg)}
 
 .empty{text-align:center;padding:50px 20px;color:var(--text-mute)}
 .empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
@@ -206,7 +228,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
   body{background:#fff}
   .page{max-width:none;padding:0}
   .no-print{display:none!important}
-  .tabs,.back-link,.user-bar,#screen-analysis,#tbl-screen,.fbar,#log,.steps,#cfg-card,#first-notice{display:none!important}
+  .tabs,.back-link,.user-bar,#screen-analysis,#tbl-screen,.fbar,#log,.steps,#cfg-card,#first-notice,.toast,.modal-overlay{display:none!important}
   .site-header{margin-bottom:10px;border-bottom-width:2px}
   .view{display:block!important}
   #view-historico{display:none!important}
@@ -429,6 +451,49 @@ table.data tr.is-summary:hover td{background:#eef0f3}
   </section>
 
 </div><!-- /page -->
+<!-- MODAL: editar dados do contrato -->
+<div class="modal-overlay" id="modal-contrato">
+  <div class="modal-box">
+    <h3>Editar dados do contrato</h3>
+    <div class="msub">Ajuste a identificação. A junção de revisões usa <b>Empresa + Escopo</b> — deixe idêntico entre revisões do mesmo contrato.</div>
+    <div class="modal-body">
+      <input type="hidden" id="mc-id">
+      <div class="mf-grid">
+        <div class="mf"><label>Empresa / Terceira</label><input id="mc-emp"></div>
+        <div class="mf"><label>Escopo / Contrato</label><input id="mc-esc"></div>
+      </div>
+      <div class="mf-grid">
+        <div class="mf"><label>Disciplina</label><input id="mc-disc"></div>
+        <div class="mf"><label>Área / CWA</label><input id="mc-area"></div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" onclick="closeContractEdit()">Cancelar</button>
+      <button class="btn" id="mc-save" onclick="saveContractEdit()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: editar / mover revisão -->
+<div class="modal-overlay" id="modal-rev">
+  <div class="modal-box">
+    <h3>Editar revisão</h3>
+    <div class="msub">Altere o número/data da revisão ou <b>mova-a para outro contrato</b> (para juntar revisões que ficaram separadas).</div>
+    <div class="modal-body">
+      <input type="hidden" id="mr-id">
+      <div class="mf-grid">
+        <div class="mf"><label>Revisão (nº)</label><input id="mr-rev" type="number" min="1"></div>
+        <div class="mf"><label>Data de corte</label><input id="mr-corte" type="date"></div>
+      </div>
+      <div class="mf"><label>Contrato (mover para)</label><select id="mr-crono"></select></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" onclick="closeRevEdit()">Cancelar</button>
+      <button class="btn" id="mr-save" onclick="saveRevEdit()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -963,6 +1028,7 @@ function buildPrintTable(r){
 }
 function printReport(){
   if(!currentResult) return;
+  const t=$('toast'); if(t) t.className='toast';   // dispensa qualquer notificação ativa
   buildPrintTable(currentResult);   // monta a tabela de folhas só na hora de imprimir
   window.print();
 }
@@ -1209,13 +1275,16 @@ async function pruneOldRevisions(cronoId){
   }catch(e){ console.warn('poda falhou',e); }
 }
 
+let histCronos=[], histByC={};
 async function loadHistory(){
   const box=$('hist-content');
   try{
     const cronos=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
-    if(!cronos.length){ box.innerHTML='<div class="empty"><div class="big">📋</div>Nenhum cronograma no histórico ainda.<br>Suba uma revisão na aba <b>Nova Análise</b> e clique em <b>Salvar revisão no histórico</b>.</div>'; return; }
+    if(!cronos.length){ box.innerHTML='<div class="empty"><div class="big">📋</div>Nenhum cronograma no histórico ainda.<br>Suba uma revisão na aba <b>Nova Análise</b>.</div>'; histCronos=[];histByC={}; return; }
     const revs=await sb('GET','val_revisoes?select=id,cronograma_id,revisao,rotulo,nome_arquivo,data_corte,total_tarefas,planejado,realizado,criado_em,eh_base&order=revisao.desc');
     const byC={}; revs.forEach(r=>{(byC[r.cronograma_id]=byC[r.cronograma_id]||[]).push(r);});
+    histCronos=cronos; histByC=byC;
+    const canEdit=CAN_UPLOAD;
     box.innerHTML=cronos.map(c=>{
       const rs=byC[c.id]||[];
       const opts=rs.map(r=>`<option value="${r.id}">${esc(r.rotulo||('REV '+r.revisao))}</option>`).join('');
@@ -1225,11 +1294,19 @@ async function loadHistory(){
           <div class="rev-sub">${esc(r.nome_arquivo||'')}</div></span>
         <span class="rev-sub">corte ${fmtD(r.data_corte)} · ${r.total_tarefas||0} tarefas</span>
         <span class="rev-sub">Prev ${fmtNum(r.planejado,1)} · Concl ${fmtNum(r.realizado,1)}</span>
+        ${canEdit?`<span class="rev-actions">
+          <button class="mini-btn" title="Editar / mover revisão" onclick="openRevEdit('${r.id}')">✏️</button>
+          <button class="mini-btn danger" title="Excluir revisão" onclick="deleteRev('${r.id}','REV ${String(r.revisao).padStart(2,'0')}')">🗑️</button>
+        </span>`:''}
       </div>`).join('');
       return `<div class="hist-card">
         <div class="hist-head">
           <div><div class="hist-title">${esc(c.empresa)}${c.escopo?' <span style="color:var(--text-mute);font-weight:600">· '+esc(c.escopo)+'</span>':''}</div>
             <div class="hist-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões</div></div>
+          ${canEdit?`<div style="display:flex;gap:8px">
+            <button class="btn ghost sm" onclick="openContractEdit('${c.id}')">✏️ Editar dados</button>
+            <button class="btn danger-o sm" onclick="deleteContract('${c.id}')">🗑️ Excluir</button>
+          </div>`:''}
         </div>
         <div class="rev-list">${revRows||'<div class="rev-sub">sem revisões</div>'}</div>
         ${rs.length>=2?`<div class="compare-bar">
@@ -1249,6 +1326,66 @@ async function loadHistory(){
       box.innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar histórico: '+esc(err.message)+'</div>';
     }
   }
+}
+
+/* ---------- EDIÇÃO DOS DADOS MESTRES (histórico) ---------- */
+function findCrono(id){ return histCronos.find(c=>c.id===id); }
+function findRev(id){ for(const k in histByC){ const r=(histByC[k]||[]).find(x=>x.id===id); if(r) return r; } return null; }
+
+function openContractEdit(id){
+  const c=findCrono(id); if(!c) return;
+  $('mc-id').value=id;
+  $('mc-emp').value=c.empresa||''; $('mc-esc').value=c.escopo||'';
+  $('mc-disc').value=c.disciplina||''; $('mc-area').value=c.area||'';
+  $('modal-contrato').classList.add('visible');
+}
+function closeContractEdit(){ $('modal-contrato').classList.remove('visible'); }
+async function saveContractEdit(){
+  const id=$('mc-id').value; const emp=$('mc-emp').value.trim();
+  if(!emp){ toast('Empresa é obrigatória','err'); return; }
+  const btn=$('mc-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
+  try{
+    await sb('PATCH',`val_cronogramas?id=eq.${id}`,{empresa:emp, escopo:$('mc-esc').value.trim()||null,
+      disciplina:$('mc-disc').value.trim()||null, area:$('mc-area').value.trim()||null});
+    toast('Dados do contrato atualizados ✓','ok'); closeContractEdit(); loadHistory();
+  }catch(err){
+    if(/23505|duplicate|unique/i.test(err.message)) toast('Já existe um contrato com essa Empresa + Escopo. Para juntar, mova as revisões (✏️ na revisão) e exclua o duplicado.','err');
+    else toast('Erro: '+err.message,'err');
+  }finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+async function deleteContract(id){
+  const c=findCrono(id); if(!c) return;
+  const n=(histByC[id]||[]).length;
+  if(!confirm(`Excluir o contrato "${c.empresa} · ${c.escopo||''}" e TODAS as suas ${n} revisão(ões)? Esta ação não pode ser desfeita.`)) return;
+  try{ await sb('DELETE',`val_cronogramas?id=eq.${id}`); toast('Contrato excluído ✓','ok'); loadHistory(); }
+  catch(err){ toast('Erro ao excluir: '+err.message,'err'); }
+}
+
+function openRevEdit(id){
+  const r=findRev(id); if(!r) return;
+  $('mr-id').value=id;
+  $('mr-rev').value=r.revisao; $('mr-corte').value=(r.data_corte||'').slice(0,10);
+  // dropdown de contratos (para mover)
+  $('mr-crono').innerHTML=histCronos.map(c=>`<option value="${c.id}" ${c.id===r.cronograma_id?'selected':''}>${esc(c.empresa)}${c.escopo?(' · '+esc(c.escopo)):''}</option>`).join('');
+  $('modal-rev').classList.add('visible');
+}
+function closeRevEdit(){ $('modal-rev').classList.remove('visible'); }
+async function saveRevEdit(){
+  const id=$('mr-id').value; const rev=parseInt($('mr-rev').value,10);
+  if(!rev||rev<1){ toast('Revisão inválida','err'); return; }
+  const corte=$('mr-corte').value||null; const cronoId=$('mr-crono').value;
+  const btn=$('mr-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
+  try{
+    const rotulo='REV'+String(rev).padStart(2,'0')+(corte?(' · '+fmtD(corte)):'');
+    await sb('PATCH',`val_revisoes?id=eq.${id}`,{revisao:rev, data_corte:corte, cronograma_id:cronoId, rotulo});
+    toast('Revisão atualizada ✓','ok'); closeRevEdit(); loadHistory();
+  }catch(err){ toast('Erro: '+err.message,'err'); }
+  finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+async function deleteRev(id,label){
+  if(!confirm(`Excluir a revisão ${label}? Esta ação não pode ser desfeita.`)) return;
+  try{ await sb('DELETE',`val_revisoes?id=eq.${id}`); toast('Revisão excluída ✓','ok'); loadHistory(); }
+  catch(err){ toast('Erro ao excluir: '+err.message,'err'); }
 }
 
 async function openComparison(cId,emp,area,escopo){
