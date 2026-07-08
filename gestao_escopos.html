@@ -50,6 +50,10 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .card-title{font-size:16px;font-weight:800}
 .card-title .esc{color:var(--text-mute);font-weight:600;font-size:14px}
 .card-meta{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+.card-desc-line{font-size:12px;color:var(--text-dim);margin-top:5px;line-height:1.45;max-width:820px}
+.ident-box{background:var(--blue-soft);border:1px solid #b0c0da;padding:13px 14px 2px;margin-bottom:16px}
+.ident-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;color:var(--blue);margin-bottom:3px}
+.ident-hint{font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:12px}
 .resp-row{display:flex;gap:18px;flex-wrap:wrap;padding:10px 18px;background:#fafbfc;border-bottom:1px solid var(--border-2)}
 .resp{font-size:11px;color:var(--text-dim)}
 .resp b{display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);font-weight:700;margin-bottom:2px}
@@ -80,8 +84,12 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .mf textarea{min-height:64px;resize:vertical}
 .mf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:560px){.mf-grid{grid-template-columns:1fr}}
-.modal-btns{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border-2)}
+.modal-btns{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 22px;border-top:1px solid var(--border-2);flex-wrap:wrap}
 .btn-sec{background:#fff;color:var(--text-dim);border-color:var(--border)}.btn-sec:hover{background:var(--bg)}
+.btn-danger{background:#fff;color:var(--red);border-color:#e8a89f}
+.btn-danger:hover{background:var(--red-soft);border-color:var(--red)}
+.btn-del-card{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:6px 11px;border:1px solid #e8a89f;background:#fff;color:var(--red);cursor:pointer}
+.btn-del-card:hover{background:var(--red-soft);border-color:var(--red)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--blue-dark);color:#fff;padding:12px 22px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:2000;transition:transform .3s;border-left:4px solid var(--gold)}
 .toast.show{transform:translateX(-50%) translateY(0)}.toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
@@ -133,6 +141,14 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
     <h3>Cadastro do Escopo</h3>
     <div class="sub" id="modal-sub">—</div>
     <div class="modal-body">
+      <div class="ident-box">
+        <div class="ident-lbl">Identificação do contrato</div>
+        <div class="ident-hint">A junção de revisões usa <b>Empresa + Escopo</b>. Corrija aqui quando o cronograma vier fora do padrão.</div>
+        <div class="mf-grid">
+          <div class="mf"><label>Empresa / Terceira</label><input id="m-emp" placeholder="ex.: ACX"></div>
+          <div class="mf"><label>Escopo / Contrato</label><input id="m-esc" placeholder="ex.: CT-29489"></div>
+        </div>
+      </div>
       <div class="mf-grid">
         <div class="mf"><label>Área / CWA</label><input id="m-area" placeholder="ex.: geral"></div>
         <div class="mf"><label>Disciplina</label><input id="m-disc" placeholder="ex.: Montagem Mecânica"></div>
@@ -149,8 +165,11 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
       <div class="mf"><label>Observações</label><textarea id="m-obs" placeholder="Anotações do contrato…"></textarea></div>
     </div>
     <div class="modal-btns">
-      <button class="btn btn-sec" onclick="closeModal()">Cancelar</button>
-      <button class="btn" id="btn-save" onclick="saveCadastro()">Salvar cadastro</button>
+      <button class="btn btn-danger" id="btn-del" onclick="deleteCadastro()">🗑️ Excluir contrato</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-sec" onclick="closeModal()">Cancelar</button>
+        <button class="btn" id="btn-save" onclick="saveCadastro()">Salvar cadastro</button>
+      </div>
     </div>
   </div>
 </div>
@@ -208,7 +227,7 @@ function render(){
   const q=(($('search').value)||'').toLowerCase(), fe=$('f-empresa').value;
   const list=allCronos.filter(c=>{
     if(fe && c.empresa!==fe) return false;
-    if(q && !((c.empresa||'')+' '+(c.escopo||'')+' '+(c.disciplina||'')+' '+(c.area||'')).toLowerCase().includes(q)) return false;
+    if(q && !((c.empresa||'')+' '+(c.escopo||'')+' '+(c.disciplina||'')+' '+(c.area||'')+' '+(c.descricao||'')).toLowerCase().includes(q)) return false;
     return true;
   });
   if(!list.length){ $('content').innerHTML='<div class="empty"><div class="big">📁</div>Nenhum contrato encontrado.</div>'; return; }
@@ -228,9 +247,13 @@ function render(){
       <div class="card-head">
         <div>
           <div class="card-title">${esc(c.empresa)} <span class="esc">· ${esc(c.escopo||'—')}</span></div>
+          ${c.descricao?`<div class="card-desc-line">${esc(c.descricao)}</div>`:''}
           <div class="card-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões${last?(' · última: REV '+String(last.revisao).padStart(2,'0')+' ('+fmtD(last.data_corte)+')'):''}</div>
         </div>
-        ${CAN_EDIT?`<button class="btn sm ghost" onclick="openEdit('${c.id}')">✏️ Editar cadastro</button>`:''}
+        ${CAN_EDIT?`<div style="display:flex;gap:8px;align-items:center">
+          <button class="btn sm ghost" onclick="openEdit('${c.id}')">✏️ Editar cadastro</button>
+          <button class="btn-del-card" title="Excluir contrato" onclick="deleteFromCard('${c.id}',event)">🗑️ Excluir</button>
+        </div>`:''}
       </div>
       <div class="resp-row">
         ${resp('Especialista',c.especialista)}${resp('Analista',c.analista)}${resp('Supervisor',c.supervisor)}${resp('Contato',c.contato)}
@@ -247,6 +270,7 @@ function openEdit(id){
   const c=allCronos.find(x=>x.id===id); if(!c) return;
   editingId=id;
   $('modal-sub').textContent=(c.empresa||'')+' · '+(c.escopo||'—');
+  $('m-emp').value=c.empresa||''; $('m-esc').value=c.escopo||'';
   $('m-area').value=c.area||''; $('m-disc').value=c.disciplina||''; $('m-desc').value=c.descricao||'';
   $('m-esp').value=c.especialista||''; $('m-ana').value=c.analista||''; $('m-sup').value=c.supervisor||'';
   $('m-cont').value=c.contato||''; $('m-obs').value=c.observacoes||'';
@@ -256,16 +280,57 @@ function closeModal(){ $('modal').classList.remove('visible'); editingId=null; }
 
 async function saveCadastro(){
   if(!editingId) return;
+  const emp=$('m-emp').value.trim(), esco=$('m-esc').value.trim()||null;
+  if(!emp){ toast('Empresa é obrigatória','err'); $('m-emp').focus(); return; }
+  // avisa se a nova identidade colide com outro contrato (Empresa + Escopo é chave única)
+  const dup=allCronos.find(c=>c.id!==editingId && (c.empresa||'')===emp && (c.escopo||null)===esco);
+  if(dup){
+    toast('Já existe outro contrato com essa Empresa + Escopo. Para juntar, mova as revisões na tela de Validação.','err');
+    return;
+  }
   const btn=$('btn-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
   try{
     await sb('PATCH',`val_cronogramas?id=eq.${editingId}`,{
+      empresa:emp, escopo:esco,
       area:$('m-area').value.trim()||null, disciplina:$('m-disc').value.trim()||null, descricao:$('m-desc').value.trim()||null,
       especialista:$('m-esp').value.trim()||null, analista:$('m-ana').value.trim()||null, supervisor:$('m-sup').value.trim()||null,
       contato:$('m-cont').value.trim()||null, observacoes:$('m-obs').value.trim()||null
     });
     toast('Cadastro salvo ✓','ok'); closeModal(); load();
-  }catch(err){ toast('Erro: '+err.message,'err'); }
+  }catch(err){
+    if(/23505|duplicate|unique/i.test(err.message)) toast('Já existe um contrato com essa Empresa + Escopo.','err');
+    else toast('Erro: '+err.message,'err');
+  }
   finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+
+async function deleteCadastro(){
+  if(!editingId) return;
+  const c=allCronos.find(x=>x.id===editingId); if(!c) return;
+  const n=(revsByC[editingId]||[]).length;
+  const nome=(c.empresa||'')+(c.escopo?(' · '+c.escopo):'');
+  let msg;
+  if(n===0){ msg=`Excluir o contrato "${nome}"?\n\nEle não possui revisões. Esta ação não pode ser desfeita.`; }
+  else{
+    msg=`ATENÇÃO: excluir "${nome}" apagará também as ${n} revisão(ões) salvas, com todas as tarefas e indicadores.\n\nEsta ação não pode ser desfeita. Deseja continuar?`;
+  }
+  if(!confirm(msg)) return;
+  // segunda confirmação quando há dados relevantes
+  if(n>0 && !confirm(`Confirme novamente: apagar ${n} revisão(ões) de "${nome}"?`)) return;
+  const btn=$('btn-del'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Excluindo…';
+  try{
+    await sb('DELETE',`val_cronogramas?id=eq.${editingId}`);   // revisões caem por ON DELETE CASCADE
+    toast('Contrato excluído ✓','ok'); closeModal(); load();
+  }catch(err){ toast('Erro ao excluir: '+err.message,'err'); }
+  finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+
+/* exclusão direta pelo card (sem abrir o modal) */
+async function deleteFromCard(id,ev){
+  if(ev) ev.stopPropagation();
+  editingId=id;
+  await deleteCadastro();
+  if(!$('modal').classList.contains('visible')) editingId=null;
 }
 
 function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
