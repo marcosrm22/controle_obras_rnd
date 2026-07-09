@@ -112,7 +112,7 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .painel-title{background:var(--blue-dark);color:#fff;text-align:center;font-size:17px;font-weight:800;letter-spacing:.5px;padding:12px}
 .painel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:#cdd7e6;font-weight:400;display:block;margin-top:2px;letter-spacing:1px}
 .painel-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;padding:22px}
-@media(max-width:820px){.painel-grid{grid-template-columns:1fr}}
+@media screen and (max-width:820px){.painel-grid{grid-template-columns:1fr}}
 .ind-box{border:1px solid #cfd5dd}
 .ind-head{color:#fff;text-align:center;font-size:13px;font-weight:800;padding:7px;letter-spacing:.3px}
 .ind-head.gray{background:#7a7f86}
@@ -226,23 +226,61 @@ table.data tr.is-summary:hover td{background:#eef0f3}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* PRINT — cabeçalho + indicadores + tabela de atividades (sem resumos) */
+/* PRINT — pág.1: cabeçalho + indicadores (2 colunas) | pág.2+: atividades */
 @media print{
-  @page{size:A4 landscape;margin:9mm}
-  body{background:#fff}
-  .page{max-width:none;padding:0}
+  @page{size:A4 landscape;margin:8mm}
+  html,body{background:#fff;width:auto}
+  .page{max-width:none!important;width:auto;padding:0;margin:0}
   .no-print{display:none!important}
-  .tabs,.back-link,.user-bar,#screen-analysis,#tbl-screen,.fbar,#log,.steps,#cfg-card,#first-notice,.toast,.modal-overlay{display:none!important}
-  .site-header{margin-bottom:10px;border-bottom-width:2px}
+  .tabs,.back-link,.user-bar,#screen-analysis,#tbl-screen,.fbar,#log,.steps,#cfg-card,#first-notice,#samecut-notice,.toast,.modal-overlay,.nav-row{display:none!important}
   .view{display:block!important}
   #view-historico{display:none!important}
   .print-only{display:block!important}
-  #painel{box-shadow:none;page-break-inside:avoid;border:1px solid #99a;margin-bottom:14px}
-  #print-table{page-break-before:auto}
-  #print-table table.data{font-size:8.5px}
-  #print-table table.data th{position:static}
-  #print-table table.data tr{break-inside:avoid}
-  .section-label{break-after:avoid}
+
+  /* cabeçalho enxuto para sobrar espaço ao painel */
+  .site-header{margin:0 0 8px;padding-bottom:8px;border-bottom-width:2px;display:block}
+  .site-header h1{font-size:15px}
+  .site-header .subtitle,.site-header .eyebrow{font-size:8px;margin:1px 0 0}
+  #print-header{margin:0 0 8px;padding-bottom:7px}
+  #print-header .ph-title{font-size:13px}
+  #print-header .ph-meta{font-size:8.5px;margin-top:3px;line-height:1.45}
+
+  /* ---- PÁGINA 1: painel de indicadores, sempre em 2 colunas ---- */
+  #painel{box-shadow:none;border:1px solid #99a;margin:0;
+          break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always}
+  .painel-grid{grid-template-columns:1fr 1fr!important;gap:10px!important;padding:10px!important}
+  .painel-title{font-size:13px;padding:7px}
+  .painel-sub{font-size:7.5px}
+  .ind-box{break-inside:avoid;page-break-inside:avoid}
+  .ind-head{font-size:10px;padding:5px}
+  table.ind{font-size:9px}
+  table.ind td{padding:3px 7px}
+
+  /* ---- PÁGINA 2+: tabela de atividades ---- */
+  #lbl-tabela{display:none!important}   /* rótulo da tabela de tela (evita página em branco) */
+  #print-table{break-before:page;page-break-before:always}
+  #print-table table.data{font-size:7.6px;width:100%;table-layout:fixed;word-wrap:break-word}
+  #print-table table.data td,#print-table table.data th{white-space:normal;overflow-wrap:anywhere}
+  #print-table table.data thead{display:table-header-group}   /* repete o cabeçalho */
+  #print-table table.data th{position:static;padding:4px 5px;font-size:6.6px}
+  #print-table table.data td{padding:3px 5px}
+  #print-table table.data tr{break-inside:avoid;page-break-inside:avoid}
+  #print-table .tag{font-size:6.4px;padding:1px 4px}
+  /* larguras: ID, WBS, Atividade (larga), %Prev, %Concl, Desvio, Status, Ini def, Ter def, LB×2, Real×2, Alterações */
+  #print-table th:nth-child(1),#print-table td:nth-child(1){width:2.6%}
+  #print-table th:nth-child(2),#print-table td:nth-child(2){width:5.4%}
+  #print-table th:nth-child(3),#print-table td:nth-child(3){width:24%}
+  #print-table th:nth-child(4),#print-table td:nth-child(4),
+  #print-table th:nth-child(5),#print-table td:nth-child(5),
+  #print-table th:nth-child(6),#print-table td:nth-child(6){width:4.2%;text-align:right}
+  #print-table th:nth-child(7),#print-table td:nth-child(7){width:7.6%}
+  #print-table th:nth-child(8),#print-table td:nth-child(8),
+  #print-table th:nth-child(9),#print-table td:nth-child(9){width:8.6%}
+  #print-table th:nth-child(10),#print-table td:nth-child(10),
+  #print-table th:nth-child(11),#print-table td:nth-child(11),
+  #print-table th:nth-child(12),#print-table td:nth-child(12),
+  #print-table th:nth-child(13),#print-table td:nth-child(13){width:5.2%}
+  .section-label{break-after:avoid;page-break-after:avoid;margin-top:0}
 }
 .print-only{display:none}
 /* cabeçalho do relatório (impressão) */
@@ -398,6 +436,13 @@ table.data tr.is-summary:hover td{background:#eef0f3}
         </button>
         <span id="save-status" style="font-size:11px;font-weight:700;color:var(--green)"></span>
         <span id="result-meta" style="font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></span>
+      </div>
+
+      <!-- aviso: mesma data de corte -->
+      <div class="notice warn no-print" id="samecut-notice" style="display:none">
+        <b>Atenção: a revisão anterior tem a mesma data de corte desta.</b> O <b>Avanço da semana</b> (previsto e real)
+        compara duas fotos do mesmo instante, então tende a zero e o <b>Desempenho da semana</b> perde o sentido.
+        Use como base a revisão exportada na semana anterior (com a data de corte anterior).
       </div>
 
       <!-- aviso 1ª revisão -->
@@ -648,6 +693,27 @@ function parseXML(text){
 }
 
 /* resolve % a partir do mapeamento escolhido */
+/* Converte valores numéricos do MS Project respeitando o locale pt-BR.
+   Campos personalizados de TEXTO trazem "19,18" (vírgula decimal) e às vezes
+   "1.234,56" (ponto de milhar). parseFloat("19,18") devolveria 19 — truncando. */
+function parseNum(v){
+  if(v==null || v==='') return null;
+  if(typeof v === 'number') return isNaN(v)?null:v;
+  let s = String(v).trim().replace(/\s/g,'').replace(/%/g,'');
+  if(!s) return null;
+  const hasComma = s.includes(','), hasDot = s.includes('.');
+  if(hasComma && hasDot){
+    // o último separador que aparece é o decimal
+    s = s.lastIndexOf(',') > s.lastIndexOf('.')
+        ? s.replace(/\./g,'').replace(',','.')   // 1.234,56 -> 1234.56
+        : s.replace(/,/g,'');                    // 1,234.56 -> 1234.56
+  } else if(hasComma){
+    s = s.replace(',', '.');                     // 19,18 -> 19.18
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
 function resolvePct(task, mapId, cut){
   if(mapId==='__PHYS') return task.physical!=null?task.physical:0;
   if(mapId==='__PCT')  return task.pct!=null?task.pct:0;
@@ -657,8 +723,8 @@ function resolvePct(task, mapId, cut){
     if(c>=f) return 100; if(c<=s) return 0;
     return Math.round((c-s)/(f-s)*1000)/10;
   }
-  const v = task.ext[mapId];
-  return v!=null&&v!==''?parseFloat(v):0;
+  const v = parseNum(task.ext[mapId]);
+  return v==null ? 0 : v;
 }
 
 /* normaliza tarefas: injeta E (realizado) e F (planejado) */
@@ -695,7 +761,7 @@ function classTermino(aF,lbF,aS,lbS,cut){
   if(!aF && !aS && lbF && lbF<cut)        return 'Atividade atrasada';
   if(!aF && aS && lbF && lbF<cut)         return 'Executando em atraso';
   if(!aF && aS && aS<=cut)                return 'Executando no prazo';
-  if(!aF && !aS)                          return 'Atividade a iniciar';
+  if(!aF && !aS)                          return 'Atividade futura';
   if(aF && lbF && aF<lbF)                 return 'Concluído antecipado';
   if(aF && lbF && aF>lbF)                 return 'Concluído atrasado';
   if(lbS && lbF && lbS>cut && lbF>cut)    return 'Atividade futura';
@@ -1049,6 +1115,8 @@ function renderAll(r,meta){
   fillPrintHeader(r,meta);
   // bloco de comparação só-tela
   $('first-notice').style.display = r.firstRev ? '' : 'none';
+  const sameCut = !r.firstRev && meta.baseCorte && String(meta.baseCorte).slice(0,10)===String(r.cut).slice(0,10);
+  $('samecut-notice').style.display = sameCut ? '' : 'none';
   $('screen-analysis').style.display = r.firstRev ? 'none' : '';
   if(!r.firstRev){ renderKPIs(r); renderLists(r); }
   $('result-meta').textContent = `${r.rows.length} tarefas · ${r.leafRows.length} folhas · corte ${fmtD(r.cut)}`;
@@ -1161,7 +1229,7 @@ async function runAnalysis(){
     currentAtualNorm=atualN;
 
     // localizar cronograma (Empresa + Escopo) + revisão anterior no banco
-    let cronoId=null, baseN=null, baseRot=null, curRev=fm.rev||null;
+    let cronoId=null, baseN=null, baseRot=null, baseCorte=null, curRev=fm.rev||null;
     try{
       let q=`val_cronogramas?empresa=eq.${encodeURIComponent(emp)}&select=id`;
       q += escopo?`&escopo=eq.${encodeURIComponent(escopo)}`:`&escopo=is.null`;
@@ -1170,11 +1238,11 @@ async function runAnalysis(){
         cronoId=cr[0].id;
         if(curRev){
           // base = revisão anterior mais recente (revisao < revisão atual do arquivo)
-          const prev=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=lt.${curRev}&select=revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
-          if(prev.length){ baseN=prev[0].tarefas_json; baseRot=prev[0].rotulo||('REV'+String(prev[0].revisao).padStart(2,'0')); }
+          const prev=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=lt.${curRev}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`);
+          if(prev.length){ baseN=prev[0].tarefas_json; baseCorte=prev[0].data_corte; baseRot=prev[0].rotulo||('REV'+String(prev[0].revisao).padStart(2,'0')); }
         }else{
-          const top=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
-          if(top.length){ baseN=top[0].tarefas_json; baseRot=top[0].rotulo||('REV'+String(top[0].revisao).padStart(2,'0')); curRev=top[0].revisao+1; }
+          const top=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`);
+          if(top.length){ baseN=top[0].tarefas_json; baseCorte=top[0].data_corte; baseRot=top[0].rotulo||('REV'+String(top[0].revisao).padStart(2,'0')); curRev=top[0].revisao+1; }
         }
       }
       if(!curRev) curRev=1;
@@ -1187,7 +1255,7 @@ async function runAnalysis(){
     const firstRev = !baseN;
     const revLabel = 'REV'+String(curRev).padStart(2,'0');
     const r=analyze(baseN, atualN, cut, firstRev);
-    currentMeta={empresa:emp,escopo,area,disc, revBase:baseRot, revAtual:revLabel, cut};
+    currentMeta={empresa:emp,escopo,area,disc, revBase:baseRot, revAtual:revLabel, cut, baseCorte};
     renderAll(r,currentMeta);
 
     // gravar XML + análise no banco
