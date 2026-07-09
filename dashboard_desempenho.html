@@ -49,6 +49,24 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .chart-wrap{position:relative;height:300px}
 .chart-wrap.tall{height:360px}
 .empty{text-align:center;padding:50px 20px;color:var(--text-mute)}.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+/* acompanhamento semanal */
+.week-sum{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+.week-sum b{color:var(--text)}
+.tbl-wrap{overflow:auto;max-height:520px}
+table.wk-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.wk-tbl th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:8.6px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:8px 10px;text-align:left;z-index:2}
+table.wk-tbl th.num,table.wk-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.wk-tbl td{padding:7px 10px;border-bottom:1px solid var(--border-2);white-space:nowrap}
+table.wk-tbl tr:hover td{background:var(--blue-soft)}
+table.wk-tbl .emp{font-weight:700}
+table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
+.rev-chip{font-size:9px;font-weight:800;font-family:'JetBrains Mono',monospace;background:var(--bg);border:1px solid var(--border);padding:2px 7px;color:var(--text-dim)}
+.red{color:var(--red)}.green{color:var(--green)}.gold{color:var(--orange)}
+.pend-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:16px}
+.pend-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#7c4a00;margin-bottom:8px}
+.pend-list{display:flex;flex-wrap:wrap;gap:7px}
+.pend-item{font-size:11px;background:#FEF3C7;border:1px solid #f0c87a;color:#7c4a00;padding:3px 9px;font-weight:600}
+.pend-ok{font-size:12px;color:var(--green);font-weight:600}
 .notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
 .notice.warn{border-left-color:var(--gold);background:#FEF3C7;color:#7c4a00}
 .notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
@@ -98,6 +116,39 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
         <div class="chart-wrap tall"><canvas id="ch-desvio"></canvas></div>
       </div>
     </div>
+
+    <!-- Evolução semanal do contrato -->
+    <div class="section-label">Evolução semanal · previsto, concluído e desvio</div>
+    <div class="fbar">
+      <select id="sel-evolucao" onchange="renderEvolucao()"></select>
+    </div>
+    <div class="grid">
+      <div class="chart-card full">
+        <div class="chart-title" id="evo-title">Evolução do contrato</div>
+        <div class="chart-hint">Linhas: % previsto e % concluído acumulados · Barras: desvio acumulado da semana (Concl − Prev)</div>
+        <div class="chart-wrap tall"><canvas id="ch-evolucao"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Acompanhamento semanal (quem já subiu) -->
+    <div class="section-label">Acompanhamento da semana · escopos atualizados</div>
+    <div class="fbar">
+      <select id="sel-semana" onchange="renderSemana()"></select>
+      <span id="semana-resumo" class="week-sum"></span>
+    </div>
+    <div class="chart-card full" style="padding:0;margin-bottom:16px">
+      <div class="tbl-wrap">
+        <table class="wk-tbl" id="tbl-semana">
+          <thead><tr>
+            <th>Empresa · Escopo</th><th>Disciplina</th><th>Rev.</th>
+            <th class="num">% Prev</th><th class="num">% Concl</th><th class="num">Desvio acum.</th>
+            <th class="num">Avanço prev.</th><th class="num">Avanço real</th><th class="num">Desemp. semana</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="pendentes-box"></div>
 
     <!-- Por contrato -->
     <div class="section-label">Análise por contrato</div>
@@ -160,10 +211,15 @@ async function load(){
     if(!withRevs.length){ $('empty-state').innerHTML='<div class="empty"><div class="big">📈</div>Ainda não há revisões analisadas.<br>Suba cronogramas na tela de Validação para gerar os indicadores.</div>'; return; }
     if(typeof Chart==='undefined') return;
     $('dash').style.display='';
-    // selector de contrato
-    $('sel-contrato').innerHTML=withRevs.map(c=>`<option value="${c.id}">${esc(cLabel(c))}${c.disciplina?(' — '+esc(c.disciplina)):''}</option>`).join('');
+    // seletores de contrato (cronos já vem ordenado por empresa asc → 1º = alfabético)
+    const opts=withRevs.map(c=>`<option value="${c.id}">${esc(cLabel(c))}${c.disciplina?(' — '+esc(c.disciplina)):''}</option>`).join('');
+    $('sel-contrato').innerHTML=opts;
+    $('sel-evolucao').innerHTML=opts;
+    buildSemanas();
     renderKPIs(withRevs);
     renderDesvioRanking(withRevs);
+    renderEvolucao();
+    renderSemana();
     renderContract();
   }catch(err){
     if(/42P01|PGRST205|does not exist/i.test(err.message)){ $('setup-notice').style.display=''; }
@@ -172,6 +228,27 @@ async function load(){
 }
 
 function latest(cId){ const a=byC[cId]||[]; return a[a.length-1]; }
+
+/* série do contrato ordenada por data de corte (semana), com avanços calculados
+   entre semanas consecutivas — não depende do que foi gravado no upload */
+function serie(cId){
+  const arr=[...(byC[cId]||[])].sort((a,b)=>{
+    const da=String(a.data_corte||''), db=String(b.data_corte||'');
+    return da===db ? (a.revisao-b.revisao) : (da<db?-1:1);
+  });
+  return arr.map((r,i)=>{
+    const p=i>0?arr[i-1]:null;
+    const prev=Number(r.planejado), real=Number(r.realizado);
+    const aPrev = p? Math.round((prev-Number(p.planejado))*100)/100 : null;
+    const aReal = p? Math.round((real-Number(p.realizado))*100)/100 : null;
+    return {...r, prev, real,
+      desvio: Math.round((real-prev)*100)/100,
+      aPrev, aReal,
+      desemp: (aPrev!=null&&aReal!=null)? Math.round((aReal-aPrev)*100)/100 : null};
+  });
+}
+const nf=(n,d)=>(n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d??2,maximumFractionDigits:d??2});
+const clsNum=v=>v==null?'':(v<0?'red':(v>0?'green':''));
 
 function renderKPIs(list){
   const desvios=list.map(c=>latest(c.id)?.d?.desvioAc).filter(v=>v!=null&&!isNaN(v));
@@ -183,6 +260,86 @@ function renderKPIs(list){
     `<div class="kpi"><div class="v">${totalRev}</div><div class="l">Revisões analisadas</div></div>`+
     `<div class="kpi ${media!=null&&media<0?'red':'green'}"><div class="v">${media!=null?fmtN(media,1):'—'}</div><div class="l">Desvio médio acumulado</div></div>`+
     `<div class="kpi ${atrasados?'red':'green'}"><div class="v">${atrasados}</div><div class="l">Contratos atrasados (&gt;5%)</div></div>`;
+}
+
+/* ---------- Evolução semanal do contrato ---------- */
+function renderEvolucao(){
+  const cId=$('sel-evolucao').value; const arr=serie(cId); if(!arr.length) return;
+  const c=cronos.find(x=>x.id===cId);
+  $('evo-title').textContent='Evolução · '+(c?cLabel(c):'');
+  const labels=arr.map(r=>(r.data_corte?fmtD(r.data_corte):'REV'+r.revisao));
+  destroy('evolucao');
+  charts.evolucao=new Chart($('ch-evolucao'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'bar',label:'Desvio acumulado',data:arr.map(r=>r.desvio),order:3,
+        backgroundColor:arr.map(r=>r.desvio<0?'rgba(192,57,43,.35)':'rgba(46,125,50,.30)'),
+        borderColor:arr.map(r=>r.desvio<0?CLR.red:CLR.green),borderWidth:1,yAxisID:'y1'},
+      {type:'line',label:'% Previsto (acum.)',data:arr.map(r=>r.prev),order:1,
+        borderColor:CLR.blue,backgroundColor:CLR.blue,borderWidth:2,tension:.3,pointRadius:3,yAxisID:'y'},
+      {type:'line',label:'% Concluído (acum.)',data:arr.map(r=>r.real),order:2,
+        borderColor:CLR.green,backgroundColor:CLR.green,borderWidth:2,tension:.3,pointRadius:3,yAxisID:'y'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{family:'Montserrat',size:11}}},
+        tooltip:{callbacks:{
+          label:c=>' '+c.dataset.label+': '+nf(c.parsed.y,2),
+          afterBody:(items)=>{const i=items[0].dataIndex;const r=arr[i];
+            return r.aReal!=null?['','Avanço previsto: '+nf(r.aPrev,2),'Avanço real: '+nf(r.aReal,2),'Desempenho: '+nf(r.desemp,2)]:[];}
+        }}},
+      scales:{
+        x:{ticks:{font:{size:10}},grid:{display:false}},
+        y:{position:'left',title:{display:true,text:'% acumulado',font:{size:10}},beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'#eef0f3'}},
+        y1:{position:'right',title:{display:true,text:'desvio',font:{size:10}},grid:{drawOnChartArea:false},ticks:{font:{size:10}}}
+      }}});
+}
+
+/* ---------- Acompanhamento da semana ---------- */
+let SEMANAS=[];
+function buildSemanas(){
+  const set=new Set();
+  Object.values(byC).forEach(arr=>arr.forEach(r=>{ if(r.data_corte) set.add(String(r.data_corte).slice(0,10)); }));
+  SEMANAS=[...set].sort().reverse();           // mais recente primeiro
+  $('sel-semana').innerHTML=SEMANAS.map((d,i)=>`<option value="${d}">Semana de ${fmtDFull(d)}${i===0?' · mais recente':''}</option>`).join('');
+}
+function fmtDFull(d){const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—';}
+
+function renderSemana(){
+  const wk=$('sel-semana').value; if(!wk) return;
+  const linhas=[], pendentes=[];
+  cronos.forEach(c=>{
+    const s=serie(c.id);
+    const idx=s.findIndex(r=>String(r.data_corte).slice(0,10)===wk);
+    if(idx>=0) linhas.push({c, r:s[idx]});
+    else if(s.length) pendentes.push(c);        // contrato existe mas não subiu nesta semana
+  });
+  // ordena: piores desempenhos primeiro
+  linhas.sort((a,b)=>(a.r.desvio??0)-(b.r.desvio??0));
+
+  const tb=$('tbl-semana').querySelector('tbody');
+  tb.innerHTML = linhas.length ? linhas.map(({c,r})=>`<tr>
+    <td><span class="emp">${esc(c.empresa)}</span> <span class="esc">· ${esc(c.escopo||'—')}</span></td>
+    <td>${esc(c.disciplina||'—')}</td>
+    <td><span class="rev-chip">REV ${String(r.revisao).padStart(2,'0')}</span></td>
+    <td class="num">${nf(r.prev,2)}</td>
+    <td class="num">${nf(r.real,2)}</td>
+    <td class="num ${clsNum(r.desvio)}"><b>${nf(r.desvio,2)}</b></td>
+    <td class="num">${nf(r.aPrev,2)}</td>
+    <td class="num">${nf(r.aReal,2)}</td>
+    <td class="num ${clsNum(r.desemp)}"><b>${nf(r.desemp,2)}</b></td>
+  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--text-mute);padding:24px">Nenhum escopo atualizado nesta semana.</td></tr>';
+
+  // resumo + pendentes
+  const totalC=cronos.filter(c=>(byC[c.id]||[]).length).length;
+  const desv=linhas.map(l=>l.r.desvio).filter(v=>v!=null&&!isNaN(v));
+  const media=desv.length?desv.reduce((a,b)=>a+b,0)/desv.length:null;
+  $('semana-resumo').innerHTML=`<b>${linhas.length}</b> de <b>${totalC}</b> escopos atualizados`+
+    (media!=null?` &nbsp;·&nbsp; desvio médio <b class="${clsNum(media)}">${nf(media,2)}</b>`:'');
+  $('pendentes-box').innerHTML = pendentes.length
+    ? `<div class="pend-card"><div class="pend-title">⏳ Aguardando atualização nesta semana (${pendentes.length})</div>
+        <div class="pend-list">${pendentes.map(c=>`<span class="pend-item">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')}</div></div>`
+    : `<div class="pend-card" style="border-left-color:var(--green)"><div class="pend-title" style="color:var(--green)">✓ Todos os escopos já atualizaram nesta semana</div></div>`;
 }
 
 function destroy(k){ if(charts[k]){ charts[k].destroy(); delete charts[k]; } }
