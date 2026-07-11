@@ -185,6 +185,7 @@ let TASKS=[];          // tarefas do cronograma geral (versão selecionada)
 let LINKS={};          // codigo_atividade -> row de avanco_links
 let CONTRATOS=[];       // val_cronogramas
 let CAMPOS_INFO={};     // {empresaField, codigoField} detectados na última versão
+let CAMPOS_DISPONIVEIS=[]; // todos os campos personalizados encontrados no XML (diagnóstico)
 let VERSOES=[];         // lista de cronograma_analises
 
 /* chave estável de vínculo: código real da atividade, ou fallback pelo UID
@@ -211,6 +212,7 @@ function onVersaoChange(){
   try{ D = typeof row.dados_json==='string' ? JSON.parse(row.dados_json) : (row.dados_json||{}); }catch(_){ D={}; }
   TASKS = D.tarefasGerais || [];
   CAMPOS_INFO = (D.meta && D.meta.camposDetectados) || {};
+  CAMPOS_DISPONIVEIS = (D.meta && D.meta.camposDisponiveis) || [];
   if(!TASKS.length){
     toast('Esta versão foi enviada antes desta atualização — reenvie o XML em Análise de Cronograma para gerar a lista completa de tarefas.','err');
   }
@@ -228,8 +230,16 @@ function renderFieldNotice(){
   if(faltando.length){
     n.style.display='';
     n.className='notice warn';
-    n.innerHTML='<b>Campo(s) não detectado(s) automaticamente nesta versão:</b> '+faltando.join(', ')+
+    let html='<b>Campo(s) não detectado(s) automaticamente nesta versão:</b> '+faltando.join(', ')+
       '. Preencha a empresa manualmente por linha; tarefas sem código usam o UID do MS Project como identificador provisório (não sobrevive à recriação da tarefa).';
+    if(CAMPOS_DISPONIVEIS.length){
+      html += '<br><br><b>Campos personalizados encontrados no XML:</b> '+
+        CAMPOS_DISPONIVEIS.map(f=>esc(f.label)+' <span style="opacity:.6">('+f.tipo+')</span>').join(', ')+
+        '. Se o campo certo estiver nessa lista com um nome diferente do esperado, me diga o nome exato que eu ajusto a detecção automática.';
+    } else {
+      html += '<br><br>Nenhum campo personalizado foi encontrado no XML (nem Custom Field de texto, nem Outline Code). Verifique se o cronograma foi exportado com esses campos preenchidos.';
+    }
+    n.innerHTML=html;
   } else {
     n.style.display='';
     n.className='notice';

@@ -451,6 +451,7 @@ function parseXmlToAnalysis(xmlText){
   const full = parseFullTasksForAvanco(doc, statusDate);
   D.tarefasGerais = full.tarefas;
   D.meta.camposDetectados = { empresaField: full.empresaFieldLabel, codigoField: full.codigoFieldLabel, cwaField: full.cwaFieldLabel, discField: full.discFieldLabel };
+  D.meta.camposDisponiveis = full.camposDisponiveis;
   return D;
 }
 
@@ -476,14 +477,38 @@ function detectFieldByAlias(fieldDefs, keywords){
    "Empresa" ou o "código da atividade" não forem detectados automaticamente,
    ficam em branco — o preenchimento manual é feito na tela de configuração. */
 function parseFullTasksForAvanco(doc, statusDate){
+  /* Campos personalizados do MS Project vêm de duas formas bem diferentes:
+     1) "Custom Fields" de texto simples  → <ExtendedAttributes><ExtendedAttribute>
+     2) "Outline Codes" (códigos hierárquicos, ex.: CWA, código de atividade)
+        → <OutlineCodes><OutlineCode> com uma tabela de valores (ValueID → texto),
+        e no Task o valor vem como <OutlineCode><FieldID/><ValueID/></OutlineCode>
+        (não como texto direto). CWA e código de atividade são casos clássicos
+        de Outline Code, então tratamos os dois formatos igual. */
   const fieldDefs = [];
   doc.querySelectorAll('ExtendedAttributes > ExtendedAttribute').forEach(ea=>{
     const id = childText(ea,'FieldID');
     const alias = childText(ea,'Alias');
     const fname = childText(ea,'FieldName');
     const label = (alias && alias.trim()) || fname || ('Campo '+id);
-    if(id) fieldDefs.push({id, label});
+    if(id) fieldDefs.push({id, label, kind:'ext'});
   });
+  const outlineValueTables = {}; // fieldId -> {valueId: texto}
+  doc.querySelectorAll('OutlineCodes > OutlineCode').forEach(oc=>{
+    const id = childText(oc,'FieldID');
+    if(!id) return;
+    const alias = childText(oc,'Alias');
+    const fname = childText(oc,'FieldName');
+    const label = (alias && alias.trim()) || fname || ('Campo '+id);
+    fieldDefs.push({id, label, kind:'outline'});
+    const table = {};
+    oc.querySelectorAll('Values > Value').forEach(v=>{
+      const vid = childText(v,'ValueID');
+      const vtxt = childText(v,'Value');
+      if(vid!=null) table[vid] = vtxt || '';
+    });
+    outlineValueTables[id] = table;
+  });
+
   const empresaField = detectFieldByAlias(fieldDefs, ['empresa','contratada','executante','executor']);
   const codigoField  = detectFieldByAlias(fieldDefs, ['codigo','código','cod atividade','cod. atividade','id atividade','activity id','cod eap','código eap']);
   const cwaField      = detectFieldByAlias(fieldDefs, ['cwa','área de construção','area de construcao','construction work area','área construtiva','area construtiva']);
@@ -502,9 +527,16 @@ function parseFullTasksForAvanco(doc, statusDate){
 
     const ext = {};
     for(const c of t.children){
-      if((c.tagName||c.localName)==='ExtendedAttribute'){
+      const tag = c.tagName||c.localName;
+      if(tag==='ExtendedAttribute'){
         const fid = childText(c,'FieldID'); const val = childText(c,'Value');
         if(fid!=null) ext[fid] = val;
+      } else if(tag==='OutlineCode'){
+        const fid = childText(c,'FieldID'); const vid = childText(c,'ValueID');
+        if(fid!=null && vid!=null){
+          const table = outlineValueTables[fid];
+          ext[fid] = table ? (table[vid]||'') : '';
+        }
       }
     }
     const empresa = empresaField ? (ext[empresaField.id]||'').trim() : '';
@@ -543,7 +575,8 @@ function parseFullTasksForAvanco(doc, statusDate){
     empresaFieldLabel: empresaField ? empresaField.label : null,
     codigoFieldLabel:  codigoField  ? codigoField.label  : null,
     cwaFieldLabel:     cwaField     ? cwaField.label     : null,
-    discFieldLabel:    discField    ? discField.label    : null
+    discFieldLabel:    discField    ? discField.label    : null,
+    camposDisponiveis: fieldDefs.map(f=>({id:f.id, label:f.label, tipo:f.kind}))
   };
 }
 
