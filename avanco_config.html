@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Avanço Semanal · Configuração · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--gold:#EAA239;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;--orange-soft:#FEF3C7;
+  --red:#C0392B;--red-soft:#fdecea;--neutral:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1520px;margin:0 auto;padding:28px 24px 80px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
+.back-link:hover{color:var(--blue)}
+.nav-group{display:flex;gap:8px;flex-wrap:wrap}
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:23px;font-weight:800;letter-spacing:-0.5px}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.subtitle{font-size:12px;color:var(--text-dim);margin-top:6px;max-width:640px;line-height:1.5}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.logout-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:#fff;color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:16px;line-height:1.6}
+.notice.warn{border-left-color:var(--gold);background:var(--orange-soft);color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.fbar input,.fbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 11px;background:#fff;outline:none}
+.fbar input:focus,.fbar select:focus{border-color:var(--blue)}
+.fbar label.chk{font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.btn{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:9px 16px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--blue-dark)}
+.btn.ghost{background:#fff;color:var(--blue)}.btn.ghost:hover{background:var(--blue-soft)}
+.btn.sm{font-size:10px;padding:5px 9px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.rowcount{font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:12px 14px;box-shadow:var(--shadow)}
+.kpi.warn{border-top-color:var(--gold)}
+.kpi .v{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi .l{font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.tbl-wrap{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1180px}
+thead th{background:var(--blue);color:#fff;font-size:9px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:9px 10px;text-align:left;white-space:nowrap;position:sticky;top:0}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tbody tr:hover{background:#fafbfc}
+td.num{font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);white-space:nowrap}
+.warn-uid{color:var(--orange);cursor:help}
+.task-name{font-weight:600;max-width:280px}
+.task-wbs{font-size:9.5px;color:var(--text-mute);font-family:'JetBrains Mono',monospace}
+.emp-input{width:130px;font-family:inherit;font-size:12px;border:1px solid var(--border);padding:6px 8px}
+.contrato-select{width:190px;font-family:inherit;font-size:11.5px;border:1px solid var(--border);padding:6px 7px;background:#fff}
+.link-pill{display:inline-flex;flex-direction:column;gap:1px;font-size:11px;background:var(--green-soft);border:1px solid #a8c990;color:#1d5c1a;padding:4px 8px;max-width:220px}
+.link-pill b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:210px}
+.link-pill small{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#3a6b34}
+.pending-pill{font-size:10.5px;color:#7c4a00;background:var(--orange-soft);border:1px solid #f0c87a;padding:3px 8px;display:inline-block}
+.manual-pill{font-size:10.5px;color:var(--blue-dark);background:var(--blue-soft);border:1px solid #b0c0da;padding:3px 8px;display:inline-block}
+.manual-inputs{display:flex;gap:5px;align-items:center}
+.manual-inputs input{width:56px;font-family:'JetBrains Mono',monospace;font-size:11.5px;border:1px solid var(--border);padding:5px 6px;text-align:right}
+.actions-cell{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.chk-manual{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim);white-space:nowrap}
+.btn-x{font-family:inherit;font-size:13px;border:1px solid var(--border);background:#fff;color:var(--red);cursor:pointer;width:24px;height:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.btn-x:hover{background:var(--red-soft);border-color:var(--red)}
+.empty{text-align:center;padding:60px 20px;color:var(--text-mute)}
+.empty .big{font-size:42px;margin-bottom:12px;opacity:.4}
+.modal-overlay{position:fixed;inset:0;background:rgba(26,35,50,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-overlay.visible{display:flex}
+.modal-box{background:#fff;max-width:640px;width:100%;box-shadow:var(--shadow-lg);max-height:86vh;overflow:auto;display:flex;flex-direction:column}
+.modal-box h3{font-size:16px;font-weight:800;padding:18px 22px 4px}
+.modal-box .sub{font-size:11.5px;color:var(--text-dim);padding:0 22px 14px;border-bottom:1px solid var(--border-2)}
+.pick-list{padding:8px 12px;overflow:auto}
+.pick-item{border:1px solid var(--border);padding:10px 12px;margin:6px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pick-item:hover{border-color:var(--blue);background:var(--blue-soft)}
+.pick-item .nm{font-size:12.5px;font-weight:600}
+.pick-item .wbs{font-size:9.5px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.pick-item .pf{font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;color:var(--text-dim)}
+.modal-btns{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border-2)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--blue-dark);color:#fff;padding:12px 22px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:2000;transition:transform .3s;border-left:4px solid var(--gold)}
+.toast.show{transform:translateX(-50%) translateY(0)}.toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="nav-row">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div class="nav-group">
+      <a class="back-link" href="analise_cronograma.html" style="color:var(--blue)">📋 Análise de Cronograma</a>
+      <a class="back-link" href="validacao_cronogramas.html" style="color:var(--blue)">📊 Validação das Terceiras</a>
+      <a class="back-link" href="avanco_semanal.html" style="color:var(--blue)">📈 Avanço Semanal</a>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle · Avanço Semanal</div>
+      <h1>Configuração de Vínculos</h1>
+      <p class="subtitle">Ligue cada tarefa do cronograma geral a uma tarefa-resumo do cronograma da terceira responsável. O vínculo é feito pelo <b>código da atividade</b> e sobrevive a novos uploads semanais.</p>
+    </div>
+    <div class="user-bar">
+      <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
+        <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
+        <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div id="setup-notice" class="notice warn" style="display:none">
+    <b>Banco não configurado.</b> Rode o script <code>supabase_avanco_semanal.sql</code> no Supabase antes de usar esta tela.
+  </div>
+  <div id="field-notice" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="fbar">
+    <label style="font-size:11px;font-weight:700;color:var(--text-dim)">Cronograma geral:</label>
+    <select id="sel-versao" onchange="onVersaoChange()" style="min-width:200px"></select>
+    <input id="search" placeholder="🔎 Código ou nome da tarefa…" style="min-width:220px" oninput="render()">
+    <select id="f-empresa" onchange="render()"><option value="">Todas as empresas</option></select>
+    <select id="f-status" onchange="render()">
+      <option value="">Todos os status</option>
+      <option value="vinculado">Vinculadas</option>
+      <option value="manual">Manuais</option>
+      <option value="pendente">Pendentes</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="chk-hide-summary" checked onchange="render()"> Ocultar tarefas-resumo</label>
+    <span class="rowcount" id="rowcount"></span>
+  </div>
+
+  <div id="content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+</div>
+
+<!-- MODAL: escolher tarefa-resumo da terceira -->
+<div class="modal-overlay" id="modal-pick">
+  <div class="modal-box">
+    <h3>Selecionar a tarefa-resumo</h3>
+    <div class="sub" id="pick-sub">—</div>
+    <div class="pick-list" id="pick-list"><div class="empty">Carregando…</div></div>
+    <div class="modal-btns">
+      <button class="btn ghost" onclick="closePickModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="dl-empresas-cfg"></datalist>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL=(window.PCO_CONFIG||{}).supabase?.url||'';
+const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
+const TOKEN=SB_KEY;
+const $=id=>document.getElementById(id);
+function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m,t){const e=$('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',3200);}
+function fmtPct(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';}
+
+async function sb(method,path,body,prefer){
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json',
+      'Prefer':prefer||(method==='POST'?'return=representation':'return=minimal')},
+    body:body?JSON.stringify(body):undefined});
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,200));}
+  const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
+}
+
+/* ================================================================
+   ESTADO
+   ================================================================ */
+let TASKS=[];          // tarefas do cronograma geral (versão selecionada)
+let LINKS={};          // codigo_atividade -> row de avanco_links
+let CONTRATOS=[];       // val_cronogramas
+let CAMPOS_INFO={};     // {empresaField, codigoField} detectados na última versão
+let VERSOES=[];         // lista de cronograma_analises
+
+/* chave estável de vínculo: código real da atividade, ou fallback pelo UID
+   (avisado na UI como não-estável) quando o campo não foi detectado/preenchido */
+function linkKey(t){ return t.codigo && t.codigo.trim() ? t.codigo.trim() : ('uid:'+t.uid); }
+
+/* ================================================================
+   CARGA
+   ================================================================ */
+async function loadVersoes(){
+  VERSOES = await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc') || [];
+  const sel=$('sel-versao');
+  if(!VERSOES.length){ sel.innerHTML='<option value="">— nenhum cronograma geral enviado —</option>'; return; }
+  sel.innerHTML = VERSOES.map(v=>`<option value="${v.data_status}">${esc(v.data_status)}${v.label?(' · '+esc(v.label)):''}</option>`).join('');
+  sel.value = VERSOES[0].data_status;
+  onVersaoChange();
+}
+
+function onVersaoChange(){
+  const status = $('sel-versao').value;
+  const row = VERSOES.find(v=>v.data_status===status);
+  if(!row){ TASKS=[]; renderFieldNotice(); render(); return; }
+  let D={};
+  try{ D = typeof row.dados_json==='string' ? JSON.parse(row.dados_json) : (row.dados_json||{}); }catch(_){ D={}; }
+  TASKS = D.tarefasGerais || [];
+  CAMPOS_INFO = (D.meta && D.meta.camposDetectados) || {};
+  if(!TASKS.length){
+    toast('Esta versão foi enviada antes desta atualização — reenvie o XML em Análise de Cronograma para gerar a lista completa de tarefas.','err');
+  }
+  renderFieldNotice();
+  buildEmpresaFilters();
+  render();
+}
+
+function renderFieldNotice(){
+  const n=$('field-notice');
+  const faltando=[];
+  if(!CAMPOS_INFO.empresaField) faltando.push('Empresa');
+  if(!CAMPOS_INFO.codigoField) faltando.push('Código da atividade');
+  if(faltando.length){
+    n.style.display='';
+    n.className='notice warn';
+    n.innerHTML='<b>Campo(s) não detectado(s) automaticamente nesta versão:</b> '+faltando.join(', ')+
+      '. Preencha a empresa manualmente por linha; tarefas sem código usam o UID do MS Project como identificador provisório (não sobrevive à recriação da tarefa).';
+  } else {
+    n.style.display='';
+    n.className='notice';
+    n.innerHTML='✓ Campos detectados: <b>'+esc(CAMPOS_INFO.empresaField)+'</b> (empresa) e <b>'+esc(CAMPOS_INFO.codigoField)+'</b> (código da atividade).';
+  }
+}
+
+async function loadContratos(){
+  CONTRATOS = await sb('GET','val_cronogramas?select=id,empresa,escopo&order=empresa.asc') || [];
+}
+
+async function loadLinks(){
+  const rows = await sb('GET','avanco_links?select=*') || [];
+  LINKS={};
+  rows.forEach(r=>LINKS[r.codigo_atividade]=r);
+}
+
+function buildEmpresaFilters(){
+  const emps=[...new Set(TASKS.map(t=>(t.empresa||'').trim()).filter(Boolean))].sort();
+  $('f-empresa').innerHTML='<option value="">Todas as empresas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
+  const allEmp=[...new Set([...emps, ...CONTRATOS.map(c=>c.empresa)])].filter(Boolean).sort();
+  $('dl-empresas-cfg').innerHTML=allEmp.map(e=>`<option value="${esc(e)}">`).join('');
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function render(){
+  const box=$('content');
+  if(!TASKS.length){
+    box.innerHTML='<div class="empty"><div class="big">📭</div>Nenhuma tarefa carregada. Suba (ou selecione) um cronograma geral em Análise de Cronograma.</div>';
+    $('rowcount').textContent=''; $('kpis').innerHTML=''; return;
+  }
+  const q=($('search').value||'').trim().toLowerCase();
+  const fEmp=$('f-empresa').value;
+  const fStatus=$('f-status').value;
+  const hideSummary=$('chk-hide-summary').checked;
+
+  let rows = TASKS.filter(t=>{
+    if(hideSummary && t.summary) return false;
+    if(q && !((t.name||'').toLowerCase().includes(q) || (t.codigo||'').toLowerCase().includes(q))) return false;
+    if(fEmp && (t.empresa||'')!==fEmp) return false;
+    if(fStatus){
+      const link=LINKS[linkKey(t)];
+      const st = !link ? 'pendente' : (link.is_manual ? 'manual' : (link.cronograma_id && link.terceira_uid ? 'vinculado' : 'pendente'));
+      if(st!==fStatus) return false;
+    }
+    return true;
+  });
+
+  const total=rows.length;
+  const vinc=rows.filter(t=>{const l=LINKS[linkKey(t)];return l && !l.is_manual && l.cronograma_id && l.terceira_uid;}).length;
+  const manu=rows.filter(t=>{const l=LINKS[linkKey(t)];return l && l.is_manual;}).length;
+  const pend=total-vinc-manu;
+  $('kpis').innerHTML=`
+    <div class="kpi"><div class="v">${total}</div><div class="l">Tarefas na lista</div></div>
+    <div class="kpi"><div class="v" style="color:var(--green)">${vinc}</div><div class="l">Vinculadas</div></div>
+    <div class="kpi"><div class="v" style="color:var(--blue)">${manu}</div><div class="l">Preenchimento manual</div></div>
+    <div class="kpi warn"><div class="v" style="color:#7c4a00">${pend}</div><div class="l">Pendentes</div></div>`;
+  $('rowcount').textContent=total+' tarefa(s)';
+
+  if(!rows.length){ box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhuma tarefa corresponde ao filtro.</div>'; return; }
+
+  box.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Código</th><th>Tarefa</th><th>Empresa</th><th class="num">Previsto</th><th class="num">Concluído</th>
+      <th>Contrato / Escopo</th><th>Atividade vinculada</th><th>Ações</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table></div>`;
+
+  const tbody=$('tbody');
+  rows.forEach(t=>tbody.appendChild(buildRow(t)));
+}
+
+function contratoOptionsFor(empresa){
+  const emp=(empresa||'').trim().toLowerCase();
+  let list = emp ? CONTRATOS.filter(c=>(c.empresa||'').trim().toLowerCase()===emp) : [];
+  if(!list.length) list = CONTRATOS; // sem correspondência: mostra todos para não travar o fluxo
+  return list;
+}
+
+function buildRow(t){
+  const key = linkKey(t);
+  const link = LINKS[key];
+  const tr=document.createElement('tr');
+  tr.dataset.key=key;
+
+  const codigoCell = t.codigo
+    ? esc(t.codigo)
+    : `<span class="warn-uid" title="Código não encontrado no XML — usando o UID do MS Project (${t.uid}) como identificador provisório. Ele muda se a tarefa for recriada.">⚠ uid:${t.uid}</span>`;
+
+  const contratos = contratoOptionsFor(t.empresa);
+  const contratoOpts = ['<option value="">— selecionar contrato —</option>']
+    .concat(contratos.map(c=>`<option value="${c.id}" ${link&&link.cronograma_id===c.id?'selected':''}>${esc(c.empresa)}${c.escopo?(' · '+esc(c.escopo)):''}</option>`));
+
+  tr.innerHTML=`
+    <td class="codigo">${codigoCell}</td>
+    <td><div class="task-name">${esc(t.name)}</div><div class="task-wbs">${esc(t.wbs||'')}${t.summary?' · resumo':''}</div></td>
+    <td><input class="emp-input" list="dl-empresas-cfg" value="${esc(t.empresa||'')}" data-role="empresa"></td>
+    <td class="num">${fmtPct(t.previsto)}</td>
+    <td class="num">${fmtPct(t.concluido)}</td>
+    <td><select class="contrato-select" data-role="contrato">${contratoOpts.join('')}</select></td>
+    <td data-role="vinculo-cell">${vinculoCellHtml(t,link)}</td>
+    <td>
+      <div class="actions-cell">
+        <label class="chk-manual"><input type="checkbox" data-role="manual" ${link&&link.is_manual?'checked':''}> Manual</label>
+        <button class="btn-x" title="Limpar vínculo" data-role="clear">✕</button>
+      </div>
+    </td>`;
+
+  // empresa
+  let empTimer=null;
+  tr.querySelector('[data-role="empresa"]').addEventListener('input',e=>{
+    t.empresa = e.target.value;
+    clearTimeout(empTimer);
+    empTimer=setTimeout(()=>{ saveLink(t,{empresa:t.empresa}); refreshContratoOptions(tr,t); },500);
+  });
+
+  // contrato
+  tr.querySelector('[data-role="contrato"]').addEventListener('change',e=>{
+    const cronoId=e.target.value||null;
+    if(!cronoId){ saveLink(t,{cronograma_id:null,terceira_uid:null,terceira_nome:null,is_manual:false}); renderVinculoCell(tr,t); return; }
+    openPickModal(t, cronoId, tr);
+  });
+
+  // manual toggle
+  tr.querySelector('[data-role="manual"]').addEventListener('change',e=>{
+    const manual=e.target.checked;
+    if(manual){
+      saveLink(t,{is_manual:true, cronograma_id:null, terceira_uid:null, terceira_nome:null,
+        manual_previsto: link?.manual_previsto ?? t.previsto ?? null,
+        manual_concluido: link?.manual_concluido ?? t.concluido ?? null});
+    } else {
+      saveLink(t,{is_manual:false});
+    }
+    renderVinculoCell(tr,t);
+  });
+
+  // limpar
+  tr.querySelector('[data-role="clear"]').addEventListener('click',async()=>{
+    if(!LINKS[key]) return;
+    if(!confirm('Remover o vínculo/preenchimento desta tarefa?')) return;
+    try{
+      await sb('DELETE',`avanco_links?codigo_atividade=eq.${encodeURIComponent(key)}`,null,'return=minimal');
+      delete LINKS[key];
+      tr.querySelector('[data-role="manual"]').checked=false;
+      tr.querySelector('[data-role="contrato"]').value='';
+      renderVinculoCell(tr,t);
+      toast('Vínculo removido');
+      render(); // atualiza KPIs
+    }catch(e){ toast('Erro: '+e.message,'err'); }
+  });
+
+  return tr;
+}
+
+function refreshContratoOptions(tr,t){
+  const sel=tr.querySelector('[data-role="contrato"]');
+  const link=LINKS[linkKey(t)];
+  const contratos=contratoOptionsFor(t.empresa);
+  sel.innerHTML=['<option value="">— selecionar contrato —</option>']
+    .concat(contratos.map(c=>`<option value="${c.id}" ${link&&link.cronograma_id===c.id?'selected':''}>${esc(c.empresa)}${c.escopo?(' · '+esc(c.escopo)):''}</option>`)).join('');
+}
+
+function vinculoCellHtml(t,link){
+  if(link && link.is_manual){
+    return `<div class="manual-inputs">
+      <input type="number" step="0.01" data-role="mprev" placeholder="Prev%" value="${link.manual_previsto??''}">
+      <input type="number" step="0.01" data-role="mconc" placeholder="Concl%" value="${link.manual_concluido??''}">
+    </div>`;
+  }
+  if(link && link.cronograma_id && link.terceira_uid){
+    return `<div class="link-pill"><b title="${esc(link.terceira_nome||'')}">${esc(link.terceira_nome||'(sem nome)')}</b>
+      <small>UID ${link.terceira_uid}</small></div>`;
+  }
+  if(link && link.cronograma_id && !link.terceira_uid){
+    return `<span class="pending-pill">Contrato escolhido — falta selecionar a atividade</span>`;
+  }
+  return `<span class="pending-pill" style="background:#f3f4f6;border-color:#d1d5db;color:#6b7280">Sem vínculo</span>`;
+}
+
+function renderVinculoCell(tr,t){
+  const cell=tr.querySelector('[data-role="vinculo-cell"]');
+  const link=LINKS[linkKey(t)];
+  cell.innerHTML=vinculoCellHtml(t,link);
+  if(link && link.is_manual){
+    let mTimer=null;
+    const save=()=>{
+      const mp=parseFloat(cell.querySelector('[data-role="mprev"]').value);
+      const mc=parseFloat(cell.querySelector('[data-role="mconc"]').value);
+      saveLink(t,{manual_previsto:isNaN(mp)?null:mp, manual_concluido:isNaN(mc)?null:mc});
+    };
+    cell.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{clearTimeout(mTimer);mTimer=setTimeout(save,500);}));
+  }
+}
+
+/* ================================================================
+   MODAL: escolher tarefa-resumo do cronograma da terceira
+   ================================================================ */
+let pickCtx=null;
+async function openPickModal(t, cronogramaId, tr){
+  pickCtx={t,cronogramaId,tr};
+  const c=CONTRATOS.find(x=>x.id===cronogramaId);
+  $('pick-sub').textContent = c ? (c.empresa+(c.escopo?(' · '+c.escopo):'')+' — selecione a tarefa-resumo que representa esta atividade') : '—';
+  $('pick-list').innerHTML='<div class="empty">Carregando revisão mais recente…</div>';
+  $('modal-pick').classList.add('visible');
+  try{
+    const revs = await sb('GET',`val_revisoes?cronograma_id=eq.${cronogramaId}&select=id,revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
+    if(!revs || !revs.length || !revs[0].tarefas_json){
+      $('pick-list').innerHTML='<div class="empty">Esta terceira ainda não tem nenhuma revisão salva na tela de Validação.</div>';
+      return;
+    }
+    let tasks = revs[0].tarefas_json;
+    if(typeof tasks==='string') tasks=JSON.parse(tasks);
+    const resumos = (tasks||[]).filter(x=>x.summary).sort((a,b)=>(a.wbs||'').localeCompare(b.wbs||'',undefined,{numeric:true}));
+    if(!resumos.length){ $('pick-list').innerHTML='<div class="empty">Nenhuma tarefa-resumo encontrada nesta revisão.</div>'; return; }
+    $('pick-list').innerHTML = resumos.map(r=>`
+      <div class="pick-item" data-uid="${r.uid}" data-name="${esc(r.name)}">
+        <div><div class="nm">${esc(r.name)}</div><div class="wbs">${esc(r.wbs||'')}</div></div>
+        <div class="pf">F:${fmtPct(r.F)} · E:${fmtPct(r.E)}</div>
+      </div>`).join('');
+    $('pick-list').querySelectorAll('.pick-item').forEach(el=>{
+      el.addEventListener('click',()=>choosePickItem(+el.dataset.uid, el.dataset.name));
+    });
+  }catch(e){
+    $('pick-list').innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>';
+  }
+}
+function closePickModal(){
+  $('modal-pick').classList.remove('visible');
+  if(pickCtx && pickCtx.tr){
+    // se cancelou sem escolher atividade e não havia vínculo prévio, reseta o select
+    const link=LINKS[linkKey(pickCtx.t)];
+    if(!link || !link.terceira_uid) pickCtx.tr.querySelector('[data-role="contrato"]').value = link?.cronograma_id || '';
+  }
+  pickCtx=null;
+}
+async function choosePickItem(uid,name){
+  if(!pickCtx) return;
+  const {t,cronogramaId,tr}=pickCtx;
+  await saveLink(t,{cronograma_id:cronogramaId, terceira_uid:uid, terceira_nome:name, is_manual:false});
+  renderVinculoCell(tr,t);
+  tr.querySelector('[data-role="manual"]').checked=false;
+  $('modal-pick').classList.remove('visible');
+  pickCtx=null;
+  toast('Vínculo salvo ✓','ok');
+  render(); // atualiza KPIs
+}
+
+/* ================================================================
+   SALVAR (upsert por codigo_atividade)
+   ================================================================ */
+async function saveLink(t, patch){
+  const key=linkKey(t);
+  const existing=LINKS[key];
+  const payload={
+    codigo_atividade:key,
+    task_uid:t.uid, task_name:t.name, empresa:t.empresa||null,
+    ...(existing||{}), ...patch,
+    updated_at:new Date().toISOString()
+  };
+  delete payload.id; delete payload.created_at;
+  try{
+    await sb('POST','avanco_links?on_conflict=codigo_atividade',payload,'resolution=merge-duplicates,return=representation');
+    LINKS[key]={...(existing||{}),...payload};
+  }catch(e){
+    toast('Erro ao salvar: '+e.message,'err');
+  }
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
+
+(async function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){ window.location.href='login.html'; return; }
+  const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+
+  try{
+    await loadContratos();
+    await loadLinks();
+    await loadVersoes();
+  }catch(e){
+    if(/relation .* does not exist|42P01/i.test(e.message)){
+      $('setup-notice').style.display='';
+    }
+    console.error(e);
+    $('content').innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar: '+esc(e.message)+'</div>';
+  }
+})();
+</script>
+</body>
+</html>

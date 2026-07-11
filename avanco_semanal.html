@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Avanço Semanal · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--gold:#EAA239;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;--orange-soft:#FEF3C7;
+  --red:#C0392B;--red-soft:#fdecea;--neutral:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1400px;margin:0 auto;padding:28px 24px 80px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
+.back-link:hover{color:var(--blue)}
+.nav-group{display:flex;gap:8px;flex-wrap:wrap}
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:23px;font-weight:800;letter-spacing:-0.5px}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.subtitle{font-size:12px;color:var(--text-dim);margin-top:6px;max-width:640px;line-height:1.5}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.logout-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:#fff;color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:16px;line-height:1.6}
+.notice.warn{border-left-color:var(--gold);background:var(--orange-soft);color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.fbar input,.fbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 11px;background:#fff;outline:none}
+.btn{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:9px 16px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--blue-dark)}
+.btn.ghost{background:#fff;color:var(--blue)}.btn.ghost:hover{background:var(--blue-soft)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#3a2a08}.btn.gold:hover{background:#c9842a}
+.rowcount{font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:12px 14px;box-shadow:var(--shadow)}
+.kpi.warn{border-top-color:var(--gold)}
+.kpi .v{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi .l{font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.tbl-wrap{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:960px}
+thead th{background:var(--blue);color:#fff;font-size:9px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:9px 10px;text-align:left;white-space:nowrap;position:sticky;top:0}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tbody tr:hover{background:#fafbfc}
+td.num{font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);white-space:nowrap}
+.task-name{font-weight:600;max-width:320px}
+.task-wbs{font-size:9.5px;color:var(--text-mute);font-family:'JetBrains Mono',monospace}
+.src-auto{font-size:10px;background:var(--green-soft);border:1px solid #a8c990;color:#1d5c1a;padding:2px 7px;display:inline-block}
+.src-manual{font-size:10px;background:var(--blue-soft);border:1px solid #b0c0da;color:var(--blue-dark);padding:2px 7px;display:inline-block}
+.src-pend{font-size:10px;background:#f3f4f6;border:1px solid #d1d5db;color:#6b7280;padding:2px 7px;display:inline-block}
+.manual-input{width:70px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--border);padding:5px 6px;text-align:right}
+.empty{text-align:center;padding:60px 20px;color:var(--text-mute)}
+.empty .big{font-size:42px;margin-bottom:12px;opacity:.4}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--blue-dark);color:#fff;padding:12px 22px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:2000;transition:transform .3s;border-left:4px solid var(--gold)}
+.toast.show{transform:translateX(-50%) translateY(0)}.toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="nav-row">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div class="nav-group">
+      <a class="back-link" href="analise_cronograma.html" style="color:var(--blue)">📋 Análise de Cronograma</a>
+      <a class="back-link" href="validacao_cronogramas.html" style="color:var(--blue)">📊 Validação das Terceiras</a>
+      <a class="back-link" href="avanco_config.html" style="color:var(--blue)">⚙ Configurar Vínculos</a>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle · Avanço Semanal</div>
+      <h1>Avanço Semanal <span>· Cronograma Geral</span></h1>
+      <p class="subtitle">% Concluído puxado ao vivo das revisões mais recentes dos cronogramas das terceiras, conforme os vínculos configurados. Tarefas sem vínculo são preenchidas manualmente.</p>
+    </div>
+    <div class="user-bar">
+      <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
+        <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
+        <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div id="setup-notice" class="notice warn" style="display:none">
+    <b>Banco não configurado.</b> Rode o script <code>supabase_avanco_semanal.sql</code> no Supabase antes de usar esta tela.
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="fbar">
+    <label style="font-size:11px;font-weight:700;color:var(--text-dim)">Cronograma geral:</label>
+    <select id="sel-versao" onchange="onVersaoChange()" style="min-width:200px"></select>
+    <input id="search" placeholder="🔎 Código ou nome da tarefa…" style="min-width:220px" oninput="render()">
+    <select id="f-empresa" onchange="render()"><option value="">Todas as empresas</option></select>
+    <label class="chk" style="font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px"><input type="checkbox" id="chk-hide-summary" checked onchange="render()"> Ocultar tarefas-resumo</label>
+    <button class="btn ghost" onclick="refreshAll()" id="btn-refresh">🔄 Atualizar agora</button>
+    <button class="btn gold" onclick="exportExcel()">⬇ Exportar Excel</button>
+    <span class="rowcount" id="rowcount"></span>
+  </div>
+
+  <div id="content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL=(window.PCO_CONFIG||{}).supabase?.url||'';
+const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
+const TOKEN=SB_KEY;
+const $=id=>document.getElementById(id);
+function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m,t){const e=$('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',3200);}
+function fmtPct(n){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';}
+
+async function sb(method,path,body,prefer){
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json',
+      'Prefer':prefer||(method==='POST'?'return=representation':'return=minimal')},
+    body:body?JSON.stringify(body):undefined});
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,200));}
+  const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
+}
+
+/* ================================================================
+   ESTADO
+   ================================================================ */
+let TASKS=[];
+let LINKS={};
+let VERSOES=[];
+let RESOLVED={};   // codigo -> {concluido, previsto, fonte:'auto'|'manual'|'pendente', contratoLabel}
+
+function linkKey(t){ return t.codigo && t.codigo.trim() ? t.codigo.trim() : ('uid:'+t.uid); }
+
+async function loadVersoes(){
+  VERSOES = await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc') || [];
+  const sel=$('sel-versao');
+  if(!VERSOES.length){ sel.innerHTML='<option value="">— nenhum cronograma geral enviado —</option>'; return; }
+  sel.innerHTML = VERSOES.map(v=>`<option value="${v.data_status}">${esc(v.data_status)}${v.label?(' · '+esc(v.label)):''}</option>`).join('');
+  sel.value = VERSOES[0].data_status;
+  await onVersaoChange();
+}
+
+async function onVersaoChange(){
+  const status = $('sel-versao').value;
+  const row = VERSOES.find(v=>v.data_status===status);
+  let D={};
+  if(row){ try{ D = typeof row.dados_json==='string' ? JSON.parse(row.dados_json) : (row.dados_json||{}); }catch(_){ D={}; } }
+  TASKS = D.tarefasGerais || [];
+  buildEmpresaFilter();
+  await refreshAll();
+}
+
+function buildEmpresaFilter(){
+  const emps=[...new Set(TASKS.map(t=>(t.empresa||'').trim()).filter(Boolean))].sort();
+  $('f-empresa').innerHTML='<option value="">Todas as empresas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
+}
+
+/* ================================================================
+   ATUALIZAÇÃO AO VIVO — busca os links e resolve % a partir da revisão
+   mais recente do contrato vinculado a cada tarefa
+   ================================================================ */
+async function refreshAll(){
+  const btn=$('btn-refresh'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Atualizando…';
+  try{
+    const linkRows = await sb('GET','avanco_links?select=*') || [];
+    LINKS={}; linkRows.forEach(r=>LINKS[r.codigo_atividade]=r);
+
+    // contratos usados (não-manuais, com cronograma_id definido)
+    const cronoIds=[...new Set(linkRows.filter(r=>!r.is_manual && r.cronograma_id).map(r=>r.cronograma_id))];
+    const cronoNames={};
+    if(cronoIds.length){
+      const cs = await sb('GET',`val_cronogramas?id=in.(${cronoIds.join(',')})&select=id,empresa,escopo`) || [];
+      cs.forEach(c=>cronoNames[c.id]=c.empresa+(c.escopo?(' · '+c.escopo):''));
+    }
+    // última revisão de cada contrato usado
+    const revByCrono={};
+    await Promise.all(cronoIds.map(async id=>{
+      const revs = await sb('GET',`val_revisoes?cronograma_id=eq.${id}&select=revisao,tarefas_json&order=revisao.desc&limit=1`);
+      if(revs && revs.length){
+        let tj=revs[0].tarefas_json;
+        if(typeof tj==='string') tj=JSON.parse(tj);
+        const byUid={}; (tj||[]).forEach(x=>byUid[x.uid]=x);
+        revByCrono[id]=byUid;
+      }
+    }));
+
+    RESOLVED={};
+    TASKS.forEach(t=>{
+      const key=linkKey(t);
+      const link=LINKS[key];
+      if(!link){ RESOLVED[key]={fonte:'pendente'}; return; }
+      if(link.is_manual){
+        RESOLVED[key]={fonte:'manual', previsto:link.manual_previsto, concluido:link.manual_concluido};
+        return;
+      }
+      if(link.cronograma_id && link.terceira_uid && revByCrono[link.cronograma_id]){
+        const tt=revByCrono[link.cronograma_id][link.terceira_uid];
+        if(tt){
+          RESOLVED[key]={fonte:'auto', previsto:tt.F, concluido:tt.E, contratoLabel:cronoNames[link.cronograma_id]||'', terceiraNome:link.terceira_nome};
+          return;
+        }
+      }
+      RESOLVED[key]={fonte:'pendente'};
+    });
+
+    render();
+    toast('Atualizado ✓','ok');
+  }catch(e){
+    if(/relation .* does not exist|42P01/i.test(e.message)) $('setup-notice').style.display='';
+    toast('Erro ao atualizar: '+e.message,'err');
+  }finally{
+    btn.disabled=false; btn.innerHTML=old;
+  }
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function render(){
+  const box=$('content');
+  if(!TASKS.length){
+    box.innerHTML='<div class="empty"><div class="big">📭</div>Nenhuma tarefa carregada. Suba um cronograma geral em Análise de Cronograma e configure os vínculos.</div>';
+    $('rowcount').textContent=''; $('kpis').innerHTML=''; return;
+  }
+  const q=($('search').value||'').trim().toLowerCase();
+  const fEmp=$('f-empresa').value;
+  const hideSummary=$('chk-hide-summary').checked;
+
+  const rows = TASKS.filter(t=>{
+    if(hideSummary && t.summary) return false;
+    if(q && !((t.name||'').toLowerCase().includes(q) || (t.codigo||'').toLowerCase().includes(q))) return false;
+    if(fEmp && (t.empresa||'')!==fEmp) return false;
+    return true;
+  });
+
+  const total=rows.length;
+  const auto=rows.filter(t=>RESOLVED[linkKey(t)]?.fonte==='auto').length;
+  const manu=rows.filter(t=>RESOLVED[linkKey(t)]?.fonte==='manual').length;
+  const pend=total-auto-manu;
+  $('kpis').innerHTML=`
+    <div class="kpi"><div class="v">${total}</div><div class="l">Tarefas na lista</div></div>
+    <div class="kpi"><div class="v" style="color:var(--green)">${auto}</div><div class="l">Atualizando via terceira</div></div>
+    <div class="kpi"><div class="v" style="color:var(--blue)">${manu}</div><div class="l">Preenchimento manual</div></div>
+    <div class="kpi warn"><div class="v" style="color:#7c4a00">${pend}</div><div class="l">Sem dado ainda</div></div>`;
+  $('rowcount').textContent=total+' tarefa(s)';
+
+  if(!rows.length){ box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhuma tarefa corresponde ao filtro.</div>'; return; }
+
+  box.innerHTML=`<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Código</th><th>Tarefa</th><th>Empresa</th><th class="num">Previsto (geral)</th>
+      <th class="num">% Concluído</th><th>Origem</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table></div>`;
+  const tbody=$('tbody');
+  rows.forEach(t=>tbody.appendChild(buildRow(t)));
+}
+
+function buildRow(t){
+  const key=linkKey(t);
+  const r=RESOLVED[key]||{fonte:'pendente'};
+  const tr=document.createElement('tr');
+  tr.dataset.key=key;
+
+  let origemHtml, conclHtml;
+  if(r.fonte==='auto'){
+    origemHtml=`<span class="src-auto" title="${esc(r.terceiraNome||'')}">🔗 ${esc(r.contratoLabel||'terceira')}</span>`;
+    conclHtml=`<span>${fmtPct(r.concluido)}</span>`;
+  } else if(r.fonte==='manual'){
+    origemHtml=`<span class="src-manual">✍ Manual</span>`;
+    conclHtml=`<input type="number" step="0.01" class="manual-input" data-role="mconc" value="${r.concluido??''}">`;
+  } else {
+    origemHtml=`<span class="src-pend">Sem vínculo — <a href="avanco_config.html" style="color:var(--blue)">configurar</a></span>`;
+    conclHtml=`—`;
+  }
+
+  tr.innerHTML=`
+    <td class="codigo">${t.codigo?esc(t.codigo):('uid:'+t.uid)}</td>
+    <td><div class="task-name">${esc(t.name)}</div><div class="task-wbs">${esc(t.wbs||'')}</div></td>
+    <td>${esc(t.empresa||'—')}</td>
+    <td class="num">${fmtPct(t.previsto)}</td>
+    <td class="num">${conclHtml}</td>
+    <td>${origemHtml}</td>`;
+
+  if(r.fonte==='manual'){
+    let timer=null;
+    tr.querySelector('[data-role="mconc"]').addEventListener('input',e=>{
+      const v=parseFloat(e.target.value);
+      clearTimeout(timer);
+      timer=setTimeout(()=>saveManualConcluido(key,isNaN(v)?null:v),500);
+    });
+  }
+  return tr;
+}
+
+async function saveManualConcluido(key,val){
+  try{
+    await sb('PATCH',`avanco_links?codigo_atividade=eq.${encodeURIComponent(key)}`,{manual_concluido:val,updated_at:new Date().toISOString()},'return=minimal');
+    if(RESOLVED[key]) RESOLVED[key].concluido=val;
+    toast('Salvo ✓','ok');
+  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
+}
+
+/* ================================================================
+   EXPORTAR EXCEL — ID exclusivo, Tarefa, % Concluído
+   ================================================================ */
+function exportExcel(){
+  const hideSummary=$('chk-hide-summary').checked;
+  const rows = TASKS.filter(t=>!(hideSummary && t.summary)).map(t=>{
+    const r=RESOLVED[linkKey(t)]||{};
+    return {
+      'ID exclusivo': t.codigo || ('uid:'+t.uid),
+      'Tarefa': t.name,
+      '% Concluído': (r.concluido!=null && !isNaN(r.concluido)) ? Math.round(r.concluido*100)/100 : ''
+    };
+  });
+  if(!rows.length){ toast('Nada para exportar','err'); return; }
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:16},{wch:60},{wch:14}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Avanço Semanal');
+  const status=$('sel-versao').value||new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`Avanco_Semanal_${status}.xlsx`);
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; }
+
+(async function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){ window.location.href='login.html'; return; }
+  const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+  try{
+    await loadVersoes();
+  }catch(e){
+    if(/relation .* does not exist|42P01/i.test(e.message)) $('setup-notice').style.display='';
+    console.error(e);
+    $('content').innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar: '+esc(e.message)+'</div>';
+  }
+})();
+</script>
+</body>
+</html>
