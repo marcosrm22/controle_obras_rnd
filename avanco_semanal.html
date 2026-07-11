@@ -48,6 +48,12 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .kpi.warn{border-top-color:var(--gold)}
 .kpi .v{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1}
 .kpi .l{font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.rollup-card{background:linear-gradient(120deg,var(--blue-dark),var(--blue));color:#fff;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.rollup-card .v{font-size:38px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.rollup-card .l{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:#cddaf0;margin-top:4px}
+.rollup-card .note{font-size:11px;color:#cddaf0;max-width:420px;line-height:1.5}
+.rollup-bar{flex:1;min-width:180px;height:10px;background:rgba(255,255,255,.2);position:relative;overflow:hidden}
+.rollup-bar .fill{height:100%;background:var(--gold)}
 .tbl-wrap{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:960px}
 thead th{background:var(--blue);color:#fff;font-size:9px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:9px 10px;text-align:left;white-space:nowrap;position:sticky;top:0}
@@ -99,14 +105,17 @@ td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text
     <b>Banco não configurado.</b> Rode o script <code>supabase_avanco_semanal.sql</code> no Supabase antes de usar esta tela.
   </div>
 
+  <div id="rollup-kpi"></div>
   <div class="kpis" id="kpis"></div>
 
   <div class="fbar">
     <label style="font-size:11px;font-weight:700;color:var(--text-dim)">Cronograma geral:</label>
     <select id="sel-versao" onchange="onVersaoChange()" style="min-width:200px"></select>
     <input id="search" placeholder="🔎 Código ou nome da tarefa…" style="min-width:220px" oninput="render()">
-    <select id="f-empresa" onchange="render()"><option value="">Todas as empresas</option></select>
-    <label class="chk" style="font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px"><input type="checkbox" id="chk-hide-summary" checked onchange="render()"> Ocultar tarefas-resumo</label>
+    <select id="f-empresa-proj" onchange="render()"><option value="">Empresa (Project): todas</option></select>
+    <select id="f-empresa" onchange="render()"><option value="">Empresa (vínculo): todas</option></select>
+    <select id="f-disc" onchange="render()"><option value="">Todas as disciplinas</option></select>
+    <label class="chk" style="font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:6px"><input type="checkbox" id="chk-hide-summary" onchange="render()"> Ocultar tarefas-resumo</label>
     <button class="btn ghost" onclick="refreshAll()" id="btn-refresh">🔄 Atualizar agora</button>
     <button class="btn gold" onclick="exportExcel()">⬇ Exportar Excel</button>
     <span class="rowcount" id="rowcount"></span>
@@ -142,8 +151,11 @@ let TASKS=[];
 let LINKS={};
 let VERSOES=[];
 let RESOLVED={};   // codigo -> {concluido, previsto, fonte:'auto'|'manual'|'pendente', contratoLabel}
+let ROLLUP={};     // wbs -> % calculado (tarefas-resumo, ponderado por duração)
+let PROJECT_PCT=null; // % geral do cronograma (rollup do(s) nó(s) de topo)
 
 function linkKey(t){ return t.codigo && t.codigo.trim() ? t.codigo.trim() : ('uid:'+t.uid); }
+function workEmpresa(t){ const l=LINKS[linkKey(t)]; return (l && l.empresa!=null && l.empresa!=='') ? l.empresa : (t.empresa||''); }
 
 async function loadVersoes(){
   VERSOES = await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc') || [];
@@ -160,13 +172,16 @@ async function onVersaoChange(){
   let D={};
   if(row){ try{ D = typeof row.dados_json==='string' ? JSON.parse(row.dados_json) : (row.dados_json||{}); }catch(_){ D={}; } }
   TASKS = D.tarefasGerais || [];
-  buildEmpresaFilter();
   await refreshAll();
 }
 
 function buildEmpresaFilter(){
-  const emps=[...new Set(TASKS.map(t=>(t.empresa||'').trim()).filter(Boolean))].sort();
-  $('f-empresa').innerHTML='<option value="">Todas as empresas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
+  const empsProj=[...new Set(TASKS.map(t=>(t.empresa||'').trim()).filter(Boolean))].sort();
+  $('f-empresa-proj').innerHTML='<option value="">Empresa (Project): todas</option>'+empsProj.map(e=>`<option>${esc(e)}</option>`).join('');
+  const emps=[...new Set(TASKS.map(t=>workEmpresa(t).trim()).filter(Boolean))].sort();
+  $('f-empresa').innerHTML='<option value="">Empresa (vínculo): todas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
+  const discs=[...new Set(TASKS.map(t=>(t.disciplina||'').trim()).filter(Boolean))].sort();
+  $('f-disc').innerHTML='<option value="">Todas as disciplinas</option>'+discs.map(d=>`<option>${esc(d)}</option>`).join('');
 }
 
 /* ================================================================
@@ -217,6 +232,8 @@ async function refreshAll(){
       RESOLVED[key]={fonte:'pendente'};
     });
 
+    buildEmpresaFilter();
+    computeRollups();
     render();
     toast('Atualizado ✓','ok');
   }catch(e){
@@ -228,41 +245,115 @@ async function refreshAll(){
 }
 
 /* ================================================================
+   ROLLUP DAS TAREFAS-RESUMO
+   O MS Project calcula o % de tarefas-resumo automaticamente (média
+   ponderada pela duração dos filhos, recursiva) — só as atividades soltas
+   são atualizadas manualmente. Replicamos a mesma conta aqui, usando os
+   valores mais recentes coletados (vínculo automático ou preenchimento
+   manual), para mostrar o andamento antes de jogar de volta pro Project.
+   ================================================================ */
+function wbsParent(wbs){
+  const parts=(wbs||'').split('.').filter(Boolean);
+  if(parts.length<=1) return null;
+  parts.pop();
+  return parts.join('.');
+}
+
+function computeRollups(){
+  ROLLUP={}; PROJECT_PCT=null;
+  const byWbs={};
+  TASKS.forEach(t=>{ if(t.wbs) byWbs[t.wbs]=t; });
+  const childrenByParent={};
+  TASKS.forEach(t=>{
+    const p=wbsParent(t.wbs);
+    if(p==null) return;
+    (childrenByParent[p]=childrenByParent[p]||[]).push(t);
+  });
+
+  const memo={};
+  function pctOf(wbs){
+    if(memo[wbs]!==undefined) return memo[wbs];
+    const node=byWbs[wbs];
+    if(!node){ memo[wbs]=0; return 0; }
+    if(!node.summary){
+      const r=RESOLVED[linkKey(node)];
+      const pct=(r && r.concluido!=null && !isNaN(r.concluido)) ? r.concluido : 0;
+      memo[wbs]=pct;
+      return pct;
+    }
+    const kids=childrenByParent[wbs]||[];
+    if(!kids.length){ memo[wbs]=0; return 0; }
+    let sumDur=0, sumW=0;
+    kids.forEach(k=>{
+      const kp=pctOf(k.wbs);
+      const dur=k.durationHoras||0;
+      sumDur+=dur; sumW+=dur*kp;
+    });
+    const pct = sumDur>0 ? (sumW/sumDur) : (kids.reduce((a,k)=>a+pctOf(k.wbs),0)/kids.length);
+    memo[wbs]=pct;
+    return pct;
+  }
+
+  TASKS.forEach(t=>{ if(t.summary && t.wbs) ROLLUP[t.wbs]=Math.round(pctOf(t.wbs)*100)/100; });
+
+  // % geral do cronograma = rollup ponderado dos nós de topo (sem pai na árvore)
+  const roots = TASKS.filter(t=>t.summary && t.wbs && wbsParent(t.wbs)==null);
+  if(roots.length){
+    let sumDur=0,sumW=0;
+    roots.forEach(r=>{ const dur=r.durationHoras||0; sumDur+=dur; sumW+=dur*(ROLLUP[r.wbs]||0); });
+    PROJECT_PCT = sumDur>0 ? Math.round((sumW/sumDur)*100)/100 : Math.round((roots.reduce((a,r)=>a+(ROLLUP[r.wbs]||0),0)/roots.length)*100)/100;
+  }
+}
+
+/* ================================================================
    RENDER
    ================================================================ */
 function render(){
   const box=$('content');
   if(!TASKS.length){
     box.innerHTML='<div class="empty"><div class="big">📭</div>Nenhuma tarefa carregada. Suba um cronograma geral em Análise de Cronograma e configure os vínculos.</div>';
-    $('rowcount').textContent=''; $('kpis').innerHTML=''; return;
+    $('rowcount').textContent=''; $('kpis').innerHTML=''; $('rollup-kpi').innerHTML=''; return;
   }
   const q=($('search').value||'').trim().toLowerCase();
   const fEmp=$('f-empresa').value;
+  const fEmpProj=$('f-empresa-proj').value;
+  const fDisc=$('f-disc').value;
   const hideSummary=$('chk-hide-summary').checked;
+
+  if(PROJECT_PCT!=null){
+    $('rollup-kpi').innerHTML=`<div class="rollup-card">
+      <div><div class="v">${fmtPct(PROJECT_PCT)}</div><div class="l">Concluído geral do cronograma (calculado)</div></div>
+      <div class="rollup-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,PROJECT_PCT))}%"></div></div>
+      <div class="note">Rollup ponderado por duração das tarefas-resumo, igual ao MS Project — pronto pra conferir antes de jogar o avanço de volta.</div>
+    </div>`;
+  } else { $('rollup-kpi').innerHTML=''; }
 
   const rows = TASKS.filter(t=>{
     if(hideSummary && t.summary) return false;
     if(q && !((t.name||'').toLowerCase().includes(q) || (t.codigo||'').toLowerCase().includes(q))) return false;
-    if(fEmp && (t.empresa||'')!==fEmp) return false;
+    if(fEmp && workEmpresa(t)!==fEmp) return false;
+    if(fEmpProj && (t.empresa||'')!==fEmpProj) return false;
+    if(fDisc && (t.disciplina||'')!==fDisc) return false;
     return true;
   });
 
-  const total=rows.length;
-  const auto=rows.filter(t=>RESOLVED[linkKey(t)]?.fonte==='auto').length;
-  const manu=rows.filter(t=>RESOLVED[linkKey(t)]?.fonte==='manual').length;
+  const leafRows=rows.filter(t=>!t.summary);
+  const total=leafRows.length;
+  const auto=leafRows.filter(t=>RESOLVED[linkKey(t)]?.fonte==='auto').length;
+  const manu=leafRows.filter(t=>RESOLVED[linkKey(t)]?.fonte==='manual').length;
   const pend=total-auto-manu;
   $('kpis').innerHTML=`
-    <div class="kpi"><div class="v">${total}</div><div class="l">Tarefas na lista</div></div>
+    <div class="kpi"><div class="v">${total}</div><div class="l">Atividades soltas na lista</div></div>
     <div class="kpi"><div class="v" style="color:var(--green)">${auto}</div><div class="l">Atualizando via terceira</div></div>
     <div class="kpi"><div class="v" style="color:var(--blue)">${manu}</div><div class="l">Preenchimento manual</div></div>
     <div class="kpi warn"><div class="v" style="color:#7c4a00">${pend}</div><div class="l">Sem dado ainda</div></div>`;
-  $('rowcount').textContent=total+' tarefa(s)';
+  $('rowcount').textContent=rows.length+' tarefa(s)';
 
   if(!rows.length){ box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhuma tarefa corresponde ao filtro.</div>'; return; }
 
   box.innerHTML=`<div class="tbl-wrap"><table>
     <thead><tr>
-      <th>Código</th><th>Tarefa</th><th>Empresa</th><th class="num">Previsto (geral)</th>
+      <th>Código</th><th>Tarefa</th><th>Disciplina</th><th>Empresa (Project)</th><th>Empresa (vínculo)</th><th class="num">Previsto (geral)</th>
       <th class="num">% Concluído</th><th>Origem</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
@@ -278,7 +369,21 @@ function buildRow(t){
   tr.dataset.key=key;
 
   let origemHtml, conclHtml;
-  if(r.fonte==='auto'){
+  if(t.summary){
+    // tarefas-resumo não são atualizadas manualmente (igual no MS Project):
+    // usam o valor calculado (rollup) a menos que exista um vínculo explícito.
+    if(r.fonte==='auto'){
+      origemHtml=`<span class="src-auto" title="${esc(r.terceiraNome||'')}">🔗 ${esc(r.contratoLabel||'terceira')}</span>`;
+      conclHtml=`<span>${fmtPct(r.concluido)}</span>`;
+    } else if(r.fonte==='manual'){
+      origemHtml=`<span class="src-manual">✍ Manual</span>`;
+      conclHtml=`<span>${fmtPct(r.concluido)}</span>`;
+    } else {
+      const roll=ROLLUP[t.wbs];
+      origemHtml=`<span class="src-auto" style="background:var(--blue-soft);border-color:#b0c0da;color:var(--blue-dark)" title="Calculado a partir das atividades filhas, ponderado por duração">Σ calc.</span>`;
+      conclHtml=`<span>${fmtPct(roll)}</span>`;
+    }
+  } else if(r.fonte==='auto'){
     origemHtml=`<span class="src-auto" title="${esc(r.terceiraNome||'')}">🔗 ${esc(r.contratoLabel||'terceira')}</span>`;
     conclHtml=`<span>${fmtPct(r.concluido)}</span>`;
   } else if(r.fonte==='manual'){
@@ -291,13 +396,15 @@ function buildRow(t){
 
   tr.innerHTML=`
     <td class="codigo">${t.codigo?esc(t.codigo):('uid:'+t.uid)}</td>
-    <td><div class="task-name">${esc(t.name)}</div><div class="task-wbs">${esc(t.wbs||'')}</div></td>
+    <td><div class="task-name">${esc(t.name)}</div><div class="task-wbs">${esc(t.cwa||'—')}${t.summary?' · resumo':''}</div></td>
+    <td>${esc(t.disciplina||'—')}</td>
     <td>${esc(t.empresa||'—')}</td>
+    <td>${esc(workEmpresa(t)||'—')}</td>
     <td class="num">${fmtPct(t.previsto)}</td>
     <td class="num">${conclHtml}</td>
     <td>${origemHtml}</td>`;
 
-  if(r.fonte==='manual'){
+  if(!t.summary && r.fonte==='manual'){
     let timer=null;
     tr.querySelector('[data-role="mconc"]').addEventListener('input',e=>{
       const v=parseFloat(e.target.value);
@@ -320,8 +427,9 @@ async function saveManualConcluido(key,val){
    EXPORTAR EXCEL — ID exclusivo, Tarefa, % Concluído
    ================================================================ */
 function exportExcel(){
-  const hideSummary=$('chk-hide-summary').checked;
-  const rows = TASKS.filter(t=>!(hideSummary && t.summary)).map(t=>{
+  // Tarefas-resumo não entram na exportação: o MS Project recalcula o %
+  // delas sozinho a partir das atividades soltas ao reimportar.
+  const rows = TASKS.filter(t=>!t.summary).map(t=>{
     const r=RESOLVED[linkKey(t)]||{};
     return {
       'ID exclusivo': t.codigo || ('uid:'+t.uid),

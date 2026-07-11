@@ -353,6 +353,7 @@ async function handleXmlUpload(input){
     const faltando = [];
     if(!cd.empresaField) faltando.push('Empresa');
     if(!cd.codigoField) faltando.push('Código da atividade');
+    if(!cd.cwaField) faltando.push('CWA');
     if(faltando.length){
       toast('Campo(s) não detectado(s) automaticamente: '+faltando.join(', ')+'. Preencha manualmente na tela de Configuração do Avanço.', true);
     }
@@ -449,7 +450,7 @@ function parseXmlToAnalysis(xmlText){
      MS Project), independente do recorte 1.3.4./1.4.4. usado na análise CPA. */
   const full = parseFullTasksForAvanco(doc, statusDate);
   D.tarefasGerais = full.tarefas;
-  D.meta.camposDetectados = { empresaField: full.empresaFieldLabel, codigoField: full.codigoFieldLabel };
+  D.meta.camposDetectados = { empresaField: full.empresaFieldLabel, codigoField: full.codigoFieldLabel, cwaField: full.cwaFieldLabel, discField: full.discFieldLabel };
   return D;
 }
 
@@ -485,6 +486,8 @@ function parseFullTasksForAvanco(doc, statusDate){
   });
   const empresaField = detectFieldByAlias(fieldDefs, ['empresa','contratada','executante','executor']);
   const codigoField  = detectFieldByAlias(fieldDefs, ['codigo','código','cod atividade','cod. atividade','id atividade','activity id','cod eap','código eap']);
+  const cwaField      = detectFieldByAlias(fieldDefs, ['cwa','área de construção','area de construcao','construction work area','área construtiva','area construtiva']);
+  const discField     = detectFieldByAlias(fieldDefs, ['disciplina']);
 
   const tarefas = [];
   doc.querySelectorAll('Tasks > Task').forEach(t=>{
@@ -506,6 +509,10 @@ function parseFullTasksForAvanco(doc, statusDate){
     }
     const empresa = empresaField ? (ext[empresaField.id]||'').trim() : '';
     const codigo  = codigoField  ? (ext[codigoField.id]||'').trim()  : '';
+    const cwa     = cwaField     ? (ext[cwaField.id]||'').trim()     : '';
+    const discCampo = discField  ? (ext[discField.id]||'').trim()   : '';
+    const disciplina = discCampo || inferDisc(name);
+    const durationHoras = parseMsDuration(childText(t,'Duration'));
 
     let concl = parseFloat(childText(t,'PhysicalPercentComplete')||'');
     if(isNaN(concl)) concl = parseFloat(childText(t,'PercentComplete')||'0');
@@ -523,6 +530,9 @@ function parseFullTasksForAvanco(doc, statusDate){
       name, wbs, level,
       summary: isSummary,
       empresa: empresa || null,
+      cwa: cwa || null,
+      disciplina,
+      durationHoras,
       previsto: prev,
       concluido: Math.round((isNaN(concl)?0:concl)*100)/100
     });
@@ -531,8 +541,19 @@ function parseFullTasksForAvanco(doc, statusDate){
   return {
     tarefas,
     empresaFieldLabel: empresaField ? empresaField.label : null,
-    codigoFieldLabel:  codigoField  ? codigoField.label  : null
+    codigoFieldLabel:  codigoField  ? codigoField.label  : null,
+    cwaFieldLabel:     cwaField     ? cwaField.label     : null,
+    discFieldLabel:    discField    ? discField.label    : null
   };
+}
+
+/* Converte a duração do MS Project (formato "PT40H0M0S") para horas decimais. */
+function parseMsDuration(s){
+  if(!s) return 0;
+  const m = /^PT(?:([\d.]+)H)?(?:([\d.]+)M)?(?:([\d.]+)S)?$/.exec(s.trim());
+  if(!m){ const n=parseFloat(s); return isNaN(n)?0:n; }
+  const h=parseFloat(m[1]||0), mi=parseFloat(m[2]||0), se=parseFloat(m[3]||0);
+  return h + mi/60 + se/3600;
 }
 
 function inferArea(outnum){

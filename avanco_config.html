@@ -128,7 +128,9 @@ td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text
     <label style="font-size:11px;font-weight:700;color:var(--text-dim)">Cronograma geral:</label>
     <select id="sel-versao" onchange="onVersaoChange()" style="min-width:200px"></select>
     <input id="search" placeholder="🔎 Código ou nome da tarefa…" style="min-width:220px" oninput="render()">
-    <select id="f-empresa" onchange="render()"><option value="">Todas as empresas</option></select>
+    <select id="f-empresa" onchange="render()"><option value="">Empresa (vínculo): todas</option></select>
+    <select id="f-empresa-proj" onchange="render()"><option value="">Empresa (Project): todas</option></select>
+    <select id="f-disc" onchange="render()"><option value="">Todas as disciplinas</option></select>
     <select id="f-status" onchange="render()">
       <option value="">Todos os status</option>
       <option value="vinculado">Vinculadas</option>
@@ -222,6 +224,7 @@ function renderFieldNotice(){
   const faltando=[];
   if(!CAMPOS_INFO.empresaField) faltando.push('Empresa');
   if(!CAMPOS_INFO.codigoField) faltando.push('Código da atividade');
+  if(!CAMPOS_INFO.cwaField) faltando.push('CWA');
   if(faltando.length){
     n.style.display='';
     n.className='notice warn';
@@ -230,7 +233,8 @@ function renderFieldNotice(){
   } else {
     n.style.display='';
     n.className='notice';
-    n.innerHTML='✓ Campos detectados: <b>'+esc(CAMPOS_INFO.empresaField)+'</b> (empresa) e <b>'+esc(CAMPOS_INFO.codigoField)+'</b> (código da atividade).';
+    n.innerHTML='✓ Campos detectados: <b>'+esc(CAMPOS_INFO.empresaField)+'</b> (empresa), <b>'+esc(CAMPOS_INFO.codigoField)+'</b> (código) e <b>'+esc(CAMPOS_INFO.cwaField)+'</b> (CWA).'+
+      (CAMPOS_INFO.discField ? ' Disciplina lida do campo <b>'+esc(CAMPOS_INFO.discField)+'</b>.' : ' Disciplina inferida pelo nome da tarefa (nenhum campo "Disciplina" encontrado no XML).');
   }
 }
 
@@ -244,10 +248,21 @@ async function loadLinks(){
   rows.forEach(r=>LINKS[r.codigo_atividade]=r);
 }
 
+/* Empresa "de trabalho" (usada para filtrar contratos e vincular): o valor
+   salvo no vínculo tem prioridade sobre o valor bruto lido do Project. */
+function workEmpresa(t){
+  const l=LINKS[linkKey(t)];
+  return (l && l.empresa!=null && l.empresa!=='') ? l.empresa : (t.empresa||'');
+}
+
 function buildEmpresaFilters(){
-  const emps=[...new Set(TASKS.map(t=>(t.empresa||'').trim()).filter(Boolean))].sort();
-  $('f-empresa').innerHTML='<option value="">Todas as empresas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
-  const allEmp=[...new Set([...emps, ...CONTRATOS.map(c=>c.empresa)])].filter(Boolean).sort();
+  const emps=[...new Set(TASKS.map(t=>workEmpresa(t).trim()).filter(Boolean))].sort();
+  $('f-empresa').innerHTML='<option value="">Empresa (vínculo): todas</option>'+emps.map(e=>`<option>${esc(e)}</option>`).join('');
+  const empsProj=[...new Set(TASKS.map(t=>(t.empresa||'').trim()).filter(Boolean))].sort();
+  $('f-empresa-proj').innerHTML='<option value="">Empresa (Project): todas</option>'+empsProj.map(e=>`<option>${esc(e)}</option>`).join('');
+  const discs=[...new Set(TASKS.map(t=>(t.disciplina||'').trim()).filter(Boolean))].sort();
+  $('f-disc').innerHTML='<option value="">Todas as disciplinas</option>'+discs.map(d=>`<option>${esc(d)}</option>`).join('');
+  const allEmp=[...new Set([...emps, ...empsProj, ...CONTRATOS.map(c=>c.empresa)])].filter(Boolean).sort();
   $('dl-empresas-cfg').innerHTML=allEmp.map(e=>`<option value="${esc(e)}">`).join('');
 }
 
@@ -262,13 +277,17 @@ function render(){
   }
   const q=($('search').value||'').trim().toLowerCase();
   const fEmp=$('f-empresa').value;
+  const fEmpProj=$('f-empresa-proj').value;
+  const fDisc=$('f-disc').value;
   const fStatus=$('f-status').value;
   const hideSummary=$('chk-hide-summary').checked;
 
   let rows = TASKS.filter(t=>{
     if(hideSummary && t.summary) return false;
     if(q && !((t.name||'').toLowerCase().includes(q) || (t.codigo||'').toLowerCase().includes(q))) return false;
-    if(fEmp && (t.empresa||'')!==fEmp) return false;
+    if(fEmp && workEmpresa(t)!==fEmp) return false;
+    if(fEmpProj && (t.empresa||'')!==fEmpProj) return false;
+    if(fDisc && (t.disciplina||'')!==fDisc) return false;
     if(fStatus){
       const link=LINKS[linkKey(t)];
       const st = !link ? 'pendente' : (link.is_manual ? 'manual' : (link.cronograma_id && link.terceira_uid ? 'vinculado' : 'pendente'));
@@ -292,7 +311,7 @@ function render(){
 
   box.innerHTML = `<div class="tbl-wrap"><table>
     <thead><tr>
-      <th>Código</th><th>Tarefa</th><th>Empresa</th><th class="num">Previsto</th><th class="num">Concluído</th>
+      <th>Código</th><th>Tarefa</th><th>Disciplina</th><th>Empresa (Project)</th><th>Empresa (vínculo)</th><th class="num">Previsto</th><th class="num">Concluído</th>
       <th>Contrato / Escopo</th><th>Atividade vinculada</th><th>Ações</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
@@ -319,14 +338,17 @@ function buildRow(t){
     ? esc(t.codigo)
     : `<span class="warn-uid" title="Código não encontrado no XML — usando o UID do MS Project (${t.uid}) como identificador provisório. Ele muda se a tarefa for recriada.">⚠ uid:${t.uid}</span>`;
 
-  const contratos = contratoOptionsFor(t.empresa);
+  let curEmpresa = workEmpresa(t); // valor "de trabalho" (vínculo), começa a partir do salvo ou do Project
+  const contratos = contratoOptionsFor(curEmpresa);
   const contratoOpts = ['<option value="">— selecionar contrato —</option>']
     .concat(contratos.map(c=>`<option value="${c.id}" ${link&&link.cronograma_id===c.id?'selected':''}>${esc(c.empresa)}${c.escopo?(' · '+esc(c.escopo)):''}</option>`));
 
   tr.innerHTML=`
     <td class="codigo">${codigoCell}</td>
-    <td><div class="task-name">${esc(t.name)}</div><div class="task-wbs">${esc(t.wbs||'')}${t.summary?' · resumo':''}</div></td>
-    <td><input class="emp-input" list="dl-empresas-cfg" value="${esc(t.empresa||'')}" data-role="empresa"></td>
+    <td><div class="task-name">${esc(t.name)}</div><div class="task-wbs">${esc(t.cwa||'—')}${t.summary?' · resumo':''}</div></td>
+    <td>${esc(t.disciplina||'—')}</td>
+    <td>${esc(t.empresa||'—')}</td>
+    <td><input class="emp-input" list="dl-empresas-cfg" value="${esc(curEmpresa)}" data-role="empresa"></td>
     <td class="num">${fmtPct(t.previsto)}</td>
     <td class="num">${fmtPct(t.concluido)}</td>
     <td><select class="contrato-select" data-role="contrato">${contratoOpts.join('')}</select></td>
@@ -338,12 +360,12 @@ function buildRow(t){
       </div>
     </td>`;
 
-  // empresa
+  // empresa (vínculo) — não altera t.empresa (valor bruto do Project), só o vínculo salvo
   let empTimer=null;
   tr.querySelector('[data-role="empresa"]').addEventListener('input',e=>{
-    t.empresa = e.target.value;
+    curEmpresa = e.target.value;
     clearTimeout(empTimer);
-    empTimer=setTimeout(()=>{ saveLink(t,{empresa:t.empresa}); refreshContratoOptions(tr,t); },500);
+    empTimer=setTimeout(()=>{ saveLink(t,{empresa:curEmpresa}); refreshContratoOptions(tr,curEmpresa,t); },500);
   });
 
   // contrato
@@ -384,10 +406,10 @@ function buildRow(t){
   return tr;
 }
 
-function refreshContratoOptions(tr,t){
+function refreshContratoOptions(tr,empresa,t){
   const sel=tr.querySelector('[data-role="contrato"]');
   const link=LINKS[linkKey(t)];
-  const contratos=contratoOptionsFor(t.empresa);
+  const contratos=contratoOptionsFor(empresa);
   sel.innerHTML=['<option value="">— selecionar contrato —</option>']
     .concat(contratos.map(c=>`<option value="${c.id}" ${link&&link.cronograma_id===c.id?'selected':''}>${esc(c.empresa)}${c.escopo?(' · '+esc(c.escopo)):''}</option>`)).join('');
 }
