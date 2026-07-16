@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#f4f5f7; --panel:#fff; --border:#d8dde4; --border-2:#e6e9ee;
@@ -288,6 +289,46 @@ table.data tr.is-summary:hover td{background:#eef0f3}
 #print-header .ph-title{font-size:18px;font-weight:800;color:var(--blue-dark)}
 #print-header .ph-meta{font-size:11px;color:var(--text-dim);margin-top:5px;line-height:1.6}
 #print-header .ph-meta b{color:var(--text)}
+
+/* ================= MAPA SEMANAL ================= */
+.mapa-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.mapa-toolbar input,.mapa-toolbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 11px;background:#fff;outline:none}
+.mapa-toolbar input:focus,.mapa-toolbar select:focus{border-color:var(--blue)}
+.mapa-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.mapa-kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:12px 14px;box-shadow:var(--shadow)}
+.mapa-kpi.warn{border-top-color:var(--gold)}
+.mapa-kpi .v{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1}
+.mapa-kpi .l{font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.mapa-wrap{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);overflow-x:auto}
+table.mapa{width:100%;border-collapse:collapse;font-size:12px;min-width:1200px}
+table.mapa thead th{background:var(--blue);color:#fff;font-size:9px;letter-spacing:.4px;text-transform:uppercase;font-weight:700;padding:9px 8px;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:2}
+table.mapa tbody td{padding:7px 8px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+table.mapa tbody tr:hover td{background:var(--blue-soft)}
+table.mapa td.num{font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+table.mapa td.small{font-size:10px;color:var(--text-mute)}
+.mapa-link-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:5px 9px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;white-space:nowrap}
+.mapa-link-btn:hover{background:var(--blue-soft);border-color:var(--blue)}
+.mapa-link-btn.linked{border-color:#a8c990;color:#1d5c1a;background:var(--green-soft)}
+.mapa-link-btn.warn{border-color:#f0c87a;color:#7c4a00;background:var(--orange-soft)}
+.mapa-manual-input{width:64px;font-family:'JetBrains Mono',monospace;font-size:11.5px;border:1px solid var(--border);padding:4px 6px;text-align:right}
+.mapa-src-auto{font-size:9.5px;background:var(--green-soft);border:1px solid #a8c990;color:#1d5c1a;padding:2px 6px;display:inline-block;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.mapa-src-manual{font-size:9.5px;background:var(--blue-soft);border:1px solid #b0c0da;color:var(--blue-dark);padding:2px 6px;display:inline-block;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.mapa-src-pend{font-size:9.5px;background:#f3f4f6;border:1px solid #d1d5db;color:#6b7280;padding:2px 6px;display:inline-block;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.mapa-mini-btn{font-family:inherit;font-size:12px;line-height:1;padding:5px 7px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:3px}
+.mapa-mini-btn:hover{background:var(--red-soft);border-color:var(--red)}
+/* modal de vínculo (maior) */
+.modal-box.wide2{max-width:720px}
+.link-cronograma-sel{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.link-cronograma-sel select{flex:1;min-width:220px;font-family:inherit;font-size:13px;border:1px solid var(--border);padding:9px 11px}
+.link-task-search{width:100%;font-family:inherit;font-size:12px;border:1px solid var(--border);padding:8px 11px;margin-bottom:8px;outline:none}
+.link-task-list{max-height:320px;overflow:auto;border:1px solid var(--border-2)}
+.link-task-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border-2);cursor:pointer;font-size:12px}
+.link-task-row:hover{background:var(--blue-soft)}
+.link-task-row.chosen{background:var(--green-soft)}
+.link-task-row .ltn{font-weight:600}
+.link-task-row .ltw{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--text-mute)}
+.link-task-row.is-sum .ltn::before{content:"Σ ";color:var(--blue)}
+.link-empty{padding:30px;text-align:center;color:var(--text-mute);font-size:12px}
 </style>
 <script src="config.js"></script>
 </head>
@@ -326,6 +367,7 @@ table.data tr.is-summary:hover td{background:#eef0f3}
   <div class="tabs no-print">
     <button class="tab active" data-view="historico" onclick="switchView('historico')">Histórico de Cronogramas</button>
     <button class="tab" data-view="analise" onclick="switchView('analise')">Nova Análise / Subir Revisão</button>
+    <button class="tab" data-view="mapa" onclick="switchView('mapa')">Mapa Semanal</button>
   </div>
 
   <!-- ============ VIEW: HISTÓRICO ============ -->
@@ -500,6 +542,40 @@ table.data tr.is-summary:hover td{background:#eef0f3}
     </div><!-- /results -->
   </section>
 
+  <!-- ============ VIEW: MAPA SEMANAL ============ -->
+  <section class="view" id="view-mapa">
+    <div class="notice no-print">
+      Uma linha por combinação <b>Ilha de Produção (CWA) + Empresa Executora</b>, extraída automaticamente das atividades de execução do cronograma mestre.
+      Vincule cada linha a uma tarefa-resumo dentro do cronograma já validado daquela terceira para puxar os % ao vivo, ou preencha manualmente.
+    </div>
+    <div id="mapa-setup-notice" class="notice warn" style="display:none">
+      <b>Tabela ainda não criada.</b> Rode o script <code>supabase_mapa_semanal.sql</code> no SQL Editor do Supabase para habilitar esta tela.
+    </div>
+    <div id="mapa-master-notice" class="notice warn" style="display:none">
+      <b>Nenhum cronograma mestre encontrado.</b> Suba um cronograma geral em <a href="analise_cronograma.html">Análise de Cronograma</a> antes de gerar as linhas automaticamente. Você ainda pode adicionar linhas manuais.
+    </div>
+
+    <div class="mapa-kpis" id="mapa-kpis"></div>
+
+    <div class="mapa-toolbar no-print">
+      <input id="mapa-search" placeholder="🔎 CWA ou empresa…" style="min-width:220px" oninput="renderMapa()">
+      <select id="mapa-f-disc" onchange="renderMapa()"><option value="">Todas as disciplinas</option></select>
+      <select id="mapa-f-status" onchange="renderMapa()">
+        <option value="">Todas as origens</option>
+        <option value="auto">Vinculado (ao vivo)</option>
+        <option value="manual">Manual</option>
+        <option value="pendente">Sem vínculo</option>
+      </select>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="mapa-btn-gerar" onclick="gerarLinhasMestre()">🧬 Gerar linhas do cronograma mestre</button>
+      <button class="btn ghost" onclick="openAddManualRow()">➕ Linha manual</button>
+      <button class="btn ghost" onclick="refreshMapa()" id="mapa-btn-refresh">🔄 Atualizar ao vivo</button>
+      <button class="btn gold" onclick="exportMapaExcel()">⬇ Exportar Excel</button>
+    </div>
+
+    <div id="mapa-content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+  </section>
+
 </div><!-- /page -->
 <!-- MODAL: editar dados do contrato -->
 <div class="modal-overlay" id="modal-contrato">
@@ -544,10 +620,54 @@ table.data tr.is-summary:hover td{background:#eef0f3}
   </div>
 </div>
 
+<!-- MODAL: vincular linha a uma tarefa-resumo da terceira -->
+<div class="modal-overlay" id="modal-link">
+  <div class="modal-box wide2">
+    <h3>Vincular linha ao cronograma da terceira</h3>
+    <div class="msub" id="link-msub">—</div>
+    <div class="modal-body">
+      <input type="hidden" id="lk-linha-id">
+      <div class="link-cronograma-sel">
+        <select id="lk-cronograma" onchange="onLinkCronogramaChange()">
+          <option value="">— selecione o contrato/cronograma —</option>
+        </select>
+      </div>
+      <div id="lk-rev-info" style="font-size:11px;color:var(--text-mute);margin-bottom:8px"></div>
+      <input class="link-task-search" id="lk-search" placeholder="🔎 Filtrar por nome ou WBS…" oninput="renderLinkTaskList()" disabled>
+      <div class="link-task-list" id="lk-task-list"><div class="link-empty">Selecione um cronograma acima.</div></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" onclick="closeLinkModal()">Cancelar</button>
+      <button class="btn danger-o" id="lk-unlink" onclick="unlinkRow()" style="display:none">Remover vínculo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nova linha manual -->
+<div class="modal-overlay" id="modal-manual-row">
+  <div class="modal-box">
+    <h3>Nova linha do Mapa Semanal</h3>
+    <div class="msub">Informe a Ilha de Produção (CWA) e a Empresa Executora. Depois você pode vincular a um cronograma ou preencher manualmente.</div>
+    <div class="modal-body">
+      <div class="mf"><label>Ilha de Produção (CWA)</label><input id="mn-cwa" list="dl-cwa" placeholder="ex.: Etanol.Destilaria.Dorna Volante"></div>
+      <div class="mf-grid">
+        <div class="mf"><label>Empresa Executora</label><input id="mn-empresa" list="dl-empresas" placeholder="ex.: Engedelta"></div>
+        <div class="mf"><label>Disciplina</label><input id="mn-disc" list="dl-disciplinas" placeholder="ex.: Civil"></div>
+      </div>
+      <div class="mf"><label>Fase</label><input id="mn-fase" placeholder="ex.: Fase 1"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" onclick="closeAddManualRow()">Cancelar</button>
+      <button class="btn" id="mn-save" onclick="saveManualRow()">Adicionar linha</button>
+    </div>
+  </div>
+</div>
+
 <datalist id="dl-empresas"></datalist>
 <datalist id="dl-escopos"></datalist>
 <datalist id="dl-disciplinas"></datalist>
 <datalist id="dl-areas"></datalist>
+<datalist id="dl-cwa"></datalist>
 
 <div class="toast" id="toast"></div>
 
@@ -1570,6 +1690,469 @@ function readPerms(){
   loadContratos();
   loadHistory();
 })();
+</script>
+
+<script>
+/* ================================================================
+   MAPA SEMANAL · linhas CWA + Empresa, vinculadas às revisões
+   já validadas de cada terceira (tarefas_json em val_revisoes)
+   ================================================================ */
+const CWA_LIST=[
+'Geral.Pipe Rack','Geral.Terraplanagem','Geral.Drenagem','Geral.Pavimentação',
+'Etanol.Moinho de Grãos','Etanol.Cozimento.Mash Milling','Etanol.Cozimento.Liquefação',
+'Etanol.Cozimento.Selective Grind Technology (SGT)','Etanol.Fermentação.Dornas de Fermentação',
+'Etanol.Fermentação.Químicos','Etanol.Fermentação.Enzimas','Etanol.Destilaria.Dorna Volante',
+'Etanol.Destilaria.Destilaria de Etanol Hidratado','Etanol.Armazenamento e Expedição de Etanol.Armazenamento de Etanol',
+'Etanol.Armazenamento e Expedição de Etanol.Expedição de Etanol','Etanol.Armazenamento e Expedição de Etanol.Tanques de Medição',
+'DDGS e Óleo.Separação de Sólidos e Secagem de DDGS.Centrifugação de Vinhaça (Decanter)',
+"DDGS e Óleo.Separação de Sólidos e Secagem de DDGS.Secadores de Distiller's Dried Grains with Solubles (DDGS)",
+'DDGS e Óleo.Separação de Sólidos e Secagem de DDGS.Armazenamento e Expedição de DDGS',
+'DDGS e Óleo.Separação de Sólidos e Secagem de DDGS.Sistema de Vinhaça Grossa e Xarope',
+'DDGS e Óleo.Sistema de Evaporação de Vinhaça.Armazenamento de Vinhaça Fina',
+'DDGS e Óleo.Fábrica de Óleo.Extração de Óleo (Trincater)','DDGS e Óleo.Fábrica de Óleo.Armazenamento de Óleo',
+'Utilidades.Geração de Vapor.Caldeira','Utilidades.Geração de Vapor.Armazenamento de Água Desmineralizada',
+'Utilidades.Geração de Energia.Casa de Força','Utilidades.Geração de Energia.Subestação e Distribuição de Energia',
+'Utilidades.Estação de Tratamento de Água (ETA).Poços Artesianos','Utilidades.Estação de Tratamento de Água (ETA).Osmose',
+'Utilidades.Estação de Tratamento de Água (ETA).Armazenamento de Água Bruta','Utilidades.Estação de Tratamento de Água (ETA).Água Potável',
+'Utilidades.Sistema de Selagem','Utilidades.Sistema de Refrigeração de Água.Torres de Resfriamento de Água',
+'Utilidades.Sistema de Refrigeração de Água.Chillers','Utilidades.Sistema de Combate a Incêndio',
+'Utilidades.Biomassa.Armazenamento de Biomassa','Utilidades.Biomassa.Sistema de Alimentação',
+'Grãos.Recebimento de Grãos.Classificação','Grãos.Recebimento de Grãos.Balança Rodoviária','Grãos.Recebimento de Grãos.Faturamento',
+'Administração.Escritório Administrativo','Administração.Portaria | Vestiário | Refeitório | Recursos Humanos e Monitoramento',
+'Administração.Guarita de Controle de Acesso','Administração.Pátio | Arredores | Estacionamento e Sinalização Viária',
+'Administração.Almoxarifado e Depósito de Produtos Químicos','Administração.Manutenção Industrial (Oficina Mecânica)',
+'Laboratórios.Centro de Operação Integrado (COI)','Efluentes.Estação de Tratamento de Efluentes (ETE).Rede de Esgoto e do Resíduo do Processo Industrial',
+'Efluentes.Estação de Tratamento de Efluentes (ETE).Tratamento de Efluentes (Lagoas)',
+'Efluentes.Estação de Tratamento de Efluentes (ETE).Depósito de Resíduos Sólidos',
+'Efluentes.Estação de Tratamento de Efluentes (ETE).Fertirrigação','Administração.Depósito de Agrotóxicos',
+'Grãos.Descarregamento e Armazenamento de Grãos.Armazenamento de Grãos',
+'Grãos.Descarregamento e Armazenamento de Grãos.Tombador | Casa de Máquinas | Pré-Limpeza | Moega e Elevador',
+'Administração.Posto de Combustível | Conveniência e Restaurante','Administração.Oficina de Lubrificação'
+];
+const MAPA_INSTRUCOES=[
+'Physical Map Import','',
+'Required columns (yellow): Período, Previsto (%), Realizado (%)',
+'Optional columns (green): Executante, Disciplina, Ilha de Produção, Fase, Desempenho da Semana (%), Realizado da Semana (%)','',
+'Rules:',
+'  • Name matching is case-insensitive.',
+'  • Names must match exactly what is registered in the system.',
+'  • Unresolved names are flagged in the preview — those rows are NOT imported.',
+'  • Multiple periods can be included in a single file (one row per combination).',
+'  • Import is a full replace — all previous import data is overwritten.'
+];
+
+let MAPA_LOADED=false;
+let MAPA_TASKS=[], MAPA_LINHAS=[], MAPA_RESOLVED={}, MAPA_REV_CACHE={};
+let LINK_CTX={linhaId:null,cronogramaId:null,tasks:[],chosenUid:null,chosenNome:null,chosenWbs:null};
+
+/* D.tarefasGerais (cronograma mestre) não guarda um campo "fase" — só o WBS/OutlineNumber
+   bruto. A Fase é derivada do prefixo, igual à regra usada em analise_cronograma.html
+   (parseXmlToAnalysis): 1.3.4.* = Fase 1, 1.4.4.* = Fase 2. */
+function faseFromWbs(wbs){
+  const w=(wbs||'').toString();
+  if(w.startsWith('1.3.4.')) return 'Fase 1';
+  if(w.startsWith('1.4.4.')) return 'Fase 2';
+  return '';
+}
+
+/* estende o switchView original para carregar a aba sob demanda */
+const _switchViewBase=switchView;
+switchView=function(v){
+  _switchViewBase(v);
+  if(v==='mapa' && !MAPA_LOADED){ MAPA_LOADED=true; initMapaSemanal(); }
+};
+
+async function initMapaSemanal(){
+  fillDL('dl-cwa',CWA_LIST);
+  await Promise.all([loadMapaMaster(), loadMapaLinhas()]);
+  await refreshMapa();
+}
+
+async function loadMapaMaster(){
+  try{
+    const rows=await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc&limit=1');
+    if(!rows.length){ $('mapa-master-notice').style.display=''; MAPA_TASKS=[]; return; }
+    let D=rows[0].dados_json; if(typeof D==='string'){ try{D=JSON.parse(D);}catch(_){D={};} }
+    MAPA_TASKS=(D&&D.tarefasGerais)||[];
+    $('mapa-master-notice').style.display=MAPA_TASKS.length?'none':'';
+  }catch(e){
+    console.warn('mapa: falha ao carregar cronograma mestre',e);
+    MAPA_TASKS=[]; $('mapa-master-notice').style.display='';
+  }
+}
+
+async function loadMapaLinhas(){
+  try{
+    MAPA_LINHAS=await sb('GET','mapa_semanal_linhas?select=*&order=cwa.asc,empresa.asc');
+    $('mapa-setup-notice').style.display='none';
+  }catch(e){
+    if(/relation .* does not exist|42P01|PGRST205/i.test(e.message)) $('mapa-setup-notice').style.display='';
+    MAPA_LINHAS=[];
+  }
+}
+
+/* extrai combinações CWA + Empresa (+ Disciplina) das atividades de execução
+   (folhas com "Empresa Executora" preenchida) do cronograma mestre mais recente */
+async function gerarLinhasMestre(){
+  if(!CAN_UPLOAD){ toast('Sem permissão para editar o mapa','err'); return; }
+  if(!MAPA_TASKS.length){ toast('Nenhuma tarefa do cronograma mestre carregada','err'); return; }
+  const btn=$('mapa-btn-gerar'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Gerando…';
+  try{
+    const exec=MAPA_TASKS.filter(t=>!t.summary && (t.empresa||'').toString().trim() && (t.cwa||'').toString().trim());
+    const groups={};
+    exec.forEach(t=>{
+      const cwa=t.cwa.toString().trim(), emp=t.empresa.toString().trim();
+      const disc=(t.disciplina||'').toString().trim();
+      const key=norm(cwa)+'|'+norm(emp)+'|'+norm(disc);
+      const g=groups[key]||(groups[key]={cwa,empresa:emp,disciplina:disc,fases:{}});
+      const fase=faseFromWbs(t.wbs);
+      if(fase) g.fases[fase]=(g.fases[fase]||0)+1;
+    });
+    const existKeys=new Set(MAPA_LINHAS.map(l=>norm(l.cwa)+'|'+norm(l.empresa)+'|'+norm(l.disciplina||'')));
+    const toCreate=Object.values(groups).filter(g=>!existKeys.has(norm(g.cwa)+'|'+norm(g.empresa)+'|'+norm(g.disciplina)));
+    if(!toCreate.length){ toast('Nenhuma linha nova — todas as combinações já existem','ok'); return; }
+    let ok=0;
+    for(const g of toCreate){
+      let fase=null,best=0;
+      Object.entries(g.fases).forEach(([f,c])=>{ if(c>best){best=c;fase=f;} });
+      try{
+        await sb('POST','mapa_semanal_linhas',{cwa:g.cwa,empresa:g.empresa,disciplina:g.disciplina||null,fase,is_manual:false,ativo:true});
+        ok++;
+      }catch(e){ if(!/23505|duplicate/i.test(e.message)) console.warn('linha não criada',g,e.message); }
+    }
+    toast(ok+' linha(s) criada(s) a partir do cronograma mestre ✓','ok');
+    await loadMapaLinhas();
+    await refreshMapa();
+  }catch(e){ toast('Erro ao gerar linhas: '+e.message,'err'); }
+  finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+
+async function refreshMapa(){
+  const btn=$('mapa-btn-refresh'); const old=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spin"></span> Atualizando…'; }
+  try{
+    const cronoIds=[...new Set(MAPA_LINHAS.filter(l=>!l.is_manual && l.cronograma_id).map(l=>l.cronograma_id))];
+    await Promise.all(cronoIds.map(id=>loadRevPairForCronograma(id)));
+    MAPA_RESOLVED={};
+    MAPA_LINHAS.forEach(l=>{ MAPA_RESOLVED[l.id]=resolveLinha(l); });
+    buildMapaFilters();
+    renderMapa();
+  }catch(e){ toast('Erro ao atualizar mapa: '+e.message,'err'); }
+  finally{ if(btn){ btn.disabled=false; btn.innerHTML=old; } }
+}
+
+async function loadRevPairForCronograma(cronoId){
+  if(MAPA_REV_CACHE[cronoId]) return MAPA_REV_CACHE[cronoId];
+  const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=2`);
+  const parsed=(revs||[]).map(r=>{
+    let tj=r.tarefas_json; if(typeof tj==='string'){ try{tj=JSON.parse(tj);}catch(_){tj=null;} }
+    const byUid={}; (tj||[]).forEach(t=>byUid[t.uid]=t);
+    return {revisao:r.revisao, rotulo:r.rotulo, data_corte:r.data_corte, byUid, hasDetail:!!tj};
+  });
+  MAPA_REV_CACHE[cronoId]=parsed;
+  return parsed;
+}
+
+function periodoLabel(deIso,ateIso){
+  if(!deIso||!ateIso) return '';
+  const de=addDays(deIso,1);
+  const p1=de.split('-'), p2=ateIso.split('-');
+  return p1[2]+'/'+p1[1]+' - '+p2[2]+'/'+p2[1];
+}
+
+function resolveLinha(l){
+  if(l.is_manual){
+    return {fonte:'manual', previsto:l.manual_previsto, realizado:l.manual_realizado,
+      desempSemana:l.manual_desemp_semana, realizadoSemana:l.manual_realizado_semana,
+      periodo:l.periodo_manual||'', linkLabel:'Manual'};
+  }
+  if(!l.cronograma_id || !l.terceira_uid) return {fonte:'pendente'};
+  const pair=MAPA_REV_CACHE[l.cronograma_id]||[];
+  const atual=pair[0], anterior=pair[1];
+  if(!atual || !atual.hasDetail) return {fonte:'orfa', motivo:'Sem detalhe de tarefas nesta revisão (retenção) — reenvie o XML em "Nova Análise" para reanalisar.'};
+  const tA=atual.byUid[l.terceira_uid];
+  if(!tA) return {fonte:'orfa', motivo:'A tarefa vinculada não foi encontrada na revisão mais recente — pode ter sido excluída/recriada no cronograma da terceira. Revise o vínculo.'};
+  let desempSemana=null, realizadoSemana=null, periodo='';
+  if(anterior && anterior.hasDetail){
+    const tB=anterior.byUid[l.terceira_uid];
+    if(tB){
+      realizadoSemana=Math.round(((tA.E||0)-(tB.E||0))*100)/100;
+      const prevSemana=Math.round(((tA.F||0)-(tB.F||0))*100)/100;
+      desempSemana=Math.round((realizadoSemana-prevSemana)*100)/100;
+      periodo=periodoLabel(anterior.data_corte, atual.data_corte);
+    }
+  }
+  return {fonte:'auto', previsto:tA.F, realizado:tA.E, desempSemana, realizadoSemana, periodo, linkLabel:(l.terceira_nome||tA.name)};
+}
+
+function buildMapaFilters(){
+  const discs=[...new Set(MAPA_LINHAS.map(l=>(l.disciplina||'').trim()).filter(Boolean))].sort();
+  const sel=$('mapa-f-disc'); const cur=sel.value;
+  sel.innerHTML='<option value="">Todas as disciplinas</option>'+discs.map(d=>`<option>${esc(d)}</option>`).join('');
+  sel.value=cur;
+}
+
+function renderMapa(){
+  const box=$('mapa-content');
+  if(!MAPA_LINHAS.length){
+    box.innerHTML='<div class="empty"><div class="big">🗺️</div>Nenhuma linha no Mapa Semanal ainda.<br>Use "Gerar linhas do cronograma mestre" ou adicione uma linha manual.</div>';
+    $('mapa-kpis').innerHTML=''; return;
+  }
+  const q=norm($('mapa-search').value||'');
+  const fDisc=$('mapa-f-disc').value, fStatus=$('mapa-f-status').value;
+  const rows=MAPA_LINHAS.filter(l=>{
+    if(q && !(norm(l.cwa).includes(q)||norm(l.empresa).includes(q))) return false;
+    if(fDisc && (l.disciplina||'')!==fDisc) return false;
+    if(fStatus){
+      const f0=(MAPA_RESOLVED[l.id]||{}).fonte||'pendente';
+      const f=(f0==='orfa')?'pendente':f0;
+      if(f!==fStatus) return false;
+    }
+    return true;
+  }).sort((a,b)=>(a.cwa||'').localeCompare(b.cwa||'')||(a.empresa||'').localeCompare(b.empresa||''));
+
+  const total=MAPA_LINHAS.length;
+  const auto=MAPA_LINHAS.filter(l=>(MAPA_RESOLVED[l.id]||{}).fonte==='auto').length;
+  const manual=MAPA_LINHAS.filter(l=>l.is_manual).length;
+  const pend=MAPA_LINHAS.filter(l=>{const f=(MAPA_RESOLVED[l.id]||{}).fonte; return f==='pendente'||f==='orfa';}).length;
+  $('mapa-kpis').innerHTML=`
+    <div class="mapa-kpi"><div class="v">${total}</div><div class="l">Linhas no mapa</div></div>
+    <div class="mapa-kpi"><div class="v" style="color:var(--green)">${auto}</div><div class="l">Vinculadas ao vivo</div></div>
+    <div class="mapa-kpi"><div class="v" style="color:var(--blue)">${manual}</div><div class="l">Preenchimento manual</div></div>
+    <div class="mapa-kpi warn"><div class="v" style="color:#7c4a00">${pend}</div><div class="l">Pendentes / a revisar</div></div>`;
+
+  if(!rows.length){ box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhuma linha corresponde ao filtro.</div>'; return; }
+
+  box.innerHTML=`<div class="mapa-wrap"><table class="mapa"><thead><tr>
+      <th>Período</th><th>Executante</th><th>Disciplina</th><th>Ilha de Produção (CWA)</th><th>Fase</th>
+      <th class="num">Previsto %</th><th class="num">Realizado %</th><th class="num">Desemp. Semana %</th><th class="num">Realizado Semana %</th>
+      <th>Vínculo</th><th></th>
+    </tr></thead><tbody id="mapa-tbody"></tbody></table></div>`;
+  const tb=$('mapa-tbody');
+  rows.forEach(l=>tb.appendChild(buildMapaRow(l)));
+}
+
+function buildMapaRow(l){
+  const r=MAPA_RESOLVED[l.id]||{fonte:'pendente'};
+  const tr=document.createElement('tr');
+  let vinculoHtml,prevHtml,realHtml,dsHtml,rsHtml,periodoHtml;
+
+  if(l.is_manual){
+    vinculoHtml=`<button class="mapa-link-btn" onclick="openLinkModal('${l.id}')">✍ Manual — vincular</button>`;
+    periodoHtml=`<input class="mapa-manual-input" style="width:96px" data-role="periodo" value="${esc(l.periodo_manual||'')}" placeholder="DD/MM - DD/MM">`;
+    prevHtml=`<input class="mapa-manual-input" data-role="previsto" type="number" step="0.01" value="${l.manual_previsto??''}">`;
+    realHtml=`<input class="mapa-manual-input" data-role="realizado" type="number" step="0.01" value="${l.manual_realizado??''}">`;
+    dsHtml=`<input class="mapa-manual-input" data-role="desemp" type="number" step="0.01" value="${l.manual_desemp_semana??''}">`;
+    rsHtml=`<input class="mapa-manual-input" data-role="realsemana" type="number" step="0.01" value="${l.manual_realizado_semana??''}">`;
+  }else if(r.fonte==='auto'){
+    vinculoHtml=`<button class="mapa-link-btn linked" onclick="openLinkModal('${l.id}')" title="${esc(r.linkLabel||'')}">🔗 ${esc(r.linkLabel||'vinculado')}</button>`;
+    periodoHtml=`<span class="small">${esc(r.periodo||'—')}</span>`;
+    prevHtml=fmtNum(r.previsto,1); realHtml=fmtNum(r.realizado,1);
+    dsHtml=r.desempSemana==null?'—':fmtNum(r.desempSemana,1); rsHtml=r.realizadoSemana==null?'—':fmtNum(r.realizadoSemana,1);
+  }else if(r.fonte==='orfa'){
+    vinculoHtml=`<button class="mapa-link-btn warn" onclick="openLinkModal('${l.id}')" title="${esc(r.motivo||'')}">⚠ Revisar vínculo</button>`;
+    periodoHtml='<span class="small">—</span>'; prevHtml='—'; realHtml='—'; dsHtml='—'; rsHtml='—';
+  }else{
+    vinculoHtml=`<button class="mapa-link-btn" onclick="openLinkModal('${l.id}')">Vincular…</button>`;
+    periodoHtml='<span class="small">—</span>'; prevHtml='—'; realHtml='—'; dsHtml='—'; rsHtml='—';
+  }
+
+  tr.innerHTML=`
+    <td>${periodoHtml}</td>
+    <td>${esc(l.empresa)}</td>
+    <td>${esc(l.disciplina||'—')}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:10.5px">${esc(l.cwa)}</td>
+    <td>${esc(l.fase||'—')}</td>
+    <td class="num">${prevHtml}</td>
+    <td class="num">${realHtml}</td>
+    <td class="num">${dsHtml}</td>
+    <td class="num">${rsHtml}</td>
+    <td>${vinculoHtml}</td>
+    <td>${CAN_UPLOAD?`<button class="mapa-mini-btn" title="Excluir linha" onclick="deleteMapaLinha('${l.id}')">🗑️</button>`:''}</td>`;
+
+  if(l.is_manual){
+    tr.querySelectorAll('.mapa-manual-input').forEach(inp=>{
+      let timer=null;
+      inp.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(()=>saveManualMapaFields(l.id,tr),500); });
+    });
+  }
+  return tr;
+}
+
+async function saveManualMapaFields(id,tr){
+  const g=role=>{ const el=tr.querySelector(`[data-role="${role}"]`); return el?el.value:''; };
+  const num=v=>{ if(v==null||v==='') return null; const n=parseFloat(String(v).replace(',','.')); return isNaN(n)?null:n; };
+  const body={
+    periodo_manual:g('periodo')||null,
+    manual_previsto:num(g('previsto')), manual_realizado:num(g('realizado')),
+    manual_desemp_semana:num(g('desemp')), manual_realizado_semana:num(g('realsemana')),
+    atualizado_em:new Date().toISOString()
+  };
+  try{
+    await sb('PATCH',`mapa_semanal_linhas?id=eq.${id}`,body);
+    const l=MAPA_LINHAS.find(x=>x.id===id); if(l) Object.assign(l,body);
+    toast('Salvo ✓','ok');
+  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
+}
+
+async function deleteMapaLinha(id){
+  if(!CAN_UPLOAD){ toast('Sem permissão','err'); return; }
+  if(!confirm('Excluir esta linha do Mapa Semanal?')) return;
+  try{
+    await sb('DELETE',`mapa_semanal_linhas?id=eq.${id}`);
+    MAPA_LINHAS=MAPA_LINHAS.filter(x=>x.id!==id);
+    delete MAPA_RESOLVED[id];
+    toast('Linha excluída ✓','ok');
+    renderMapa();
+  }catch(e){ toast('Erro: '+e.message,'err'); }
+}
+
+/* ---------- nova linha manual ---------- */
+function openAddManualRow(){
+  if(!CAN_UPLOAD){ toast('Sem permissão para adicionar linhas','err'); return; }
+  $('mn-cwa').value=''; $('mn-empresa').value=''; $('mn-disc').value=''; $('mn-fase').value='';
+  $('modal-manual-row').classList.add('visible');
+}
+function closeAddManualRow(){ $('modal-manual-row').classList.remove('visible'); }
+async function saveManualRow(){
+  const cwa=$('mn-cwa').value.trim(), empresa=$('mn-empresa').value.trim();
+  if(!cwa||!empresa){ toast('Preencha Ilha de Produção e Empresa','err'); return; }
+  const btn=$('mn-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
+  try{
+    await sb('POST','mapa_semanal_linhas',{cwa, empresa, disciplina:$('mn-disc').value.trim()||null, fase:$('mn-fase').value.trim()||null, is_manual:true});
+    toast('Linha adicionada ✓','ok');
+    closeAddManualRow();
+    await loadMapaLinhas();
+    await refreshMapa();
+  }catch(e){
+    if(/23505|duplicate/i.test(e.message)) toast('Já existe uma linha para essa combinação CWA + Empresa + Disciplina + Fase','err');
+    else toast('Erro: '+e.message,'err');
+  }finally{ btn.disabled=false; btn.innerHTML=old; }
+}
+
+/* ---------- vincular a uma tarefa-resumo da terceira ---------- */
+function openLinkModal(linhaId){
+  if(!CAN_UPLOAD){ toast('Sem permissão para editar vínculos','err'); return; }
+  const l=MAPA_LINHAS.find(x=>x.id===linhaId); if(!l) return;
+  LINK_CTX={linhaId, cronogramaId:l.cronograma_id||null, tasks:[], chosenUid:l.terceira_uid||null, chosenNome:l.terceira_nome||null, chosenWbs:l.terceira_wbs||null};
+  $('lk-linha-id').value=linhaId;
+  $('link-msub').textContent=`${l.cwa} · ${l.empresa}${l.disciplina?(' · '+l.disciplina):''}`;
+  const empLower=norm(l.empresa);
+  const ordered=[...CONTRATOS].sort((a,b)=>{
+    const am=norm(a.empresa)===empLower?0:1, bm=norm(b.empresa)===empLower?0:1;
+    return am-bm || (a.empresa||'').localeCompare(b.empresa||'');
+  });
+  $('lk-cronograma').innerHTML='<option value="">— selecione o contrato/cronograma —</option>'+
+    ordered.map(c=>`<option value="${c.id}" ${c.id===l.cronograma_id?'selected':''}>${esc(c.empresa)}${c.escopo?(' · '+esc(c.escopo)):''}${norm(c.empresa)===empLower?' ★':''}</option>`).join('');
+  $('lk-unlink').style.display=(l.cronograma_id||l.terceira_uid)?'':'none';
+  $('lk-search').value=''; $('lk-search').disabled=true;
+  $('lk-task-list').innerHTML='<div class="link-empty">Selecione um cronograma acima.</div>';
+  $('lk-rev-info').textContent='';
+  $('modal-link').classList.add('visible');
+  if(l.cronograma_id) onLinkCronogramaChange();
+}
+function closeLinkModal(){ $('modal-link').classList.remove('visible'); }
+
+async function onLinkCronogramaChange(){
+  const cronoId=$('lk-cronograma').value;
+  LINK_CTX.cronogramaId=cronoId||null;
+  if(!cronoId){ $('lk-task-list').innerHTML='<div class="link-empty">Selecione um cronograma acima.</div>'; $('lk-search').disabled=true; $('lk-rev-info').textContent=''; return; }
+  $('lk-task-list').innerHTML='<div class="link-empty">Carregando tarefas…</div>';
+  try{
+    const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`);
+    if(!revs.length || !revs[0].tarefas_json){
+      $('lk-task-list').innerHTML='<div class="link-empty">Esta revisão não tem detalhe de tarefas disponível (foi podado pela retenção, ou ainda não há revisão salva). Reenvie o XML em "Nova Análise" para reanalisar.</div>';
+      $('lk-search').disabled=true; $('lk-rev-info').textContent=''; return;
+    }
+    let tj=revs[0].tarefas_json; if(typeof tj==='string'){ try{tj=JSON.parse(tj);}catch(_){tj=[];} }
+    LINK_CTX.tasks=tj||[];
+    $('lk-rev-info').textContent=`${revs[0].rotulo||('REV '+revs[0].revisao)} · corte ${fmtD(revs[0].data_corte)} · ${LINK_CTX.tasks.length} tarefas`;
+    $('lk-search').disabled=false;
+    renderLinkTaskList();
+  }catch(e){ $('lk-task-list').innerHTML='<div class="link-empty">Erro ao carregar: '+esc(e.message)+'</div>'; }
+}
+
+function renderLinkTaskList(){
+  const q=norm($('lk-search').value||'');
+  let list=LINK_CTX.tasks.filter(t=>!q || norm(t.name).includes(q) || norm(t.wbs||'').includes(q));
+  list=list.slice(0,400).sort((a,b)=>(b.summary?1:0)-(a.summary?1:0)||(a.level||0)-(b.level||0)||(a.wbs||'').localeCompare(b.wbs||''));
+  const box=$('lk-task-list');
+  if(!list.length){ box.innerHTML='<div class="link-empty">Nenhuma tarefa encontrada.</div>'; return; }
+  box.innerHTML='';
+  list.forEach(t=>{
+    const row=document.createElement('div');
+    row.className='link-task-row'+(t.summary?' is-sum':'')+(String(t.uid)===String(LINK_CTX.chosenUid)?' chosen':'');
+    const indent=Math.max(0,(t.level||1)-1)*14;
+    row.innerHTML=`<span style="padding-left:${indent}px;flex:1;overflow:hidden">
+        <div class="ltn">${esc(t.name)}${String(t.uid)===String(LINK_CTX.chosenUid)?' ✓':''}</div>
+        <div class="ltw">WBS ${esc(t.wbs||'—')} · %Prev ${fmtNum(t.F,1)} · %Concl ${fmtNum(t.E,1)}</div>
+      </span>`;
+    row.addEventListener('click',()=>chooseLinkTask(t));
+    box.appendChild(row);
+  });
+  if(LINK_CTX.tasks.length>400){ const note=document.createElement('div'); note.className='link-empty'; note.textContent='Mostrando as primeiras 400 — refine a busca para achar outras.'; box.appendChild(note); }
+}
+
+async function chooseLinkTask(t){
+  const linhaId=LINK_CTX.linhaId, cronogramaId=LINK_CTX.cronogramaId;
+  if(!cronogramaId){ toast('Selecione um cronograma primeiro','err'); return; }
+  try{
+    await sb('PATCH',`mapa_semanal_linhas?id=eq.${linhaId}`,{
+      cronograma_id:cronogramaId, terceira_uid:String(t.uid), terceira_nome:t.name, terceira_wbs:t.wbs||null,
+      is_manual:false, atualizado_em:new Date().toISOString()
+    });
+    const l=MAPA_LINHAS.find(x=>x.id===linhaId);
+    if(l) Object.assign(l,{cronograma_id:cronogramaId, terceira_uid:String(t.uid), terceira_nome:t.name, terceira_wbs:t.wbs||null, is_manual:false});
+    delete MAPA_REV_CACHE[cronogramaId];
+    toast('Vínculo salvo ✓','ok');
+    closeLinkModal();
+    await refreshMapa();
+  }catch(e){ toast('Erro ao salvar vínculo: '+e.message,'err'); }
+}
+
+async function unlinkRow(){
+  const linhaId=LINK_CTX.linhaId;
+  try{
+    await sb('PATCH',`mapa_semanal_linhas?id=eq.${linhaId}`,{cronograma_id:null, terceira_uid:null, terceira_nome:null, terceira_wbs:null, atualizado_em:new Date().toISOString()});
+    const l=MAPA_LINHAS.find(x=>x.id===linhaId);
+    if(l) Object.assign(l,{cronograma_id:null, terceira_uid:null, terceira_nome:null, terceira_wbs:null});
+    toast('Vínculo removido ✓','ok');
+    closeLinkModal();
+    await refreshMapa();
+  }catch(e){ toast('Erro: '+e.message,'err'); }
+}
+
+/* ---------- exportar Excel (mesma estrutura do modelo: Dados / CWA / Instruções) ---------- */
+function exportMapaExcel(){
+  if(!MAPA_LINHAS.length){ toast('Nada para exportar','err'); return; }
+  const rows=MAPA_LINHAS.map(l=>{
+    const r=MAPA_RESOLVED[l.id]||{};
+    const num=v=>(v==null||isNaN(v))?'':Math.round(v*100)/100;
+    return {
+      'Período': r.periodo||l.periodo_manual||'',
+      'Executante': l.empresa||'',
+      'Disciplina': l.disciplina||'',
+      'Ilha de Produção': l.cwa||'',
+      'Fase': l.fase||'',
+      'Previsto (%)': num(r.previsto),
+      'Realizado (%)': num(r.realizado),
+      'Desempenho da Semana (%)': num(r.desempSemana),
+      'Realizado da Semana (%)': num(r.realizadoSemana)
+    };
+  });
+  const wb=XLSX.utils.book_new();
+  const wsDados=XLSX.utils.json_to_sheet(rows,{header:['Período','Executante','Disciplina','Ilha de Produção','Fase','Previsto (%)','Realizado (%)','Desempenho da Semana (%)','Realizado da Semana (%)']});
+  wsDados['!cols']=[{wch:14},{wch:20},{wch:16},{wch:46},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,wsDados,'Dados');
+  const wsCwa=XLSX.utils.aoa_to_sheet([['CWA'],...CWA_LIST.map(c=>[c])]);
+  wsCwa['!cols']=[{wch:70}];
+  XLSX.utils.book_append_sheet(wb,wsCwa,'CWA');
+  const wsInst=XLSX.utils.aoa_to_sheet(MAPA_INSTRUCOES.map(l=>[l]));
+  wsInst['!cols']=[{wch:90}];
+  XLSX.utils.book_append_sheet(wb,wsInst,'Instruções');
+  XLSX.writeFile(wb,`Mapa_Semanal_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel exportado ✓','ok');
+}
 </script>
 </body>
 </html>
