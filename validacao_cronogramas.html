@@ -554,6 +554,7 @@ table.mapa td.small{font-size:10px;color:var(--text-mute)}
     <div id="mapa-master-notice" class="notice warn" style="display:none">
       <b>Nenhum cronograma mestre encontrado.</b> Suba um cronograma geral em <a href="analise_cronograma.html">Análise de Cronograma</a> antes de gerar as linhas automaticamente. Você ainda pode adicionar linhas manuais.
     </div>
+    <div id="mapa-diag-notice" class="notice warn" style="display:none"></div>
 
     <div class="mapa-kpis" id="mapa-kpis"></div>
 
@@ -1742,7 +1743,7 @@ const MAPA_INSTRUCOES=[
 ];
 
 let MAPA_LOADED=false;
-let MAPA_TASKS=[], MAPA_LINHAS=[], MAPA_RESOLVED={}, MAPA_REV_CACHE={};
+let MAPA_TASKS=[], MAPA_LINHAS=[], MAPA_RESOLVED={}, MAPA_REV_CACHE={}, MAPA_META={}, MAPA_SNAPSHOT=null;
 let LINK_CTX={linhaId:null,cronogramaId:null,tasks:[],chosenUid:null,chosenNome:null,chosenWbs:null};
 
 /* D.tarefasGerais (cronograma mestre) não guarda um campo "fase" — só o WBS/OutlineNumber
@@ -1771,14 +1772,56 @@ async function initMapaSemanal(){
 async function loadMapaMaster(){
   try{
     const rows=await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc&limit=1');
-    if(!rows.length){ $('mapa-master-notice').style.display=''; MAPA_TASKS=[]; return; }
+    if(!rows.length){
+      $('mapa-master-notice').style.display='';
+      $('mapa-master-notice').innerHTML='<b>Nenhum cronograma mestre encontrado na tabela <code>cronograma_analises</code>.</b> Isso não tem relação com o deploy do HTML — é preciso subir um XML pela tela <a href="analise_cronograma.html">Análise de Cronograma</a> pelo menos uma vez; é isso que grava o registro que esta tela lê.';
+      MAPA_TASKS=[]; MAPA_META={}; MAPA_SNAPSHOT=null; atualizarDiagnosticoMestre(); return;
+    }
     let D=rows[0].dados_json; if(typeof D==='string'){ try{D=JSON.parse(D);}catch(_){D={};} }
     MAPA_TASKS=(D&&D.tarefasGerais)||[];
+    MAPA_META=(D&&D.meta)||{};
+    MAPA_SNAPSHOT={id:rows[0].id, data_status:rows[0].data_status, label:rows[0].label};
     $('mapa-master-notice').style.display=MAPA_TASKS.length?'none':'';
+    if(!MAPA_TASKS.length){
+      $('mapa-master-notice').innerHTML=`<b>Encontrei um cronograma mestre (${esc(rows[0].label||rows[0].data_status||rows[0].id)}), mas ele não tem tarefas em <code>tarefasGerais</code>.</b> Provavelmente foi enviado por uma versão anterior de Análise de Cronograma, antes desse campo existir — reenvie o XML lá para regravar com os dados completos.`;
+      $('mapa-master-notice').style.display='';
+    }
   }catch(e){
     console.warn('mapa: falha ao carregar cronograma mestre',e);
-    MAPA_TASKS=[]; $('mapa-master-notice').style.display='';
+    MAPA_TASKS=[]; MAPA_META={}; MAPA_SNAPSHOT=null; $('mapa-master-notice').style.display='';
   }
+  atualizarDiagnosticoMestre();
+}
+
+/* mostra, de forma persistente, qual cronograma mestre está sendo lido,
+   quantas tarefas têm cada campo preenchido e a lista completa de campos
+   personalizados encontrados no XML — evita ficar adivinhando por que
+   "Gerar linhas" não encontra candidatos */
+function atualizarDiagnosticoMestre(){
+  const box=$('mapa-diag-notice');
+  if(!MAPA_TASKS.length){ box.style.display='none'; return; }
+  const leaf=MAPA_TASKS.filter(t=>!t.summary);
+  const comEmpresa=leaf.filter(t=>(t.empresa||'').toString().trim()).length;
+  const comCwa=leaf.filter(t=>(t.cwa||'').toString().trim()).length;
+  const comAmbos=leaf.filter(t=>(t.empresa||'').toString().trim() && (t.cwa||'').toString().trim()).length;
+  if(comAmbos>0){ box.style.display='none'; return; }
+  const cd=MAPA_META.camposDetectados||{};
+  const campo=(v)=> v ? `<b>${esc(v)}</b>` : '<span style="color:var(--red)">não detectado</span>';
+  const snap=MAPA_SNAPSHOT? `${esc(MAPA_SNAPSHOT.label||'—')} · corte ${esc(MAPA_SNAPSHOT.data_status||'—')} <span style="font-family:'JetBrains Mono',monospace;color:var(--text-mute)">(id ${esc(MAPA_SNAPSHOT.id)})</span>` : '—';
+  const disponiveis=(MAPA_META.camposDisponiveis||[]);
+  const listaCampos = disponiveis.length
+    ? '<div style="margin-top:8px;max-height:140px;overflow:auto;font-family:\'JetBrains Mono\',monospace;font-size:10.5px;background:#fff;border:1px solid var(--border);padding:6px 9px">'
+      + disponiveis.map(f=>esc(f.label)+' <span style="color:var(--text-mute)">('+esc(f.tipo)+')</span>').join('<br>')
+      + '</div>'
+    : '<div style="margin-top:6px;font-size:11px;color:var(--text-mute)">Nenhum campo personalizado foi listado para este cronograma (camposDisponiveis vazio).</div>';
+  box.innerHTML=`<b>Nenhuma tarefa do cronograma mestre tem CWA + Empresa Executora preenchidos ao mesmo tempo</b> — por isso "Gerar linhas do cronograma mestre" não encontra candidatos.<br>
+    Cronograma mestre lido agora: ${snap}<br>
+    ${leaf.length} tarefas-folha · ${comEmpresa} com Empresa Executora · ${comCwa} com CWA.<br>
+    Campos detectados automaticamente: Empresa → ${campo(cd.empresaField)} &nbsp;·&nbsp; CWA → ${campo(cd.cwaField)} &nbsp;·&nbsp; Disciplina → ${campo(cd.discField)}.<br>
+    <b>Todos os campos personalizados encontrados neste XML</b> (confira aqui o nome exato do campo de área/empresa, caso a detecção automática tenha errado):
+    ${listaCampos}
+    Se o campo certo estiver na lista acima com outro nome, me avise qual é que eu ajusto a detecção automática em Análise de Cronograma. Enquanto isso, use "➕ Linha manual".`;
+  box.style.display='';
 }
 
 async function loadMapaLinhas(){
@@ -1799,6 +1842,11 @@ async function gerarLinhasMestre(){
   const btn=$('mapa-btn-gerar'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Gerando…';
   try{
     const exec=MAPA_TASKS.filter(t=>!t.summary && (t.empresa||'').toString().trim() && (t.cwa||'').toString().trim());
+    if(!exec.length){
+      atualizarDiagnosticoMestre();
+      toast('Nenhuma tarefa do cronograma mestre tem CWA + Empresa Executora preenchidos — veja o diagnóstico acima da tabela','err');
+      return;
+    }
     const groups={};
     exec.forEach(t=>{
       const cwa=t.cwa.toString().trim(), emp=t.empresa.toString().trim();
