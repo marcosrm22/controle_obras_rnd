@@ -579,6 +579,14 @@ table.mapa td.col-acoes{white-space:nowrap}
       <button class="btn gold" onclick="exportMapaExcel()">⬇ Exportar Excel</button>
     </div>
 
+    <div class="mapa-toolbar no-print" style="margin-top:-6px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-mute);cursor:pointer">
+        <input type="checkbox" id="mapa-incluir-acontratar" style="width:15px;height:15px">
+        Incluir "A CONTRATAR" ao gerar linhas do cronograma mestre
+      </label>
+      <button class="btn ghost" onclick="removerAContratar()" style="border-color:var(--red);color:var(--red)" title="Apaga de uma vez todas as linhas do mapa cuja Empresa Executora seja &quot;A CONTRATAR&quot;">🗑️ Remover todas "A CONTRATAR"</button>
+    </div>
+
     <div id="mapa-content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
   </section>
 
@@ -1446,6 +1454,29 @@ async function sb(method,path,body){
   const txt=await res.text(); try{return JSON.parse(txt);}catch(_){return [];}
 }
 
+/* GET paginado — o Supabase/PostgREST limita cada requisição a um teto de
+   linhas (normalmente 1000, configurável no projeto, mas por padrão é
+   esse) mesmo sem "limit" na query. Pra tabelas que podem passar disso
+   (metadados por UID, linhas do mapa), pagina com o header Range até
+   uma página vir mais curta que o pedido — só assim garante que trouxe
+   tudo, não só a primeira fatia. Exige "order=" na query pra paginação
+   ficar determinística entre as chamadas. */
+async function sbGetAll(path,pageSize){
+  const PAGE=pageSize||1000;
+  let all=[], from=0;
+  while(true){
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN,'Range-Unit':'items','Range':`${from}-${from+PAGE-1}`}
+    });
+    if(!res.ok){ const t=await res.text(); throw new Error(res.status+': '+t.slice(0,160)); }
+    const txt=await res.text(); let page=[]; try{page=JSON.parse(txt);}catch(_){page=[];}
+    all=all.concat(page);
+    if(page.length<PAGE) break;
+    from+=PAGE;
+  }
+  return all;
+}
+
 async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,mp,mc}){
   if(!cronoId){
     const ins=await sb('POST','val_cronogramas',{empresa:emp,escopo:escopo||null,area:area||null,disciplina:disc||null,descricao:null});
@@ -1911,7 +1942,7 @@ function atualizarDiagnosticoMestre(){
 
 async function loadMapaLinhas(){
   try{
-    MAPA_LINHAS=await sb('GET','mapa_semanal_linhas?select=*&order=cwa.asc,empresa.asc');
+    MAPA_LINHAS=await sbGetAll('mapa_semanal_linhas?select=*&order=cwa.asc,empresa.asc');
     $('mapa-setup-notice').style.display='none';
   }catch(e){
     if(/relation .* does not exist|42P01|PGRST205/i.test(e.message)) $('mapa-setup-notice').style.display='';
@@ -1926,7 +1957,7 @@ async function loadMapaLinhas(){
    a lacuna, casando por UID. */
 async function loadMapaMetadados(){
   try{
-    const rows=await sb('GET','mapa_metadados_uid?select=uid,empresa,cwa,disciplina,task_name');
+    const rows=await sbGetAll('mapa_metadados_uid?select=uid,empresa,cwa,disciplina,task_name&order=uid.asc');
     MAPA_METADADOS={};
     (rows||[]).forEach(r=>{ MAPA_METADADOS[String(r.uid)]={empresa:r.empresa,cwa:r.cwa,disciplina:r.disciplina,task_name:r.task_name}; });
   }catch(e){
@@ -2036,7 +2067,14 @@ async function gerarLinhasMestre(){
   if(!MAPA_TASKS.length){ toast('Nenhuma tarefa do cronograma mestre carregada','err'); return; }
   const btn=$('mapa-btn-gerar'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Gerando…';
   try{
-    const exec=MAPA_TASKS.filter(t=>!t.summary && (t.empresa||'').toString().trim() && (t.cwa||'').toString().trim());
+    const incluirACont=$('mapa-incluir-acontratar').checked;
+    const exec=MAPA_TASKS.filter(t=>{
+      if(t.summary) return false;
+      const emp=(t.empresa||'').toString().trim(), cwa=(t.cwa||'').toString().trim();
+      if(!emp||!cwa) return false;
+      if(!incluirACont && norm(emp)==='a contratar') return false;
+      return true;
+    });
     if(!exec.length){
       atualizarDiagnosticoMestre();
       toast('Nenhuma tarefa do cronograma mestre tem CWA + Empresa Executora preenchidos — veja o diagnóstico acima da tabela','err');
@@ -2263,6 +2301,23 @@ async function deleteMapaLinha(id){
   }catch(e){ toast('Erro: '+e.message,'err'); }
 }
 
+/* remove de uma vez todas as linhas com Empresa Executora = "A CONTRATAR"
+   (comparação sem acento/maiúscula, então casa "A Contratar", "a contratar" etc.) */
+async function removerAContratar(){
+  if(!CAN_UPLOAD){ toast('Sem permissão','err'); return; }
+  const alvo=MAPA_LINHAS.filter(l=>norm(l.empresa)==='a contratar');
+  if(!alvo.length){ toast('Nenhuma linha com Empresa "A CONTRATAR" encontrada no mapa','ok'); return; }
+  if(!confirm(`Excluir ${alvo.length} linha(s) com Empresa "A CONTRATAR"? Essa ação não pode ser desfeita.`)) return;
+  try{
+    await sb('DELETE','mapa_semanal_linhas?empresa=ilike.'+encodeURIComponent('a contratar'));
+    const idsRemovidos=new Set(alvo.map(l=>l.id));
+    MAPA_LINHAS=MAPA_LINHAS.filter(l=>!idsRemovidos.has(l.id));
+    idsRemovidos.forEach(id=>delete MAPA_RESOLVED[id]);
+    toast(alvo.length+' linha(s) "A CONTRATAR" removida(s) ✓','ok');
+    renderMapa();
+  }catch(e){ toast('Erro ao remover: '+e.message,'err'); }
+}
+
 /* ---------- nova linha manual / editar linha existente ---------- */
 function openAddManualRow(){
   if(!CAN_UPLOAD){ toast('Sem permissão para adicionar linhas','err'); return; }
@@ -2403,7 +2458,9 @@ async function unlinkRow(){
 /* ---------- exportar Excel (mesma estrutura do modelo: Dados / CWA / Instruções) ---------- */
 function exportMapaExcel(){
   if(!MAPA_LINHAS.length){ toast('Nada para exportar','err'); return; }
-  const rows=MAPA_LINHAS.map(l=>{
+  const linhasExport=MAPA_LINHAS.filter(l=>norm(l.empresa)!=='a contratar');
+  if(!linhasExport.length){ toast('Nada para exportar (só há linhas "A CONTRATAR", que não entram na extração)','err'); return; }
+  const rows=linhasExport.map(l=>{
     const r=MAPA_RESOLVED[l.id]||{};
     const num=v=>(v==null||isNaN(v))?'':Math.round(v*100)/100;
     return {
@@ -2429,7 +2486,8 @@ function exportMapaExcel(){
   wsInst['!cols']=[{wch:90}];
   XLSX.utils.book_append_sheet(wb,wsInst,'Instruções');
   XLSX.writeFile(wb,`Mapa_Semanal_${new Date().toISOString().slice(0,10)}.xlsx`);
-  toast('Excel exportado ✓','ok');
+  const excluidas=MAPA_LINHAS.length-linhasExport.length;
+  toast('Excel exportado ✓ ('+linhasExport.length+' linha(s)'+(excluidas?', '+excluidas+' "A CONTRATAR" excluída(s)':'')+')','ok');
 }
 </script>
 </body>
