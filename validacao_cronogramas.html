@@ -572,7 +572,7 @@ table.mapa td.col-acoes{white-space:nowrap}
       <span style="flex:1"></span>
       <button class="btn ghost" onclick="document.getElementById('mapa-meta-file').click()" title="Planilha com colunas: Id exclusiva, Task Name, Empresa Executora, CWA">📥 Importar metadados (Empresa/CWA)</button>
       <input type="file" id="mapa-meta-file" accept=".xlsx,.xls" hidden onchange="onMapaMetaFile(this.files[0])">
-      <button class="btn ghost" onclick="abrirCobertura()" title="Mostra quais ramos do cronograma mestre (por Outline Number) ainda não têm Empresa/CWA preenchidos">📊 Cobertura por área</button>
+      <button class="btn ghost" onclick="abrirCobertura()" title="Mostra quais ramos do cronograma mestre (por Outline Number) ainda não têm Empresa/CWA preenchidos, e permite verificar um UID específico">📊 Cobertura por área</button>
       <button class="btn ghost" id="mapa-btn-gerar" onclick="gerarLinhasMestre()" title="Só cria linhas novas para combinações de CWA+Empresa que ainda não existem. Nunca apaga, sobrescreve ou desfaz edições em linhas já existentes — pode clicar quantas vezes quiser.">🧬 Gerar linhas do cronograma mestre</button>
       <button class="btn ghost" onclick="openAddManualRow()">➕ Linha manual</button>
       <button class="btn ghost" onclick="refreshMapa()" id="mapa-btn-refresh" title="Recalcula Previsto/Realizado/Desempenho de cada linha vinculada a partir das duas últimas revisões já validadas do cronograma da terceira. Não mexe em CWA, Empresa, Disciplina, Fase, nem em linhas manuais.">🔄 Atualizar ao vivo</button>
@@ -684,6 +684,11 @@ table.mapa td.col-acoes{white-space:nowrap}
     <h3>Cobertura de Empresa/CWA por área</h3>
     <div class="msub">Agrupado pelo Outline Number do cronograma mestre (independe da planilha de metadados). Ramos em vermelho não têm nenhuma tarefa com Empresa/CWA — é aí que a planilha de metadados ainda não cobre.</div>
     <div class="modal-body">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;padding:10px;background:var(--blue-soft);border:1px solid var(--border)">
+        <input id="uid-check-input" placeholder="🔍 Verificar um UID específico (Id exclusiva da planilha)…" style="flex:1;font-family:inherit;font-size:12px;border:1px solid var(--border);padding:7px 10px" onkeydown="if(event.key==='Enter')verificarUid()">
+        <button class="btn ghost" onclick="verificarUid()">Verificar</button>
+      </div>
+      <div id="uid-check-result"></div>
       <div id="cob-content" class="link-task-list" style="max-height:420px"></div>
     </div>
     <div class="modal-btns">
@@ -1820,6 +1825,46 @@ function wbsPrefix(wbs){
    mestre (independente de já terem metadado ou não) por ramo do Outline
    Number, e mostra quantas dessas já têm Empresa+CWA — isso não depende
    de nenhuma coluna extra na planilha de metadados, só do próprio XML. */
+/* diagnóstico ponta a ponta pra um único UID: existe no cronograma mestre
+   atual? existe na planilha de metadados importada? por que virou ou não
+   virou candidato pro "Gerar linhas"? — evita precisar de print pra cada
+   caso pontual que não aparece. */
+function verificarUid(){
+  const raw=$('uid-check-input').value.trim();
+  const box=$('uid-check-result');
+  if(!raw){ box.innerHTML=''; return; }
+  const uid=raw.replace(/\D/g,'');
+  if(!uid){ box.innerHTML='<div class="notice warn">Digite só o número do UID (Id exclusiva).</div>'; return; }
+  const masterTask=MAPA_TASKS.find(t=>String(t.uid)===uid);
+  const meta=MAPA_METADADOS[uid];
+  let html='<div class="notice" style="margin-bottom:12px">';
+  html+=`<b>UID ${esc(uid)}</b><br><br>`;
+  if(masterTask){
+    html+=`✅ Existe no cronograma mestre carregado agora: <b>${esc(masterTask.name)}</b> (${masterTask.summary?'tarefa-resumo':'tarefa-folha'}, Outline ${esc(masterTask.wbs||'—')}, Fase: ${esc(faseFromWbs(masterTask.wbs)||'—')})<br>`;
+    html+=`&nbsp;&nbsp;Empresa no mestre (após aplicar metadados): ${masterTask.empresa?('<b>'+esc(masterTask.empresa)+'</b>'):'<span style="color:var(--red)">vazio</span>'} &nbsp;·&nbsp; CWA: ${masterTask.cwa?('<b>'+esc(masterTask.cwa)+'</b>'):'<span style="color:var(--red)">vazio</span>'}<br>`;
+  }else{
+    html+=`❌ <b>Não existe</b> no cronograma mestre carregado agora (${MAPA_TASKS.length} tarefas no snapshot atual). Isso é o motivo mais comum de um UID da planilha não virar linha: ele pode ser de uma revisão diferente do XML mestre, ou a tarefa foi recriada (UID mudou) entre a exportação da planilha e o XML que está em Análise de Cronograma hoje.<br>`;
+  }
+  html+='<br>';
+  if(meta){
+    html+=`✅ Existe nos metadados importados: Empresa → <b>${esc(meta.empresa||'—')}</b> · CWA → <b>${esc(meta.cwa||'—')}</b> · Disciplina → <b>${esc(meta.disciplina||'—')}</b>${meta.task_name?(' · nome na planilha: "'+esc(meta.task_name)+'"'):''}<br>`;
+  }else{
+    html+='❌ <b>Não está</b> nos metadados importados agora — ou nunca foi importado, ou aquele lote falhou na importação. Reimporte a planilha (é seguro repetir).<br>';
+  }
+  html+='<br><b>Veredito: </b>';
+  if(masterTask && !masterTask.summary && masterTask.empresa && masterTask.cwa){
+    html+='<span style="color:var(--green)">Deveria estar disponível como candidato — clique em "Gerar linhas do cronograma mestre" se ainda não apareceu.</span>';
+  }else if(masterTask && masterTask.summary){
+    html+='<span style="color:var(--gold)">É uma tarefa-resumo, não entra no "Gerar linhas" (só tarefas-folha contam). Se o nome que você esperava é de uma tarefa-resumo, procure o UID da tarefa-folha correspondente.</span>';
+  }else if(!masterTask){
+    html+='<span style="color:var(--red)">Não pode virar candidato porque o UID não existe no cronograma mestre atual — precisa reenviar/atualizar o XML mestre em Análise de Cronograma, ou confirmar o UID certo.</span>';
+  }else{
+    html+='<span style="color:var(--red)">Falta Empresa e/ou CWA — confira se os metadados foram importados corretamente pra esse UID.</span>';
+  }
+  html+='</div>';
+  box.innerHTML=html;
+}
+
 function abrirCobertura(){
   if(!MAPA_TASKS.length){ toast('Nenhum cronograma mestre carregado','err'); return; }
   const leaf=MAPA_TASKS.filter(t=>!t.summary && t.wbs);
@@ -1856,6 +1901,7 @@ function abrirCobertura(){
       <span style="font-weight:800;font-family:'JetBrains Mono',monospace;color:${cor}">${pct}%</span>
     </div>`;
   }).join('') : '<div class="link-empty">Nenhum ramo encontrado.</div>';
+  $('uid-check-input').value=''; $('uid-check-result').innerHTML='';
   $('modal-cobertura').classList.add('visible');
 }
 function closeCobertura(){ $('modal-cobertura').classList.remove('visible'); }
