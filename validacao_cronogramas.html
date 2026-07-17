@@ -2129,10 +2129,9 @@ async function gerarLinhasMestre(){
     const groups={};
     exec.forEach(t=>{
       const cwa=t.cwa.toString().trim(), emp=t.empresa.toString().trim();
-      const key=norm(cwa)+'|'+norm(emp);
-      const g=groups[key]||(groups[key]={cwa,empresa:emp,fases:{},discs:{}});
-      const fase=faseFromWbs(t.wbs);
-      if(fase) g.fases[fase]=(g.fases[fase]||0)+1;
+      const fase=faseFromWbs(t.wbs)||''; // confiável (vem do Outline Number) — Fase 1 e Fase 2 do mesmo CWA+Empresa são linhas diferentes
+      const key=norm(cwa)+'|'+norm(emp)+'|'+norm(fase);
+      const g=groups[key]||(groups[key]={cwa,empresa:emp,fase,discs:{}});
       // a disciplina do XML mestre não é confiável (mesmo problema do
       // empresa/cwa — é metadado do Project Online que às vezes não bate).
       // Só usamos a disciplina vinda da planilha de metadados curada.
@@ -2141,14 +2140,14 @@ async function gerarLinhasMestre(){
       if(disc) g.discs[disc]=(g.discs[disc]||0)+1;
     });
     const modaDe=(counts)=>{ let best=null,bestN=0; Object.entries(counts).forEach(([k,c])=>{ if(c>bestN){bestN=c;best=k;} }); return best; };
-    const existKeys=new Set(MAPA_LINHAS.map(l=>norm(l.cwa)+'|'+norm(l.empresa)));
-    const toCreate=Object.values(groups).filter(g=>!existKeys.has(norm(g.cwa)+'|'+norm(g.empresa)));
-    if(!toCreate.length){ toast('Nenhuma linha nova — todas as combinações de CWA + Empresa já existem no mapa','ok'); return; }
+    const existKeys=new Set(MAPA_LINHAS.map(l=>norm(l.cwa)+'|'+norm(l.empresa)+'|'+norm(l.fase||'')));
+    const toCreate=Object.values(groups).filter(g=>!existKeys.has(norm(g.cwa)+'|'+norm(g.empresa)+'|'+norm(g.fase)));
+    if(!toCreate.length){ toast('Nenhuma linha nova — todas as combinações de CWA + Empresa + Fase já existem no mapa','ok'); return; }
     let ok=0;
     for(const g of toCreate){
-      const fase=modaDe(g.fases), disc=modaDe(g.discs);
+      const disc=modaDe(g.discs);
       try{
-        await sb('POST','mapa_semanal_linhas',{cwa:g.cwa,empresa:g.empresa,disciplina:disc||null,fase,is_manual:false,ativo:true});
+        await sb('POST','mapa_semanal_linhas',{cwa:g.cwa,empresa:g.empresa,disciplina:disc||null,fase:g.fase||null,is_manual:false,ativo:true});
         ok++;
       }catch(e){ if(!/23505|duplicate/i.test(e.message)) console.warn('linha não criada',g,e.message); }
     }
@@ -2404,7 +2403,7 @@ async function saveManualRow(){
     await loadMapaLinhas();
     await refreshMapa();
   }catch(e){
-    if(/23505|duplicate/i.test(e.message)) toast('Já existe uma linha para essa combinação CWA + Empresa','err');
+    if(/23505|duplicate/i.test(e.message)) toast('Já existe uma linha para essa combinação CWA + Empresa + Fase','err');
     else toast('Erro: '+e.message,'err');
   }finally{ btn.disabled=false; btn.innerHTML=old; }
 }
