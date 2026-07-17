@@ -306,7 +306,9 @@ table.mapa tbody td{padding:7px 8px;border-bottom:1px solid var(--border-2);vert
 table.mapa tbody tr:hover td{background:var(--blue-soft)}
 table.mapa td.num{font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
 table.mapa td.small{font-size:10px;color:var(--text-mute)}
-.mapa-link-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:5px 9px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;white-space:nowrap}
+.mapa-link-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:5px 9px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle}
+table.mapa td.col-vinculo{max-width:220px}
+table.mapa td.col-acoes{white-space:nowrap}
 .mapa-link-btn:hover{background:var(--blue-soft);border-color:var(--blue)}
 .mapa-link-btn.linked{border-color:#a8c990;color:#1d5c1a;background:var(--green-soft)}
 .mapa-link-btn.warn{border-color:#f0c87a;color:#7c4a00;background:var(--orange-soft)}
@@ -570,9 +572,10 @@ table.mapa td.small{font-size:10px;color:var(--text-mute)}
       <span style="flex:1"></span>
       <button class="btn ghost" onclick="document.getElementById('mapa-meta-file').click()" title="Planilha com colunas: Id exclusiva, Task Name, Empresa Executora, CWA">📥 Importar metadados (Empresa/CWA)</button>
       <input type="file" id="mapa-meta-file" accept=".xlsx,.xls" hidden onchange="onMapaMetaFile(this.files[0])">
-      <button class="btn ghost" id="mapa-btn-gerar" onclick="gerarLinhasMestre()">🧬 Gerar linhas do cronograma mestre</button>
+      <button class="btn ghost" onclick="abrirCobertura()" title="Mostra quais ramos do cronograma mestre (por Outline Number) ainda não têm Empresa/CWA preenchidos">📊 Cobertura por área</button>
+      <button class="btn ghost" id="mapa-btn-gerar" onclick="gerarLinhasMestre()" title="Só cria linhas novas para combinações de CWA+Empresa que ainda não existem. Nunca apaga, sobrescreve ou desfaz edições em linhas já existentes — pode clicar quantas vezes quiser.">🧬 Gerar linhas do cronograma mestre</button>
       <button class="btn ghost" onclick="openAddManualRow()">➕ Linha manual</button>
-      <button class="btn ghost" onclick="refreshMapa()" id="mapa-btn-refresh">🔄 Atualizar ao vivo</button>
+      <button class="btn ghost" onclick="refreshMapa()" id="mapa-btn-refresh" title="Recalcula Previsto/Realizado/Desempenho de cada linha vinculada a partir das duas últimas revisões já validadas do cronograma da terceira. Não mexe em CWA, Empresa, Disciplina, Fase, nem em linhas manuais.">🔄 Atualizar ao vivo</button>
       <button class="btn gold" onclick="exportMapaExcel()">⬇ Exportar Excel</button>
     </div>
 
@@ -649,9 +652,10 @@ table.mapa td.small{font-size:10px;color:var(--text-mute)}
 <!-- MODAL: nova linha manual -->
 <div class="modal-overlay" id="modal-manual-row">
   <div class="modal-box">
-    <h3>Nova linha do Mapa Semanal</h3>
-    <div class="msub">Informe a Ilha de Produção (CWA) e a Empresa Executora. Depois você pode vincular a um cronograma ou preencher manualmente.</div>
+    <h3 id="mn-title">Nova linha do Mapa Semanal</h3>
+    <div class="msub" id="mn-msub">Informe a Ilha de Produção (CWA) e a Empresa Executora. Depois você pode vincular a um cronograma ou preencher manualmente.</div>
     <div class="modal-body">
+      <input type="hidden" id="mn-id">
       <div class="mf"><label>Ilha de Produção (CWA)</label><input id="mn-cwa" list="dl-cwa" placeholder="ex.: Etanol.Destilaria.Dorna Volante"></div>
       <div class="mf-grid">
         <div class="mf"><label>Empresa Executora</label><input id="mn-empresa" list="dl-empresas" placeholder="ex.: Engedelta"></div>
@@ -662,6 +666,20 @@ table.mapa td.small{font-size:10px;color:var(--text-mute)}
     <div class="modal-btns">
       <button class="btn btn-sec" onclick="closeAddManualRow()">Cancelar</button>
       <button class="btn" id="mn-save" onclick="saveManualRow()">Adicionar linha</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: cobertura de metadados por ramo (Outline Number) -->
+<div class="modal-overlay" id="modal-cobertura">
+  <div class="modal-box wide2">
+    <h3>Cobertura de Empresa/CWA por área</h3>
+    <div class="msub">Agrupado pelo Outline Number do cronograma mestre (independe da planilha de metadados). Ramos em vermelho não têm nenhuma tarefa com Empresa/CWA — é aí que a planilha de metadados ainda não cobre.</div>
+    <div class="modal-body">
+      <div id="cob-content" class="link-task-list" style="max-height:420px"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" onclick="closeCobertura()">Fechar</button>
     </div>
   </div>
 </div>
@@ -1758,6 +1776,59 @@ function faseFromWbs(wbs){
   return '';
 }
 
+/* trunca o Outline Number em até 5 segmentos — mesma granularidade que
+   o mapeamento de áreas usado em Análise de Cronograma (ex.: "1.3.4.2.4"
+   = Destilaria Fase 1), pra agrupar tarefas por ramo/sistema */
+function wbsPrefix(wbs){
+  const parts=(wbs||'').toString().split('.').filter(Boolean);
+  if(!parts.length) return '';
+  return parts.slice(0,Math.min(5,parts.length)).join('.');
+}
+
+/* relatório de cobertura: agrupa TODAS as tarefas-folha do cronograma
+   mestre (independente de já terem metadado ou não) por ramo do Outline
+   Number, e mostra quantas dessas já têm Empresa+CWA — isso não depende
+   de nenhuma coluna extra na planilha de metadados, só do próprio XML. */
+function abrirCobertura(){
+  if(!MAPA_TASKS.length){ toast('Nenhum cronograma mestre carregado','err'); return; }
+  const leaf=MAPA_TASKS.filter(t=>!t.summary && t.wbs);
+  const groups={};
+  leaf.forEach(t=>{
+    const pfx=wbsPrefix(t.wbs);
+    if(!pfx) return;
+    const g=groups[pfx]||(groups[pfx]={prefix:pfx, total:0, covered:0, fase:faseFromWbs(t.wbs), nomes:{}});
+    g.total++;
+    if((t.empresa||'').toString().trim() && (t.cwa||'').toString().trim()) g.covered++;
+    if(t.cwa) g.nomes[t.cwa]=(g.nomes[t.cwa]||0)+1;
+  });
+  const headingByWbs={}; MAPA_TASKS.forEach(t=>{ if(t.wbs && !headingByWbs[t.wbs]) headingByWbs[t.wbs]=t.name; });
+  const rows=Object.values(groups).map(g=>{
+    let label=headingByWbs[g.prefix];
+    if(!label){
+      let best=null,bestN=0;
+      Object.entries(g.nomes).forEach(([k,c])=>{ if(c>bestN){bestN=c;best=k;} });
+      label=best||'(sem nome de ramo identificado)';
+    }
+    return {...g,label};
+  }).sort((a,b)=>(a.fase||'zzz').localeCompare(b.fase||'zzz')||((a.covered/a.total)-(b.covered/b.total))||a.prefix.localeCompare(b.prefix));
+
+  const box=$('cob-content');
+  box.innerHTML = rows.length ? rows.map(r=>{
+    const pct=Math.round((r.covered/r.total)*100);
+    const zero=r.covered===0;
+    const cor= zero?'var(--red)':(pct===100?'var(--green)':'var(--gold)');
+    return `<div class="link-task-row" style="cursor:default;${zero?'background:var(--red-soft)':''}">
+      <span style="flex:1;overflow:hidden">
+        <div class="ltn">${esc(r.fase||'—')} · ${esc(r.label)}</div>
+        <div class="ltw">Outline ${esc(r.prefix)}.* · ${r.covered}/${r.total} tarefas com Empresa+CWA</div>
+      </span>
+      <span style="font-weight:800;font-family:'JetBrains Mono',monospace;color:${cor}">${pct}%</span>
+    </div>`;
+  }).join('') : '<div class="link-empty">Nenhum ramo encontrado.</div>';
+  $('modal-cobertura').classList.add('visible');
+}
+function closeCobertura(){ $('modal-cobertura').classList.remove('visible'); }
+
 /* estende o switchView original para carregar a aba sob demanda */
 const _switchViewBase=switchView;
 switchView=function(v){
@@ -1801,6 +1872,15 @@ async function loadMapaMaster(){
    quantas tarefas têm cada campo preenchido e a lista completa de campos
    personalizados encontrados no XML — evita ficar adivinhando por que
    "Gerar linhas" não encontra candidatos */
+function contarCandidatosPorFase(){
+  const out={f1:0,f2:0,sem:0};
+  MAPA_TASKS.filter(t=>!t.summary && (t.empresa||'').toString().trim() && (t.cwa||'').toString().trim())
+    .forEach(t=>{
+      const f=faseFromWbs(t.wbs);
+      if(f==='Fase 1') out.f1++; else if(f==='Fase 2') out.f2++; else out.sem++;
+    });
+  return out;
+}
 function atualizarDiagnosticoMestre(){
   const box=$('mapa-diag-notice');
   if(!MAPA_TASKS.length){ box.style.display='none'; return; }
@@ -1846,9 +1926,9 @@ async function loadMapaLinhas(){
    a lacuna, casando por UID. */
 async function loadMapaMetadados(){
   try{
-    const rows=await sb('GET','mapa_metadados_uid?select=uid,empresa,cwa,task_name');
+    const rows=await sb('GET','mapa_metadados_uid?select=uid,empresa,cwa,disciplina,task_name');
     MAPA_METADADOS={};
-    (rows||[]).forEach(r=>{ MAPA_METADADOS[String(r.uid)]={empresa:r.empresa,cwa:r.cwa,task_name:r.task_name}; });
+    (rows||[]).forEach(r=>{ MAPA_METADADOS[String(r.uid)]={empresa:r.empresa,cwa:r.cwa,disciplina:r.disciplina,task_name:r.task_name}; });
   }catch(e){
     if(!/relation .* does not exist|42P01|PGRST205/i.test(e.message)) console.warn('mapa: falha ao carregar metadados uid',e);
     MAPA_METADADOS={};
@@ -1878,8 +1958,8 @@ async function sbUpsert(path,rows){
   if(!res.ok){ const t=await res.text(); throw new Error(res.status+': '+t.slice(0,200)); }
 }
 
-/* importa a planilha auxiliar (Id exclusiva / Task Name / Empresa Executora / CWA)
-   e grava/atualiza em mapa_metadados_uid, casando por UID */
+/* importa a planilha auxiliar (Id exclusiva / Task Name / Empresa Executora / CWA
+   [/ Disciplina, opcional]) e grava/atualiza em mapa_metadados_uid, casando por UID */
 async function onMapaMetaFile(file){
   if(!file) return;
   if(!CAN_UPLOAD){ toast('Sem permissão para importar metadados','err'); $('mapa-meta-file').value=''; return; }
@@ -1897,13 +1977,25 @@ async function onMapaMetaFile(file){
       if(isNaN(uid)) return;
       const empresa=pick(row,['Empresa Executora','Empresa','Executante']);
       const cwa=pick(row,['CWA','Ilha de Produção','Ilha de Producao']);
+      const disc=pick(row,['Disciplina']);
       const nome=pick(row,['Task Name','Nome','Tarefa']);
-      if(!empresa && !cwa) return; // linha sem metadado útil, ignora
+      if(!empresa && !cwa && !disc) return; // linha sem metadado útil, ignora
       registros.push({uid, empresa: empresa?String(empresa).trim():null, cwa: cwa?String(cwa).trim():null,
-        task_name: nome?String(nome).trim():null, atualizado_em:new Date().toISOString()});
+        disciplina: disc?String(disc).trim():null, task_name: nome?String(nome).trim():null, atualizado_em:new Date().toISOString()});
     });
-    if(!registros.length){ toast('Nenhuma linha com Empresa Executora ou CWA preenchidos foi encontrada. Confira as colunas da planilha.','err'); return; }
-    if(!confirm(`Importar ${registros.length} registro(s) de metadados (Empresa/CWA), casando por UID?\nRegistros já existentes com o mesmo UID são atualizados.`)) return;
+    if(!registros.length){ toast('Nenhuma linha com Empresa Executora, CWA ou Disciplina preenchidos foi encontrada. Confira as colunas da planilha.','err'); return; }
+    // diagnóstico rápido: quantos desses UIDs caem em Fase 1 x Fase 2 no cronograma mestre,
+    // pra já avisar se a planilha não cobre a Fase 2 antes mesmo de gerar as linhas
+    const byUid={}; MAPA_TASKS.forEach(t=>byUid[String(t.uid)]=t);
+    let f1=0,f2=0,semTarefa=0;
+    registros.forEach(r=>{
+      const t=byUid[String(r.uid)];
+      if(!t){ semTarefa++; return; }
+      const f=faseFromWbs(t.wbs);
+      if(f==='Fase 1') f1++; else if(f==='Fase 2') f2++;
+    });
+    const avisoFase=MAPA_TASKS.length? `\n\nCobertura no cronograma mestre: Fase 1 → ${f1} tarefa(s) · Fase 2 → ${f2} tarefa(s)${semTarefa?` · ${semTarefa} UID(s) não encontrados no cronograma mestre atual`:''}.` : '';
+    if(!confirm(`Importar ${registros.length} registro(s) de metadados, casando por UID?\nRegistros já existentes com o mesmo UID são atualizados.${avisoFase}`)) return;
     toast('Importando '+registros.length+' registro(s)…');
     const CHUNK=500;
     for(let i=0;i<registros.length;i+=CHUNK){
@@ -1915,7 +2007,7 @@ async function onMapaMetaFile(file){
     atualizarDiagnosticoMestre();
     await refreshMapa();
   }catch(e){
-    if(/relation .* does not exist|42P01|PGRST205/i.test(e.message)) toast('Tabela mapa_metadados_uid ainda não existe — rode o supabase_mapa_semanal.sql atualizado','err');
+    if(/relation .* does not exist|42P01|PGRST205/i.test(e.message)) toast('Tabela mapa_metadados_uid ainda não existe (ou falta a coluna disciplina) — rode o supabase_mapa_semanal.sql atualizado','err');
     else toast('Erro ao importar planilha: '+e.message,'err');
   }finally{ $('mapa-meta-file').value=''; }
 }
@@ -1936,25 +2028,30 @@ async function gerarLinhasMestre(){
     const groups={};
     exec.forEach(t=>{
       const cwa=t.cwa.toString().trim(), emp=t.empresa.toString().trim();
-      const disc=(t.disciplina||'').toString().trim();
-      const key=norm(cwa)+'|'+norm(emp)+'|'+norm(disc);
-      const g=groups[key]||(groups[key]={cwa,empresa:emp,disciplina:disc,fases:{}});
+      const key=norm(cwa)+'|'+norm(emp);
+      const g=groups[key]||(groups[key]={cwa,empresa:emp,fases:{},discs:{}});
       const fase=faseFromWbs(t.wbs);
       if(fase) g.fases[fase]=(g.fases[fase]||0)+1;
+      // a disciplina do XML mestre não é confiável (mesmo problema do
+      // empresa/cwa — é metadado do Project Online que às vezes não bate).
+      // Só usamos a disciplina vinda da planilha de metadados curada.
+      const metaDisc=(MAPA_METADADOS[String(t.uid)]||{}).disciplina;
+      const disc=(metaDisc||'').toString().trim();
+      if(disc) g.discs[disc]=(g.discs[disc]||0)+1;
     });
-    const existKeys=new Set(MAPA_LINHAS.map(l=>norm(l.cwa)+'|'+norm(l.empresa)+'|'+norm(l.disciplina||'')));
-    const toCreate=Object.values(groups).filter(g=>!existKeys.has(norm(g.cwa)+'|'+norm(g.empresa)+'|'+norm(g.disciplina)));
-    if(!toCreate.length){ toast('Nenhuma linha nova — todas as combinações já existem','ok'); return; }
+    const modaDe=(counts)=>{ let best=null,bestN=0; Object.entries(counts).forEach(([k,c])=>{ if(c>bestN){bestN=c;best=k;} }); return best; };
+    const existKeys=new Set(MAPA_LINHAS.map(l=>norm(l.cwa)+'|'+norm(l.empresa)));
+    const toCreate=Object.values(groups).filter(g=>!existKeys.has(norm(g.cwa)+'|'+norm(g.empresa)));
+    if(!toCreate.length){ toast('Nenhuma linha nova — todas as combinações de CWA + Empresa já existem no mapa','ok'); return; }
     let ok=0;
     for(const g of toCreate){
-      let fase=null,best=0;
-      Object.entries(g.fases).forEach(([f,c])=>{ if(c>best){best=c;fase=f;} });
+      const fase=modaDe(g.fases), disc=modaDe(g.discs);
       try{
-        await sb('POST','mapa_semanal_linhas',{cwa:g.cwa,empresa:g.empresa,disciplina:g.disciplina||null,fase,is_manual:false,ativo:true});
+        await sb('POST','mapa_semanal_linhas',{cwa:g.cwa,empresa:g.empresa,disciplina:disc||null,fase,is_manual:false,ativo:true});
         ok++;
       }catch(e){ if(!/23505|duplicate/i.test(e.message)) console.warn('linha não criada',g,e.message); }
     }
-    toast(ok+' linha(s) criada(s) a partir do cronograma mestre ✓','ok');
+    toast(ok+' linha(s) nova(s) criada(s) a partir do cronograma mestre ✓ (linhas já existentes não foram alteradas)','ok');
     await loadMapaLinhas();
     await refreshMapa();
   }catch(e){ toast('Erro ao gerar linhas: '+e.message,'err'); }
@@ -2030,7 +2127,11 @@ function renderMapa(){
   const box=$('mapa-content');
   if(!MAPA_LINHAS.length){
     box.innerHTML='<div class="empty"><div class="big">🗺️</div>Nenhuma linha no Mapa Semanal ainda.<br>Use "Gerar linhas do cronograma mestre" ou adicione uma linha manual.</div>';
-    $('mapa-kpis').innerHTML=`<div class="mapa-kpi"><div class="v">${Object.keys(MAPA_METADADOS).length}</div><div class="l">Metadados UID importados</div></div>`;
+    const cf0=contarCandidatosPorFase();
+    $('mapa-kpis').innerHTML=`
+      <div class="mapa-kpi"><div class="v">${Object.keys(MAPA_METADADOS).length}</div><div class="l">Metadados UID importados</div></div>
+      <div class="mapa-kpi"><div class="v">${cf0.f1}</div><div class="l">Candidatos · Fase 1</div></div>
+      <div class="mapa-kpi ${cf0.f2===0?'warn':''}"><div class="v" style="${cf0.f2===0?'color:#7c4a00':''}">${cf0.f2}</div><div class="l">Candidatos · Fase 2</div></div>`;
     return;
   }
   const q=norm($('mapa-search').value||'');
@@ -2050,12 +2151,14 @@ function renderMapa(){
   const auto=MAPA_LINHAS.filter(l=>(MAPA_RESOLVED[l.id]||{}).fonte==='auto').length;
   const manual=MAPA_LINHAS.filter(l=>l.is_manual).length;
   const pend=MAPA_LINHAS.filter(l=>{const f=(MAPA_RESOLVED[l.id]||{}).fonte; return f==='pendente'||f==='orfa';}).length;
+  const cf=contarCandidatosPorFase();
   $('mapa-kpis').innerHTML=`
     <div class="mapa-kpi"><div class="v">${total}</div><div class="l">Linhas no mapa</div></div>
     <div class="mapa-kpi"><div class="v" style="color:var(--green)">${auto}</div><div class="l">Vinculadas ao vivo</div></div>
     <div class="mapa-kpi"><div class="v" style="color:var(--blue)">${manual}</div><div class="l">Preenchimento manual</div></div>
     <div class="mapa-kpi warn"><div class="v" style="color:#7c4a00">${pend}</div><div class="l">Pendentes / a revisar</div></div>
-    <div class="mapa-kpi"><div class="v">${Object.keys(MAPA_METADADOS).length}</div><div class="l">Metadados UID importados</div></div>`;
+    <div class="mapa-kpi"><div class="v">${Object.keys(MAPA_METADADOS).length}</div><div class="l">Metadados UID importados</div></div>
+    <div class="mapa-kpi"><div class="v">${cf.f1} / ${cf.f2}</div><div class="l">Candidatos Fase 1 / Fase 2</div></div>`;
 
   if(!rows.length){ box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhuma linha corresponde ao filtro.</div>'; return; }
 
@@ -2103,8 +2206,8 @@ function buildMapaRow(l){
     <td class="num">${realHtml}</td>
     <td class="num">${dsHtml}</td>
     <td class="num">${rsHtml}</td>
-    <td>${vinculoHtml}</td>
-    <td>${CAN_UPLOAD?`<button class="mapa-mini-btn" title="Excluir linha" onclick="deleteMapaLinha('${l.id}')">🗑️</button>`:''}</td>`;
+    <td class="col-vinculo">${vinculoHtml}</td>
+    <td class="col-acoes">${CAN_UPLOAD?`<button class="mapa-mini-btn" title="Editar CWA/Empresa/Disciplina/Fase" onclick="openEditRow('${l.id}')">✏️</button> <button class="mapa-mini-btn" title="Excluir linha" onclick="deleteMapaLinha('${l.id}')">🗑️</button>`:''}</td>`;
 
   if(l.is_manual){
     tr.querySelectorAll('.mapa-manual-input').forEach(inp=>{
@@ -2143,25 +2246,47 @@ async function deleteMapaLinha(id){
   }catch(e){ toast('Erro: '+e.message,'err'); }
 }
 
-/* ---------- nova linha manual ---------- */
+/* ---------- nova linha manual / editar linha existente ---------- */
 function openAddManualRow(){
   if(!CAN_UPLOAD){ toast('Sem permissão para adicionar linhas','err'); return; }
+  $('mn-id').value='';
+  $('mn-title').textContent='Nova linha do Mapa Semanal';
+  $('mn-msub').textContent='Informe a Ilha de Produção (CWA) e a Empresa Executora. Depois você pode vincular a um cronograma ou preencher manualmente.';
+  $('mn-save').textContent='Adicionar linha';
   $('mn-cwa').value=''; $('mn-empresa').value=''; $('mn-disc').value=''; $('mn-fase').value='';
+  $('modal-manual-row').classList.add('visible');
+}
+function openEditRow(linhaId){
+  if(!CAN_UPLOAD){ toast('Sem permissão para editar linhas','err'); return; }
+  const l=MAPA_LINHAS.find(x=>x.id===linhaId); if(!l) return;
+  $('mn-id').value=l.id;
+  $('mn-title').textContent='Editar linha do Mapa Semanal';
+  $('mn-msub').textContent='O vínculo com o cronograma da terceira (se houver) não é afetado — isso só muda a identificação da linha.';
+  $('mn-save').textContent='Salvar alterações';
+  $('mn-cwa').value=l.cwa||''; $('mn-empresa').value=l.empresa||''; $('mn-disc').value=l.disciplina||''; $('mn-fase').value=l.fase||'';
   $('modal-manual-row').classList.add('visible');
 }
 function closeAddManualRow(){ $('modal-manual-row').classList.remove('visible'); }
 async function saveManualRow(){
   const cwa=$('mn-cwa').value.trim(), empresa=$('mn-empresa').value.trim();
   if(!cwa||!empresa){ toast('Preencha Ilha de Produção e Empresa','err'); return; }
+  const editId=$('mn-id').value||null;
   const btn=$('mn-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
+  const payload={cwa, empresa, disciplina:$('mn-disc').value.trim()||null, fase:$('mn-fase').value.trim()||null};
   try{
-    await sb('POST','mapa_semanal_linhas',{cwa, empresa, disciplina:$('mn-disc').value.trim()||null, fase:$('mn-fase').value.trim()||null, is_manual:true});
-    toast('Linha adicionada ✓','ok');
+    if(editId){
+      await sb('PATCH',`mapa_semanal_linhas?id=eq.${editId}`,{...payload, atualizado_em:new Date().toISOString()});
+      const l=MAPA_LINHAS.find(x=>x.id===editId); if(l) Object.assign(l,payload);
+      toast('Linha atualizada ✓','ok');
+    }else{
+      await sb('POST','mapa_semanal_linhas',{...payload, is_manual:true});
+      toast('Linha adicionada ✓','ok');
+    }
     closeAddManualRow();
     await loadMapaLinhas();
     await refreshMapa();
   }catch(e){
-    if(/23505|duplicate/i.test(e.message)) toast('Já existe uma linha para essa combinação CWA + Empresa + Disciplina + Fase','err');
+    if(/23505|duplicate/i.test(e.message)) toast('Já existe uma linha para essa combinação CWA + Empresa','err');
     else toast('Erro: '+e.message,'err');
   }finally{ btn.disabled=false; btn.innerHTML=old; }
 }
