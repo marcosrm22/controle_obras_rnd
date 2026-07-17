@@ -1996,16 +1996,33 @@ async function onMapaMetaFile(file){
     });
     const avisoFase=MAPA_TASKS.length? `\n\nCobertura no cronograma mestre: Fase 1 → ${f1} tarefa(s) · Fase 2 → ${f2} tarefa(s)${semTarefa?` · ${semTarefa} UID(s) não encontrados no cronograma mestre atual`:''}.` : '';
     if(!confirm(`Importar ${registros.length} registro(s) de metadados, casando por UID?\nRegistros já existentes com o mesmo UID são atualizados.${avisoFase}`)) return;
-    toast('Importando '+registros.length+' registro(s)…');
-    const CHUNK=500;
+    const CHUNK=250;
+    const totalChunks=Math.ceil(registros.length/CHUNK);
+    let okCount=0; const falhas=[];
     for(let i=0;i<registros.length;i+=CHUNK){
-      await sbUpsert('mapa_metadados_uid', registros.slice(i,i+CHUNK));
+      const lote=registros.slice(i,i+CHUNK);
+      const numChunk=Math.floor(i/CHUNK)+1;
+      toast(`Importando lote ${numChunk}/${totalChunks}…`);
+      let sucesso=false, ultimoErro=null;
+      for(let tentativa=1;tentativa<=3 && !sucesso;tentativa++){
+        try{ await sbUpsert('mapa_metadados_uid', lote); sucesso=true; }
+        catch(e){ ultimoErro=e; if(tentativa<3) await new Promise(r=>setTimeout(r,600*tentativa)); }
+      }
+      if(sucesso) okCount+=lote.length;
+      else falhas.push({de:i, ate:i+lote.length, erro:ultimoErro?ultimoErro.message:'desconhecido'});
     }
-    toast('Metadados importados ✓ ('+registros.length+' registros)','ok');
+    // atualiza com o que conseguiu entrar, mesmo se algum lote tiver falhado —
+    // não perde o progresso parcial esperando o resto
     await loadMapaMetadados();
     aplicarMetadadosNasTarefas();
     atualizarDiagnosticoMestre();
     await refreshMapa();
+    if(!falhas.length){
+      toast('Metadados importados ✓ ('+okCount+' registros)','ok');
+    }else{
+      console.warn('mapa: lotes que falharam na importação de metadados', falhas);
+      toast(`Importação parcial: ${okCount}/${registros.length} registros salvos. ${falhas.length} lote(s) falharam (veja o console) — clique em "Importar metadados" e suba o mesmo arquivo de novo para tentar completar (é seguro, atualiza por UID sem duplicar).`,'err');
+    }
   }catch(e){
     if(/relation .* does not exist|42P01|PGRST205/i.test(e.message)) toast('Tabela mapa_metadados_uid ainda não existe (ou falta a coluna disciplina) — rode o supabase_mapa_semanal.sql atualizado','err');
     else toast('Erro ao importar planilha: '+e.message,'err');
