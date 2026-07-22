@@ -288,6 +288,7 @@ body.locked #btn-delete-el{pointer-events:none;opacity:.4}
 body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
 </style>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 </head>
 <body>
 <div class="app">
@@ -301,6 +302,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     </div>
   </div>
   <div class="header-right">
+    <span id="unidade-switcher" style="margin-right:4px"></span>
     <button class="tool-btn" id="btn-lock" onclick="toggleLock()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
       <span id="lock-label">Bloqueado · Liberar</span>
@@ -709,6 +711,7 @@ async function sbFetch(path, opts={}){
 function toRow(el){
   return {
     id:        el.id,
+    unidade:   pcoUnidadeAtual(),
     name:      el.name||'',
     status:    el.status||'pend',
     empresa:   el.empresa||'',
@@ -757,13 +760,13 @@ async function save(){
 }
 
 async function deleteFromDB(id){
-  await sbFetch(TABLE+'?id=eq.'+encodeURIComponent(id),{method:'DELETE'});
+  await sbFetch(pcoComUnidade(TABLE+'?id=eq.'+encodeURIComponent(id)),{method:'DELETE'});
 }
 
 async function loadData(){
   setSyncStatus('Conectando...','saving');
   try{
-    const rows = await sbFetch(TABLE+'?order=created_at.asc');
+    const rows = await sbFetch(pcoComUnidade(TABLE+'?order=created_at.asc'));
     elements = (rows||[]).map(fromRow);
     setSyncStatus('Online ✓','ok');
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)) }catch(_){}
@@ -1134,7 +1137,7 @@ function clearAll(){
     const ids=elements.map(e=>e.id);
     elements=[]; selectedId=null; render();
     try{
-      await sbFetch(TABLE+'?id=in.('+ids.map(i=>`"${i}"`).join(',')+')'),{method:'DELETE'};
+      await sbFetch(pcoComUnidade(TABLE+'?id=in.('+ids.map(i=>`"${i}"`).join(',')+')'),{method:'DELETE'});
       toast('Canvas limpo ✓');
     }catch(e){ toast('Limpo localmente · erro no banco: '+e.message,true) }
     setSyncStatus('Salvo '+new Date().toLocaleTimeString('pt-BR'),'ok');
@@ -1584,6 +1587,7 @@ document.head.appendChild(_st);
 
 updateLockUI();
 zoomReset();
+pcoRenderSwitcher('unidade-switcher');
 (async()=>{ await loadData(); render(); })();
 </script>
 </body>
