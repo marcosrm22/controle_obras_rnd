@@ -75,6 +75,7 @@ td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 </head>
 <body>
 <div class="page">
@@ -94,6 +95,7 @@ td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text
       <p class="subtitle">% Concluído puxado ao vivo das revisões mais recentes dos cronogramas das terceiras, conforme os vínculos configurados. Tarefas sem vínculo são preenchidas manualmente.</p>
     </div>
     <div class="user-bar">
+      <span id="unidade-switcher" style="margin-right:4px"></span>
       <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
         <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
         <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
@@ -158,7 +160,7 @@ function linkKey(t){ return t.codigo && t.codigo.trim() ? t.codigo.trim() : ('ui
 function workEmpresa(t){ const l=LINKS[linkKey(t)]; return (l && l.empresa!=null && l.empresa!=='') ? l.empresa : (t.empresa||''); }
 
 async function loadVersoes(){
-  VERSOES = await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc') || [];
+  VERSOES = await sb('GET',pcoComUnidade('cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc')) || [];
   const sel=$('sel-versao');
   if(!VERSOES.length){ sel.innerHTML='<option value="">— nenhum cronograma geral enviado —</option>'; return; }
   sel.innerHTML = VERSOES.map(v=>`<option value="${v.data_status}">${esc(v.data_status)}${v.label?(' · '+esc(v.label)):''}</option>`).join('');
@@ -191,20 +193,20 @@ function buildEmpresaFilter(){
 async function refreshAll(){
   const btn=$('btn-refresh'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Atualizando…';
   try{
-    const linkRows = await sb('GET','avanco_links?select=*') || [];
+    const linkRows = await sb('GET',pcoComUnidade('avanco_links?select=*')) || [];
     LINKS={}; linkRows.forEach(r=>LINKS[r.codigo_atividade]=r);
 
     // contratos usados (não-manuais, com cronograma_id definido)
     const cronoIds=[...new Set(linkRows.filter(r=>!r.is_manual && r.cronograma_id).map(r=>r.cronograma_id))];
     const cronoNames={};
     if(cronoIds.length){
-      const cs = await sb('GET',`val_cronogramas?id=in.(${cronoIds.join(',')})&select=id,empresa,escopo`) || [];
+      const cs = await sb('GET',pcoComUnidade(`val_cronogramas?id=in.(${cronoIds.join(',')})&select=id,empresa,escopo`)) || [];
       cs.forEach(c=>cronoNames[c.id]=c.empresa+(c.escopo?(' · '+c.escopo):''));
     }
     // última revisão de cada contrato usado
     const revByCrono={};
     await Promise.all(cronoIds.map(async id=>{
-      const revs = await sb('GET',`val_revisoes?cronograma_id=eq.${id}&select=revisao,tarefas_json&order=revisao.desc&limit=1`);
+      const revs = await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${id}&select=revisao,tarefas_json&order=revisao.desc&limit=1`));
       if(revs && revs.length){
         let tj=revs[0].tarefas_json;
         if(typeof tj==='string') tj=JSON.parse(tj);
@@ -417,7 +419,7 @@ function buildRow(t){
 
 async function saveManualConcluido(key,val){
   try{
-    await sb('PATCH',`avanco_links?codigo_atividade=eq.${encodeURIComponent(key)}`,{manual_concluido:val,updated_at:new Date().toISOString()},'return=minimal');
+    await sb('PATCH',pcoComUnidade(`avanco_links?codigo_atividade=eq.${encodeURIComponent(key)}`),{manual_concluido:val,updated_at:new Date().toISOString()},'return=minimal');
     if(RESOLVED[key]) RESOLVED[key].concluido=val;
     toast('Salvo ✓','ok');
   }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
@@ -457,6 +459,7 @@ function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; 
   const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'';
   $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
   $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+  pcoRenderSwitcher('unidade-switcher');
   try{
     await loadVersoes();
   }catch(e){

@@ -72,6 +72,7 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
 .notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
 </style>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -91,6 +92,7 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
       <p class="subtitle">Desempenho semanal, curva S, avanço previsto × real e desvio acumulado por contrato</p>
     </div>
     <div class="user-bar">
+      <span id="unidade-switcher" style="margin-right:4px"></span>
       <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
         <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
         <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
@@ -191,7 +193,7 @@ function fmtD(d){if(!d)return '';const p=String(d).slice(0,10).split('-');return
 function cLabel(c){return (c.empresa||'')+(c.escopo?(' · '+c.escopo):'');}
 
 async function sb(method,path){
-  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN}});
+  const res=await fetch(SB_URL+'/rest/v1/'+pcoComUnidade(path),{method,headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN}});
   if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,160));}
   const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
 }
@@ -402,6 +404,7 @@ function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; 
   const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'';
   $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
   $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+  pcoRenderSwitcher('unidade-switcher');
   load();
 })();
 </script>

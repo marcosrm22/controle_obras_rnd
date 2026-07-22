@@ -333,6 +333,7 @@ table.mapa td.col-acoes{white-space:nowrap}
 .link-empty{padding:30px;text-align:center;color:var(--text-mute);font-size:12px}
 </style>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 </head>
 <body>
 <div class="page">
@@ -353,6 +354,7 @@ table.mapa td.col-acoes{white-space:nowrap}
       <p class="subtitle">Comparação entre revisões de cronogramas MS Project (XML) · análise automática de desvios, prazos e linha de base</p>
     </div>
     <div class="user-bar no-print" id="user-bar">
+      <span id="unidade-switcher" class="no-print" style="margin-right:4px"></span>
       <div class="user-chip">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
@@ -1387,15 +1389,15 @@ async function runAnalysis(){
     try{
       let q=`val_cronogramas?empresa=eq.${encodeURIComponent(emp)}&select=id`;
       q += escopo?`&escopo=eq.${encodeURIComponent(escopo)}`:`&escopo=is.null`;
-      const cr=await sb('GET',q);
+      const cr=await sb('GET',pcoComUnidade(q));
       if(cr.length){
         cronoId=cr[0].id;
         if(curRev){
           // base = revisão anterior mais recente (revisao < revisão atual do arquivo)
-          const prev=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=lt.${curRev}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`);
+          const prev=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&revisao=lt.${curRev}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`));
           if(prev.length){ baseN=prev[0].tarefas_json; baseCorte=prev[0].data_corte; baseRot=prev[0].rotulo||('REV'+String(prev[0].revisao).padStart(2,'0')); }
         }else{
-          const top=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`);
+          const top=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`));
           if(top.length){ baseN=top[0].tarefas_json; baseCorte=top[0].data_corte; baseRot=top[0].rotulo||('REV'+String(top[0].revisao).padStart(2,'0')); curRev=top[0].revisao+1; }
         }
       }
@@ -1484,15 +1486,15 @@ async function sbGetAll(path,pageSize){
 
 async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,mp,mc}){
   if(!cronoId){
-    const ins=await sb('POST','val_cronogramas',{empresa:emp,escopo:escopo||null,area:area||null,disciplina:disc||null,descricao:null});
+    const ins=await sb('POST','val_cronogramas',pcoComTag({empresa:emp,escopo:escopo||null,area:area||null,disciplina:disc||null,descricao:null}));
     cronoId=ins[0].id;
   }else{
     // atualiza só o que foi informado (não apaga o cadastro feito em Gestão de Contratos)
     const upd={}; if(area) upd.area=area; if(disc) upd.disciplina=disc;
-    if(Object.keys(upd).length) await sb('PATCH',`val_cronogramas?id=eq.${cronoId}`,upd);
+    if(Object.keys(upd).length) await sb('PATCH',pcoComUnidade(`val_cronogramas?id=eq.${cronoId}`),upd);
   }
   // se esta revisão já existe (reenvio), sobrescreve
-  await sb('DELETE',`val_revisoes?cronograma_id=eq.${cronoId}&revisao=eq.${revisao}`);
+  await sb('DELETE',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&revisao=eq.${revisao}`));
   const compact=currentAtualNorm.map(t=>{const {ext,...rest}=t; return rest;});  // descarta ext bruto, mantém E/F
   // O XML do MS Project costuma ser enorme (dados diários por tarefa). Só guardamos
   // o XML bruto se for pequeno; o tarefas_json normalizado já tem o necessário p/ o lookahead.
@@ -1500,7 +1502,7 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
   let xml = state.atualXML || null;
   let xmlNota = '';
   if(xml && xml.length > LIMITE_XML){ xmlNota = ' (XML de '+(xml.length/1048576).toFixed(1)+' MB não armazenado — usando só o resumo normalizado)'; xml = null; }
-  await sb('POST','val_revisoes',{
+  await sb('POST','val_revisoes',pcoComTag({
     cronograma_id:cronoId, revisao:revisao,
     rotulo:revLabel+' · '+fmtD(cut),
     nome_arquivo: (state.atualParsed&&state.atualParsed.fileName)||null,
@@ -1512,7 +1514,7 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
     tarefas_json:compact,
     mapeamento:{prev:mp, concl:mc, corte:cut},
     xml_raw: xml
-  });
+  }));
   if(xmlNota) log('Aviso'+xmlNota);
   return cronoId;
 }
@@ -1523,10 +1525,10 @@ const RETER_COMPLETO = 3;
 async function pruneOldRevisions(cronoId){
   if(!cronoId) return;
   try{
-    const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=id,revisao,detalhe_podado&order=revisao.desc`);
+    const revs=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&select=id,revisao,detalhe_podado&order=revisao.desc`));
     const antigas=revs.slice(RETER_COMPLETO).filter(r=>!r.detalhe_podado);
     for(const r of antigas){
-      await sb('PATCH',`val_revisoes?id=eq.${r.id}`,{tarefas_json:null, xml_raw:null, detalhe_podado:true});
+      await sb('PATCH',pcoComUnidade(`val_revisoes?id=eq.${r.id}`),{tarefas_json:null, xml_raw:null, detalhe_podado:true});
     }
     if(antigas.length) log('Retenção: '+antigas.length+' revisão(ões) antiga(s) reduzida(s) a indicadores.');
   }catch(e){ console.warn('poda falhou',e); }
@@ -1536,9 +1538,9 @@ let histCronos=[], histByC={};
 async function loadHistory(){
   const box=$('hist-content');
   try{
-    const cronos=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
+    const cronos=await sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc'));
     if(!cronos.length){ box.innerHTML='<div class="empty"><div class="big">📋</div>Nenhum cronograma no histórico ainda.<br>Suba uma revisão na aba <b>Nova Análise</b>.</div>'; histCronos=[];histByC={}; return; }
-    const revs=await sb('GET','val_revisoes?select=id,cronograma_id,revisao,rotulo,nome_arquivo,data_corte,total_tarefas,planejado,realizado,criado_em,eh_base&order=revisao.desc');
+    const revs=await sb('GET',pcoComUnidade('val_revisoes?select=id,cronograma_id,revisao,rotulo,nome_arquivo,data_corte,total_tarefas,planejado,realizado,criado_em,eh_base&order=revisao.desc'));
     const byC={}; revs.forEach(r=>{(byC[r.cronograma_id]=byC[r.cronograma_id]||[]).push(r);});
     histCronos=cronos; histByC=byC;
     const canEdit=CAN_UPLOAD;
@@ -1602,7 +1604,7 @@ async function saveContractEdit(){
   if(!emp){ toast('Empresa é obrigatória','err'); return; }
   const btn=$('mc-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
   try{
-    await sb('PATCH',`val_cronogramas?id=eq.${id}`,{empresa:emp, escopo:$('mc-esc').value.trim()||null,
+    await sb('PATCH',pcoComUnidade(`val_cronogramas?id=eq.${id}`),{empresa:emp, escopo:$('mc-esc').value.trim()||null,
       disciplina:$('mc-disc').value.trim()||null, area:$('mc-area').value.trim()||null});
     toast('Dados do contrato atualizados ✓','ok'); closeContractEdit(); loadHistory();
   }catch(err){
@@ -1614,7 +1616,7 @@ async function deleteContract(id){
   const c=findCrono(id); if(!c) return;
   const n=(histByC[id]||[]).length;
   if(!confirm(`Excluir o contrato "${c.empresa} · ${c.escopo||''}" e TODAS as suas ${n} revisão(ões)? Esta ação não pode ser desfeita.`)) return;
-  try{ await sb('DELETE',`val_cronogramas?id=eq.${id}`); toast('Contrato excluído ✓','ok'); loadHistory(); }
+  try{ await sb('DELETE',pcoComUnidade(`val_cronogramas?id=eq.${id}`)); toast('Contrato excluído ✓','ok'); loadHistory(); }
   catch(err){ toast('Erro ao excluir: '+err.message,'err'); }
 }
 
@@ -1634,14 +1636,14 @@ async function saveRevEdit(){
   const btn=$('mr-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
   try{
     const rotulo='REV'+String(rev).padStart(2,'0')+(corte?(' · '+fmtD(corte)):'');
-    await sb('PATCH',`val_revisoes?id=eq.${id}`,{revisao:rev, data_corte:corte, cronograma_id:cronoId, rotulo});
+    await sb('PATCH',pcoComUnidade(`val_revisoes?id=eq.${id}`),{revisao:rev, data_corte:corte, cronograma_id:cronoId, rotulo});
     toast('Revisão atualizada ✓','ok'); closeRevEdit(); loadHistory();
   }catch(err){ toast('Erro: '+err.message,'err'); }
   finally{ btn.disabled=false; btn.innerHTML=old; }
 }
 async function deleteRev(id,label){
   if(!confirm(`Excluir a revisão ${label}? Esta ação não pode ser desfeita.`)) return;
-  try{ await sb('DELETE',`val_revisoes?id=eq.${id}`); toast('Revisão excluída ✓','ok'); loadHistory(); }
+  try{ await sb('DELETE',pcoComUnidade(`val_revisoes?id=eq.${id}`)); toast('Revisão excluída ✓','ok'); loadHistory(); }
   catch(err){ toast('Erro ao excluir: '+err.message,'err'); }
 }
 
@@ -1651,8 +1653,8 @@ async function openComparison(cId,emp,area,escopo){
   toast('Carregando revisões…');
   try{
     const [b,a]=await Promise.all([
-      sb('GET',`val_revisoes?id=eq.${bId}&select=tarefas_json,rotulo,data_corte`),
-      sb('GET',`val_revisoes?id=eq.${aId}&select=tarefas_json,rotulo,data_corte`)
+      sb('GET',pcoComUnidade(`val_revisoes?id=eq.${bId}&select=tarefas_json,rotulo,data_corte`)),
+      sb('GET',pcoComUnidade(`val_revisoes?id=eq.${aId}&select=tarefas_json,rotulo,data_corte`))
     ]);
     const baseN=b[0].tarefas_json, atualN=a[0].tarefas_json, cut=a[0].data_corte;
     if(!atualN || !baseN){
@@ -1685,7 +1687,7 @@ function fillDL(id,vals){ const el=$(id); if(el) el.innerHTML=[...new Set(vals.f
 
 async function loadContratos(){
   try{
-    CONTRATOS=await sb('GET','val_cronogramas?select=*&order=empresa.asc');
+    CONTRATOS=await sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc'));
     fillDL('dl-empresas',CONTRATOS.map(c=>c.empresa));
     fillDL('dl-disciplinas',[...DISC_PADRAO,...CONTRATOS.map(c=>c.disciplina)]);
     fillDL('dl-areas',CONTRATOS.map(c=>c.area));
@@ -1738,6 +1740,7 @@ function readPerms(){
   const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'', perfil=sessionStorage.getItem('pco_perfil')||'viewer';
   $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
   $('user-nome').textContent=nome||email; $('user-email').textContent=email; $('user-role').textContent=perfil;
+  pcoRenderSwitcher('unidade-switcher');
   CAN_UPLOAD=readPerms();
   if(!CAN_UPLOAD){
     $('upload-block').style.display='none';
@@ -1923,7 +1926,7 @@ async function initMapaSemanal(){
 
 async function loadMapaMaster(){
   try{
-    const rows=await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc&limit=1');
+    const rows=await sb('GET',pcoComUnidade('cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc&limit=1'));
     if(!rows.length){
       $('mapa-master-notice').style.display='';
       $('mapa-master-notice').innerHTML='<b>Nenhum cronograma mestre encontrado na tabela <code>cronograma_analises</code>.</b> Isso não tem relação com o deploy do HTML — é preciso subir um XML pela tela <a href="analise_cronograma.html">Análise de Cronograma</a> pelo menos uma vez; é isso que grava o registro que esta tela lê.';
@@ -1988,7 +1991,7 @@ function atualizarDiagnosticoMestre(){
 
 async function loadMapaLinhas(){
   try{
-    MAPA_LINHAS=await sbGetAll('mapa_semanal_linhas?select=*&order=cwa.asc,empresa.asc');
+    MAPA_LINHAS=await sbGetAll(pcoComUnidade('mapa_semanal_linhas?select=*&order=cwa.asc,empresa.asc'));
     $('mapa-setup-notice').style.display='none';
   }catch(e){
     if(/relation .* does not exist|42P01|PGRST205/i.test(e.message)) $('mapa-setup-notice').style.display='';
@@ -2003,7 +2006,7 @@ async function loadMapaLinhas(){
    a lacuna, casando por UID. */
 async function loadMapaMetadados(){
   try{
-    const rows=await sbGetAll('mapa_metadados_uid?select=uid,empresa,cwa,disciplina,task_name&order=uid.asc');
+    const rows=await sbGetAll(pcoComUnidade('mapa_metadados_uid?select=uid,empresa,cwa,disciplina,task_name&order=uid.asc'));
     MAPA_METADADOS={};
     (rows||[]).forEach(r=>{ MAPA_METADADOS[String(r.uid)]={empresa:r.empresa,cwa:r.cwa,disciplina:r.disciplina,task_name:r.task_name}; });
   }catch(e){
@@ -2030,7 +2033,7 @@ async function sbUpsert(path,rows){
   const res=await fetch(SB_URL+'/rest/v1/'+path,{
     method:'POST',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-    body:JSON.stringify(rows)
+    body:JSON.stringify(pcoComTag(rows))
   });
   if(!res.ok){ const t=await res.text(); throw new Error(res.status+': '+t.slice(0,200)); }
 }
@@ -2147,7 +2150,7 @@ async function gerarLinhasMestre(){
     for(const g of toCreate){
       const disc=modaDe(g.discs);
       try{
-        await sb('POST','mapa_semanal_linhas',{cwa:g.cwa,empresa:g.empresa,disciplina:disc||null,fase:g.fase||null,is_manual:false,ativo:true});
+        await sb('POST','mapa_semanal_linhas',pcoComTag({cwa:g.cwa,empresa:g.empresa,disciplina:disc||null,fase:g.fase||null,is_manual:false,ativo:true}));
         ok++;
       }catch(e){ if(!/23505|duplicate/i.test(e.message)) console.warn('linha não criada',g,e.message); }
     }
@@ -2174,7 +2177,7 @@ async function refreshMapa(){
 
 async function loadRevPairForCronograma(cronoId){
   if(MAPA_REV_CACHE[cronoId]) return MAPA_REV_CACHE[cronoId];
-  const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=2`);
+  const revs=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=2`));
   const parsed=(revs||[]).map(r=>{
     let tj=r.tarefas_json; if(typeof tj==='string'){ try{tj=JSON.parse(tj);}catch(_){tj=null;} }
     const byUid={}; (tj||[]).forEach(t=>byUid[t.uid]=t);
@@ -2328,7 +2331,7 @@ async function saveManualMapaFields(id,tr){
     atualizado_em:new Date().toISOString()
   };
   try{
-    await sb('PATCH',`mapa_semanal_linhas?id=eq.${id}`,body);
+    await sb('PATCH',pcoComUnidade(`mapa_semanal_linhas?id=eq.${id}`),body);
     const l=MAPA_LINHAS.find(x=>x.id===id); if(l) Object.assign(l,body);
     toast('Salvo ✓','ok');
   }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
@@ -2338,7 +2341,7 @@ async function deleteMapaLinha(id){
   if(!CAN_UPLOAD){ toast('Sem permissão','err'); return; }
   if(!confirm('Excluir esta linha do Mapa Semanal?')) return;
   try{
-    await sb('DELETE',`mapa_semanal_linhas?id=eq.${id}`);
+    await sb('DELETE',pcoComUnidade(`mapa_semanal_linhas?id=eq.${id}`));
     MAPA_LINHAS=MAPA_LINHAS.filter(x=>x.id!==id);
     delete MAPA_RESOLVED[id];
     toast('Linha excluída ✓','ok');
@@ -2354,7 +2357,7 @@ async function removerAContratar(){
   if(!alvo.length){ toast('Nenhuma linha com Empresa "A CONTRATAR" encontrada no mapa','ok'); return; }
   if(!confirm(`Excluir ${alvo.length} linha(s) com Empresa "A CONTRATAR"? Essa ação não pode ser desfeita.`)) return;
   try{
-    await sb('DELETE','mapa_semanal_linhas?empresa=ilike.'+encodeURIComponent('a contratar'));
+    await sb('DELETE',pcoComUnidade('mapa_semanal_linhas?empresa=ilike.'+encodeURIComponent('a contratar')));
     const idsRemovidos=new Set(alvo.map(l=>l.id));
     MAPA_LINHAS=MAPA_LINHAS.filter(l=>!idsRemovidos.has(l.id));
     idsRemovidos.forEach(id=>delete MAPA_RESOLVED[id]);
@@ -2392,11 +2395,11 @@ async function saveManualRow(){
   const payload={cwa, empresa, disciplina:$('mn-disc').value.trim()||null, fase:$('mn-fase').value.trim()||null};
   try{
     if(editId){
-      await sb('PATCH',`mapa_semanal_linhas?id=eq.${editId}`,{...payload, atualizado_em:new Date().toISOString()});
+      await sb('PATCH',pcoComUnidade(`mapa_semanal_linhas?id=eq.${editId}`),{...payload, atualizado_em:new Date().toISOString()});
       const l=MAPA_LINHAS.find(x=>x.id===editId); if(l) Object.assign(l,payload);
       toast('Linha atualizada ✓','ok');
     }else{
-      await sb('POST','mapa_semanal_linhas',{...payload, is_manual:true});
+      await sb('POST','mapa_semanal_linhas',pcoComTag({...payload, is_manual:true}));
       toast('Linha adicionada ✓','ok');
     }
     closeAddManualRow();
@@ -2437,7 +2440,7 @@ async function onLinkCronogramaChange(){
   if(!cronoId){ $('lk-task-list').innerHTML='<div class="link-empty">Selecione um cronograma acima.</div>'; $('lk-search').disabled=true; $('lk-rev-info').textContent=''; return; }
   $('lk-task-list').innerHTML='<div class="link-empty">Carregando tarefas…</div>';
   try{
-    const revs=await sb('GET',`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`);
+    const revs=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`));
     if(!revs.length || !revs[0].tarefas_json){
       $('lk-task-list').innerHTML='<div class="link-empty">Esta revisão não tem detalhe de tarefas disponível (foi podado pela retenção, ou ainda não há revisão salva). Reenvie o XML em "Nova Análise" para reanalisar.</div>';
       $('lk-search').disabled=true; $('lk-rev-info').textContent=''; return;
@@ -2475,7 +2478,7 @@ async function chooseLinkTask(t){
   const linhaId=LINK_CTX.linhaId, cronogramaId=LINK_CTX.cronogramaId;
   if(!cronogramaId){ toast('Selecione um cronograma primeiro','err'); return; }
   try{
-    await sb('PATCH',`mapa_semanal_linhas?id=eq.${linhaId}`,{
+    await sb('PATCH',pcoComUnidade(`mapa_semanal_linhas?id=eq.${linhaId}`),{
       cronograma_id:cronogramaId, terceira_uid:String(t.uid), terceira_nome:t.name, terceira_wbs:t.wbs||null,
       is_manual:false, atualizado_em:new Date().toISOString()
     });
@@ -2491,7 +2494,7 @@ async function chooseLinkTask(t){
 async function unlinkRow(){
   const linhaId=LINK_CTX.linhaId;
   try{
-    await sb('PATCH',`mapa_semanal_linhas?id=eq.${linhaId}`,{cronograma_id:null, terceira_uid:null, terceira_nome:null, terceira_wbs:null, atualizado_em:new Date().toISOString()});
+    await sb('PATCH',pcoComUnidade(`mapa_semanal_linhas?id=eq.${linhaId}`),{cronograma_id:null, terceira_uid:null, terceira_nome:null, terceira_wbs:null, atualizado_em:new Date().toISOString()});
     const l=MAPA_LINHAS.find(x=>x.id===linhaId);
     if(l) Object.assign(l,{cronograma_id:null, terceira_uid:null, terceira_nome:null, terceira_wbs:null});
     toast('Vínculo removido ✓','ok');

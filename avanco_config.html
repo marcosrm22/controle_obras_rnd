@@ -91,6 +91,7 @@ td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text
 .toast.show{transform:translateX(-50%) translateY(0)}.toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}
 </style>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 </head>
 <body>
 <div class="page">
@@ -110,6 +111,7 @@ td.codigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text
       <p class="subtitle">Ligue cada tarefa do cronograma geral a uma tarefa-resumo do cronograma da terceira responsável. O vínculo é feito pelo <b>código da atividade</b> e sobrevive a novos uploads semanais.</p>
     </div>
     <div class="user-bar">
+      <span id="unidade-switcher" style="margin-right:4px"></span>
       <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
         <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
         <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
@@ -196,7 +198,7 @@ function linkKey(t){ return t.codigo && t.codigo.trim() ? t.codigo.trim() : ('ui
    CARGA
    ================================================================ */
 async function loadVersoes(){
-  VERSOES = await sb('GET','cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc') || [];
+  VERSOES = await sb('GET',pcoComUnidade('cronograma_analises?select=id,data_status,label,dados_json&order=data_status.desc')) || [];
   const sel=$('sel-versao');
   if(!VERSOES.length){ sel.innerHTML='<option value="">— nenhum cronograma geral enviado —</option>'; return; }
   sel.innerHTML = VERSOES.map(v=>`<option value="${v.data_status}">${esc(v.data_status)}${v.label?(' · '+esc(v.label)):''}</option>`).join('');
@@ -249,11 +251,11 @@ function renderFieldNotice(){
 }
 
 async function loadContratos(){
-  CONTRATOS = await sb('GET','val_cronogramas?select=id,empresa,escopo&order=empresa.asc') || [];
+  CONTRATOS = await sb('GET',pcoComUnidade('val_cronogramas?select=id,empresa,escopo&order=empresa.asc')) || [];
 }
 
 async function loadLinks(){
-  const rows = await sb('GET','avanco_links?select=*') || [];
+  const rows = await sb('GET',pcoComUnidade('avanco_links?select=*')) || [];
   LINKS={};
   rows.forEach(r=>LINKS[r.codigo_atividade]=r);
 }
@@ -403,7 +405,7 @@ function buildRow(t){
     if(!LINKS[key]) return;
     if(!confirm('Remover o vínculo/preenchimento desta tarefa?')) return;
     try{
-      await sb('DELETE',`avanco_links?codigo_atividade=eq.${encodeURIComponent(key)}`,null,'return=minimal');
+      await sb('DELETE',pcoComUnidade(`avanco_links?codigo_atividade=eq.${encodeURIComponent(key)}`),null,'return=minimal');
       delete LINKS[key];
       tr.querySelector('[data-role="manual"]').checked=false;
       tr.querySelector('[data-role="contrato"]').value='';
@@ -467,7 +469,7 @@ async function openPickModal(t, cronogramaId, tr){
   $('pick-list').innerHTML='<div class="empty">Carregando revisão mais recente…</div>';
   $('modal-pick').classList.add('visible');
   try{
-    const revs = await sb('GET',`val_revisoes?cronograma_id=eq.${cronogramaId}&select=id,revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`);
+    const revs = await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronogramaId}&select=id,revisao,rotulo,tarefas_json&order=revisao.desc&limit=1`));
     if(!revs || !revs.length || !revs[0].tarefas_json){
       $('pick-list').innerHTML='<div class="empty">Esta terceira ainda não tem nenhuma revisão salva na tela de Validação.</div>';
       return;
@@ -523,7 +525,7 @@ async function saveLink(t, patch){
   };
   delete payload.id; delete payload.created_at;
   try{
-    await sb('POST','avanco_links?on_conflict=codigo_atividade',payload,'resolution=merge-duplicates,return=representation');
+    await sb('POST','avanco_links?on_conflict=codigo_atividade',pcoComTag(payload),'resolution=merge-duplicates,return=representation');
     LINKS[key]={...(existing||{}),...payload};
   }catch(e){
     toast('Erro ao salvar: '+e.message,'err');
@@ -541,6 +543,7 @@ function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; 
   const nome=sessionStorage.getItem('pco_nome')||'', email=sessionStorage.getItem('pco_email')||'';
   $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
   $('user-nome').textContent=nome||email; $('user-email').textContent=email;
+  pcoRenderSwitcher('unidade-switcher');
 
   try{
     await loadContratos();
