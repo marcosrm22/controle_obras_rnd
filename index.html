@@ -531,6 +531,53 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- ANÁLISE DE CRONOGRAMAS -->
+    <a class="card gold" href="analise_cronograma.html" style="--gold-accent:#EAA239">
+      <div class="card-bar" style="background:linear-gradient(90deg,#EAA239,#f0c26b)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#fdf1de">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#b5791f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>
+            <path d="M7 13l3 3 6-6"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#b5791f">Planejamento · Cronograma</div>
+        <div class="card-title">Análise de Cronogramas</div>
+        <div class="card-desc">Compara versões do cronograma-base (linha de base × revisão atual), aponta atrasos, adiantamentos e indícios de avanço fictício por tarefa e por categoria.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Comparação de versões</span>
+          <span class="chip chip-gray">Regressões</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#b5791f">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- VALIDAÇÃO DE CRONOGRAMAS -->
+    <a class="card violet" href="validacao_cronogramas.html" style="--violet-accent:#6B4FA0">
+      <div class="card-bar" style="background:linear-gradient(90deg,#6B4FA0,#9678c4)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#efe9f7">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#6B4FA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#6B4FA0">Planejamento · Contratadas</div>
+        <div class="card-title">Validação de Cronogramas</div>
+        <div class="card-desc">Valida os cronogramas enviados pelas empresas contratadas contra o cronograma-mestre — status, datas de início/término e gera o relatório em PDF por revisão.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Por empresa</span>
+          <span class="chip chip-gray">Relatório PDF</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#6B4FA0">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
     <div class="card orange soon">
       <div class="soon-badge">Em breve</div>
@@ -759,6 +806,16 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
    SESSION GUARD — index.html
    ================================================================ */
 (function(){
+  // Rede de segurança: se o Supabase mandar o link de recuperação de senha
+  // para a raiz do site (em vez de redefinir_senha.html — por exemplo, se o
+  // "Site URL" configurado no Supabase ainda for a raiz), encaminha para a
+  // página certa preservando o token, em vez de deixar o guard de sessão
+  // abaixo jogar o usuário pro login e descartar o link.
+  if(window.location.hash.includes('type=recovery') && window.location.hash.includes('access_token')){
+    window.location.replace('redefinir_senha.html' + window.location.hash);
+    return;
+  }
+
   const token  = sessionStorage.getItem('pco_token');
   const nome   = sessionStorage.getItem('pco_nome')   || '';
   const email  = sessionStorage.getItem('pco_email')  || '';
