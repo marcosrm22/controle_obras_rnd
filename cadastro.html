@@ -98,6 +98,15 @@ html,body{
       </div>
 
       <div class="field">
+        <label>Unidade</label>
+        <select id="unidade">
+          <option value="RDN">Rondonópolis · MT</option>
+          <option value="RVD">Rio Verde · GO</option>
+          <option value="NMT">Nova Mutum · MT</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label>Cargo / Função</label>
         <input type="text" id="cargo" placeholder="Engenheiro de Obras"/>
       </div>
@@ -157,6 +166,7 @@ async function doCadastro(){
   hideMsg();
   const nome    = document.getElementById('nome').value.trim();
   const empresa = document.getElementById('empresa').value.trim();
+  const unidade = document.getElementById('unidade').value;
   const cargo   = document.getElementById('cargo').value.trim();
   const email   = document.getElementById('email').value.trim();
   const senha   = document.getElementById('senha').value;
@@ -216,6 +226,7 @@ async function doCadastro(){
         motivo:   motivo,
         status:   'pendente',
         perfil:   'viewer',
+        unidades_acesso: [unidade],
         permissoes: {
           drenagem:      false,
           terraplanagem: false,

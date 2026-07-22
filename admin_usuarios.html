@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 <style>
 :root{
   --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
@@ -165,6 +166,16 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
   width:14px;height:14px;cursor:pointer;accent-color:var(--blue);
 }
 .perm-item:has(input:checked){background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+
+.admin-matrix{width:100%;border-collapse:collapse;margin-top:6px;font-size:10px}
+.admin-matrix th{
+  text-align:center;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--text-mute);padding:6px 4px;border-bottom:1px solid var(--border);
+}
+.admin-matrix th:first-child{text-align:left}
+.admin-matrix td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--border)}
+.admin-matrix td:first-child{text-align:left;font-weight:600;color:var(--text-dim)}
+.admin-matrix input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--blue)}
 
 /* ── TOAST ── */
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -343,10 +354,6 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
         🏔 Terraplanagem
       </label>
       <label class="perm-item">
-        <input type="checkbox" id="perm-validar"/>
-        📊 Validar Cronogramas (subir XML)
-      </label>
-      <label class="perm-item">
         <input type="checkbox" id="perm-editar"/>
         ✏️ Pode acionar edição
       </label>
@@ -355,6 +362,33 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
         ⚙️ Painel de usuários
       </label>
     </div>
+
+    <div class="modal-section">
+      Unidades de acesso
+      <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-mute)">
+        · em quais unidades este usuário pode entrar e trocar
+      </span>
+    </div>
+    <div class="perm-grid" id="unidades-grid">
+      <label class="perm-item"><input type="checkbox" class="chk-unidade" value="RDN"/> 📍 Rondonópolis</label>
+      <label class="perm-item"><input type="checkbox" class="chk-unidade" value="RVD"/> 📍 Rio Verde</label>
+      <label class="perm-item"><input type="checkbox" class="chk-unidade" value="NMT"/> 📍 Nova Mutum</label>
+    </div>
+
+    <div class="modal-section">
+      Administrador de página, por unidade
+      <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-mute)">
+        · define em qual(is) unidade(s) o usuário administra cada página (só se aplica a perfil Editor/Viewer; Admin já administra tudo)
+      </span>
+    </div>
+    <table class="admin-matrix" id="admin-matrix">
+      <thead>
+        <tr>
+          <th>Página</th><th>RDN</th><th>RVD</th><th>NMT</th>
+        </tr>
+      </thead>
+      <tbody id="admin-matrix-body"></tbody>
+    </table>
 
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
@@ -448,7 +482,6 @@ function permLabel(p){
   const list = [];
   if(p?.drenagem)      list.push('<span style="color:var(--blue);font-weight:700">Drenagem</span>');
   if(p?.terraplanagem) list.push('<span style="color:var(--green);font-weight:700">Terra</span>');
-  if(p?.validar_cronogramas) list.push('<span style="color:#304F7E;font-weight:700">Validação</span>');
   if(p?.pode_editar)   list.push('<span style="color:var(--gold);font-weight:700">Edição</span>');
   if(p?.admin_panel)   list.push('<span style="color:var(--red);font-weight:700">Admin</span>');
   return list.length ? list.join(' · ') : '<span style="color:var(--text-mute)">—</span>';
@@ -594,6 +627,43 @@ async function updateUser(id, data){
 }
 
 /* ================================================================
+   MULTI-UNIDADE — páginas administráveis por unidade
+   ================================================================ */
+const PCO_PAGINAS = [
+  { chave:'drenagem',              nome:'🌊 Redes de Drenagem' },
+  { chave:'terraplanagem',         nome:'🏔 Terraplanagem' },
+  { chave:'bases_civis',           nome:'🧱 Bases Civis' },
+  { chave:'analise_cronograma',    nome:'📅 Análise de Cronogramas' },
+  { chave:'avanco_semanal',        nome:'📈 Avanço Semanal' },
+  { chave:'validacao_cronogramas', nome:'✅ Validação de Cronogramas' },
+  { chave:'dornas_fermentacao',    nome:'🛢 Dornas de Fermentação' },
+  { chave:'destilaria_fase1',      nome:'🏭 Destilaria Fase 1' },
+];
+const PCO_UNIDADES_CODIGOS = ['RDN','RVD','NMT'];
+
+function buildAdminMatrix(adminPaginas){
+  adminPaginas = adminPaginas || {};
+  const body = document.getElementById('admin-matrix-body');
+  body.innerHTML = PCO_PAGINAS.map(pg => {
+    const escopo = adminPaginas[pg.chave] || [];
+    const cells = PCO_UNIDADES_CODIGOS.map(cod =>
+      `<td><input type="checkbox" class="chk-admin-pagina" data-pagina="${pg.chave}" data-unidade="${cod}" ${escopo.includes(cod)?'checked':''}/></td>`
+    ).join('');
+    return `<tr><td>${pg.nome}</td>${cells}</tr>`;
+  }).join('');
+}
+
+function readAdminMatrix(){
+  const out = {};
+  document.querySelectorAll('.chk-admin-pagina:checked').forEach(chk=>{
+    const pagina = chk.dataset.pagina, unidade = chk.dataset.unidade;
+    if(!out[pagina]) out[pagina] = [];
+    out[pagina].push(unidade);
+  });
+  return out;
+}
+
+/* ================================================================
    EDIT MODAL
    ================================================================ */
 function openEdit(id){
@@ -606,9 +676,16 @@ function openEdit(id){
   const p = u.permissoes || {};
   document.getElementById('perm-drenagem').checked   = !!p.drenagem;
   document.getElementById('perm-terra').checked      = !!p.terraplanagem;
-  document.getElementById('perm-validar').checked    = !!p.validar_cronogramas;
   document.getElementById('perm-editar').checked     = !!p.pode_editar;
   document.getElementById('perm-admin-panel').checked= !!p.admin_panel;
+
+  const unidadesAcesso = Array.isArray(u.unidades_acesso) && u.unidades_acesso.length
+    ? u.unidades_acesso : ['RDN'];
+  document.querySelectorAll('.chk-unidade').forEach(chk=>{
+    chk.checked = unidadesAcesso.includes(chk.value);
+  });
+
+  buildAdminMatrix(p.admin_paginas);
   document.getElementById('modal-edit').classList.add('visible');
 }
 
@@ -618,12 +695,15 @@ async function saveUserEdit(){
   const permissoes = {
     drenagem:      document.getElementById('perm-drenagem').checked,
     terraplanagem: document.getElementById('perm-terra').checked,
-    validar_cronogramas: document.getElementById('perm-validar').checked,
     pode_editar:   document.getElementById('perm-editar').checked,
     admin_panel:   document.getElementById('perm-admin-panel').checked,
+    admin_paginas: readAdminMatrix(),
   };
+  const unidades_acesso = Array.from(document.querySelectorAll('.chk-unidade:checked')).map(chk=>chk.value);
+
   await updateUser(editingId, {
     status, perfil, permissoes,
+    unidades_acesso: unidades_acesso.length ? unidades_acesso : ['RDN'],
     atualizado_em: new Date().toISOString(),
   });
   closeModal();

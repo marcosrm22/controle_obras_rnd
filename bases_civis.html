@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 <style>
 :root{
   --bg:#f4f5f7;--bg-2:#fff;--panel:#fff;--border:#d8dde4;--border-2:#c1c9d3;
@@ -144,6 +145,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;
     <h1>Controle de Bases Civis <span>· Resumo Geral</span></h1>
   </div>
   <div class="header-right">
+    <span id="unidade-switcher"></span>
     <a href="index.html" class="btn btn-secondary">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 8H2M5 5l-3 3 3 3"/><path d="M8 3h5v10H8"/></svg>
       Dashboard
@@ -294,12 +296,14 @@ if(!sessionStorage.getItem('pco_token') && !SB_KEY){
    SB HELPER
    ================================================================ */
 async function sbGet(path){
-  const res = await fetch(SB_URL+'/rest/v1/'+path,{
+  const res = await fetch(SB_URL+'/rest/v1/'+pcoComUnidade(path),{
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+TOKEN}
   });
   const text = await res.text();
   try{ return JSON.parse(text) }catch(_){ return [] }
 }
+
+document.addEventListener('DOMContentLoaded', ()=>pcoRenderSwitcher('unidade-switcher'));
 
 /* ================================================================
    LOAD DATA

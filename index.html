@@ -282,6 +282,7 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
 
 </style>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 </head>
 <body>
 <div class="page">
@@ -294,6 +295,7 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       <p class="subtitle">Ferramentas visuais de controle de execução · integradas ao Supabase</p>
     </div>
     <div class="user-bar" id="user-bar">
+      <span id="unidade-switcher"></span>
       <div class="user-chip">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
@@ -530,114 +532,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     </a>
 
     <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
-    <!-- ANÁLISE DE CRONOGRAMA -->
-    <a class="card" href="analise_cronograma.html" style="--card-accent:#304F7E">
-      <div class="card-bar" style="background:linear-gradient(90deg,#172943,#304F7E)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="color:#304F7E">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/>
-            <path d="M7 16l4-4 4 4 4-8"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Cronograma Executivo</div>
-        <div class="card-title">Análise de Cronograma</div>
-        <div class="card-desc">Upload do XML do MS Project, detecção automática de atrasos, estagnações, antecipações e suspeitas de apontamento. Histórico por data de status.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Fase 1</span>
-          <span class="chip chip-blue">Fase 2</span>
-          <span class="chip chip-gray">CPA</span>
-          <span class="chip chip-gray">Desvios</span>
-        </div>
-      </div>
-      <div class="card-kpis" id="cron-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="cron-versoes">—</div>
-          <div class="card-kpi-label">Versões salvas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="cron-ultima">—</div>
-          <div class="card-kpi-label">Última análise</div>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir análise</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- VALIDAÇÃO DOS CRONOGRAMAS DAS TERCEIRAS -->
-    <a class="card" href="validacao_cronogramas.html" style="--card-accent:#2F6F7E">
-      <div class="card-bar" style="background:linear-gradient(90deg,#1c4a52,#2F6F7E)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="color:#2F6F7E">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="16" rx="2"/>
-            <path d="M3 9h18"/><path d="M8 14l2 2 4-4"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Validação de Terceiras</div>
-        <div class="card-title">Validação dos Cronogramas</div>
-        <div class="card-desc">Upload do XML da revisão da terceira, comparação automática com a revisão anterior, painel de indicadores, relatório em PDF e base de tarefas para o lookahead.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">XML · MS Project</span>
-          <span class="chip chip-orange">Desvios &gt;5%</span>
-          <span class="chip chip-gray">PDF</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir validação</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- GESTÃO DE CONTRATOS -->
-    <a class="card green" href="gestao_contratos.html">
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/>
-            <path d="M9 15l2 2 4-4"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Terceiras</div>
-        <div class="card-title">Gestão de Contratos</div>
-        <div class="card-desc">Cadastro dos contratos: número, vigência, escopo, disciplina e responsáveis. Alimenta o reconhecimento automático no upload de cronogramas.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Contratos</span>
-          <span class="chip chip-gray">Vigência</span>
-          <span class="chip chip-gray">Responsáveis</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <a class="card blue" href="avanco_semanal.html">
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>
-          </svg>
-        </div>
-        <div class="card-tag">Planejamento · Avanço</div>
-        <div class="card-title">Avanço Semanal</div>
-        <div class="card-desc">Tabela de todas as tarefas do cronograma geral com o % concluído puxado automaticamente dos cronogramas das terceiras vinculados, ou preenchido manualmente. Exporta para Excel.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Vínculos</span>
-          <span class="chip chip-gray">Excel</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
     <div class="card orange soon">
       <div class="soon-badge">Em breve</div>
       <div class="card-bar"></div>
@@ -697,6 +591,24 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   }
 
   async function sbGet(path){
+    const res = await fetch(SB_URL + '/rest/v1/' + pcoComUnidade(path), {
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + TOKEN,
+        'Prefer': 'count=exact',
+      }
+    });
+    const text = await res.text();
+    const count = res.headers.get('content-range')
+      ? parseInt(res.headers.get('content-range').split('/')[1]) : null;
+    let data;
+    try{ data = JSON.parse(text) } catch(_){ data = [] }
+    return { data: Array.isArray(data) ? data : [], count };
+  }
+
+  // pco_usuarios é uma tabela global (não tem coluna "unidade"; um
+  // usuário pode ter acesso a várias unidades), então não filtramos.
+  async function sbGetGlobal(path){
     const res = await fetch(SB_URL + '/rest/v1/' + path, {
       headers:{
         'apikey': SB_KEY,
@@ -784,7 +696,7 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     const adminCard = document.getElementById('card-admin');
     if(!adminCard || adminCard.style.display === 'none') return;
     try{
-      const { data } = await sbGet('pco_usuarios?select=id,status');
+      const { data } = await sbGetGlobal('pco_usuarios?select=id,status');
       const total  = data.length;
       const ativos = data.filter(u=>u.status==='ativo').length;
       const pend   = data.filter(u=>u.status==='pendente').length;
@@ -832,25 +744,11 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
-  /* ── ANÁLISE DE CRONOGRAMA ── */
-  async function loadCronograma(){
-    try{
-      const res = await fetch(SB_URL + '/rest/v1/cronograma_analises?select=data_status&order=data_status.desc', {
-        headers:{ 'apikey': SB_KEY, 'Authorization': 'Bearer '+TOKEN, 'Prefer':'count=exact' }
-      });
-      const count = parseInt(res.headers.get('content-range')?.split('/')[1]) || 0;
-      const rows  = await res.json().catch(()=>[]);
-      setEl('cron-versoes', fmt(count));
-      setEl('cron-ultima', rows[0] ? rows[0].data_status : '—');
-    }catch(_){}
-  }
-
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
     loadBasesCivis();
-    loadCronograma();
     setTimeout(loadAdmin, 300);
   });
 })();
@@ -872,6 +770,16 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     window.location.href = 'login.html';
     return;
   }
+
+  // Sessões antigas (criadas antes do multi-unidade) não têm pco_unidade
+  // salvo ainda: assume Rondonópolis como padrão.
+  if(!sessionStorage.getItem('pco_unidade')){
+    sessionStorage.setItem('pco_unidade', 'RDN');
+  }
+  if(!sessionStorage.getItem('pco_unidades_acesso')){
+    sessionStorage.setItem('pco_unidades_acesso', JSON.stringify(['RDN']));
+  }
+  pcoRenderSwitcher('unidade-switcher');
 
   // Populate user bar
   const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
