@@ -564,6 +564,7 @@ table.mapa td.col-acoes{white-space:nowrap}
 
     <div class="mapa-toolbar no-print">
       <input id="mapa-search" placeholder="🔎 CWA ou empresa…" style="min-width:220px" oninput="renderMapa()">
+      <select id="mapa-f-periodo" onchange="onMapaPeriodoChange()" style="font-weight:700" title="Filtra o mapa pela semana desejada (padrão Supria, quarta→terça). Cada linha mostra o par de revisões daquela semana específica do contrato dela."></select>
       <select id="mapa-f-disc" onchange="renderMapa()"><option value="">Todas as disciplinas</option></select>
       <select id="mapa-f-status" onchange="renderMapa()">
         <option value="">Todas as origens</option>
@@ -747,7 +748,14 @@ function dchildText(node,tag){
    ================================================================ */
 function parseXML(text){
   const doc = new DOMParser().parseFromString(text,'application/xml');
-  if(doc.querySelector('parsererror')) throw new Error('XML inválido / corrompido.');
+  const perr = doc.querySelector('parsererror');
+  if(perr){
+    // O texto que o próprio navegador devolve normalmente já diz a linha/coluna
+    // e o motivo (tag não fechada, caractere inválido, etc.) — antes isso era
+    // descartado e só aparecia "XML inválido / corrompido", sem detalhe nenhum.
+    const detalhe = (perr.textContent||'').replace(/\s+/g,' ').trim().slice(0,400);
+    throw new Error('XML inválido / corrompido.'+(detalhe?' Detalhe do navegador: '+detalhe:''));
+  }
   const root = doc.documentElement;
 
   const statusDate = dOnly(dchildText(root,'StatusDate')) || dOnly(dchildText(root,'CurrentDate'));
@@ -1307,10 +1315,23 @@ function parseFilename(name){
 }
 function readFile(which,file){
   if(!/\.xml$/i.test(file.name)){ toast('Selecione um arquivo .xml','err'); return; }
-  clearLog(); log('Lendo: '+file.name+' ('+(file.size/1024).toFixed(0)+' KB)…');
+  clearLog();
+  const sizeMB = file.size/1024/1024;
+  log('Lendo: '+file.name+' ('+(file.size/1024).toFixed(0)+' KB)…');
+  if(sizeMB > 150){
+    log('  ⚠ Arquivo grande ('+sizeMB.toFixed(0)+' MB) — o navegador pode demorar ou até travar ao processar. '
+      + 'Se o MS Project foi exportado com dados de "timephased" (fases de tempo), tente reexportar sem esse detalhe: costuma reduzir o arquivo drasticamente sem perder nada que esta tela usa.');
+  }
   const rd=new FileReader();
+  rd.onerror=()=>{
+    log('  ✗ ERRO: falha ao ler o arquivo no navegador ('+(rd.error?.message||rd.error?.name||'motivo desconhecido')+'). '
+      + 'Costuma acontecer com arquivos muito grandes (memória do navegador). Tente fechar outras abas, ou reexportar o XML sem timephased.');
+    toast('Erro ao ler o arquivo — veja o log','err');
+  };
   rd.onload=()=>{
     try{
+      const lidos = (rd.result||'').length;
+      log('  Arquivo lido: '+lidos.toLocaleString('pt-BR')+' caracteres. Analisando XML…');
       const parsed=parseXML(rd.result);
       parsed.fileName=file.name;
       state.atualParsed=parsed;
@@ -1323,7 +1344,22 @@ function readFile(which,file){
         (parsed.statusDate?` · corte detectado <span class="pill">${fmtD(parsed.statusDate)}</span>`:'');
       log('  → '+parsed.rawTasks.length+' tarefas, '+parsed.fields.length+' campos personalizados.');
       onAfterLoad();
-    }catch(err){ log('  ✗ ERRO: '+err.message); toast('Erro ao ler XML: '+err.message,'err'); }
+    }catch(err){
+      log('  ✗ ERRO: '+err.message);
+      log('  (Tamanho do arquivo: '+(file.size/1024/1024).toFixed(1)+' MB · '+(rd.result?.length||0).toLocaleString('pt-BR')+' caracteres lidos pelo navegador.)');
+      // se o navegador não conseguiu nem montar o parsererror com detalhe, mostra
+      // o começo e o fim do texto lido — geralmente aponta se foi cortado no meio
+      if(rd.result){
+        const ini=rd.result.slice(0,120).replace(/\s+/g,' ');
+        const fim=rd.result.slice(-120).replace(/\s+/g,' ');
+        log('  Início do arquivo: '+ini);
+        log('  Final do arquivo: '+fim);
+        if(!/<\/Project>\s*$/i.test(rd.result.trim())){
+          log('  ⚠ O arquivo não termina com &lt;/Project&gt; — é um forte indício de que o download/exportação foi cortado antes de terminar. Tente exportar de novo do MS Project.');
+        }
+      }
+      toast('Erro ao ler XML: '+err.message,'err');
+    }
   };
   rd.readAsText(file,'UTF-8');
 }
@@ -1803,6 +1839,7 @@ const MAPA_INSTRUCOES=[
 
 let MAPA_LOADED=false;
 let MAPA_TASKS=[], MAPA_LINHAS=[], MAPA_RESOLVED={}, MAPA_REV_CACHE={}, MAPA_META={}, MAPA_SNAPSHOT=null, MAPA_METADADOS={};
+let MAPA_SEMANA_ATUAL=null; // null = "mais recente" (comportamento padrão); ou "AAAA-SS" de uma semana específica
 let LINK_CTX={linhaId:null,cronogramaId:null,tasks:[],chosenUid:null,chosenNome:null,chosenWbs:null};
 
 /* D.tarefasGerais (cronograma mestre) não guarda um campo "fase" — só o WBS/OutlineNumber
@@ -2167,6 +2204,7 @@ async function refreshMapa(){
   try{
     const cronoIds=[...new Set(MAPA_LINHAS.filter(l=>!l.is_manual && l.cronograma_id).map(l=>l.cronograma_id))];
     await Promise.all(cronoIds.map(id=>loadRevPairForCronograma(id)));
+    buildMapaPeriodoOptions();
     MAPA_RESOLVED={};
     MAPA_LINHAS.forEach(l=>{ MAPA_RESOLVED[l.id]=resolveLinha(l); });
     buildMapaFilters();
@@ -2177,7 +2215,9 @@ async function refreshMapa(){
 
 async function loadRevPairForCronograma(cronoId){
   if(MAPA_REV_CACHE[cronoId]) return MAPA_REV_CACHE[cronoId];
-  const revs=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=2`));
+  // Busca um histórico maior (não só as 2 últimas) pra permitir escolher
+  // uma semana específica no seletor de período, não só a mais recente.
+  const revs=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=20`));
   const parsed=(revs||[]).map(r=>{
     let tj=r.tarefas_json; if(typeof tj==='string'){ try{tj=JSON.parse(tj);}catch(_){tj=null;} }
     const byUid={}; (tj||[]).forEach(t=>byUid[t.uid]=t);
@@ -2187,26 +2227,138 @@ async function loadRevPairForCronograma(cronoId){
   return parsed;
 }
 
-function periodoLabel(deIso,ateIso){
-  if(!deIso||!ateIso) return '';
-  const de=addDays(deIso,1);
-  const p1=de.split('-'), p2=ateIso.split('-');
-  return p1[2]+'/'+p1[1]+' - '+p2[2]+'/'+p2[1];
+/* ================================================================
+   Semana no padrão Supria (quarta-feira → terça-feira)
+   ================================================================
+   No Supria a semana sempre fecha quarta→terça. Nos nossos dados a
+   data de corte varia por empresa (algumas fecham quarta→terça igual
+   ao Supria, outras fecham quinta→quarta — 1 dia depois). Por isso,
+   antes de calcular a semana, "encaixamos" a data de fim no padrão
+   quarta→terça, jogando 1 dia pra frente ou pra trás conforme o caso. */
+function snapToSupriaTuesday(iso){
+  const d=new Date(iso+'T00:00:00');
+  const wd=d.getDay(); // 0=dom,1=seg,2=ter,3=qua,4=qui,5=sex,6=sab
+  let shift=0;
+  if(wd===3) shift=-1;        // corte na quarta (padrão quinta→quarta) → volta 1 dia p/ terça
+  else if(wd===1) shift=1;    // corte na segunda → avança 1 dia p/ terça
+  else if(wd!==2) shift=2-wd; // qualquer outro caso: encaixa na terça mais próxima
+  d.setDate(d.getDate()+shift);
+  return d.toISOString().slice(0,10);
 }
+
+/* 1ª quarta-feira do ano = início da semana 01 no padrão Supria */
+function supriaWeekStart(ano){
+  const jan1=new Date(ano,0,1);
+  const wd=jan1.getDay();
+  const add=(3-wd+7)%7;
+  const start=new Date(ano,0,1+add);
+  return start;
+}
+
+/* dado o FIM já encaixado (terça-feira), devolve {ano,semana} no padrão Supria */
+function supriaWeekInfo(ateIsoSnap){
+  const fim=new Date(ateIsoSnap+'T00:00:00');
+  const inicio=new Date(fim); inicio.setDate(inicio.getDate()-6); // quarta da mesma semana
+  let ano=inicio.getFullYear();
+  let base=supriaWeekStart(ano);
+  if(inicio<base){ ano-=1; base=supriaWeekStart(ano); }
+  const diffDias=Math.round((inicio-base)/86400000);
+  const semana=Math.floor(diffDias/7)+1;
+  return {ano, semana};
+}
+
+/* Monta as duas versões do período:
+   - display: "AAAA-SS (DD/MM/AAAA - DD/MM/AAAA)" → mostrado na tela
+   - semanaAno: "AAAA-SS" → usado na exportação p/ Excel (padrão Supria) */
+function periodoLabel(deIso,ateIso){
+  if(!deIso||!ateIso) return {display:'', semanaAno:''};
+  const de=addDays(deIso,1);
+  const ateSnap=snapToSupriaTuesday(ateIso);
+  const {ano,semana}=supriaWeekInfo(ateSnap);
+  const semanaAno=ano+'-'+String(semana).padStart(2,'0');
+  const p1=de.split('-'), p2=ateIso.split('-');
+  const display=semanaAno+' ('+p1[2]+'/'+p1[1]+'/'+p1[0]+' - '+p2[2]+'/'+p2[1]+'/'+p2[0]+')';
+  return {display, semanaAno};
+}
+
+/* Caminho inverso: dado "AAAA-SS", devolve o intervalo canônico quarta→terça
+   daquela semana (independe de qualquer contrato específico) — usado pra
+   montar o rótulo do seletor de período, igual ao do Supria. */
+function semanaAnoParaIntervalo(semanaAno){
+  const [anoStr,semStr]=semanaAno.split('-');
+  const ano=Number(anoStr), semana=Number(semStr);
+  const base=supriaWeekStart(ano);
+  const start=new Date(base); start.setDate(start.getDate()+(semana-1)*7);
+  const end=new Date(start); end.setDate(end.getDate()+6);
+  const fmt=d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  return semanaAno+' ('+fmt(start)+' - '+fmt(end)+')';
+}
+
+/* Acha, no histórico de revisões de um cronograma, o par (atual,anterior)
+   cuja semana (padrão Supria) bate com a semanaAno pedida. */
+function pickPairForSemana(cronoId,semanaAno){
+  const revs=MAPA_REV_CACHE[cronoId]||[];
+  for(let i=0;i<revs.length-1;i++){
+    const atual=revs[i], anterior=revs[i+1];
+    if(!atual.hasDetail||!anterior.hasDetail) continue;
+    const info=periodoLabel(anterior.data_corte, atual.data_corte);
+    if(info.semanaAno===semanaAno) return [atual,anterior];
+  }
+  return null;
+}
+
+/* Monta a lista de semanas disponíveis no seletor, a partir de todas as
+   combinações (atual,anterior) já carregadas em cache para os contratos
+   vinculados — assim só aparecem semanas que têm dado real em algum lugar. */
+function buildMapaPeriodoOptions(){
+  const cronoIds=[...new Set(MAPA_LINHAS.filter(l=>!l.is_manual && l.cronograma_id).map(l=>l.cronograma_id))];
+  const set=new Set();
+  cronoIds.forEach(id=>{
+    const revs=MAPA_REV_CACHE[id]||[];
+    for(let i=0;i<revs.length-1;i++){
+      const atual=revs[i], anterior=revs[i+1];
+      if(!atual.hasDetail||!anterior.hasDetail) continue;
+      const info=periodoLabel(anterior.data_corte, atual.data_corte);
+      if(info.semanaAno) set.add(info.semanaAno);
+    }
+  });
+  const semanas=[...set].sort().reverse(); // desc: mais recente primeiro
+  const sel=$('mapa-f-periodo');
+  const manterSelecionada=semanas.includes(MAPA_SEMANA_ATUAL);
+  sel.innerHTML='<option value="">Mais recente (padrão)</option>'
+    + semanas.map(s=>`<option value="${s}">${esc(semanaAnoParaIntervalo(s))}</option>`).join('');
+  sel.value = manterSelecionada ? MAPA_SEMANA_ATUAL : '';
+  if(!manterSelecionada) MAPA_SEMANA_ATUAL=null;
+}
+
+function onMapaPeriodoChange(){
+  MAPA_SEMANA_ATUAL=$('mapa-f-periodo').value||null;
+  MAPA_RESOLVED={};
+  MAPA_LINHAS.forEach(l=>{ MAPA_RESOLVED[l.id]=resolveLinha(l); });
+  renderMapa();
+}
+
 
 function resolveLinha(l){
   if(l.is_manual){
     return {fonte:'manual', previsto:l.manual_previsto, realizado:l.manual_realizado,
       desempSemana:l.manual_desemp_semana, realizadoSemana:l.manual_realizado_semana,
-      periodo:l.periodo_manual||'', linkLabel:'Manual'};
+      periodo:{display:l.periodo_manual||'', semanaAno:l.periodo_manual||''}, linkLabel:'Manual'};
   }
   if(!l.cronograma_id || !l.terceira_uid) return {fonte:'pendente'};
   const pair=MAPA_REV_CACHE[l.cronograma_id]||[];
-  const atual=pair[0], anterior=pair[1];
+  let atual, anterior;
+  if(MAPA_SEMANA_ATUAL){
+    const achado=pickPairForSemana(l.cronograma_id, MAPA_SEMANA_ATUAL);
+    if(!achado) return {fonte:'pendente', motivo:'Este contrato não tem revisão para a semana selecionada.'};
+    [atual,anterior]=achado;
+  } else {
+    atual=pair[0]; anterior=pair[1];
+  }
   if(!atual || !atual.hasDetail) return {fonte:'orfa', motivo:'Sem detalhe de tarefas nesta revisão (retenção) — reenvie o XML em "Nova Análise" para reanalisar.'};
   const tA=atual.byUid[l.terceira_uid];
   if(!tA) return {fonte:'orfa', motivo:'A tarefa vinculada não foi encontrada na revisão mais recente — pode ter sido excluída/recriada no cronograma da terceira. Revise o vínculo.'};
-  let desempSemana=null, realizadoSemana=null, periodo='';
+  let desempSemana=null, realizadoSemana=null, periodo={display:'',semanaAno:''};
   if(anterior && anterior.hasDetail){
     const tB=anterior.byUid[l.terceira_uid];
     if(tB){
@@ -2281,14 +2433,14 @@ function buildMapaRow(l){
 
   if(l.is_manual){
     vinculoHtml=`<button class="mapa-link-btn" onclick="openLinkModal('${l.id}')">✍ Manual — vincular</button>`;
-    periodoHtml=`<input class="mapa-manual-input" style="width:96px" data-role="periodo" value="${esc(l.periodo_manual||'')}" placeholder="DD/MM - DD/MM">`;
+    periodoHtml=`<input class="mapa-manual-input" style="width:150px" data-role="periodo" value="${esc(l.periodo_manual||'')}" placeholder="AAAA-SS">`;
     prevHtml=`<input class="mapa-manual-input" data-role="previsto" type="number" step="0.01" value="${l.manual_previsto??''}">`;
     realHtml=`<input class="mapa-manual-input" data-role="realizado" type="number" step="0.01" value="${l.manual_realizado??''}">`;
     dsHtml=`<input class="mapa-manual-input" data-role="desemp" type="number" step="0.01" value="${l.manual_desemp_semana??''}">`;
     rsHtml=`<input class="mapa-manual-input" data-role="realsemana" type="number" step="0.01" value="${l.manual_realizado_semana??''}">`;
   }else if(r.fonte==='auto'){
     vinculoHtml=`<button class="mapa-link-btn linked" onclick="openLinkModal('${l.id}')" title="${esc(r.linkLabel||'')}">🔗 ${esc(r.linkLabel||'vinculado')}</button>`;
-    periodoHtml=`<span class="small">${esc(r.periodo||'—')}</span>`;
+    periodoHtml=`<span class="small">${esc(r.periodo?.display||'—')}</span>`;
     prevHtml=fmtNum(r.previsto,1); realHtml=fmtNum(r.realizado,1);
     dsHtml=r.desempSemana==null?'—':fmtNum(r.desempSemana,1); rsHtml=r.realizadoSemana==null?'—':fmtNum(r.realizadoSemana,1);
   }else if(r.fonte==='orfa'){
@@ -2512,7 +2664,7 @@ function exportMapaExcel(){
     const r=MAPA_RESOLVED[l.id]||{};
     const num=v=>(v==null||isNaN(v))?'':Math.round(v*100)/100;
     return {
-      'Período': r.periodo||l.periodo_manual||'',
+      'Período': r.periodo?.semanaAno||l.periodo_manual||'',
       'Executante': l.empresa||'',
       'Disciplina': l.disciplina||'',
       'Ilha de Produção': l.cwa||'',
