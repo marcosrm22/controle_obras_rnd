@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Análise de Cronograma · PCO Digital</title>
 <script src="config.js"></script>
+<script src="unidade.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -164,9 +165,10 @@ footer{max-width:1320px;margin:0 auto;padding:18px 24px 40px;color:var(--muted);
   <a class="brand" href="index.html">
     <div class="mark">IN</div>
     <div><div style="font-family:var(--disp);font-weight:600;font-size:17px">PCO Digital</div>
-    <div class="sub">INPASA · RDN</div></div>
+    <div class="sub">INPASA · <span id="unidade-nome">RDN</span></div></div>
   </a>
   <span class="spacer"></span>
+  <span id="unidade-switcher" style="margin-right:6px"></span>
   <span class="sync-pill"><span class="sync-dot" id="sync-dot"></span><span id="sync-msg">Pronto</span></span>
   <a class="back-btn" href="index.html">← Início</a>
 </div>
@@ -253,6 +255,9 @@ async function sbFetch(path, opts={}){
 ════════════════════════ */
 (function(){
   if(!sessionStorage.getItem('pco_token')){ window.location.href='login.html'; return; }
+  const un=document.getElementById('unidade-nome');
+  if(un) un.textContent=pcoUnidadeInfo().nome;
+  pcoRenderSwitcher('unidade-switcher');
   loadVersionList();
 })();
 
@@ -261,7 +266,7 @@ async function sbFetch(path, opts={}){
 ════════════════════════ */
 async function loadVersionList(){
   try{
-    const rows = await sbFetch(TABLE+'?select=id,data_status,label,created_at&order=data_status.desc');
+    const rows = await sbFetch(pcoComUnidade(TABLE+'?select=id,data_status,label,created_at&order=data_status.desc'));
     const sel = document.getElementById('sel-versao');
     sel.innerHTML = '<option value="">— selecione ou carregue XML —</option>';
     if(rows && rows.length){
@@ -283,7 +288,7 @@ async function loadVersion(dataStatus){
   if(!dataStatus) return;
   setSyncStatus('Carregando…','saving');
   try{
-    const rows = await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(dataStatus)+'&select=*&limit=1');
+    const rows = await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(dataStatus)+'&select=*&limit=1'));
     if(!rows||!rows.length){ toast('Versão não encontrada',true); setSyncStatus('Pronto'); return; }
     const row = rows[0];
     const D = JSON.parse(row.dados_json);
@@ -309,7 +314,7 @@ async function deleteVersion(){
   if(!confirm('Excluir versão "'+status+'"? Esta ação não pode ser desfeita.')) return;
   setSyncStatus('Excluindo…','saving');
   try{
-    await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(status), {method:'DELETE',prefer:'return=minimal'});
+    await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(status)), {method:'DELETE',prefer:'return=minimal'});
     toast('Versão excluída');
     document.getElementById('analysis-view').style.display='none';
     document.getElementById('upload-zone').style.display='';
@@ -358,14 +363,14 @@ async function handleXmlUpload(input){
       toast('Campo(s) não detectado(s) automaticamente: '+faltando.join(', ')+'. Preencha manualmente na tela de Configuração do Avanço.', true);
     }
     setProgress(65,'Salvando no banco…');
-    const existing = await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(D.meta.data_status)+'&select=id');
+    const existing = await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(D.meta.data_status)+'&select=id'));
     const now = new Date().toISOString();
     const payload = { data_status:D.meta.data_status, label:D.meta.label, dados_json:JSON.stringify(D), updated_at:now };
     if(existing && existing.length){
-      await sbFetch(TABLE+'?data_status=eq.'+encodeURIComponent(D.meta.data_status), {method:'PATCH',prefer:'return=minimal',body:payload});
+      await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(D.meta.data_status)), {method:'PATCH',prefer:'return=minimal',body:payload});
       toast('Versão '+D.meta.data_status+' atualizada (sobrescrita)');
     } else {
-      await sbFetch(TABLE, {method:'POST',prefer:'return=minimal',body:{...payload,created_at:now}});
+      await sbFetch(TABLE, {method:'POST',prefer:'return=minimal',body:pcoComTag({...payload,created_at:now})});
       toast('Versão '+D.meta.data_status+' salva');
     }
     setProgress(95,'Renderizando…');
@@ -788,7 +793,7 @@ footer{max-width:1320px;margin:0 auto;padding:18px 26px 40px;color:var(--muted);
   <div class="top-row">
     <div class="brand"><div class="mark">IN</div>
     <div><h1>Análise de Performance · Cronograma Executivo</h1>
-    <div class="sub">Rondonópolis · Fase 1 &amp; Fase 2 · ${D.meta.data_status}${D.meta.label?' · '+D.meta.label:''}</div></div></div>
+    <div class="sub">${pcoUnidadeInfo().nome} · Fase 1 &amp; Fase 2 · ${D.meta.data_status}${D.meta.label?' · '+D.meta.label:''}</div></div></div>
     <div class="cut"><span class="chip">${D.meta.data_status}</span></div>
   </div>
 </header>
