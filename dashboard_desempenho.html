@@ -70,10 +70,17 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
 .notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
 .notice.warn{border-left-color:var(--gold);background:#FEF3C7;color:#7c4a00}
 .notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+/* botões de exportação */
+.mini-btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.4px;padding:8px 14px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.mini-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
+.mini-btn:disabled{opacity:.5;cursor:not-allowed}
+.mini-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+.mini-btn.gold:hover{filter:brightness(.95);background:var(--gold)}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="page">
@@ -137,6 +144,9 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
     <div class="fbar">
       <select id="sel-semana" onchange="renderSemana()"></select>
       <span id="semana-resumo" class="week-sum"></span>
+      <span style="flex:1"></span>
+      <button class="mini-btn" id="btn-semana-pdf" onclick="exportSemanaPDF()" title="Gera um PDF (via impressão do navegador) da tabela da semana selecionada">🖨️ PDF</button>
+      <button class="mini-btn gold" id="btn-semana-xls" onclick="exportSemanaExcel()" title="Exporta a tabela da semana selecionada para Excel">⬇ Excel</button>
     </div>
     <div class="chart-card full" style="padding:0;margin-bottom:16px">
       <div class="tbl-wrap">
@@ -299,6 +309,7 @@ function renderEvolucao(){
 
 /* ---------- Acompanhamento da semana ---------- */
 let SEMANAS=[];
+let SEMANA_STATE=null;   // guarda o que está na tabela agora (para exportar PDF/Excel)
 function buildSemanas(){
   const set=new Set();
   Object.values(byC).forEach(arr=>arr.forEach(r=>{ if(r.data_corte) set.add(String(r.data_corte).slice(0,10)); }));
@@ -336,12 +347,138 @@ function renderSemana(){
   const totalC=cronos.filter(c=>(byC[c.id]||[]).length).length;
   const desv=linhas.map(l=>l.r.desvio).filter(v=>v!=null&&!isNaN(v));
   const media=desv.length?desv.reduce((a,b)=>a+b,0)/desv.length:null;
+  SEMANA_STATE={wk, linhas, pendentes, totalC, media};   // usado pelas exportações
   $('semana-resumo').innerHTML=`<b>${linhas.length}</b> de <b>${totalC}</b> escopos atualizados`+
     (media!=null?` &nbsp;·&nbsp; desvio médio <b class="${clsNum(media)}">${nf(media,2)}</b>`:'');
   $('pendentes-box').innerHTML = pendentes.length
     ? `<div class="pend-card"><div class="pend-title">⏳ Aguardando atualização nesta semana (${pendentes.length})</div>
         <div class="pend-list">${pendentes.map(c=>`<span class="pend-item">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')}</div></div>`
     : `<div class="pend-card" style="border-left-color:var(--green)"><div class="pend-title" style="color:var(--green)">✓ Todos os escopos já atualizaram nesta semana</div></div>`;
+}
+
+/* ---------- Exportações do Acompanhamento da semana ---------- */
+function _semanaUnidade(){
+  return (window.pcoUnidadeInfo ? pcoUnidadeInfo().nome : '') ||
+         (window.pcoUnidadeAtual ? pcoUnidadeAtual() : '');
+}
+function _semanaLabel(wk){ return wk ? ('Semana de '+fmtDFull(wk)) : '—'; }
+
+/* Exporta a tabela da semana selecionada para Excel (SheetJS) */
+function exportSemanaExcel(){
+  const st=SEMANA_STATE;
+  if(!st||!st.linhas||!st.linhas.length){ alert('Nenhum escopo atualizado nesta semana para exportar.'); return; }
+  if(typeof XLSX==='undefined'){ alert('Biblioteca de Excel (SheetJS) não carregou — verifique a conexão.'); return; }
+  const uni=_semanaUnidade();
+  const num=v=>(v!=null&&!isNaN(v))?Number(v):null;
+
+  const header=['Empresa','Escopo','Disciplina','Revisão','% Previsto','% Concluído','Desvio acum.','Avanço prev.','Avanço real','Desemp. semana'];
+  const rows=st.linhas.map(({c,r})=>({
+    'Empresa':c.empresa||'', 'Escopo':c.escopo||'', 'Disciplina':c.disciplina||'',
+    'Revisão':(r.revisao!=null?Number(r.revisao):''),
+    '% Previsto':num(r.prev), '% Concluído':num(r.real), 'Desvio acum.':num(r.desvio),
+    'Avanço prev.':num(r.aPrev), 'Avanço real':num(r.aReal), 'Desemp. semana':num(r.desemp)
+  }));
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(rows,{header});
+  ws['!cols']=[{wch:26},{wch:16},{wch:16},{wch:9},{wch:11},{wch:12},{wch:13},{wch:13},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws,'Acompanhamento');
+
+  const resumo=[
+    ['Acompanhamento da semana · escopos atualizados'],
+    ['Unidade', uni||'—'],
+    ['Semana', _semanaLabel(st.wk)],
+    ['Escopos atualizados', st.linhas.length],
+    ['Total de contratos', st.totalC],
+    ['Desvio médio', (st.media!=null?Number(st.media.toFixed(2)):'—')],
+    ['Gerado em', new Date().toLocaleString('pt-BR')]
+  ];
+  if(st.pendentes&&st.pendentes.length){
+    resumo.push([]); resumo.push(['Aguardando atualização nesta semana ('+st.pendentes.length+')']);
+    st.pendentes.forEach(c=>resumo.push([(c.empresa||'')+(c.escopo?(' · '+c.escopo):'')]));
+  }
+  const wsR=XLSX.utils.aoa_to_sheet(resumo); wsR['!cols']=[{wch:36},{wch:26}];
+  XLSX.utils.book_append_sheet(wb,wsR,'Resumo');
+
+  const uTag=(uni||'PCO').replace(/\s+/g,'_');
+  XLSX.writeFile(wb,`Acompanhamento_Semana_${uTag}_${(st.wk||new Date().toISOString().slice(0,10))}.xlsx`);
+}
+
+/* Gera um PDF da tabela da semana via janela de impressão do navegador */
+function exportSemanaPDF(){
+  const st=SEMANA_STATE;
+  if(!st||!st.linhas||!st.linhas.length){ alert('Nenhum escopo atualizado nesta semana para exportar.'); return; }
+  const uni=_semanaUnidade();
+  const col=v=>(v==null||isNaN(v))?'':(v<0?'#C0392B':(v>0?'#2e7d32':''));
+
+  const body=st.linhas.map(({c,r})=>`<tr>
+    <td class="emp">${esc(c.empresa)}<span class="esc"> · ${esc(c.escopo||'—')}</span></td>
+    <td>${esc(c.disciplina||'—')}</td>
+    <td class="rev">REV ${String(r.revisao).padStart(2,'0')}</td>
+    <td class="num">${nf(r.prev,2)}</td>
+    <td class="num">${nf(r.real,2)}</td>
+    <td class="num" style="color:${col(r.desvio)};font-weight:700">${nf(r.desvio,2)}</td>
+    <td class="num">${nf(r.aPrev,2)}</td>
+    <td class="num">${nf(r.aReal,2)}</td>
+    <td class="num" style="color:${col(r.desemp)};font-weight:700">${nf(r.desemp,2)}</td>
+  </tr>`).join('');
+
+  const resumo=`<b>${st.linhas.length}</b> de <b>${st.totalC}</b> escopos atualizados`+
+    (st.media!=null?` &nbsp;·&nbsp; desvio médio <b style="color:${col(st.media)}">${nf(st.media,2)}</b>`:'');
+
+  const pend=(st.pendentes&&st.pendentes.length)
+    ? `<div class="pend"><div class="pend-t">Aguardando atualização nesta semana (${st.pendentes.length})</div>`+
+      st.pendentes.map(c=>`<span class="pill">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')+`</div>`
+    : `<div class="pend ok">✓ Todos os escopos já atualizaram nesta semana</div>`;
+
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Acompanhamento da semana · ${esc(uni||'PCO')}</title>
+  <style>
+    @page{size:A4 landscape;margin:12mm}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Montserrat',system-ui,Arial,sans-serif;color:#1a2332;font-size:11px}
+    .hd{border-bottom:3px solid #304F7E;padding-bottom:10px;margin-bottom:12px}
+    .eyebrow{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#304F7E;font-weight:700}
+    h1{font-size:16px;font-weight:800;margin-top:3px}
+    .meta{font-size:10px;color:#546175;margin-top:5px}.meta b{color:#1a2332}
+    .resumo{font-size:11px;margin:8px 0 12px;font-family:monospace;color:#546175}
+    table{width:100%;border-collapse:collapse}
+    th{background:#304F7E;color:#fff;font-size:8px;letter-spacing:.4px;text-transform:uppercase;padding:6px 8px;text-align:left}
+    th.num{text-align:right}
+    td{padding:5px 8px;border-bottom:1px solid #e6e9ee;white-space:nowrap}
+    td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .emp{font-weight:700}.esc{color:#8a95a6;font-weight:600}
+    .rev{font-family:monospace;font-size:9px;color:#546175}
+    tr:nth-child(even) td{background:#f7f9fc}
+    .pend{margin-top:14px;border-left:3px solid #EAA239;background:#FEF3C7;padding:9px 12px;page-break-inside:avoid}
+    .pend.ok{border-left-color:#2e7d32;background:#e8efe1;color:#2e7d32;font-weight:600}
+    .pend-t{font-size:10px;font-weight:800;text-transform:uppercase;color:#7c4a00;margin-bottom:6px}
+    .pill{display:inline-block;font-size:10px;background:#fff;border:1px solid #f0c87a;color:#7c4a00;padding:2px 8px;margin:0 5px 5px 0}
+    .ft{margin-top:16px;font-size:8px;color:#8a95a6;text-align:right}
+    thead{display:table-header-group}
+  </style></head><body>
+    <div class="hd">
+      <div class="eyebrow">PCO · Planejamento &amp; Controle · Terceiras</div>
+      <h1>Acompanhamento da semana · escopos atualizados</h1>
+      <div class="meta"><b>Unidade:</b> ${esc(uni||'—')} &nbsp;&nbsp;·&nbsp;&nbsp; <b>${esc(_semanaLabel(st.wk))}</b></div>
+    </div>
+    <div class="resumo">${resumo}</div>
+    <table><thead><tr>
+      <th>Empresa · Escopo</th><th>Disciplina</th><th>Rev.</th>
+      <th class="num">% Prev</th><th class="num">% Concl</th><th class="num">Desvio acum.</th>
+      <th class="num">Avanço prev.</th><th class="num">Avanço real</th><th class="num">Desemp. semana</th>
+    </tr></thead><tbody>${body}</tbody></table>
+    ${pend}
+    <div class="ft">Gerado em ${new Date().toLocaleString('pt-BR')} · PCO Digital</div>
+  </body></html>`;
+
+  const w=window.open('','_blank');
+  if(!w){ alert('Permita pop-ups neste site para gerar o PDF.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  let printed=false;
+  const doPrint=()=>{ if(printed)return; printed=true; try{ w.focus(); w.print(); }catch(_){} };
+  w.onload=doPrint;
+  setTimeout(doPrint,500);
 }
 
 function destroy(k){ if(charts[k]){ charts[k].destroy(); delete charts[k]; } }
