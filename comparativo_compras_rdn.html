@@ -521,12 +521,17 @@ function renderSources(){
   let html=WORKS.map(w=>{const d=DATA.works[w],m=meta[w];return `<div class="src ${m.cls}"><div class="r1"><span class="nm">${d.label}</span><span class="ph">prefixos ${d.ph.join(' · ')} — ${m.tag}</span></div><div class="st">${Object.keys(d.q).length.toLocaleString('pt-BR')} materiais · ${d.rows.toLocaleString('pt-BR')} linhas nas fases</div><label>↑ Substituir lista de solicitações (.xls)<input type="file" accept=".xls,.xlsx" data-w="${w}"></label></div>`;}).join('');
   const nt=DATA.tracker?DATA.tracker.items.length:0;
   html+=`<div class="src trk"><div class="r1"><span class="nm">Tracker de compras</span><span class="ph">recebimento — Rondonópolis</span></div><div class="st">${nt.toLocaleString('pt-BR')} registros (categoria×item) · ${DATA.tracker?DATA.tracker.gerado:'—'}</div><label>↑ Substituir tracker (.xlsx)<input type="file" accept=".xlsx,.xls" data-trk="1"></label></div>`;
-  const nl=DATA.mapping?DATA.mapping.lists.length:0, naplus=DATA.mapping?DATA.mapping.lists.reduce((s,L)=>s+L.items.length,0):0;
-  html+=`<div class="src" style="border-left:3px solid var(--warn)"><div class="r1"><span class="nm">Listas de material (Aplus)</span><span class="ph">mapeamento áreas / line numbers</span></div><div class="st">${nl} lista(s) · ${naplus.toLocaleString('pt-BR')} itens mapeados</div><label>↑ Adicionar / atualizar listas (.xls) — pode selecionar várias<input type="file" accept=".xls,.xlsx" data-aplus="1" multiple></label></div>`;
+  const allLists=DATA.mapping?DATA.mapping.lists:[];
+  const lAplus=allLists.filter(L=>L.src!=='PACS'), lPacs=allLists.filter(L=>L.src==='PACS');
+  const nA=lAplus.length, nAit=lAplus.reduce((s,L)=>s+L.items.length,0);
+  const nP=lPacs.length, nPit=lPacs.reduce((s,L)=>s+L.items.length,0);
+  html+=`<div class="src" style="border-left:3px solid var(--warn)"><div class="r1"><span class="nm">Listas de material (Aplus)</span><span class="ph">mapeamento áreas / line numbers</span></div><div class="st">${nA} lista(s) · ${nAit.toLocaleString('pt-BR')} itens mapeados</div><label>↑ Adicionar / atualizar listas (.xls) — pode selecionar várias<input type="file" accept=".xls,.xlsx" data-aplus="1" multiple></label></div>`;
+  html+=`<div class="src" style="border-left:3px solid var(--trans)"><div class="r1"><span class="nm">Listas de material (VIA PACS)</span><span class="ph">layout PACS — cód. material direto, line number e área</span></div><div class="st">${nP} lista(s) · ${nPit.toLocaleString('pt-BR')} itens mapeados</div><label>↑ Adicionar / atualizar listas (.xls) — pode selecionar várias<input type="file" accept=".xls,.xlsx" data-pacs="1" multiple></label></div>`;
   document.getElementById('sources').innerHTML=html;
   document.querySelectorAll('.src input[data-w]').forEach(inp=>inp.onchange=onUploadList);
   const ti=document.querySelector('.src input[data-trk]');if(ti)ti.onchange=onUploadTracker;
   const ap=document.querySelector('.src input[data-aplus]');if(ap)ap.onchange=onUploadAplus;
+  const pc=document.querySelector('.src input[data-pacs]');if(pc)pc.onchange=onUploadPacs;
 }
 
 /* ===== upload listas de solicitação ===== */
@@ -611,7 +616,7 @@ function buildMapping(){
   if(!DATA.mapping)return;
   const cs=codStatusMap(); const areaMap=new Map(); const mapped=new Set();
   DATA.mapping.lists.forEach(L=>{
-    MAP.lists.push({tag:L.tag,rev:L.rev,nome:L.nome||L.cat||L.tag,n:L.items.length,resolv:L.items.filter(x=>x[1]).length});
+    MAP.lists.push({tag:L.tag,rev:L.rev,nome:L.nome||L.cat||L.tag,src:L.src||'APLUS',n:L.items.length,resolv:L.items.filter(x=>x[1]).length});
     L.items.forEach(it=>{
       const [ic,cod,desc,bit,qtd,peso,ln,area]=it;
       if(cod)mapped.add(cod);
@@ -667,10 +672,10 @@ function renderMapaCobertura(){
 }
 function renderMapaListas(){
   document.getElementById('grpRow').innerHTML='';
-  document.getElementById('headRow').innerHTML=`<th class="colh">TAG documento</th><th class="colh">Nome / categoria</th><th class="colh num">Revisão</th><th class="colh num">Itens</th><th class="colh num">Cód. resolvidos</th><th class="colh"></th>`;
+  document.getElementById('headRow').innerHTML=`<th class="colh">TAG documento</th><th class="colh">Nome / categoria</th><th class="colh">Origem</th><th class="colh num">Revisão</th><th class="colh num">Itens</th><th class="colh num">Cód. resolvidos</th><th class="colh"></th>`;
   const body=document.getElementById('body');
-  if(!MAP.lists.length){body.innerHTML=`<tr><td colspan="6" class="empty">Nenhuma lista carregada. Suba listas da Aplus em Fontes.</td></tr>`;return MAP.lists;}
-  body.innerHTML=MAP.lists.map((L,i)=>`<tr><td class="pj-code">${esc(L.tag)}</td><td>${esc(L.nome)}</td><td class="numc">rev ${esc(L.rev)}</td><td class="numc">${L.n}</td><td class="numc">${L.resolv} (${Math.round(L.resolv/L.n*100)}%)</td><td style="text-align:right"><button class="btn" data-rm="${i}">Remover</button></td></tr>`).join('');
+  if(!MAP.lists.length){body.innerHTML=`<tr><td colspan="7" class="empty">Nenhuma lista carregada. Suba listas da Aplus ou VIA PACS em Fontes.</td></tr>`;return MAP.lists;}
+  body.innerHTML=MAP.lists.map((L,i)=>`<tr><td class="pj-code">${esc(L.tag)}</td><td>${esc(L.nome)}</td><td><span class="badge ${L.src==='PACS'?'b-tra':'b-parc'}">${L.src==='PACS'?'VIA PACS':'Aplus'}</span></td><td class="numc">rev ${esc(L.rev)}</td><td class="numc">${L.n}</td><td class="numc">${L.resolv} (${Math.round(L.resolv/L.n*100)}%)</td><td style="text-align:right"><button class="btn" data-rm="${i}">Remover</button></td></tr>`).join('');
   body.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{DATA.mapping.lists.splice(+b.dataset.rm,1);buildMapping();render();toast('Lista removida');});
   return MAP.lists;
 }
@@ -713,6 +718,87 @@ async function onUploadAplus(e){
   buildMapping();render();renderSources();
   if(erros.length)console.warn('Listas ignoradas:',erros);
   toast(`${ok} lista(s) carregada(s)${fail?`, ${fail} ignorada(s)`:''} · ${tot.toLocaleString('pt-BR')} itens`);
+  e.target.value='';
+}
+
+/* ===== Listas VIA PACS =====
+   Layout: metadados nas primeiras linhas (chave/valor em colunas C/D:
+   TAG DOCUMENTO, TAG DOCUMENTO ON7, CATEGORIA, DESCRIÇÃO, PROJETO,
+   EMISSÃO, REVISÃO ATUAL...). Cabeçalho dos itens: COD | REFERÊNCIA
+   ENGENHARIA | DESCRIÇÃO MATERIAL | BITOLA (=unidade) | QTD | COMP(mm) |
+   QUANTIDADE IMPORTAÇÃO | LINE NUMBER | PESO(kg) | ÁREA | DATA PREVISTA |
+   REV PLT. Diferenças p/ Aplus: COD já é o Cód. Material (sem lookup
+   i2c) e a quantidade consolidada fica em QUANTIDADE IMPORTAÇÃO. */
+function normHdr(s){return deacc(s).replace(/\s+/g,' ').trim();}
+function parsePacsFile(file){
+  return new Promise(resolve=>{
+    const rd=new FileReader();
+    rd.onload=ev=>{try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      const aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      let hr=-1;
+      for(let i=0;i<Math.min(aoa.length,40);i++){
+        const row=aoa[i].map(normHdr);
+        if(row.some(c=>c==='COD')&&row.some(c=>c.includes('LINE NUMBER'))&&row.some(c=>c.includes('REFERENCIA'))){hr=i;break;}
+      }
+      if(hr<0){resolve({err:'cabeçalho PACS não encontrado (COD / REFERÊNCIA / LINE NUMBER)',name:file.name});return;}
+      const H=aoa[hr].map(normHdr);
+      const colEq=v=>H.findIndex(c=>c===v);
+      const colIn=sub=>H.findIndex(c=>c.includes(sub));
+      const iCod=colEq('COD'), iRef=colIn('REFERENCIA'), iDesc=colIn('DESCRICAO MATERIAL')>=0?colIn('DESCRICAO MATERIAL'):colIn('DESCRI');
+      const iBit=colIn('BITOLA'), iQtd=colEq('QTD'), iComp=colIn('COMP');
+      const iQtdImp=colIn('QUANTIDADE IMPORTACAO');
+      const iLn=colIn('LINE NUMBER'), iPeso=colIn('PESO'), iAr=colIn('AREA');
+      /* metadados: varre linhas acima do cabeçalho procurando par chave/valor
+         em qualquer coluna (no PACS ficam nas colunas C/D) */
+      let tag='',rev='',cat='',nomeDesc='';
+      for(let i=0;i<hr;i++){
+        const r=aoa[i]; let ki=-1;
+        for(let j=0;j<r.length;j++){if(String(r[j]).trim()!==''){ki=j;break;}}
+        if(ki<0)continue;
+        const k=normHdr(r[ki]); let v='';
+        for(let j=ki+1;j<r.length;j++){if(String(r[j]).trim()!==''){v=String(r[j]).trim();break;}}
+        if(k==='TAG DOCUMENTO')tag=v;
+        else if(k==='CATEGORIA')cat=v;
+        else if(k==='DESCRICAO')nomeDesc=v;
+        else if(k.startsWith('REVISAO'))rev=v;
+      }
+      rev=String(rev).replace(/\.0+$/,'');
+      if(!rev){const m=file.name.match(/REV[\s_-]*(\d+)/i);if(m)rev=m[1];}
+      if(!tag)tag=file.name.replace(/\.[^.]+$/,'');
+      const items=[];
+      for(let i=hr+1;i<aoa.length;i++){
+        const r=aoa[i];
+        const cod=parseInt(r[iCod]); if(isNaN(cod))continue;
+        const ic=String(iRef>=0?r[iRef]:'').trim();
+        let qtd=toNum(iQtdImp>=0?r[iQtdImp]:'');
+        if(!qtd)qtd=toNum(iQtd>=0?r[iQtd]:'')||toNum(iComp>=0?r[iComp]:'');
+        const desc=String(iDesc>=0?r[iDesc]:'').trim();
+        items.push([ic,cod,desc.slice(0,80),String(iBit>=0?r[iBit]:'').trim(),qtd,toNum(iPeso>=0?r[iPeso]:0),String(iLn>=0?r[iLn]:'').trim(),String(iAr>=0?r[iAr]:'').trim()]);
+        const cs=String(cod);
+        if(!DATA.mat[cs]&&desc)DATA.mat[cs]={d:desc,u:String(iBit>=0?r[iBit]:'').trim(),i:ic};
+      }
+      if(!items.length){resolve({err:'nenhum item',name:file.name});return;}
+      resolve({tag,rev,cat,nome:nomeDesc||cat||tag,items});
+    }catch(err){console.error(err);resolve({err:'ilegível',name:file.name});}};
+    rd.readAsArrayBuffer(file);
+  });
+}
+async function onUploadPacs(e){
+  const files=[...e.target.files]; if(!files.length)return;
+  DATA.mapping=DATA.mapping||{lists:[],gerado:''};
+  let ok=0,fail=0,tot=0; const erros=[];
+  for(const file of files){
+    const res=await parsePacsFile(file);
+    if(res.err){fail++;erros.push(`${res.name}: ${res.err}`);continue;}
+    DATA.mapping.lists=DATA.mapping.lists.filter(L=>L.tag!==res.tag);
+    DATA.mapping.lists.push({tag:res.tag,rev:res.rev,cat:res.cat,nome:res.nome,items:res.items,src:'PACS'});
+    ok++; tot+=res.items.length;
+  }
+  DATA.mapping.gerado=new Date().toLocaleDateString('pt-BR');
+  buildMapping();render();renderSources();
+  if(erros.length)console.warn('Listas PACS ignoradas:',erros);
+  toast(`${ok} lista(s) PACS carregada(s)${fail?`, ${fail} ignorada(s)`:''} · ${tot.toLocaleString('pt-BR')} itens`);
   e.target.value='';
 }
 
