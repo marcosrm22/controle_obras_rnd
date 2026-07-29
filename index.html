@@ -578,6 +578,30 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- COMPARATIVO DE COMPRAS (por unidade) -->
+    <a class="card steel" href="#" id="card-compras" style="--steel-accent:#1F4E6B">
+      <div class="card-bar" style="background:linear-gradient(90deg,#1F4E6B,#4d7d9e)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e7f0f5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1F4E6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/>
+            <path d="M2.5 3h3l2.6 12.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 8H6.1"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#1F4E6B">Suprimentos · Compras</div>
+        <div class="card-title">Comparativo de Compras</div>
+        <div class="card-desc" id="compras-desc">Compara as listas de material e quantidades compradas entre unidades de referência, com rastreamento por categoria, projeto e disciplina.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Listas de material</span>
+          <span class="chip chip-gray">Gaps de compra</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#1F4E6B" id="compras-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
     <div class="card orange soon">
       <div class="soon-badge">Em breve</div>
@@ -837,6 +861,27 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     sessionStorage.setItem('pco_unidades_acesso', JSON.stringify(['RDN']));
   }
   pcoRenderSwitcher('unidade-switcher');
+
+  // ---- Comparativo de Compras: página específica por unidade ----
+  // Ao criar a versão de outra unidade, basta adicionar aqui:
+  //   RVD: 'comparativo_compras_rvd.html', NMT: 'comparativo_compras_nmt.html'
+  const COMPRAS_PAGES = {
+    RDN: 'comparativo_compras_rdn.html',
+  };
+  (function(){
+    const card = document.getElementById('card-compras');
+    if(!card) return;
+    const un   = sessionStorage.getItem('pco_unidade') || 'RDN';
+    const page = COMPRAS_PAGES[un];
+    if(page){
+      card.setAttribute('href', page);
+    }else{
+      card.removeAttribute('href');
+      card.classList.add('soon');
+      const cta = document.getElementById('compras-cta');
+      if(cta) cta.textContent = 'Em breve para esta unidade';
+    }
+  })();
 
   // Populate user bar
   const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
