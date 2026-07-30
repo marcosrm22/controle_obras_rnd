@@ -638,14 +638,16 @@ function buildMapping(){
 function mBar(A){const n=A.n||1;const seg=(cls,v)=>v?`<span class="${cls}" style="width:${(v/n*100).toFixed(1)}%"></span>`:'';return `<span class="pbar" title="recebido ${A.rec} · parcial ${A.parc} · pendente ${A.pend} · não comprado ${A.nao}">${seg('s-r',A.rec)}${seg('s-p',A.parc)}${seg('s-t',A.pend)}${seg('s-n',A.nao)}</span>`;}
 function renderMapaArea(){
   document.getElementById('grpRow').innerHTML='';
-  document.getElementById('headRow').innerHTML=`<th class="colh" style="width:30px"></th><th class="colh">Área</th><th class="colh num">Line numbers</th><th class="colh num">Itens</th><th class="colh num">Peso (kg)</th><th class="colh num">Situação de compra</th>`;
+  document.getElementById('headRow').innerHTML=`<th class="colh" style="width:30px"></th><th class="colh">Área</th><th class="colh num">Line numbers</th><th class="colh num">Itens</th><th class="colh num">Recebidos</th><th class="colh num">Parciais</th><th class="colh num">Pendentes</th><th class="colh num">Peso (kg)</th><th class="colh num">Situação de compra</th>`;
   const q=state.q.trim().toLowerCase();
   let areas=MAP.areas.slice();
   if(q)areas=areas.map(A=>({...A,items:A.items.filter(x=>String(x.cod).includes(q)||(x.desc||'').toLowerCase().includes(q)||(x.ln||'').toLowerCase().includes(q)||(x.ic||'').toLowerCase().includes(q)||A.area.toLowerCase().includes(q))})).filter(A=>A.area.toLowerCase().includes(q)||A.items.length);
+  /* recomputa contadores a partir dos itens (garante consistência com filtro) */
+  areas=areas.map(A=>{const c={rec:0,parc:0,pend:0,nao:0};A.items.forEach(x=>c[x.sit]++);return{...A,...c,n:A.items.length,nLn:new Set(A.items.map(x=>x.ln)).size};});
   areas.sort((a,b)=>b.n-a.n);
   const body=document.getElementById('body');
-  if(!areas.length){body.innerHTML=`<tr><td colspan="6" class="empty">Nenhuma lista de mapeamento carregada. Vá em <b>Fontes / atualizar</b> e suba uma lista da Aplus (.xls).</td></tr>`;return areas;}
-  body.innerHTML=areas.map((A,i)=>`<tr class="exp" data-i="${i}"><td style="text-align:center;color:var(--ink3)">▸</td><td class="cat-name">${esc(A.area)}</td><td class="numc">${A.nLn}</td><td class="numc">${A.n}</td><td class="numc">${A.peso?Math.round(A.peso).toLocaleString('pt-BR'):''}</td><td class="numc">${mBar(A)}</td></tr>`).join('');
+  if(!areas.length){body.innerHTML=`<tr><td colspan="9" class="empty">Nenhuma lista de mapeamento carregada. Vá em <b>Fontes / atualizar</b> e suba uma lista da Aplus ou VIA PACS (.xls).</td></tr>`;return areas;}
+  body.innerHTML=areas.map((A,i)=>{const pendTot=A.pend+A.nao;return `<tr class="exp" data-i="${i}"><td style="text-align:center;color:var(--ink3)">▸</td><td class="cat-name">${esc(A.area)}</td><td class="numc">${A.nLn}</td><td class="numc">${A.n}</td><td class="numc" style="color:var(--on);font-weight:600">${A.rec||''}</td><td class="numc" style="color:var(--warn);font-weight:600">${A.parc||''}</td><td class="numc" style="color:var(--gap);font-weight:600" title="${A.pend} pendente(s) de entrega · ${A.nao} não comprado(s)">${pendTot||''}</td><td class="numc">${A.peso?Math.round(A.peso).toLocaleString('pt-BR'):''}</td><td class="numc">${mBar(A)}</td></tr>`;}).join('');
   body.querySelectorAll('tr.exp').forEach(tr=>tr.onclick=()=>toggleArea(tr,areas[+tr.dataset.i]));
   return areas;
 }
@@ -657,7 +659,7 @@ function toggleArea(tr,A){
   const items=A.items.slice().sort((a,b)=>(rank[a.sit]-rank[b.sit])||String(a.ln).localeCompare(String(b.ln)));
   const rows=items.slice(0,800).map(x=>`<tr><td class="it-cod">${esc(x.ln)}</td><td class="mono" style="color:var(--ink3)">${esc(x.ic)}</td><td>${esc(x.desc)}</td><td class="numc">${x.cod||'—'}</td><td class="numc">${fmt(x.qtd)}</td><td style="text-align:right"><span class="badge ${MSITBADGE[x.sit]}">${MSITLBL[x.sit]}</span></td></tr>`).join('');
   const tr2=document.createElement('tr');tr2.className='exprow';
-  tr2.innerHTML=`<td colspan="6"><div class="itemgrid"><div class="ig-head"><b>${esc(A.area)}</b> — ${A.nLn} line numbers · ${A.n} itens <button class="btn" data-exp="1">Exportar itens desta área</button></div><table><thead><tr><th>Line number</th><th>Cód. interno</th><th>Descrição</th><th class="numc">Cód</th><th class="numc">Qtd</th><th style="text-align:right">Compra</th></tr></thead><tbody>${rows}</tbody></table></div></td>`;
+  tr2.innerHTML=`<td colspan="9"><div class="itemgrid"><div class="ig-head"><b>${esc(A.area)}</b> — ${A.nLn} line numbers · ${A.n} itens · ${A.rec} recebidos · ${A.parc} parciais · ${A.pend+A.nao} pendentes <button class="btn" data-exp="1">Exportar itens desta área</button></div><table><thead><tr><th>Line number</th><th>Cód. interno</th><th>Descrição</th><th class="numc">Cód</th><th class="numc">Qtd</th><th style="text-align:right">Compra</th></tr></thead><tbody>${rows}</tbody></table></div></td>`;
   tr.after(tr2);
   tr2.querySelector('[data-exp]').onclick=ev=>{ev.stopPropagation();exportArea(A);};
 }
