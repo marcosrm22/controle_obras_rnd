@@ -100,8 +100,8 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .card .idx{width:38px;height:34px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace}
 .card .body .tema{font-weight:700;font-size:14px;margin:0 0 6px;color:var(--text);line-height:1.4}
 .card .body .acao{font-size:12.5px;color:var(--blue-claro);font-weight:600;margin:0 0 10px;white-space:pre-line}
-.meta-badges{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
-.meta-badge{font-size:10.5px;font-weight:700;padding:4px 11px;border-radius:20px;white-space:nowrap}
+.meta-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;margin:0 0 10px}
+.meta-badge{display:inline-flex;align-items:center;width:auto;height:auto;align-self:flex-start;font-size:10.5px;font-weight:700;line-height:1.3;padding:3px 10px;border-radius:20px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .meta-badge.resp{background:#E4EDF6;color:var(--blue-dark);border:1px solid #C9DBEA}
 .meta-badge.exec{background:#DCEEEC;color:#007D77;border:1px solid #BFE0DC}
 .meta-badge.disc{background:#FBF0DD;color:#A5710C;border:1px solid #F0DFB8}
@@ -219,6 +219,9 @@ table.wk-tbl td{padding:7px 10px;border-bottom:1px solid var(--border-2);white-s
 table.wk-tbl tr:hover td{background:var(--blue-soft)}
 table.wk-tbl .emp{font-weight:700}
 table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
+table.wk-tbl td.co{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.wk-tbl td.disc{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1100px){table.wk-tbl td.co{max-width:150px}}
 .rev-chip{font-size:9px;font-weight:800;font-family:'JetBrains Mono',monospace;background:var(--bg);border:1px solid var(--border);padding:2px 7px;color:var(--text-dim)}
 .red{color:var(--red)}.green{color:var(--green)}
 .pend-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:16px}
@@ -629,7 +632,8 @@ function render(){
     card.setAttribute('data-card-id',r.id);
 
     const mb=[];
-    mb.push(r.responsavel?`<span class="meta-badge resp">👤 ${esc(r.responsavel)}</span>`:'<span class="meta-badge empty">👤 Responsável: —</span>');
+    const oneLine=s=>String(s||'').replace(/\s*\n\s*/g,' · ').trim();
+    mb.push(r.responsavel?`<span class="meta-badge resp" title="${esc(oneLine(r.responsavel))}">👤 ${esc(oneLine(r.responsavel))}</span>`:'<span class="meta-badge empty">👤 Responsável: —</span>');
     mb.push(r.executante?`<span class="meta-badge exec">🏗 ${esc(r.executante)}</span>`:'<span class="meta-badge empty">🏗 Executante: —</span>');
     mb.push(r.disciplina?`<span class="meta-badge disc">🔧 ${esc(r.disciplina)}</span>`:'<span class="meta-badge empty">🔧 Disciplina: —</span>');
     mb.push(r.setor?`<span class="meta-badge setor">🏷 ${esc(r.setor)}</span>`:'<span class="meta-badge empty">🏷 Setor: —</span>');
@@ -1019,8 +1023,8 @@ function renderSemana(){
   linhas.sort((a,b)=>(a.r.desvio??0)-(b.r.desvio??0));
   const tb=$('rs-tbl-semana').querySelector('tbody');
   tb.innerHTML=linhas.length?linhas.map(({c,r})=>`<tr>
-    <td><span class="emp">${esc(c.empresa)}</span> <span class="esc">· ${esc(c.escopo||'—')}</span></td>
-    <td>${esc(c.disciplina||'—')}</td>
+    <td class="co" title="${esc(c.empresa)} · ${esc(c.escopo||'—')}"><span class="emp">${esc(c.empresa)}</span> <span class="esc">· ${esc(c.escopo||'—')}</span></td>
+    <td class="disc" title="${esc(c.disciplina||'')}">${esc(c.disciplina||'—')}</td>
     <td><span class="rev-chip">REV ${String(r.revisao).padStart(2,'0')}</span></td>
     <td class="num">${nf(r.prev,2)}</td>
     <td class="num">${nf(r.real,2)}</td>
