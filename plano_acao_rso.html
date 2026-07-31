@@ -382,12 +382,8 @@ table.wk-tbl td.disc{max-width:110px;overflow:hidden;text-overflow:ellipsis;whit
         <textarea id="fAcao" rows="2" placeholder="Ex.: Contratar o mais rápido possível…"></textarea></div>
       <div class="field" id="fAtualizacaoWrap"><label for="fAtualizacao">Primeira atualização (opcional)</label>
         <textarea id="fAtualizacao" rows="3" placeholder="Registrada no histórico com a data e hora de agora…"></textarea></div>
-      <div class="field-row">
-        <div class="field"><label for="fResponsavel">Responsável</label>
-          <input type="text" id="fResponsavel" placeholder="Nome"></div>
-        <div class="field"><label for="fExecutante">Executante</label>
-          <input type="text" id="fExecutante" placeholder="Empresa / contratada"></div>
-      </div>
+      <div class="field"><label for="fResponsavel">Responsável</label>
+        <input type="text" id="fResponsavel" placeholder="Nome"></div>
       <div class="field-row">
         <div class="field"><label for="fDisciplina">Disciplina</label>
           <select id="fDisciplina">
@@ -604,7 +600,7 @@ function filteredRows(){
     if(setor&&r.setor!==setor)return false;
     if(search){
       const last=(UPD_STATUS[r.id]||[])[0];
-      const hay=[r.num,r.tema,r.acao,last?last.texto:'',r.observacao,r.responsavel,r.disciplina,r.setor,r.executante,r.escopo]
+      const hay=[r.num,r.tema,r.acao,last?last.texto:'',r.observacao,r.responsavel,r.disciplina,r.setor,r.escopo]
         .filter(Boolean).join(' ').toLowerCase();
       if(!hay.includes(search))return false;
     }
@@ -634,7 +630,6 @@ function render(){
     const mb=[];
     const oneLine=s=>String(s||'').replace(/\s*\n\s*/g,' · ').trim();
     mb.push(r.responsavel?`<span class="meta-badge resp" title="${esc(oneLine(r.responsavel))}">👤 ${esc(oneLine(r.responsavel))}</span>`:'<span class="meta-badge empty">👤 Responsável: —</span>');
-    mb.push(r.executante?`<span class="meta-badge exec">🏗 ${esc(r.executante)}</span>`:'<span class="meta-badge empty">🏗 Executante: —</span>');
     mb.push(r.disciplina?`<span class="meta-badge disc">🔧 ${esc(r.disciplina)}</span>`:'<span class="meta-badge empty">🔧 Disciplina: —</span>');
     mb.push(r.setor?`<span class="meta-badge setor">🏷 ${esc(r.setor)}</span>`:'<span class="meta-badge empty">🏷 Setor: —</span>');
 
@@ -815,7 +810,6 @@ function openModalForEdit(row){
   $('fAtualizacao').value='';
   $('fAtualizacaoWrap').style.display='none';
   $('fResponsavel').value=row.responsavel||'';
-  $('fExecutante').value=row.executante||'';
   $('fDisciplina').value=row.disciplina||'';
   $('fSetor').value=row.setor||'';
   $('fEscopo').value=row.escopo||'';
@@ -829,7 +823,7 @@ function openModalForEdit(row){
 function closeModal(){
   modalOverlay.classList.remove('show');
   editingId=null;
-  ['fTema','fAcao','fAtualizacao','fResponsavel','fExecutante','fEscopo','fDataPlanejada','fDataReplanejada','fDataRealizada'].forEach(id=>$(id).value='');
+  ['fTema','fAcao','fAtualizacao','fResponsavel','fEscopo','fDataPlanejada','fDataReplanejada','fDataRealizada'].forEach(id=>$(id).value='');
   $('fDisciplina').value='';$('fSetor').value='';$('fStatus').value='';
   $('fTema').closest('.field').classList.remove('invalid');
 }
@@ -849,7 +843,6 @@ $('modalSave').addEventListener('click',async()=>{
     tema,
     acao:$('fAcao').value.trim()||null,
     responsavel:$('fResponsavel').value.trim()||null,
-    executante:$('fExecutante').value.trim()||null,
     disciplina:$('fDisciplina').value||null,
     setor:$('fSetor').value||null,
     escopo:$('fEscopo').value.trim()||null,
@@ -913,13 +906,13 @@ $('excelBtn').addEventListener('click',()=>{
     const last=(UPD_STATUS[r.id]||[])[0];
     return {'#':r.num??'','Tema':r.tema||'','Ação':r.acao||'',
       'Última atualização':last?last.texto:'','Data da atualização':last?fmtTS(last.criado_em):'',
-      'Observação':r.observacao||'','Responsável':r.responsavel||'','Executante':r.executante||'',
+      'Observação':r.observacao||'','Responsável':r.responsavel||'',
       'Disciplina':r.disciplina||'','Setor':r.setor||'','Escopo':r.escopo||'',
       'Data Planejada':fmtBr(r.data_planejada)||'','Data Replanejada':fmtBr(r.data_replanejada)||'',
       'Data Realizada':fmtBr(r.data_realizada)||'','Desvio (dias)':desvioDias(r)??'','Status':r.status};
   });
   const ws=XLSX.utils.json_to_sheet(plano);
-  ws['!cols']=[{wch:4},{wch:52},{wch:38},{wch:60},{wch:17},{wch:40},{wch:22},{wch:20},{wch:16},{wch:16},{wch:24},{wch:13},{wch:14},{wch:13},{wch:11},{wch:12}];
+  ws['!cols']=[{wch:4},{wch:52},{wch:38},{wch:60},{wch:17},{wch:40},{wch:22},{wch:16},{wch:16},{wch:24},{wch:13},{wch:14},{wch:13},{wch:11},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws,'Plano de Ação');
   const hist=[];
   rows.forEach(r=>{
