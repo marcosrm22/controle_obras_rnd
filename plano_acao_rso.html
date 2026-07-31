@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plano de Ação · RSO · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--gold:#EAA239;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;--red:#C0392B;--red-soft:#fdecea;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1400px;margin:0 auto;padding:28px 24px 80px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
+.back-link:hover{color:var(--blue)}
+.nav-group{display:flex;gap:8px;flex-wrap:wrap}
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:23px;font-weight:800;letter-spacing:-0.5px}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.subtitle{font-size:12px;color:var(--text-dim);margin-top:6px}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.logout-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:#fff;color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+/* tabs */
+.tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:2px solid var(--border);flex-wrap:wrap}
+.tab{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.4px;padding:11px 20px;border:none;background:none;color:var(--text-dim);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab:hover{color:var(--blue)}
+.tab.active{color:var(--blue);border-bottom-color:var(--gold)}
+.section-label{font-size:9px;color:var(--text-mute);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin:22px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
+.notice.warn{border-left-color:var(--gold);background:#FEF3C7;color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:13px 15px;box-shadow:var(--shadow)}
+.kpi .v{font-size:23px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi .l{font-size:8.6px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.kpi.red{border-top-color:var(--red)}.kpi.green{border-top-color:var(--green)}
+.kpi.gold{border-top-color:var(--gold)}.kpi.gray{border-top-color:var(--text-mute)}
+/* toolbar */
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar input,.toolbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:9px 11px;background:#fff;outline:none;font-weight:600}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--blue)}
+.mini-btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.4px;padding:9px 14px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.mini-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
+.mini-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+.mini-btn.gold:hover{filter:brightness(.95);background:var(--gold)}
+.mini-btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}
+.mini-btn.blue:hover{background:var(--blue-dark)}
+/* tabela plano */
+.tbl-card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);overflow-x:auto;margin-bottom:16px}
+table.pa{width:100%;border-collapse:collapse;font-size:12px;min-width:1150px}
+table.pa th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:8.4px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:8px 9px;text-align:left;z-index:2}
+table.pa td{padding:8px 9px;border-bottom:1px solid var(--border-2);vertical-align:top;line-height:1.45}
+table.pa tr.item-row:hover td{background:var(--blue-soft)}
+table.pa td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px}
+.c-num{width:34px}.c-data{width:82px}.c-desv{width:60px}.c-st{width:104px}.c-ed{width:34px}
+.tema{font-weight:700}
+.acao{color:var(--text-dim)}
+.upd-txt{white-space:pre-wrap;max-width:340px}
+.upd-meta{font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.upd-actions{display:flex;gap:5px;margin-top:6px}
+.chip-btn{font-family:inherit;font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:3px 8px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;white-space:nowrap}
+.chip-btn:hover{background:var(--blue-soft);border-color:var(--blue)}
+.badge{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;white-space:nowrap;border:1px solid transparent}
+.b-and{background:var(--blue-soft);color:var(--blue-dark);border-color:#b0c0da}
+.b-conc{background:var(--green-soft);color:#1d5c1a;border-color:#a8c990}
+.b-atr{background:var(--red-soft);color:var(--red);border-color:#e7b1ab}
+.b-aten{background:#FEF3C7;color:#7c4a00;border-color:#f0c87a}
+.b-canc{background:#f3f4f6;color:#6b7280;border-color:#d1d5db}
+.dv-pos{color:var(--red);font-weight:700}.dv-neg{color:var(--green);font-weight:700}
+.edit-btn{font-size:13px;background:none;border:1px solid var(--border);padding:4px 7px;cursor:pointer}
+.edit-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
+tr.hist-row td{background:#fafbfc;padding:10px 14px 12px}
+.hist-item{border-left:2px solid var(--border);padding:4px 0 4px 12px;margin-bottom:6px}
+.hist-item:first-child{border-left-color:var(--gold)}
+.hist-item .t{font-size:11.5px;white-space:pre-wrap}
+.hist-item .m{font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.empty{text-align:center;padding:50px 20px;color:var(--text-mute)}.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(26,35,50,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow:auto}
+.overlay.open{display:flex}
+.modal{background:#fff;border-top:4px solid var(--gold);box-shadow:var(--shadow-lg);width:100%;max-width:640px;padding:24px 26px}
+.modal h3{font-size:15px;font-weight:800;margin-bottom:16px}
+.modal h3 small{display:block;font-size:10px;color:var(--text-mute);font-weight:600;margin-top:4px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrid .full{grid-column:1/-1}
+.field label{display:block;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:12.5px;border:1px solid var(--border);padding:9px 11px;background:#fff;outline:none}
+.field textarea{resize:vertical;min-height:74px;line-height:1.5}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue)}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+.btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:11px 20px;border:1px solid var(--border);background:#fff;color:var(--text-dim);cursor:pointer}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-dark)}
+.btn.danger{color:var(--red);margin-right:auto}
+.btn.danger:hover{border-color:var(--red);background:var(--red-soft)}
+/* resumo (tab 2) */
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.fbar select{font-family:inherit;font-size:13px;border:1px solid var(--border);padding:9px 12px;background:#fff;outline:none;min-width:260px;font-weight:600}
+.week-sum{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+.week-sum b{color:var(--text)}
+.chart-card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
+.chart-title{font-size:13px;font-weight:800;margin-bottom:2px}
+.chart-hint{font-size:10px;color:var(--text-mute);margin-bottom:12px}
+.chart-wrap{position:relative;height:340px}
+.tbl-wrap{overflow:auto;max-height:520px}
+table.wk-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.wk-tbl th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:8.6px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:8px 10px;text-align:left;z-index:2}
+table.wk-tbl th.num,table.wk-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.wk-tbl td{padding:7px 10px;border-bottom:1px solid var(--border-2);white-space:nowrap}
+table.wk-tbl tr:hover td{background:var(--blue-soft)}
+table.wk-tbl .emp{font-weight:700}
+table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
+.rev-chip{font-size:9px;font-weight:800;font-family:'JetBrains Mono',monospace;background:var(--bg);border:1px solid var(--border);padding:2px 7px;color:var(--text-dim)}
+.red{color:var(--red)}.green{color:var(--green)}
+.pend-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:16px}
+.pend-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#7c4a00;margin-bottom:8px}
+.pend-list{display:flex;flex-wrap:wrap;gap:7px}
+.pend-item{font-size:11px;background:#FEF3C7;border:1px solid #f0c87a;color:#7c4a00;padding:3px 9px;font-weight:600}
+@media(max-width:700px){.fgrid{grid-template-columns:1fr}}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="nav-row">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div class="nav-group">
+      <a class="back-link" href="validacao_cronogramas.html" style="color:var(--blue)">📊 Validação</a>
+      <a class="back-link" href="dashboard_desempenho.html" style="color:var(--blue)">📈 Dashboard de Desempenho</a>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle · Alinhamento Semanal</div>
+      <h1>Plano de Ação <span>· RSO</span></h1>
+      <p class="subtitle">Itens do alinhamento semanal com histórico de status, e resumo do desempenho das empresas</p>
+    </div>
+    <div class="user-bar">
+      <span id="unidade-switcher" style="margin-right:4px"></span>
+      <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
+        <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
+        <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-view="plano" onclick="switchView('plano')">📋 Plano de Ação</button>
+    <button class="tab" data-view="resumo" onclick="switchView('resumo')">🏗️ Resumo das Empresas</button>
+  </div>
+
+  <!-- ============ ABA 1: PLANO DE AÇÃO ============ -->
+  <div id="view-plano">
+    <div id="pa-setup-notice" class="notice warn" style="display:none">
+      <b>Tabelas ainda não criadas.</b> Rode o script <code>supabase_rso_plano_acao.sql</code> no SQL Editor do Supabase para habilitar esta tela (o script também importa os itens da planilha original).
+    </div>
+    <div class="kpis" id="pa-kpis"></div>
+    <div class="toolbar">
+      <input id="pa-search" placeholder="🔎 Tema, ação ou nº…" style="min-width:230px" oninput="renderPlano()">
+      <select id="pa-f-resp" onchange="renderPlano()"><option value="">Todos os responsáveis</option></select>
+      <select id="pa-f-status" onchange="renderPlano()">
+        <option value="">Todos os status</option>
+        <option value="__abertos">Abertos (sem concluídos/cancelados)</option>
+        <option>Em andamento</option>
+        <option>Atrasado</option>
+        <option>Atenção</option>
+        <option>Concluído</option>
+        <option>Cancelado</option>
+      </select>
+      <span style="flex:1"></span>
+      <button class="mini-btn blue" onclick="openItemModal()">➕ Novo item</button>
+      <button class="mini-btn" onclick="exportPlanoPDF()" title="Gera o PDF do plano (itens filtrados) via impressão do navegador">🖨️ PDF</button>
+      <button class="mini-btn gold" onclick="exportPlanoExcel()" title="Exporta itens + histórico completo para Excel">⬇ Excel</button>
+    </div>
+    <div class="tbl-card">
+      <table class="pa">
+        <thead><tr>
+          <th class="c-num">#</th><th>Tema</th><th>Ação</th><th>Status · última atualização</th>
+          <th>Responsável</th><th class="c-data">Planejada</th><th class="c-data">Replanejada</th>
+          <th class="c-data">Realizada</th><th class="c-desv">Desvio (d)</th><th class="c-st">Situação</th><th class="c-ed"></th>
+        </tr></thead>
+        <tbody id="pa-tbody"><tr><td colspan="11"><div class="empty"><div class="big">⏳</div>Carregando…</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ ABA 2: RESUMO DAS EMPRESAS ============ -->
+  <div id="view-resumo" style="display:none">
+    <div id="rs-setup-notice" class="notice warn" style="display:none">
+      <b>Banco de validação não configurado.</b> Rode o script <code>supabase_validacao.sql</code> no Supabase.
+    </div>
+    <div id="rs-empty"></div>
+    <div id="rs-dash" style="display:none">
+      <div class="kpis" id="rs-kpis"></div>
+
+      <div class="section-label">Desvio acumulado por contrato · última revisão</div>
+      <div class="chart-card">
+        <div class="chart-title">Ranking de desvio acumulado</div>
+        <div class="chart-hint">% Concluído − % Previsto · negativo (vermelho) = atrasado · positivo (verde) = adiantado</div>
+        <div class="chart-wrap"><canvas id="rs-ch-desvio"></canvas></div>
+      </div>
+
+      <div class="section-label">Acompanhamento da semana · escopos atualizados</div>
+      <div class="fbar">
+        <select id="rs-sel-semana" onchange="renderSemana()"></select>
+        <span id="rs-semana-resumo" class="week-sum"></span>
+        <span style="flex:1"></span>
+        <button class="mini-btn" onclick="exportSemanaPDF()">🖨️ PDF</button>
+        <button class="mini-btn gold" onclick="exportSemanaExcel()">⬇ Excel</button>
+      </div>
+      <div class="chart-card" style="padding:0">
+        <div class="tbl-wrap">
+          <table class="wk-tbl" id="rs-tbl-semana">
+            <thead><tr>
+              <th>Empresa · Escopo</th><th>Disciplina</th><th>Rev.</th>
+              <th class="num">% Prev</th><th class="num">% Concl</th><th class="num">Desvio acum.</th>
+              <th class="num">Avanço prev.</th><th class="num">Avanço real</th><th class="num">Desemp. semana</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="rs-pendentes"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: novo / editar item -->
+<div class="overlay" id="ov-item">
+  <div class="modal">
+    <h3 id="mi-title">Novo item do plano</h3>
+    <div class="fgrid">
+      <div class="field"><label>Nº do item</label><input id="mi-num" type="number" min="1"></div>
+      <div class="field"><label>Situação</label>
+        <select id="mi-status">
+          <option>Em andamento</option><option>Atrasado</option><option>Atenção</option>
+          <option>Concluído</option><option>Cancelado</option>
+        </select></div>
+      <div class="field full"><label>Tema</label><textarea id="mi-tema" style="min-height:56px"></textarea></div>
+      <div class="field full"><label>Ação</label><textarea id="mi-acao" style="min-height:56px"></textarea></div>
+      <div class="field full"><label>Responsável</label><input id="mi-resp" placeholder="Ex.: Kleber / Leila"></div>
+      <div class="field"><label>Data planejada</label><input id="mi-dp" type="date"></div>
+      <div class="field"><label>Data replanejada</label><input id="mi-dr" type="date"></div>
+      <div class="field"><label>Data realizada</label><input id="mi-dre" type="date"></div>
+      <div class="field full" id="mi-upd-wrap"><label>Primeira atualização de status (opcional)</label>
+        <textarea id="mi-upd" placeholder="Registrada no histórico com data e hora de agora"></textarea></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn danger" id="mi-del" style="display:none" onclick="deleteItem()">🗑 Excluir</button>
+      <button class="btn" onclick="closeModal('ov-item')">Cancelar</button>
+      <button class="btn primary" id="mi-save" onclick="saveItem()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nova atualização de status -->
+<div class="overlay" id="ov-upd">
+  <div class="modal" style="max-width:520px;border-top-color:var(--blue)">
+    <h3>Nova atualização de status<small id="mu-item-label"></small></h3>
+    <div class="field"><label>Atualização</label>
+      <textarea id="mu-texto" placeholder="O que mudou desde a última reunião?"></textarea></div>
+    <div class="field" style="margin-top:12px"><label>Alterar situação do item para (opcional)</label>
+      <select id="mu-status">
+        <option value="">— manter situação atual —</option>
+        <option>Em andamento</option><option>Atrasado</option><option>Atenção</option>
+        <option>Concluído</option><option>Cancelado</option>
+      </select></div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal('ov-upd')">Cancelar</button>
+      <button class="btn primary" id="mu-save" onclick="saveUpdate()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL=(window.PCO_CONFIG||{}).supabase?.url||'';
+const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
+const CLR={blue:'#304F7E',gold:'#EAA239',green:'#2e7d32',red:'#C0392B',mute:'#8a95a6'};
+const $=id=>document.getElementById(id);
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtD(d){if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:'—';}
+function fmtDFull(d){const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—';}
+function fmtTS(ts){if(!ts)return '';const d=new Date(ts);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+const nf=(n,d)=>(n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d??2,maximumFractionDigits:d??2});
+const clsNum=v=>v==null?'':(v<0?'red':(v>0?'green':''));
+function userNome(){return sessionStorage.getItem('pco_nome')||sessionStorage.getItem('pco_email')||'';}
+function unidadeNome(){return pcoUnidadeInfo().nome;}
+
+async function sb(method,path,body){
+  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  if(body){headers['Content-Type']='application/json';headers['Prefer']='return=representation';}
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,headers,body:body?JSON.stringify(body):undefined});
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,200));}
+  const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
+}
+/* leitura paginada — evita o limite padrão de 1000 linhas do Supabase */
+async function sbGetAll(path){
+  const out=[];let from=0;const step=1000;
+  for(;;){
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:{
+      'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Range':from+'-'+(from+step-1)}});
+    if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,200));}
+    const chunk=await res.json();
+    out.push(...chunk);
+    if(chunk.length<step)break;
+    from+=step;
+  }
+  return out;
+}
+
+/* ================= ABA 1 — PLANO DE AÇÃO ================= */
+let ITENS=[], UPDATES={}, HIST_OPEN={}, EDIT_ID=null, UPD_ITEM=null;
+
+async function loadPlano(){
+  try{
+    ITENS=await sbGetAll(pcoComUnidade('rso_plano_acao?select=*&ativo=eq.true&order=num.asc,criado_em.asc'));
+    const ups=await sbGetAll(pcoComUnidade('rso_status_updates?select=*&order=criado_em.desc'));
+    UPDATES={};
+    ups.forEach(u=>{(UPDATES[u.item_id]=UPDATES[u.item_id]||[]).push(u);});
+    fillRespFilter();
+    renderPlano();
+  }catch(err){
+    if(/42P01|PGRST205|does not exist/i.test(err.message)){$('pa-setup-notice').style.display='';
+      $('pa-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="big">🗄️</div>Tabelas ainda não criadas no Supabase.</div></td></tr>';}
+    else $('pa-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div></td></tr>';
+  }
+}
+function fillRespFilter(){
+  const cur=$('pa-f-resp').value;
+  const set=new Set();
+  ITENS.forEach(i=>{(i.responsavel||'').split('/').map(s=>s.trim()).filter(Boolean).forEach(n=>set.add(n));});
+  $('pa-f-resp').innerHTML='<option value="">Todos os responsáveis</option>'+
+    [...set].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n=>`<option${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+}
+function desvioDias(i){
+  const fim=i.data_realizada||i.data_replanejada;
+  if(!fim||!i.data_planejada)return null;
+  return Math.round((new Date(fim)-new Date(i.data_planejada))/86400000);
+}
+function badge(st){
+  const map={'Concluído':'b-conc','Atrasado':'b-atr','Atenção':'b-aten','Cancelado':'b-canc','Em andamento':'b-and'};
+  const ico={'Concluído':'✅ ','Atrasado':'🔴 ','Atenção':'🟡 ','Cancelado':'⛔ ','Em andamento':''};
+  return `<span class="badge ${map[st]||'b-and'}">${ico[st]||''}${esc(st)}</span>`;
+}
+function filteredItens(){
+  const q=($('pa-search').value||'').toLowerCase(), fr=$('pa-f-resp').value, fs=$('pa-f-status').value;
+  return ITENS.filter(i=>{
+    if(q && !((i.tema||'')+' '+(i.acao||'')+' '+(i.num||'')).toLowerCase().includes(q))return false;
+    if(fr && !(i.responsavel||'').toLowerCase().includes(fr.toLowerCase()))return false;
+    if(fs==='__abertos'){if(i.status==='Concluído'||i.status==='Cancelado')return false;}
+    else if(fs && i.status!==fs)return false;
+    return true;
+  });
+}
+function renderPlano(){
+  const list=filteredItens();
+  const cnt=s=>ITENS.filter(i=>i.status===s).length;
+  $('pa-kpis').innerHTML=
+    `<div class="kpi"><div class="v">${ITENS.length}</div><div class="l">Itens no plano</div></div>`+
+    `<div class="kpi"><div class="v">${cnt('Em andamento')}</div><div class="l">Em andamento</div></div>`+
+    `<div class="kpi red"><div class="v">${cnt('Atrasado')}</div><div class="l">Atrasados</div></div>`+
+    `<div class="kpi gold"><div class="v">${cnt('Atenção')}</div><div class="l">Em atenção</div></div>`+
+    `<div class="kpi green"><div class="v">${cnt('Concluído')}</div><div class="l">Concluídos</div></div>`+
+    `<div class="kpi gray"><div class="v">${cnt('Cancelado')}</div><div class="l">Cancelados</div></div>`;
+  if(!list.length){$('pa-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="big">📋</div>Nenhum item com os filtros atuais.</div></td></tr>';return;}
+  let html='';
+  list.forEach(i=>{
+    const ups=UPDATES[i.id]||[];
+    const last=ups[0];
+    const dv=desvioDias(i);
+    const open=!!HIST_OPEN[i.id];
+    html+=`<tr class="item-row">
+      <td class="num">${i.num??'—'}</td>
+      <td class="tema">${esc(i.tema||'—')}</td>
+      <td class="acao">${esc(i.acao||'—')}</td>
+      <td>
+        ${last?`<div class="upd-txt">${esc(last.texto)}</div><div class="upd-meta">🕐 ${fmtTS(last.criado_em)}${last.autor?(' · '+esc(last.autor)):''}</div>`:'<span style="color:var(--text-mute)">— sem atualizações —</span>'}
+        <div class="upd-actions">
+          <button class="chip-btn" onclick="openUpdModal('${i.id}')">＋ Atualizar</button>
+          ${ups.length>1?`<button class="chip-btn" onclick="toggleHist('${i.id}')">${open?'▲ Ocultar':'🕘 Histórico ('+ups.length+')'}</button>`:''}
+        </div>
+      </td>
+      <td>${esc(i.responsavel||'—')}</td>
+      <td class="num">${fmtD(i.data_planejada)}</td>
+      <td class="num">${fmtD(i.data_replanejada)}</td>
+      <td class="num">${fmtD(i.data_realizada)}</td>
+      <td class="num ${dv>0?'dv-pos':(dv<0?'dv-neg':'')}">${dv==null?'—':dv}</td>
+      <td>${badge(i.status)}</td>
+      <td><button class="edit-btn" title="Editar item" onclick="openItemModal('${i.id}')">✎</button></td>
+    </tr>`;
+    if(open&&ups.length){
+      html+=`<tr class="hist-row"><td colspan="11">
+        <div style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-bottom:8px">Histórico de atualizações · item ${i.num??''}</div>
+        ${ups.map(u=>`<div class="hist-item"><div class="t">${esc(u.texto)}</div><div class="m">🕐 ${fmtTS(u.criado_em)}${u.autor?(' · '+esc(u.autor)):''}</div></div>`).join('')}
+      </td></tr>`;
+    }
+  });
+  $('pa-tbody').innerHTML=html;
+}
+function toggleHist(id){HIST_OPEN[id]=!HIST_OPEN[id];renderPlano();}
+
+/* --- modais --- */
+function closeModal(id){$(id).classList.remove('open');}
+function openItemModal(id){
+  EDIT_ID=id||null;
+  const i=id?ITENS.find(x=>x.id===id):null;
+  $('mi-title').textContent=i?('Editar item '+(i.num??'')):('Novo item do plano · '+unidadeNome());
+  $('mi-num').value=i?(i.num??''):(Math.max(0,...ITENS.map(x=>x.num||0))+1);
+  $('mi-status').value=i?i.status:'Em andamento';
+  $('mi-tema').value=i?(i.tema||''):'';
+  $('mi-acao').value=i?(i.acao||''):'';
+  $('mi-resp').value=i?(i.responsavel||''):'';
+  $('mi-dp').value=i?(i.data_planejada||''):'';
+  $('mi-dr').value=i?(i.data_replanejada||''):'';
+  $('mi-dre').value=i?(i.data_realizada||''):'';
+  $('mi-upd').value='';
+  $('mi-upd-wrap').style.display=i?'none':'';
+  $('mi-del').style.display=i?'':'none';
+  $('ov-item').classList.add('open');
+}
+async function saveItem(){
+  const btn=$('mi-save');btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    const payload={
+      num:$('mi-num').value?Number($('mi-num').value):null,
+      tema:$('mi-tema').value.trim()||null,
+      acao:$('mi-acao').value.trim()||null,
+      responsavel:$('mi-resp').value.trim()||null,
+      data_planejada:$('mi-dp').value||null,
+      data_replanejada:$('mi-dr').value||null,
+      data_realizada:$('mi-dre').value||null,
+      status:$('mi-status').value,
+      atualizado_em:new Date().toISOString()
+    };
+    if(EDIT_ID){
+      await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+EDIT_ID),payload);
+    }else{
+      const rows=await sb('POST','rso_plano_acao',pcoComTag(payload));
+      const novo=rows&&rows[0];
+      const upd=$('mi-upd').value.trim();
+      if(novo&&upd){
+        await sb('POST','rso_status_updates',pcoComTag({item_id:novo.id,texto:upd,autor:userNome()}));
+      }
+    }
+    closeModal('ov-item');
+    await loadPlano();
+  }catch(err){alert('Erro ao salvar: '+err.message);}
+  btn.disabled=false;btn.textContent='Salvar';
+}
+async function deleteItem(){
+  if(!EDIT_ID)return;
+  const i=ITENS.find(x=>x.id===EDIT_ID);
+  if(!confirm('Excluir o item '+(i?.num??'')+' e todo o seu histórico de status?'))return;
+  try{
+    await sb('DELETE',pcoComUnidade('rso_plano_acao?id=eq.'+EDIT_ID));
+    closeModal('ov-item');
+    await loadPlano();
+  }catch(err){alert('Erro ao excluir: '+err.message);}
+}
+function openUpdModal(id){
+  UPD_ITEM=ITENS.find(x=>x.id===id);if(!UPD_ITEM)return;
+  $('mu-item-label').textContent='Item '+(UPD_ITEM.num??'')+' · '+(UPD_ITEM.tema||'').slice(0,90);
+  $('mu-texto').value='';$('mu-status').value='';
+  $('ov-upd').classList.add('open');
+  setTimeout(()=>$('mu-texto').focus(),50);
+}
+async function saveUpdate(){
+  const texto=$('mu-texto').value.trim();
+  if(!texto){alert('Escreva a atualização.');return;}
+  const btn=$('mu-save');btn.disabled=true;btn.textContent='Registrando…';
+  try{
+    await sb('POST','rso_status_updates',pcoComTag({item_id:UPD_ITEM.id,texto,autor:userNome()}));
+    const patch={atualizado_em:new Date().toISOString()};
+    const novoSt=$('mu-status').value;
+    if(novoSt)patch.status=novoSt;
+    await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+UPD_ITEM.id),patch);
+    closeModal('ov-upd');
+    await loadPlano();
+  }catch(err){alert('Erro ao registrar: '+err.message);}
+  btn.disabled=false;btn.textContent='Registrar';
+}
+document.querySelectorAll('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open');}));
+
+/* --- exportações do plano --- */
+function exportPlanoExcel(){
+  if(typeof XLSX==='undefined'){alert('Biblioteca de Excel (SheetJS) não carregou — verifique a conexão.');return;}
+  const list=filteredItens();
+  if(!list.length){alert('Nenhum item para exportar com os filtros atuais.');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=list.map(i=>{
+    const last=(UPDATES[i.id]||[])[0];
+    return {'#':i.num??'','Tema':i.tema||'','Ação':i.acao||'',
+      'Última atualização':last?last.texto:'','Data da atualização':last?fmtTS(last.criado_em):'',
+      'Responsável':i.responsavel||'','Data Planejada':i.data_planejada?fmtDFull(i.data_planejada):'',
+      'Data Replanejada':i.data_replanejada?fmtDFull(i.data_replanejada):'',
+      'Data Realizada':i.data_realizada?fmtDFull(i.data_realizada):'',
+      'Desvio (dias)':desvioDias(i)??'','Situação':i.status};
+  });
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:52},{wch:38},{wch:60},{wch:17},{wch:24},{wch:13},{wch:14},{wch:13},{wch:11},{wch:13}];
+  XLSX.utils.book_append_sheet(wb,ws,'Plano de Ação');
+  const hist=[];
+  list.forEach(i=>{(UPDATES[i.id]||[]).slice().reverse().forEach(u=>{
+    hist.push({'#':i.num??'','Tema':i.tema||'','Atualização':u.texto,'Data e hora':fmtTS(u.criado_em),'Autor':u.autor||''});
+  });});
+  const wsH=XLSX.utils.json_to_sheet(hist.length?hist:[{'#':'','Tema':'','Atualização':'','Data e hora':'','Autor':''}]);
+  wsH['!cols']=[{wch:4},{wch:52},{wch:70},{wch:17},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,wsH,'Histórico de Status');
+  const uTag=unidadeNome().replace(/\s+/g,'_');
+  XLSX.writeFile(wb,`Plano_de_Acao_RSO_${uTag}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function exportPlanoPDF(){
+  const list=filteredItens();
+  if(!list.length){alert('Nenhum item para exportar com os filtros atuais.');return;}
+  const col=v=>v==null?'':(v>0?'#C0392B':(v<0?'#2e7d32':''));
+  const bmap={'Concluído':['#e8efe1','#1d5c1a','✅ '],'Atrasado':['#fdecea','#C0392B','🔴 '],
+    'Atenção':['#FEF3C7','#7c4a00','🟡 '],'Cancelado':['#f3f4f6','#6b7280','⛔ '],'Em andamento':['#eef2f8','#223a60','']};
+  const body=list.map(i=>{
+    const ups=(UPDATES[i.id]||[]).slice().reverse();
+    const dv=desvioDias(i);
+    const b=bmap[i.status]||bmap['Em andamento'];
+    const upsHtml=ups.length?ups.map(u=>`<div class="u"><span class="ud">[${fmtTS(u.criado_em)}]</span> ${esc(u.texto)}</div>`).join(''):'<span style="color:#8a95a6">—</span>';
+    return `<tr>
+      <td class="num">${i.num??''}</td>
+      <td class="tm">${esc(i.tema||'')}</td>
+      <td>${esc(i.acao||'')}</td>
+      <td class="ups">${upsHtml}</td>
+      <td>${esc(i.responsavel||'—')}</td>
+      <td class="num">${fmtD(i.data_planejada)}</td>
+      <td class="num">${fmtD(i.data_replanejada)}</td>
+      <td class="num">${fmtD(i.data_realizada)}</td>
+      <td class="num" style="color:${col(dv)};font-weight:700">${dv==null?'—':dv}</td>
+      <td><span class="bdg" style="background:${b[0]};color:${b[1]}">${b[2]}${esc(i.status)}</span></td>
+    </tr>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Plano de Ação RSO · ${esc(unidadeNome())}</title>
+  <style>
+    @page{size:A4 landscape;margin:11mm}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Montserrat',system-ui,Arial,sans-serif;color:#1a2332;font-size:9.5px}
+    .hd{border-bottom:3px solid #304F7E;padding-bottom:9px;margin-bottom:11px}
+    .eyebrow{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#304F7E;font-weight:700}
+    h1{font-size:16px;font-weight:800;margin-top:3px}
+    .meta{font-size:9.5px;color:#546175;margin-top:5px}.meta b{color:#1a2332}
+    table{width:100%;border-collapse:collapse}
+    th{background:#304F7E;color:#fff;font-size:7.4px;letter-spacing:.4px;text-transform:uppercase;padding:5px 6px;text-align:left}
+    td{padding:5px 6px;border-bottom:1px solid #e6e9ee;vertical-align:top;line-height:1.4}
+    td.num{white-space:nowrap;font-variant-numeric:tabular-nums}
+    td.tm{font-weight:700;min-width:130px}
+    td.ups{min-width:180px}
+    .u{margin-bottom:3px}.ud{font-family:monospace;font-size:7.6px;color:#546175}
+    .bdg{display:inline-block;font-size:7.6px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:2px 6px;white-space:nowrap}
+    tr:nth-child(even) td{background:#f7f9fc}
+    tr{page-break-inside:avoid}
+    thead{display:table-header-group}
+    .ft{margin-top:14px;font-size:8px;color:#8a95a6;text-align:right}
+  </style></head><body>
+    <div class="hd">
+      <div class="eyebrow">PCO · Planejamento &amp; Controle · Alinhamento Semanal — RSO</div>
+      <h1>📋 Plano de Ação · RSO</h1>
+      <div class="meta"><b>Unidade:</b> ${esc(unidadeNome())} &nbsp;·&nbsp; <b>Emissão:</b> ${new Date().toLocaleDateString('pt-BR')} &nbsp;·&nbsp; <b>Responsável:</b> ${esc(userNome())} &nbsp;·&nbsp; ${list.length} itens</div>
+    </div>
+    <table><thead><tr>
+      <th>#</th><th>Tema</th><th>Ação</th><th>Status · histórico</th><th>Responsável</th>
+      <th>Planejada</th><th>Replanejada</th><th>Realizada</th><th>Desvio (d)</th><th>Situação</th>
+    </tr></thead><tbody>${body}</tbody></table>
+    <div class="ft">Gerado pelo PCO Digital em ${new Date().toLocaleString('pt-BR')}</div>
+  </body></html>`;
+  const w=window.open('','_blank');
+  if(!w){alert('O navegador bloqueou a janela de impressão — libere pop-ups para este site.');return;}
+  w.document.write(html);w.document.close();
+  w.onload=()=>setTimeout(()=>w.print(),300);
+}
+
+/* ================= ABA 2 — RESUMO DAS EMPRESAS ================= */
+let RS_LOADED=false, cronos=[], byC={}, charts={}, SEMANAS=[], SEMANA_STATE=null;
+
+async function loadResumo(){
+  if(RS_LOADED)return; RS_LOADED=true;
+  try{
+    cronos=await sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc'));
+    const revs=await sbGetAll(pcoComUnidade('val_revisoes?select=cronograma_id,revisao,rotulo,data_corte,planejado,realizado,resumo_json&order=revisao.asc'));
+    byC={};
+    revs.forEach(r=>{
+      const p=(r.resumo_json&&r.resumo_json.painel)||{};
+      r.d=p.desempenho||{};
+      (byC[r.cronograma_id]=byC[r.cronograma_id]||[]).push(r);
+    });
+    const withRevs=cronos.filter(c=>(byC[c.id]||[]).length);
+    if(!withRevs.length){
+      $('rs-empty').innerHTML='<div class="empty"><div class="big">🏗️</div>Ainda não há revisões analisadas nesta unidade.<br>Suba cronogramas na tela de Validação para gerar os indicadores.</div>';
+      return;
+    }
+    $('rs-dash').style.display='';
+    buildSemanas();
+    renderResumoKPIs(withRevs);
+    renderDesvioChart(withRevs);
+    renderSemana();
+  }catch(err){
+    RS_LOADED=false;
+    if(/42P01|PGRST205|does not exist/i.test(err.message))$('rs-setup-notice').style.display='';
+    else $('rs-empty').innerHTML='<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+  }
+}
+function latest(cId){const a=byC[cId]||[];return a[a.length-1];}
+function serie(cId){
+  const arr=[...(byC[cId]||[])].sort((a,b)=>{
+    const da=String(a.data_corte||''),db=String(b.data_corte||'');
+    return da===db?(a.revisao-b.revisao):(da<db?-1:1);
+  });
+  return arr.map((r,i)=>{
+    const p=i>0?arr[i-1]:null;
+    const prev=Number(r.planejado),real=Number(r.realizado);
+    const aPrev=p?Math.round((prev-Number(p.planejado))*100)/100:null;
+    const aReal=p?Math.round((real-Number(p.realizado))*100)/100:null;
+    return {...r,prev,real,
+      desvio:Math.round((real-prev)*100)/100,aPrev,aReal,
+      desemp:(aPrev!=null&&aReal!=null)?Math.round((aReal-aPrev)*100)/100:null};
+  });
+}
+function cLabel(c){return (c.empresa||'')+(c.escopo?(' · '+c.escopo):'');}
+function buildSemanas(){
+  const set=new Set();
+  Object.values(byC).forEach(arr=>arr.forEach(r=>{if(r.data_corte)set.add(String(r.data_corte).slice(0,10));}));
+  SEMANAS=[...set].sort().reverse();
+  $('rs-sel-semana').innerHTML=SEMANAS.map((d,i)=>`<option value="${d}">Semana de ${fmtDFull(d)}${i===0?' · mais recente':''}</option>`).join('');
+}
+function renderResumoKPIs(list){
+  const linhas=list.map(c=>{const s=serie(c.id);return s[s.length-1];});
+  const desvios=linhas.map(r=>r.desvio).filter(v=>v!=null&&!isNaN(v));
+  const media=desvios.length?desvios.reduce((a,b)=>a+b,0)/desvios.length:null;
+  const atrasados=linhas.filter(r=>r.desvio!=null&&r.desvio<-5).length;
+  const totalRev=list.reduce((s,c)=>s+(byC[c.id]||[]).length,0);
+  $('rs-kpis').innerHTML=
+    `<div class="kpi"><div class="v">${list.length}</div><div class="l">Contratos ativos</div></div>`+
+    `<div class="kpi"><div class="v">${totalRev}</div><div class="l">Revisões analisadas</div></div>`+
+    `<div class="kpi ${media!=null&&media<0?'red':'green'}"><div class="v">${media!=null?nf(media,1):'—'}</div><div class="l">Desvio médio acumulado</div></div>`+
+    `<div class="kpi ${atrasados?'red':'green'}"><div class="v">${atrasados}</div><div class="l">Contratos atrasados (&gt;5%)</div></div>`;
+}
+function renderDesvioChart(list){
+  if(typeof Chart==='undefined')return;
+  const data=list.map(c=>{const s=serie(c.id);return {label:cLabel(c),v:s[s.length-1].desvio};})
+    .filter(d=>d.v!=null&&!isNaN(d.v)).sort((a,b)=>a.v-b.v);
+  if(charts.desvio)charts.desvio.destroy();
+  charts.desvio=new Chart($('rs-ch-desvio'),{
+    type:'bar',
+    data:{labels:data.map(d=>d.label),datasets:[{data:data.map(d=>d.v),
+      backgroundColor:data.map(d=>d.v<0?'rgba(192,57,43,.55)':'rgba(46,125,50,.55)'),
+      borderColor:data.map(d=>d.v<0?CLR.red:CLR.green),borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' Desvio acumulado: '+nf(c.parsed.x,2)}}},
+      scales:{x:{grid:{color:'#eef0f3'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10,family:'Montserrat'}}}}}});
+}
+function renderSemana(){
+  const wk=$('rs-sel-semana').value;if(!wk)return;
+  const linhas=[],pendentes=[];
+  cronos.forEach(c=>{
+    const s=serie(c.id);
+    const idx=s.findIndex(r=>String(r.data_corte).slice(0,10)===wk);
+    if(idx>=0)linhas.push({c,r:s[idx]});
+    else if(s.length)pendentes.push(c);
+  });
+  linhas.sort((a,b)=>(a.r.desvio??0)-(b.r.desvio??0));
+  const tb=$('rs-tbl-semana').querySelector('tbody');
+  tb.innerHTML=linhas.length?linhas.map(({c,r})=>`<tr>
+    <td><span class="emp">${esc(c.empresa)}</span> <span class="esc">· ${esc(c.escopo||'—')}</span></td>
+    <td>${esc(c.disciplina||'—')}</td>
+    <td><span class="rev-chip">REV ${String(r.revisao).padStart(2,'0')}</span></td>
+    <td class="num">${nf(r.prev,2)}</td>
+    <td class="num">${nf(r.real,2)}</td>
+    <td class="num ${clsNum(r.desvio)}"><b>${nf(r.desvio,2)}</b></td>
+    <td class="num">${nf(r.aPrev,2)}</td>
+    <td class="num">${nf(r.aReal,2)}</td>
+    <td class="num ${clsNum(r.desemp)}"><b>${nf(r.desemp,2)}</b></td>
+  </tr>`).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text-mute);padding:24px">Nenhum escopo atualizado nesta semana.</td></tr>';
+  const totalC=cronos.filter(c=>(byC[c.id]||[]).length).length;
+  const desv=linhas.map(l=>l.r.desvio).filter(v=>v!=null&&!isNaN(v));
+  const media=desv.length?desv.reduce((a,b)=>a+b,0)/desv.length:null;
+  SEMANA_STATE={wk,linhas,pendentes,totalC,media};
+  $('rs-semana-resumo').innerHTML=`<b>${linhas.length}</b> de <b>${totalC}</b> escopos atualizados`+
+    (media!=null?` &nbsp;·&nbsp; desvio médio <b class="${clsNum(media)}">${nf(media,2)}</b>`:'');
+  $('rs-pendentes').innerHTML=pendentes.length
+    ?`<div class="pend-card"><div class="pend-title">⏳ Envio da semana ainda não consolidado (${pendentes.length})</div>
+       <div class="pend-list">${pendentes.map(c=>`<span class="pend-item">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')}</div></div>`
+    :`<div class="pend-card" style="border-left-color:var(--green)"><div class="pend-title" style="color:var(--green)">✓ Todas as empresas já consolidaram o envio desta semana</div></div>`;
+}
+function _semanaLabel(wk){return wk?('Semana de '+fmtDFull(wk)):'—';}
+function exportSemanaExcel(){
+  const st=SEMANA_STATE;
+  if(!st||!st.linhas||!st.linhas.length){alert('Nenhum escopo atualizado nesta semana para exportar.');return;}
+  if(typeof XLSX==='undefined'){alert('Biblioteca de Excel (SheetJS) não carregou — verifique a conexão.');return;}
+  const uni=unidadeNome();
+  const num=v=>(v!=null&&!isNaN(v))?Number(v):null;
+  const header=['Empresa','Escopo','Disciplina','Revisão','% Previsto','% Concluído','Desvio acum.','Avanço prev.','Avanço real','Desemp. semana'];
+  const rows=st.linhas.map(({c,r})=>({
+    'Empresa':c.empresa||'','Escopo':c.escopo||'','Disciplina':c.disciplina||'',
+    'Revisão':(r.revisao!=null?Number(r.revisao):''),
+    '% Previsto':num(r.prev),'% Concluído':num(r.real),'Desvio acum.':num(r.desvio),
+    'Avanço prev.':num(r.aPrev),'Avanço real':num(r.aReal),'Desemp. semana':num(r.desemp)}));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(rows,{header});
+  ws['!cols']=[{wch:26},{wch:16},{wch:16},{wch:9},{wch:11},{wch:12},{wch:13},{wch:13},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws,'Acompanhamento');
+  const resumo=[['Resumo das empresas · acompanhamento da semana'],['Unidade',uni||'—'],
+    ['Semana',_semanaLabel(st.wk)],['Escopos atualizados',st.linhas.length],
+    ['Total de contratos',st.totalC],['Desvio médio',(st.media!=null?Number(st.media.toFixed(2)):'—')],
+    ['Gerado em',new Date().toLocaleString('pt-BR')]];
+  if(st.pendentes&&st.pendentes.length){
+    resumo.push([]);resumo.push(['Envio da semana ainda não consolidado ('+st.pendentes.length+')']);
+    st.pendentes.forEach(c=>resumo.push([(c.empresa||'')+(c.escopo?(' · '+c.escopo):'')]));
+  }
+  const wsR=XLSX.utils.aoa_to_sheet(resumo);wsR['!cols']=[{wch:36},{wch:26}];
+  XLSX.utils.book_append_sheet(wb,wsR,'Resumo');
+  const uTag=(uni||'PCO').replace(/\s+/g,'_');
+  XLSX.writeFile(wb,`Resumo_Empresas_${uTag}_${(st.wk||new Date().toISOString().slice(0,10))}.xlsx`);
+}
+function exportSemanaPDF(){
+  const st=SEMANA_STATE;
+  if(!st||!st.linhas||!st.linhas.length){alert('Nenhum escopo atualizado nesta semana para exportar.');return;}
+  const uni=unidadeNome();
+  const col=v=>(v==null||isNaN(v))?'':(v<0?'#C0392B':(v>0?'#2e7d32':''));
+  const body=st.linhas.map(({c,r})=>`<tr>
+    <td class="emp">${esc(c.empresa)}<span class="esc"> · ${esc(c.escopo||'—')}</span></td>
+    <td>${esc(c.disciplina||'—')}</td>
+    <td class="rev">REV ${String(r.revisao).padStart(2,'0')}</td>
+    <td class="num">${nf(r.prev,2)}</td>
+    <td class="num">${nf(r.real,2)}</td>
+    <td class="num" style="color:${col(r.desvio)};font-weight:700">${nf(r.desvio,2)}</td>
+    <td class="num">${nf(r.aPrev,2)}</td>
+    <td class="num">${nf(r.aReal,2)}</td>
+    <td class="num" style="color:${col(r.desemp)};font-weight:700">${nf(r.desemp,2)}</td>
+  </tr>`).join('');
+  const resumo=`<b>${st.linhas.length}</b> de <b>${st.totalC}</b> escopos atualizados`+
+    (st.media!=null?` &nbsp;·&nbsp; desvio médio <b style="color:${col(st.media)}">${nf(st.media,2)}</b>`:'');
+  const pend=(st.pendentes&&st.pendentes.length)
+    ?`<div class="pend"><div class="pend-t">Envio da semana ainda não consolidado (${st.pendentes.length})</div>`+
+      st.pendentes.map(c=>`<span class="pill">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')+`</div>`
+    :`<div class="pend ok">✓ Todas as empresas já consolidaram o envio desta semana</div>`;
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Resumo das empresas · ${esc(uni||'PCO')}</title>
+  <style>
+    @page{size:A4 landscape;margin:12mm}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Montserrat',system-ui,Arial,sans-serif;color:#1a2332;font-size:11px}
+    .hd{border-bottom:3px solid #304F7E;padding-bottom:10px;margin-bottom:12px}
+    .eyebrow{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#304F7E;font-weight:700}
+    h1{font-size:16px;font-weight:800;margin-top:3px}
+    .meta{font-size:10px;color:#546175;margin-top:5px}.meta b{color:#1a2332}
+    .resumo{font-size:11px;margin:8px 0 12px;font-family:monospace;color:#546175}
+    table{width:100%;border-collapse:collapse}
+    th{background:#304F7E;color:#fff;font-size:8px;letter-spacing:.4px;text-transform:uppercase;padding:6px 8px;text-align:left}
+    td{padding:5px 8px;border-bottom:1px solid #e6e9ee;white-space:nowrap}
+    td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .emp{font-weight:700}.esc{color:#8a95a6;font-weight:600}
+    .rev{font-family:monospace;font-size:9px;color:#546175}
+    tr:nth-child(even) td{background:#f7f9fc}
+    .pend{margin-top:14px;border-left:3px solid #EAA239;background:#FEF3C7;padding:9px 12px;page-break-inside:avoid}
+    .pend.ok{border-left-color:#2e7d32;background:#e8efe1;color:#2e7d32;font-weight:600}
+    .pend-t{font-size:10px;font-weight:800;text-transform:uppercase;color:#7c4a00;margin-bottom:6px}
+    .pill{display:inline-block;font-size:10px;background:#fff;border:1px solid #f0c87a;color:#7c4a00;padding:2px 8px;margin:0 5px 5px 0}
+    .ft{margin-top:16px;font-size:8px;color:#8a95a6;text-align:right}
+    thead{display:table-header-group}
+  </style></head><body>
+    <div class="hd">
+      <div class="eyebrow">PCO · Planejamento &amp; Controle · Terceiras</div>
+      <h1>🏗️ Resumo das empresas · acompanhamento da semana</h1>
+      <div class="meta"><b>Unidade:</b> ${esc(uni||'—')} &nbsp;&nbsp;·&nbsp;&nbsp; <b>${esc(_semanaLabel(st.wk))}</b></div>
+    </div>
+    <div class="resumo">${resumo}</div>
+    <table><thead><tr>
+      <th>Empresa · Escopo</th><th>Disciplina</th><th>Rev.</th>
+      <th class="num">% Prev</th><th class="num">% Concl</th><th class="num">Desvio acum.</th>
+      <th class="num">Avanço prev.</th><th class="num">Avanço real</th><th class="num">Desemp. semana</th>
+    </tr></thead><tbody>${body}</tbody></table>
+    ${pend}
+    <div class="ft">Gerado pelo PCO Digital em ${new Date().toLocaleString('pt-BR')}</div>
+  </body></html>`;
+  const w=window.open('','_blank');
+  if(!w){alert('O navegador bloqueou a janela de impressão — libere pop-ups para este site.');return;}
+  w.document.write(html);w.document.close();
+  w.onload=()=>setTimeout(()=>w.print(),300);
+}
+
+/* ================= navegação / init ================= */
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  $('view-plano').style.display=v==='plano'?'':'none';
+  $('view-resumo').style.display=v==='resumo'?'':'none';
+  if(v==='resumo')loadResumo();
+}
+function doLogout(){sessionStorage.clear();window.location.href='login.html';}
+(function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){window.location.href='login.html';return;}
+  const nome=sessionStorage.getItem('pco_nome')||'',email=sessionStorage.getItem('pco_email')||'';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email;$('user-email').textContent=email;
+  pcoRenderSwitcher('unidade-switcher');
+  loadPlano();
+})();
+</script>
+</body>
+</html>
