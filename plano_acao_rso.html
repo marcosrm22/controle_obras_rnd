@@ -10,13 +10,15 @@
 :root{
   --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
   --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
-  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--gold:#EAA239;
-  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;--red:#C0392B;--red-soft:#fdecea;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--blue-claro:#4a6ea8;
+  --gold:#EAA239;--gold-vibr:#FFA32A;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;
+  --red:#C0392B;--red-soft:#fdecea;--terracota:#CC5121;--cinza:#BDBFC1;
   --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
-.page{max-width:1400px;margin:0 auto;padding:28px 24px 80px}
+.page{max-width:1320px;margin:0 auto;padding:28px 24px 80px}
 .nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
 .back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
 .back-link:hover{color:var(--blue)}
@@ -40,77 +42,171 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6}
 .notice.warn{border-left-color:var(--gold);background:#FEF3C7;color:#7c4a00}
 .notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
-/* kpis */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
-.kpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:13px 15px;box-shadow:var(--shadow)}
-.kpi .v{font-size:23px;font-weight:800;letter-spacing:-1px;line-height:1}
-.kpi .l{font-size:8.6px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
-.kpi.red{border-top-color:var(--red)}.kpi.green{border-top-color:var(--green)}
-.kpi.gold{border-top-color:var(--gold)}.kpi.gray{border-top-color:var(--text-mute)}
+
+/* ===== KPIs clicáveis (modelo blocos) ===== */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--cinza);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(48,79,126,.16)}
+.kpi.active{outline:2px solid var(--blue)}
+.kpi .num{font-size:24px;font-weight:800;line-height:1;letter-spacing:-1px}
+.kpi .label{font-size:9.5px;color:var(--text-mute);font-weight:700;margin-top:6px;text-transform:uppercase;letter-spacing:.6px}
+.kpi.total{border-left-color:var(--blue)}
+.kpi.atrasado{border-left-color:var(--terracota)}.kpi.atrasado .num{color:var(--terracota)}
+.kpi.atencao{border-left-color:var(--gold)}.kpi.atencao .num{color:#B67A1E}
+.kpi.noprazo{border-left-color:var(--green)}.kpi.noprazo .num{color:var(--green)}
+.kpi.concluido{border-left-color:#1d5c1a}.kpi.concluido .num{color:#1d5c1a}
+.kpi.semdata{border-left-color:var(--cinza)}.kpi.semdata .num{color:var(--text-dim)}
+
+/* barra de progresso por status */
+.progress-summary{margin-bottom:18px}
+.progress-bar{display:flex;width:100%;height:10px;overflow:hidden;background:#E7EAED;box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}
+.progress-bar span{height:100%;transition:width .4s ease}
+.seg-atrasado{background:var(--terracota)}.seg-atencao{background:var(--gold)}
+.seg-noprazo{background:var(--green)}.seg-concluido{background:#1d5c1a}
+.seg-semdata{background:var(--cinza)}.seg-cancelado{background:#8a95a6}
+.progress-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:11px;color:var(--text-dim);font-weight:600}
+.progress-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot.atrasado{background:var(--terracota)}.dot.atencao{background:var(--gold)}
+.dot.noprazo{background:var(--green)}.dot.concluido{background:#1d5c1a}
+.dot.semdata{background:var(--cinza)}.dot.cancelado{background:#8a95a6}
+
 /* toolbar */
-.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.toolbar input,.toolbar select{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:9px 11px;background:#fff;outline:none;font-weight:600}
-.toolbar input:focus,.toolbar select:focus{border-color:var(--blue)}
-.mini-btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.4px;padding:9px 14px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
-.mini-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
-.mini-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
-.mini-btn.gold:hover{filter:brightness(.95);background:var(--gold)}
-.mini-btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}
-.mini-btn.blue:hover{background:var(--blue-dark)}
-/* tabela plano */
-.tbl-card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);overflow-x:auto;margin-bottom:16px}
-table.pa{width:100%;border-collapse:collapse;font-size:12px;min-width:1150px}
-table.pa th{position:sticky;top:0;background:var(--blue);color:#fff;font-size:8.4px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:8px 9px;text-align:left;z-index:2}
-table.pa td{padding:8px 9px;border-bottom:1px solid var(--border-2);vertical-align:top;line-height:1.45}
-table.pa tr.item-row:hover td{background:var(--blue-soft)}
-table.pa td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px}
-.c-num{width:34px}.c-data{width:82px}.c-desv{width:60px}.c-st{width:104px}.c-ed{width:34px}
-.tema{font-weight:700}
-.acao{color:var(--text-dim)}
-.upd-txt{white-space:pre-wrap;max-width:340px}
-.upd-meta{font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:3px}
-.upd-actions{display:flex;gap:5px;margin-top:6px}
-.chip-btn{font-family:inherit;font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:3px 8px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;white-space:nowrap}
-.chip-btn:hover{background:var(--blue-soft);border-color:var(--blue)}
-.badge{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;white-space:nowrap;border:1px solid transparent}
-.b-and{background:var(--blue-soft);color:var(--blue-dark);border-color:#b0c0da}
-.b-conc{background:var(--green-soft);color:#1d5c1a;border-color:#a8c990}
-.b-atr{background:var(--red-soft);color:var(--red);border-color:#e7b1ab}
-.b-aten{background:#FEF3C7;color:#7c4a00;border-color:#f0c87a}
-.b-canc{background:#f3f4f6;color:#6b7280;border-color:#d1d5db}
-.dv-pos{color:var(--red);font-weight:700}.dv-neg{color:var(--green);font-weight:700}
-.edit-btn{font-size:13px;background:none;border:1px solid var(--border);padding:4px 7px;cursor:pointer}
-.edit-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
-tr.hist-row td{background:#fafbfc;padding:10px 14px 12px}
-.hist-item{border-left:2px solid var(--border);padding:4px 0 4px 12px;margin-bottom:6px}
-.hist-item:first-child{border-left-color:var(--gold)}
-.hist-item .t{font-size:11.5px;white-space:pre-wrap}
-.hist-item .m{font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:2px}
-.empty{text-align:center;padding:50px 20px;color:var(--text-mute)}.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--border);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.toolbar input[type="text"]{flex:1;min-width:210px;padding:9px 12px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;outline:none}
+.toolbar input[type="text"]:focus{border-color:var(--blue)}
+.toolbar select{padding:9px 10px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;background:#fff;color:var(--text);font-weight:600}
+.toolbar button{font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;padding:9px 14px;border:1px solid var(--border);background:#fff;color:var(--text-dim);white-space:nowrap}
+.toolbar button:hover{background:var(--blue-soft)}
+.toolbar button.export{background:var(--blue);color:#fff;border-color:var(--blue)}
+.toolbar button.export:hover{background:var(--blue-dark)}
+.toolbar button.gold{background:var(--gold);color:#fff;border-color:var(--gold)}
+.toolbar button.gold:hover{filter:brightness(.95);background:var(--gold)}
+.toolbar button.new-btn{background:var(--green);color:#fff;border-color:var(--green)}
+.toolbar button.new-btn:hover{background:#4F7C3B}
+.count-line{font-size:12.5px;color:var(--text-dim);margin:0 0 12px 4px;font-weight:500}
+.count-line strong{color:var(--blue)}
+
+/* ===== cards / blocos ===== */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow);border-left:5px solid var(--cinza);display:grid;grid-template-columns:38px 1fr 210px;gap:16px;align-items:start}
+.card.st-atrasado{border-left-color:var(--terracota)}
+.card.st-atencao{border-left-color:var(--gold)}
+.card.st-noprazo{border-left-color:var(--green)}
+.card.st-concluido{border-left-color:#1d5c1a}
+.card.st-semdata{border-left-color:var(--cinza)}
+.card.st-cancelado{border-left-color:#8a95a6;opacity:.82}
+.card .idx{width:38px;height:34px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace}
+.card .body .tema{font-weight:700;font-size:14px;margin:0 0 6px;color:var(--text);line-height:1.4}
+.card .body .acao{font-size:12.5px;color:var(--blue-claro);font-weight:600;margin:0 0 10px;white-space:pre-line}
+.meta-badges{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.meta-badge{font-size:10.5px;font-weight:700;padding:4px 11px;border-radius:20px;white-space:nowrap}
+.meta-badge.resp{background:#E4EDF6;color:var(--blue-dark);border:1px solid #C9DBEA}
+.meta-badge.exec{background:#DCEEEC;color:#007D77;border:1px solid #BFE0DC}
+.meta-badge.disc{background:#FBF0DD;color:#A5710C;border:1px solid #F0DFB8}
+.meta-badge.setor{background:#DCEAF7;color:var(--blue);border:1px solid #C2DCF0}
+.meta-badge.empty{background:#F2F2F2;color:#A3A9AE;font-style:italic;font-weight:600;border:1px solid #E6E6E6}
+.badge-novo{display:inline-block;background:var(--green);color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.4px;vertical-align:middle;margin-right:4px}
+.card.is-new{animation:highlightNew 2.2s ease}
+@keyframes highlightNew{0%{box-shadow:0 0 0 3px rgba(96,147,70,.55)}100%{box-shadow:var(--shadow)}}
+
+/* bloco de atualização (histórico de status) */
+.at-label{font-size:10.5px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin:0 0 5px;display:flex;align-items:center;gap:5px}
+.at-label::before{content:"🕐";font-size:11px}
+.atualizacao-view{margin:0 0 10px}
+.atualizacao-text{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin:0 0 4px;white-space:pre-line}
+.at-meta{font-size:9.5px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin:0 0 6px}
+.atualizacao-empty{color:#A8ADB2;font-style:italic}
+.edit-btn,.hist-btn{background:none;border:1px solid #D3E1EC;color:var(--blue-claro);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:14px;margin-right:6px}
+.edit-btn:hover,.hist-btn:hover{background:#EEF4FA}
+.atualizacao-edit{margin:0 0 10px}
+textarea.atualizacao-input{width:100%;font-family:inherit;font-size:12.5px;color:var(--text);line-height:1.5;margin:0 0 8px;white-space:pre-line;border:1px solid var(--blue-claro);background:#fff;padding:8px 10px;resize:vertical;min-height:60px;outline:none;box-shadow:0 0 0 2px rgba(48,79,126,.08)}
+.atualizacao-actions{display:flex;gap:8px}
+.publish-btn,.cancel-edit-btn{font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;padding:6px 13px;border:1px solid var(--cinza)}
+.publish-btn{background:var(--green);color:#fff;border-color:var(--green)}
+.publish-btn:hover{background:#4F7C3B}
+.cancel-edit-btn{background:#fff;color:var(--text-dim)}
+.cancel-edit-btn:hover{background:#F0F2F4}
+.saved-tag{font-size:10px;color:var(--green);font-weight:700;margin:0 0 8px;opacity:0;transition:opacity .3s ease}
+.saved-tag.show{opacity:1}
+.hist-label{font-size:10.5px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px}
+.hist-list{margin-top:2px;padding-left:10px;border-left:2px solid #C9DBEA}
+.hist-list.obs{border-left-color:#EDE4CE}
+.hist-item{font-size:11px;color:var(--text-dim);line-height:1.5;padding:6px 0 6px 8px;border-bottom:1px dashed #EEE;white-space:pre-line}
+.hist-item:last-child{border-bottom:none}
+.hist-time{display:block;font-size:10px;font-weight:700;color:var(--blue);margin-bottom:2px;font-family:'JetBrains Mono',monospace}
+.hist-list.obs .hist-time{color:#A5710C}
+.hist-empty{font-size:11px;color:#A8ADB2;font-style:italic;padding:4px 0}
+
+/* bloco de observação */
+.obs-block{margin-top:4px}
+.obs-label{font-size:10.5px;font-weight:800;color:var(--gold-vibr);text-transform:uppercase;letter-spacing:.5px;margin:0 0 5px;display:flex;align-items:center;gap:5px}
+.obs-label::before{content:"📝";font-size:11px}
+.obs-view{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.obs-text{font-size:12.5px;color:var(--text);line-height:1.5;white-space:pre-line;margin:0;flex:1}
+.obs-empty{color:#A8ADB2;font-style:italic}
+.obs-edit-btn{background:none;border:1px solid #E9D9AE;color:#A5710C;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:14px;white-space:nowrap;flex-shrink:0}
+.obs-edit-btn:hover{background:#FFFBF2}
+textarea.obs-input{width:100%;min-height:44px;resize:vertical;border:1px solid var(--gold);background:#fff;padding:8px 10px;font-family:inherit;font-size:12.5px;color:var(--text);outline:none;box-shadow:0 0 0 2px rgba(234,162,57,.12);margin-bottom:8px}
+textarea.obs-input::placeholder{color:#A8ADB2;font-style:italic}
+.obs-actions{display:flex;gap:8px}
+
+/* lado direito do card */
+.card .side{text-align:right;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.card-edit-btn{background:none;border:1px solid #D3E1EC;color:var(--blue-claro);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;padding:4px 11px;border-radius:14px;white-space:nowrap}
+.card-edit-btn:hover{background:#EEF4FA}
+.status-pill{font-size:11.5px;font-weight:800;padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.status-pill.atrasado{background:#FBE3D6;color:var(--terracota)}
+.status-pill.atencao{background:#FCEFD6;color:#A5710C}
+.status-pill.noprazo{background:#E4F0DD;color:var(--green)}
+.status-pill.concluido{background:var(--green-soft);color:#1d5c1a}
+.status-pill.semdata{background:#ECEDEE;color:var(--text-dim)}
+.status-pill.cancelado{background:#f3f4f6;color:#6b7280}
+.dates{font-size:11.5px;color:var(--text-dim);line-height:1.6}
+.dates b{color:var(--text)}
+.desvio{font-size:11px;font-weight:700}
+.desvio.pos{color:var(--terracota)}.desvio.zero{color:var(--text-dim)}.desvio.neg{color:var(--green)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-mute);background:var(--panel);border:1px solid var(--border)}
+
 /* modal */
-.overlay{position:fixed;inset:0;background:rgba(26,35,50,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow:auto}
-.overlay.open{display:flex}
-.modal{background:#fff;border-top:4px solid var(--gold);box-shadow:var(--shadow-lg);width:100%;max-width:640px;padding:24px 26px}
-.modal h3{font-size:15px;font-weight:800;margin-bottom:16px}
-.modal h3 small{display:block;font-size:10px;color:var(--text-mute);font-weight:600;margin-top:4px}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.fgrid .full{grid-column:1/-1}
-.field label{display:block;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-bottom:5px}
-.field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:12.5px;border:1px solid var(--border);padding:9px 11px;background:#fff;outline:none}
-.field textarea{resize:vertical;min-height:74px;line-height:1.5}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,35,50,.5);z-index:100;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;width:100%;max-width:580px;box-shadow:var(--shadow-lg);border-top:4px solid var(--gold)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border-2);background:linear-gradient(135deg,var(--blue-dark),var(--blue))}
+.modal-header h2{margin:0;font-size:15px;color:#fff;font-weight:800}
+.modal-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;opacity:.85}
+.modal-close:hover{opacity:1}
+.modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto}
+.field{margin-bottom:13px;display:flex;flex-direction:column;gap:5px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.field-row{grid-template-columns:1fr}}
+.field label{font-size:10px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{padding:9px 11px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;color:var(--text);outline:none;resize:vertical}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue)}
-.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
-.btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:11px 20px;border:1px solid var(--border);background:#fff;color:var(--text-dim);cursor:pointer}
-.btn:hover{border-color:var(--blue);color:var(--blue)}
-.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.primary:hover{background:var(--blue-dark)}
-.btn.danger{color:var(--red);margin-right:auto}
-.btn.danger:hover{border-color:var(--red);background:var(--red-soft)}
-/* resumo (tab 2) */
+.field.invalid input,.field.invalid select{border-color:var(--terracota)}
+.modal-hint{font-size:11px;color:var(--text-mute);margin:4px 0 0;font-style:italic}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border-2)}
+.modal-btn{padding:10px 18px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--cinza);background:#fff;color:var(--text-dim)}
+.modal-btn:hover{background:#F0F2F4}
+.modal-btn.save{background:var(--green);color:#fff;border-color:var(--green)}
+.modal-btn.save:hover{background:#4F7C3B}
+.modal-btn.danger{color:var(--red);margin-right:auto}
+.modal-btn.danger:hover{border-color:var(--red);background:var(--red-soft)}
+
+/* ===== resumo (aba 2) ===== */
 .fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .fbar select{font-family:inherit;font-size:13px;border:1px solid var(--border);padding:9px 12px;background:#fff;outline:none;min-width:260px;font-weight:600}
+.mini-btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.4px;padding:9px 14px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mini-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
+.mini-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
 .week-sum{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
 .week-sum b{color:var(--text)}
+.rkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.rkpi{background:#fff;border:1px solid var(--border);border-top:3px solid var(--blue);padding:13px 15px;box-shadow:var(--shadow)}
+.rkpi .v{font-size:23px;font-weight:800;letter-spacing:-1px;line-height:1}
+.rkpi .l{font-size:8.6px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-top:5px}
+.rkpi.red{border-top-color:var(--red)}.rkpi.green{border-top-color:var(--green)}
 .chart-card{background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
 .chart-title{font-size:13px;font-weight:800;margin-bottom:2px}
 .chart-hint{font-size:10px;color:var(--text-mute);margin-bottom:12px}
@@ -129,7 +225,19 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
 .pend-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#7c4a00;margin-bottom:8px}
 .pend-list{display:flex;flex-wrap:wrap;gap:7px}
 .pend-item{font-size:11px;background:#FEF3C7;border:1px solid #f0c87a;color:#7c4a00;padding:3px 9px;font-weight:600}
-@media(max-width:700px){.fgrid{grid-template-columns:1fr}}
+.empty{text-align:center;padding:50px 20px;color:var(--text-mute)}.empty .big{font-size:40px;margin-bottom:10px;opacity:.4}
+
+/* impressão: só os blocos do plano de ação */
+@media print{
+  body{background:#fff}
+  .nav-row,.user-bar,.tabs,.toolbar,.notice,.count-line,#view-resumo,
+  .edit-btn,.hist-btn,.obs-edit-btn,.card-edit-btn,.atualizacao-edit,
+  .saved-tag,.modal-overlay{display:none !important}
+  .site-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .kpi{box-shadow:none;border:1px solid #ddd;cursor:default}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid;page-break-inside:avoid}
+  .hist-list{display:block !important}
+}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -150,7 +258,7 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
     <div>
       <div class="eyebrow">Planejamento &amp; Controle · Alinhamento Semanal</div>
       <h1>Plano de Ação <span>· RSO</span></h1>
-      <p class="subtitle">Itens do alinhamento semanal com histórico de status, e resumo do desempenho das empresas</p>
+      <p class="subtitle" id="header-sub">Ações do alinhamento semanal em blocos, com histórico de atualizações e resumo das empresas</p>
     </div>
     <div class="user-bar">
       <span id="unidade-switcher" style="margin-right:4px"></span>
@@ -166,39 +274,54 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
     <button class="tab" data-view="resumo" onclick="switchView('resumo')">🏗️ Resumo das Empresas</button>
   </div>
 
-  <!-- ============ ABA 1: PLANO DE AÇÃO ============ -->
+  <!-- ============ ABA 1: PLANO DE AÇÃO EM BLOCOS ============ -->
   <div id="view-plano">
-    <div id="pa-setup-notice" class="notice warn" style="display:none">
-      <b>Tabelas ainda não criadas.</b> Rode o script <code>supabase_rso_plano_acao.sql</code> no SQL Editor do Supabase para habilitar esta tela (o script também importa os itens da planilha original).
+    <div id="pa-setup-notice" class="notice warn" style="display:none"></div>
+
+    <div class="kpis" id="kpis">
+      <div class="kpi total" data-filter="__all__"><div class="num" id="kpiTotal">0</div><div class="label">Total de ações</div></div>
+      <div class="kpi atrasado" data-filter="Atrasado"><div class="num" id="kpiAtrasado">0</div><div class="label">🔴 Atrasadas</div></div>
+      <div class="kpi atencao" data-filter="Atenção"><div class="num" id="kpiAtencao">0</div><div class="label">🟡 Atenção</div></div>
+      <div class="kpi noprazo" data-filter="No Prazo"><div class="num" id="kpiNoPrazo">0</div><div class="label">🟢 No prazo</div></div>
+      <div class="kpi concluido" data-filter="Concluído"><div class="num" id="kpiConcluido">0</div><div class="label">✅ Concluídas</div></div>
+      <div class="kpi semdata" data-filter="Sem data"><div class="num" id="kpiSemData">0</div><div class="label">⬜ Sem data</div></div>
     </div>
-    <div class="kpis" id="pa-kpis"></div>
+
+    <div class="progress-summary">
+      <div class="progress-bar" id="progressBar"></div>
+      <div class="progress-legend" id="progressLegend"></div>
+    </div>
+
     <div class="toolbar">
-      <input id="pa-search" placeholder="🔎 Tema, ação ou nº…" style="min-width:230px" oninput="renderPlano()">
-      <select id="pa-f-resp" onchange="renderPlano()"><option value="">Todos os responsáveis</option></select>
-      <select id="pa-f-status" onchange="renderPlano()">
+      <input type="text" id="searchInput" placeholder="🔎 Buscar por tema, ação, atualização, observação ou responsável…">
+      <select id="respFilter"><option value="">Todos os responsáveis</option></select>
+      <select id="setorFilter"><option value="">Todos os setores</option></select>
+      <select id="statusFilter">
         <option value="">Todos os status</option>
+        <option value="Atrasado">🔴 Atrasado</option>
+        <option value="Atenção">🟡 Atenção</option>
+        <option value="No Prazo">🟢 No Prazo</option>
+        <option value="Concluído">✅ Concluído</option>
+        <option value="Sem data">⬜ Sem data</option>
+        <option value="Cancelado">⛔ Cancelado</option>
         <option value="__abertos">Abertos (sem concluídos/cancelados)</option>
-        <option>Em andamento</option>
-        <option>Atrasado</option>
-        <option>Atenção</option>
-        <option>Concluído</option>
-        <option>Cancelado</option>
       </select>
-      <span style="flex:1"></span>
-      <button class="mini-btn blue" onclick="openItemModal()">➕ Novo item</button>
-      <button class="mini-btn" onclick="exportPlanoPDF()" title="Gera o PDF do plano (itens filtrados) via impressão do navegador">🖨️ PDF</button>
-      <button class="mini-btn gold" onclick="exportPlanoExcel()" title="Exporta itens + histórico completo para Excel">⬇ Excel</button>
+      <select id="sortSelect">
+        <option value="urgencia">Ordenar: Urgência</option>
+        <option value="prazo">Ordenar: Data planejada</option>
+        <option value="desvio">Ordenar: Maior desvio</option>
+        <option value="tema">Ordenar: Tema (A-Z)</option>
+        <option value="id">Ordenar: # original</option>
+      </select>
+      <button id="clearBtn">Limpar filtros</button>
+      <button class="export" id="printBtn">🖨 PDF</button>
+      <button class="gold" id="excelBtn">⬇ Excel</button>
+      <button class="new-btn" id="newTemaBtn">＋ Novo tema</button>
     </div>
-    <div class="tbl-card">
-      <table class="pa">
-        <thead><tr>
-          <th class="c-num">#</th><th>Tema</th><th>Ação</th><th>Status · última atualização</th>
-          <th>Responsável</th><th class="c-data">Planejada</th><th class="c-data">Replanejada</th>
-          <th class="c-data">Realizada</th><th class="c-desv">Desvio (d)</th><th class="c-st">Situação</th><th class="c-ed"></th>
-        </tr></thead>
-        <tbody id="pa-tbody"><tr><td colspan="11"><div class="empty"><div class="big">⏳</div>Carregando…</div></td></tr></tbody>
-      </table>
-    </div>
+
+    <p class="count-line"><strong id="countNum">0</strong> ações exibidas</p>
+    <div class="cards" id="cardsContainer"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+    <div class="empty-state" id="emptyState" style="display:none">Nenhuma ação encontrada com os filtros atuais.</div>
   </div>
 
   <!-- ============ ABA 2: RESUMO DAS EMPRESAS ============ -->
@@ -208,7 +331,7 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
     </div>
     <div id="rs-empty"></div>
     <div id="rs-dash" style="display:none">
-      <div class="kpis" id="rs-kpis"></div>
+      <div class="rkpis" id="rs-kpis"></div>
 
       <div class="section-label">Desvio acumulado por contrato · última revisão</div>
       <div class="chart-card">
@@ -242,49 +365,71 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
   </div>
 </div>
 
-<!-- MODAL: novo / editar item -->
-<div class="overlay" id="ov-item">
+<!-- MODAL: novo / editar tema -->
+<div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <h3 id="mi-title">Novo item do plano</h3>
-    <div class="fgrid">
-      <div class="field"><label>Nº do item</label><input id="mi-num" type="number" min="1"></div>
-      <div class="field"><label>Situação</label>
-        <select id="mi-status">
-          <option>Em andamento</option><option>Atrasado</option><option>Atenção</option>
-          <option>Concluído</option><option>Cancelado</option>
-        </select></div>
-      <div class="field full"><label>Tema</label><textarea id="mi-tema" style="min-height:56px"></textarea></div>
-      <div class="field full"><label>Ação</label><textarea id="mi-acao" style="min-height:56px"></textarea></div>
-      <div class="field full"><label>Responsável</label><input id="mi-resp" placeholder="Ex.: Kleber / Leila"></div>
-      <div class="field"><label>Data planejada</label><input id="mi-dp" type="date"></div>
-      <div class="field"><label>Data replanejada</label><input id="mi-dr" type="date"></div>
-      <div class="field"><label>Data realizada</label><input id="mi-dre" type="date"></div>
-      <div class="field full" id="mi-upd-wrap"><label>Primeira atualização de status (opcional)</label>
-        <textarea id="mi-upd" placeholder="Registrada no histórico com data e hora de agora"></textarea></div>
+    <div class="modal-header">
+      <h2 id="modalTitle">Novo tema</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
     </div>
-    <div class="modal-btns">
-      <button class="btn danger" id="mi-del" style="display:none" onclick="deleteItem()">🗑 Excluir</button>
-      <button class="btn" onclick="closeModal('ov-item')">Cancelar</button>
-      <button class="btn primary" id="mi-save" onclick="saveItem()">Salvar</button>
+    <div class="modal-body">
+      <div class="field"><label for="fTema">Tema *</label>
+        <textarea id="fTema" rows="2" placeholder="Ex.: Fornecimento das bombas do sump…"></textarea></div>
+      <div class="field"><label for="fAcao">Ação recomendada</label>
+        <textarea id="fAcao" rows="2" placeholder="Ex.: Contratar o mais rápido possível…"></textarea></div>
+      <div class="field" id="fAtualizacaoWrap"><label for="fAtualizacao">Primeira atualização (opcional)</label>
+        <textarea id="fAtualizacao" rows="3" placeholder="Registrada no histórico com a data e hora de agora…"></textarea></div>
+      <div class="field-row">
+        <div class="field"><label for="fResponsavel">Responsável</label>
+          <input type="text" id="fResponsavel" placeholder="Nome"></div>
+        <div class="field"><label for="fExecutante">Executante</label>
+          <input type="text" id="fExecutante" placeholder="Empresa / contratada"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="fDisciplina">Disciplina</label>
+          <select id="fDisciplina">
+            <option value="">—</option>
+            <option>Civil</option><option>Estrutura Metálica</option><option>Tubulação</option>
+            <option>Caldeiraria</option><option>Mecânica</option><option>Elétrica</option>
+            <option>Instrumentação</option><option>Pintura</option><option>Isolamento Térmico</option>
+            <option>Suprimentos</option><option>Comissionamento</option><option>Multidisciplinar</option>
+          </select></div>
+        <div class="field"><label for="fSetor">Setor responsável</label>
+          <select id="fSetor">
+            <option value="">— Selecionar —</option>
+            <option>Suprimentos</option><option>Contratos</option><option>Engenharia</option>
+            <option>Obra / Execução</option><option>Comissionamento</option><option>Qualidade</option>
+            <option>Segurança</option><option>Planejamento</option>
+          </select></div>
+      </div>
+      <div class="field"><label for="fEscopo">Escopo</label>
+        <input type="text" id="fEscopo" placeholder="Descrição breve do escopo"></div>
+      <div class="field-row">
+        <div class="field"><label for="fDataPlanejada">Data planejada</label>
+          <input type="date" id="fDataPlanejada"></div>
+        <div class="field"><label for="fDataReplanejada">Data replanejada</label>
+          <input type="date" id="fDataReplanejada"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="fDataRealizada">Data realizada</label>
+          <input type="date" id="fDataRealizada"></div>
+        <div class="field"><label for="fStatus">Status</label>
+          <select id="fStatus">
+            <option value="">Calcular automaticamente pela data</option>
+            <option value="Atrasado">🔴 Atrasado</option>
+            <option value="Atenção">🟡 Atenção</option>
+            <option value="No Prazo">🟢 No Prazo</option>
+            <option value="Concluído">✅ Concluído</option>
+            <option value="Sem data">⬜ Sem data</option>
+            <option value="Cancelado">⛔ Cancelado</option>
+          </select></div>
+      </div>
+      <p class="modal-hint">Se o status ficar em branco, ele é calculado automaticamente: data vencida = 🔴, até 7 dias = 🟡, além disso = 🟢, sem data = ⬜, com data realizada = ✅.</p>
     </div>
-  </div>
-</div>
-
-<!-- MODAL: nova atualização de status -->
-<div class="overlay" id="ov-upd">
-  <div class="modal" style="max-width:520px;border-top-color:var(--blue)">
-    <h3>Nova atualização de status<small id="mu-item-label"></small></h3>
-    <div class="field"><label>Atualização</label>
-      <textarea id="mu-texto" placeholder="O que mudou desde a última reunião?"></textarea></div>
-    <div class="field" style="margin-top:12px"><label>Alterar situação do item para (opcional)</label>
-      <select id="mu-status">
-        <option value="">— manter situação atual —</option>
-        <option>Em andamento</option><option>Atrasado</option><option>Atenção</option>
-        <option>Concluído</option><option>Cancelado</option>
-      </select></div>
-    <div class="modal-btns">
-      <button class="btn" onclick="closeModal('ov-upd')">Cancelar</button>
-      <button class="btn primary" id="mu-save" onclick="saveUpdate()">Registrar</button>
+    <div class="modal-footer">
+      <button class="modal-btn danger" id="modalDelete" style="display:none">🗑 Excluir</button>
+      <button class="modal-btn" id="modalCancel">Cancelar</button>
+      <button class="modal-btn save" id="modalSave">Adicionar tema</button>
     </div>
   </div>
 </div>
@@ -295,8 +440,8 @@ const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
 const CLR={blue:'#304F7E',gold:'#EAA239',green:'#2e7d32',red:'#C0392B',mute:'#8a95a6'};
 const $=id=>document.getElementById(id);
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function fmtD(d){if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:'—';}
-function fmtDFull(d){const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—';}
+function fmtBr(d){if(!d)return null;const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:null;}
+function fmtDFull(d){return fmtBr(d)||'—';}
 function fmtTS(ts){if(!ts)return '';const d=new Date(ts);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 const nf=(n,d)=>(n==null||isNaN(n))?'—':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d??2,maximumFractionDigits:d??2});
 const clsNum=v=>v==null?'':(v<0?'red':(v>0?'green':''));
@@ -307,16 +452,15 @@ async function sb(method,path,body){
   const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
   if(body){headers['Content-Type']='application/json';headers['Prefer']='return=representation';}
   const res=await fetch(SB_URL+'/rest/v1/'+path,{method,headers,body:body?JSON.stringify(body):undefined});
-  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,200));}
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,220));}
   const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
 }
-/* leitura paginada — evita o limite padrão de 1000 linhas do Supabase */
 async function sbGetAll(path){
   const out=[];let from=0;const step=1000;
   for(;;){
     const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:{
       'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Range':from+'-'+(from+step-1)}});
-    if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,200));}
+    if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,220));}
     const chunk=await res.json();
     out.push(...chunk);
     if(chunk.length<step)break;
@@ -325,270 +469,465 @@ async function sbGetAll(path){
   return out;
 }
 
-/* ================= ABA 1 — PLANO DE AÇÃO ================= */
-let ITENS=[], UPDATES={}, HIST_OPEN={}, EDIT_ID=null, UPD_ITEM=null;
+/* ================= ABA 1 — PLANO DE AÇÃO EM BLOCOS ================= */
+let DATA=[], UPD_STATUS={}, UPD_OBS={}, HIST_OPEN={}, activeStatusFilter=null, editingId=null, NEW_ID=null;
+const STATUS_META={
+  'Atrasado' :{cls:'atrasado', pill:'🔴 Atrasado'},
+  'Atenção'  :{cls:'atencao',  pill:'🟡 Atenção'},
+  'No Prazo' :{cls:'noprazo',  pill:'🟢 No Prazo'},
+  'Concluído':{cls:'concluido',pill:'✅ Concluído'},
+  'Sem data' :{cls:'semdata',  pill:'⬜ Sem data'},
+  'Cancelado':{cls:'cancelado',pill:'⛔ Cancelado'}
+};
+function statusMeta(st){return STATUS_META[st]||STATUS_META['Sem data'];}
+function computeStatus(it){
+  if(it.data_realizada)return 'Concluído';
+  const ref=it.data_replanejada||it.data_planejada;
+  if(!ref)return 'Sem data';
+  const today=new Date();today.setHours(0,0,0,0);
+  const d=new Date(ref+'T00:00:00');
+  const diff=Math.round((d-today)/86400000);
+  if(diff<0)return 'Atrasado';
+  if(diff<=7)return 'Atenção';
+  return 'No Prazo';
+}
+function desvioDias(it){
+  const fim=it.data_realizada||it.data_replanejada;
+  if(!fim||!it.data_planejada)return null;
+  return Math.round((new Date(fim)-new Date(it.data_planejada))/86400000);
+}
 
 async function loadPlano(){
   try{
-    ITENS=await sbGetAll(pcoComUnidade('rso_plano_acao?select=*&ativo=eq.true&order=num.asc,criado_em.asc'));
+    DATA=await sbGetAll(pcoComUnidade('rso_plano_acao?select=*&ativo=eq.true&order=num.asc,criado_em.asc'));
     const ups=await sbGetAll(pcoComUnidade('rso_status_updates?select=*&order=criado_em.desc'));
-    UPDATES={};
-    ups.forEach(u=>{(UPDATES[u.item_id]=UPDATES[u.item_id]||[]).push(u);});
-    fillRespFilter();
-    renderPlano();
+    UPD_STATUS={};UPD_OBS={};
+    ups.forEach(u=>{
+      const map=(u.tipo==='obs')?UPD_OBS:UPD_STATUS;
+      (map[u.item_id]=map[u.item_id]||[]).push(u);
+    });
+    populateResponsibleFilter();
+    populateSetorFilter();
+    updateKPIs();
+    updateProgressSummary();
+    render();
   }catch(err){
-    if(/42P01|PGRST205|does not exist/i.test(err.message)){$('pa-setup-notice').style.display='';
-      $('pa-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="big">🗄️</div>Tabelas ainda não criadas no Supabase.</div></td></tr>';}
-    else $('pa-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div></td></tr>';
+    if(/42P01|PGRST205|does not exist/i.test(err.message)){
+      $('pa-setup-notice').style.display='';
+      $('pa-setup-notice').innerHTML='<b>Tabelas ainda não criadas.</b> Rode <code>supabase_rso_plano_acao.sql</code> e depois <code>supabase_rso_plano_acao_v2.sql</code> no SQL Editor do Supabase.';
+      $('cardsContainer').innerHTML='';
+    }else{
+      $('cardsContainer').innerHTML='<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+    }
   }
 }
-function fillRespFilter(){
-  const cur=$('pa-f-resp').value;
+
+function populateResponsibleFilter(){
   const set=new Set();
-  ITENS.forEach(i=>{(i.responsavel||'').split('/').map(s=>s.trim()).filter(Boolean).forEach(n=>set.add(n));});
-  $('pa-f-resp').innerHTML='<option value="">Todos os responsáveis</option>'+
-    [...set].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n=>`<option${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+  DATA.forEach(r=>{(r.responsavel||'').split('/').map(s=>s.trim()).filter(Boolean).forEach(n=>set.add(n));});
+  const sel=$('respFilter');const cur=sel.value;
+  sel.innerHTML='<option value="">Todos os responsáveis</option>'+
+    [...set].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n=>`<option value="${esc(n)}"${n===cur?' selected':''}>${esc(n)}</option>`).join('');
 }
-function desvioDias(i){
-  const fim=i.data_realizada||i.data_replanejada;
-  if(!fim||!i.data_planejada)return null;
-  return Math.round((new Date(fim)-new Date(i.data_planejada))/86400000);
+function populateSetorFilter(){
+  const SETORES=['Suprimentos','Contratos','Engenharia','Obra / Execução','Comissionamento','Qualidade','Segurança','Planejamento'];
+  const usados=new Set();DATA.forEach(r=>{if(r.setor)usados.add(r.setor);});
+  const all=new Set([...SETORES,...usados]);
+  const sel=$('setorFilter');const cur=sel.value;
+  sel.innerHTML='<option value="">Todos os setores</option>'+
+    [...all].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(s=>`<option value="${esc(s)}"${s===cur?' selected':''}>${esc(s)}</option>`).join('');
 }
-function badge(st){
-  const map={'Concluído':'b-conc','Atrasado':'b-atr','Atenção':'b-aten','Cancelado':'b-canc','Em andamento':'b-and'};
-  const ico={'Concluído':'✅ ','Atrasado':'🔴 ','Atenção':'🟡 ','Cancelado':'⛔ ','Em andamento':''};
-  return `<span class="badge ${map[st]||'b-and'}">${ico[st]||''}${esc(st)}</span>`;
+function updateKPIs(){
+  const c=st=>DATA.filter(r=>r.status===st).length;
+  $('kpiTotal').textContent=DATA.length;
+  $('kpiAtrasado').textContent=c('Atrasado');
+  $('kpiAtencao').textContent=c('Atenção');
+  $('kpiNoPrazo').textContent=c('No Prazo');
+  $('kpiConcluido').textContent=c('Concluído');
+  $('kpiSemData').textContent=c('Sem data');
 }
-function filteredItens(){
-  const q=($('pa-search').value||'').toLowerCase(), fr=$('pa-f-resp').value, fs=$('pa-f-status').value;
-  return ITENS.filter(i=>{
-    if(q && !((i.tema||'')+' '+(i.acao||'')+' '+(i.num||'')).toLowerCase().includes(q))return false;
-    if(fr && !(i.responsavel||'').toLowerCase().includes(fr.toLowerCase()))return false;
-    if(fs==='__abertos'){if(i.status==='Concluído'||i.status==='Cancelado')return false;}
-    else if(fs && i.status!==fs)return false;
+function updateProgressSummary(){
+  const total=DATA.length||1;
+  const segs=[['atrasado','🔴 Atrasado','Atrasado'],['atencao','🟡 Atenção','Atenção'],
+    ['noprazo','🟢 No Prazo','No Prazo'],['concluido','✅ Concluído','Concluído'],
+    ['semdata','⬜ Sem data','Sem data'],['cancelado','⛔ Cancelado','Cancelado']];
+  const counts={};segs.forEach(([k,,st])=>counts[k]=DATA.filter(r=>r.status===st).length);
+  $('progressBar').innerHTML=segs.map(([k])=>{
+    const pct=(counts[k]/total*100).toFixed(1);
+    return counts[k]>0?`<span class="seg-${k}" style="width:${pct}%"></span>`:'';
+  }).join('');
+  $('progressLegend').innerHTML=segs.filter(([k])=>counts[k]>0).map(([k,label])=>{
+    const pct=Math.round(counts[k]/total*100);
+    return `<span><i class="dot ${k}"></i>${label}: ${counts[k]} (${pct}%)</span>`;
+  }).join('');
+}
+
+const URGENCY_ORDER={'atrasado':0,'atencao':1,'semdata':2,'noprazo':3,'concluido':4,'cancelado':5};
+function sortRows(rows,mode){
+  const arr=[...rows];
+  if(mode==='urgencia'){
+    arr.sort((a,b)=>{
+      const ua=URGENCY_ORDER[statusMeta(a.status).cls]??9;
+      const ub=URGENCY_ORDER[statusMeta(b.status).cls]??9;
+      if(ua!==ub)return ua-ub;
+      return (desvioDias(b)||0)-(desvioDias(a)||0);
+    });
+  }else if(mode==='prazo'){
+    arr.sort((a,b)=>{
+      const da=a.data_planejada,db=b.data_planejada;
+      if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;
+      return da<db?-1:(da>db?1:0);
+    });
+  }else if(mode==='desvio'){
+    arr.sort((a,b)=>(desvioDias(b)||0)-(desvioDias(a)||0));
+  }else if(mode==='tema'){
+    arr.sort((a,b)=>(a.tema||'').localeCompare(b.tema||'','pt-BR'));
+  }else{
+    arr.sort((a,b)=>(a.num||0)-(b.num||0));
+  }
+  return arr;
+}
+
+function filteredRows(){
+  const search=$('searchInput').value.trim().toLowerCase();
+  const resp=$('respFilter').value;
+  const setor=$('setorFilter').value;
+  const statusSel=$('statusFilter').value;
+  const statusFinal=activeStatusFilter||statusSel;
+  return DATA.filter(r=>{
+    if(statusFinal==='__abertos'){if(r.status==='Concluído'||r.status==='Cancelado')return false;}
+    else if(statusFinal&&r.status!==statusFinal)return false;
+    if(resp&&!(r.responsavel||'').toLowerCase().includes(resp.toLowerCase()))return false;
+    if(setor&&r.setor!==setor)return false;
+    if(search){
+      const last=(UPD_STATUS[r.id]||[])[0];
+      const hay=[r.num,r.tema,r.acao,last?last.texto:'',r.observacao,r.responsavel,r.disciplina,r.setor,r.executante,r.escopo]
+        .filter(Boolean).join(' ').toLowerCase();
+      if(!hay.includes(search))return false;
+    }
     return true;
   });
 }
-function renderPlano(){
-  const list=filteredItens();
-  const cnt=s=>ITENS.filter(i=>i.status===s).length;
-  $('pa-kpis').innerHTML=
-    `<div class="kpi"><div class="v">${ITENS.length}</div><div class="l">Itens no plano</div></div>`+
-    `<div class="kpi"><div class="v">${cnt('Em andamento')}</div><div class="l">Em andamento</div></div>`+
-    `<div class="kpi red"><div class="v">${cnt('Atrasado')}</div><div class="l">Atrasados</div></div>`+
-    `<div class="kpi gold"><div class="v">${cnt('Atenção')}</div><div class="l">Em atenção</div></div>`+
-    `<div class="kpi green"><div class="v">${cnt('Concluído')}</div><div class="l">Concluídos</div></div>`+
-    `<div class="kpi gray"><div class="v">${cnt('Cancelado')}</div><div class="l">Cancelados</div></div>`;
-  if(!list.length){$('pa-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="big">📋</div>Nenhum item com os filtros atuais.</div></td></tr>';return;}
-  let html='';
-  list.forEach(i=>{
-    const ups=UPDATES[i.id]||[];
-    const last=ups[0];
-    const dv=desvioDias(i);
-    const open=!!HIST_OPEN[i.id];
-    html+=`<tr class="item-row">
-      <td class="num">${i.num??'—'}</td>
-      <td class="tema">${esc(i.tema||'—')}</td>
-      <td class="acao">${esc(i.acao||'—')}</td>
-      <td>
-        ${last?`<div class="upd-txt">${esc(last.texto)}</div><div class="upd-meta">🕐 ${fmtTS(last.criado_em)}${last.autor?(' · '+esc(last.autor)):''}</div>`:'<span style="color:var(--text-mute)">— sem atualizações —</span>'}
-        <div class="upd-actions">
-          <button class="chip-btn" onclick="openUpdModal('${i.id}')">＋ Atualizar</button>
-          ${ups.length>1?`<button class="chip-btn" onclick="toggleHist('${i.id}')">${open?'▲ Ocultar':'🕘 Histórico ('+ups.length+')'}</button>`:''}
-        </div>
-      </td>
-      <td>${esc(i.responsavel||'—')}</td>
-      <td class="num">${fmtD(i.data_planejada)}</td>
-      <td class="num">${fmtD(i.data_replanejada)}</td>
-      <td class="num">${fmtD(i.data_realizada)}</td>
-      <td class="num ${dv>0?'dv-pos':(dv<0?'dv-neg':'')}">${dv==null?'—':dv}</td>
-      <td>${badge(i.status)}</td>
-      <td><button class="edit-btn" title="Editar item" onclick="openItemModal('${i.id}')">✎</button></td>
-    </tr>`;
-    if(open&&ups.length){
-      html+=`<tr class="hist-row"><td colspan="11">
-        <div style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);margin-bottom:8px">Histórico de atualizações · item ${i.num??''}</div>
-        ${ups.map(u=>`<div class="hist-item"><div class="t">${esc(u.texto)}</div><div class="m">🕐 ${fmtTS(u.criado_em)}${u.autor?(' · '+esc(u.autor)):''}</div></div>`).join('')}
-      </td></tr>`;
-    }
-  });
-  $('pa-tbody').innerHTML=html;
-}
-function toggleHist(id){HIST_OPEN[id]=!HIST_OPEN[id];renderPlano();}
 
-/* --- modais --- */
-function closeModal(id){$(id).classList.remove('open');}
-function openItemModal(id){
-  EDIT_ID=id||null;
-  const i=id?ITENS.find(x=>x.id===id):null;
-  $('mi-title').textContent=i?('Editar item '+(i.num??'')):('Novo item do plano · '+unidadeNome());
-  $('mi-num').value=i?(i.num??''):(Math.max(0,...ITENS.map(x=>x.num||0))+1);
-  $('mi-status').value=i?i.status:'Em andamento';
-  $('mi-tema').value=i?(i.tema||''):'';
-  $('mi-acao').value=i?(i.acao||''):'';
-  $('mi-resp').value=i?(i.responsavel||''):'';
-  $('mi-dp').value=i?(i.data_planejada||''):'';
-  $('mi-dr').value=i?(i.data_replanejada||''):'';
-  $('mi-dre').value=i?(i.data_realizada||''):'';
-  $('mi-upd').value='';
-  $('mi-upd-wrap').style.display=i?'none':'';
-  $('mi-del').style.display=i?'':'none';
-  $('ov-item').classList.add('open');
+function renderHist(list,cls){
+  if(!list||!list.length)return '<p class="hist-empty">Ainda sem registros anteriores.</p>';
+  return list.map(u=>`<div class="hist-item"><span class="hist-time">${fmtTS(u.criado_em)}${u.autor?(' · '+esc(u.autor)):''}</span>${esc(u.texto)}</div>`).join('');
 }
-async function saveItem(){
-  const btn=$('mi-save');btn.disabled=true;btn.textContent='Salvando…';
+
+function render(){
+  const sortMode=$('sortSelect').value;
+  let rows=sortRows(filteredRows(),sortMode);
+  const container=$('cardsContainer');
+  container.innerHTML='';
+  $('countNum').textContent=rows.length;
+  $('emptyState').style.display=rows.length?'none':'block';
+
+  rows.forEach(r=>{
+    const sm=statusMeta(r.status);
+    const card=document.createElement('div');
+    card.className='card st-'+sm.cls+(r.id===NEW_ID?' is-new':'');
+    card.setAttribute('data-card-id',r.id);
+
+    const mb=[];
+    mb.push(r.responsavel?`<span class="meta-badge resp">👤 ${esc(r.responsavel)}</span>`:'<span class="meta-badge empty">👤 Responsável: —</span>');
+    mb.push(r.executante?`<span class="meta-badge exec">🏗 ${esc(r.executante)}</span>`:'<span class="meta-badge empty">🏗 Executante: —</span>');
+    mb.push(r.disciplina?`<span class="meta-badge disc">🔧 ${esc(r.disciplina)}</span>`:'<span class="meta-badge empty">🔧 Disciplina: —</span>');
+    mb.push(r.setor?`<span class="meta-badge setor">🏷 ${esc(r.setor)}</span>`:'<span class="meta-badge empty">🏷 Setor: —</span>');
+
+    const dv=desvioDias(r);
+    const dCls=dv==null?'zero':(dv>0?'pos':(dv<0?'neg':'zero'));
+    const dLabel=dv==null?'— d':(dv>0?('+'+dv+' d atraso'):(dv<0?(Math.abs(dv)+' d de folga'):'0 d'));
+
+    const upsS=UPD_STATUS[r.id]||[];
+    const upsO=UPD_OBS[r.id]||[];
+    const last=upsS[0];
+    const histOpen=!!HIST_OPEN[r.id];
+
+    card.innerHTML=`
+      <div class="idx">${r.num??'—'}</div>
+      <div class="body">
+        <p class="tema">${r.id===NEW_ID?'<span class="badge-novo">NOVO</span> ':''}${esc(r.tema||'')}</p>
+        <div class="meta-badges">${mb.join('')}</div>
+        ${r.acao?`<p class="acao">➜ ${esc(r.acao)}</p>`:''}
+
+        <p class="at-label">Atualização de status</p>
+        <div class="atualizacao-view" id="atView-${r.id}">
+          ${last
+            ?`<p class="atualizacao-text">${esc(last.texto)}</p><p class="at-meta">${fmtTS(last.criado_em)}${last.autor?(' · '+esc(last.autor)):''}</p>`
+            :'<p class="atualizacao-text"><span class="atualizacao-empty">Sem atualização registrada</span></p>'}
+          <button class="edit-btn" data-id="${r.id}">＋ Nova atualização</button>
+          ${upsS.length>1?`<button class="hist-btn" data-id="${r.id}">${histOpen?'▲ Ocultar histórico':'🕘 Histórico ('+upsS.length+')'}</button>`:''}
+        </div>
+        <div class="atualizacao-edit" id="atEdit-${r.id}" style="display:none">
+          <textarea class="atualizacao-input" data-id="${r.id}" placeholder="O que mudou desde a última reunião?"></textarea>
+          <div class="atualizacao-actions">
+            <button class="publish-btn" data-id="${r.id}">✓ Publicar</button>
+            <button class="cancel-edit-btn" data-id="${r.id}">Cancelar</button>
+          </div>
+        </div>
+        <div class="saved-tag" id="atsaved-${r.id}">Atualização registrada ✓</div>
+        ${histOpen&&upsS.length?`<p class="hist-label">Histórico de atualizações</p><div class="hist-list">${renderHist(upsS)}</div>`:''}
+
+        <div class="obs-block">
+          <p class="obs-label">Observação</p>
+          <div class="obs-view" id="obsView-${r.id}">
+            <p class="obs-text">${r.observacao?esc(r.observacao):'<span class="obs-empty">Nenhuma observação adicionada</span>'}</p>
+            <button class="obs-edit-btn" data-id="${r.id}">✎ Editar</button>
+          </div>
+          <div class="obs-edit-block" id="obsEdit-${r.id}" style="display:none">
+            <textarea class="obs-input" data-id="${r.id}" placeholder="Adicionar observação sobre este tema…">${esc(r.observacao||'')}</textarea>
+            <div class="obs-actions">
+              <button class="publish-btn obs-publish-btn" data-id="${r.id}">✓ Publicar</button>
+              <button class="cancel-edit-btn obs-cancel-btn" data-id="${r.id}">Cancelar</button>
+            </div>
+          </div>
+          <div class="saved-tag" id="obssaved-${r.id}">Observação publicada ✓</div>
+          ${upsO.length?`<p class="hist-label">Histórico de observações</p><div class="hist-list obs">${renderHist(upsO)}</div>`:''}
+        </div>
+      </div>
+      <div class="side">
+        <button class="card-edit-btn" data-id="${r.id}">✎ Editar card</button>
+        <span class="status-pill ${sm.cls}">${sm.pill}</span>
+        <div class="dates">
+          <div><b>Planejada:</b> ${fmtDFull(r.data_planejada)}</div>
+          ${r.data_replanejada?'<div><b>Replanejada:</b> '+fmtDFull(r.data_replanejada)+'</div>':''}
+          ${r.data_realizada?'<div><b>Realizada:</b> '+fmtDFull(r.data_realizada)+'</div>':''}
+        </div>
+        <span class="desvio ${dCls}">${dLabel}</span>
+      </div>`;
+    container.appendChild(card);
+  });
+
+  /* atualização de status */
+  container.querySelectorAll('.edit-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=btn.getAttribute('data-id');
+    $('atView-'+id).style.display='none';
+    const box=$('atEdit-'+id);box.style.display='block';
+    const ta=box.querySelector('textarea');ta.focus();
+  }));
+  container.querySelectorAll('.atualizacao-edit .cancel-edit-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=btn.getAttribute('data-id');
+    $('atEdit-'+id).style.display='none';
+    $('atView-'+id).style.display='block';
+  }));
+  container.querySelectorAll('.atualizacao-edit .publish-btn').forEach(btn=>btn.addEventListener('click',async()=>{
+    const id=btn.getAttribute('data-id');
+    const texto=$('atEdit-'+id).querySelector('textarea').value.trim();
+    if(!texto){alert('Escreva a atualização.');return;}
+    btn.disabled=true;btn.textContent='Publicando…';
+    try{
+      await sb('POST','rso_status_updates',pcoComTag({item_id:id,texto,autor:userNome(),tipo:'status'}));
+      await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+id),{atualizado_em:new Date().toISOString()});
+      await reloadKeepingScroll();
+      const tag=$('atsaved-'+id);if(tag){tag.classList.add('show');setTimeout(()=>tag.classList.remove('show'),1600);}
+    }catch(err){alert('Erro ao registrar: '+err.message);btn.disabled=false;btn.textContent='✓ Publicar';}
+  }));
+  container.querySelectorAll('.hist-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=btn.getAttribute('data-id');
+    HIST_OPEN[id]=!HIST_OPEN[id];
+    const y=window.scrollY;render();window.scrollTo(0,y);
+  }));
+
+  /* observação */
+  container.querySelectorAll('.obs-edit-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=btn.getAttribute('data-id');
+    $('obsView-'+id).style.display='none';
+    const box=$('obsEdit-'+id);box.style.display='block';
+    const ta=box.querySelector('textarea');ta.focus();ta.selectionStart=ta.selectionEnd=ta.value.length;
+  }));
+  container.querySelectorAll('.obs-cancel-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=btn.getAttribute('data-id');
+    const row=DATA.find(r=>r.id===id);
+    $('obsEdit-'+id).querySelector('textarea').value=(row&&row.observacao)||'';
+    $('obsEdit-'+id).style.display='none';
+    $('obsView-'+id).style.display='flex';
+  }));
+  container.querySelectorAll('.obs-publish-btn').forEach(btn=>btn.addEventListener('click',async()=>{
+    const id=btn.getAttribute('data-id');
+    const texto=$('obsEdit-'+id).querySelector('textarea').value.trim();
+    btn.disabled=true;btn.textContent='Publicando…';
+    try{
+      await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+id),{observacao:texto||null,atualizado_em:new Date().toISOString()});
+      if(texto)await sb('POST','rso_status_updates',pcoComTag({item_id:id,texto,autor:userNome(),tipo:'obs'}));
+      await reloadKeepingScroll();
+      const tag=$('obssaved-'+id);if(tag){tag.classList.add('show');setTimeout(()=>tag.classList.remove('show'),1600);}
+    }catch(err){alert('Erro ao publicar: '+err.message);btn.disabled=false;btn.textContent='✓ Publicar';}
+  }));
+
+  /* editar card */
+  container.querySelectorAll('.card-edit-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const row=DATA.find(r=>r.id===btn.getAttribute('data-id'));
+    if(row)openModalForEdit(row);
+  }));
+}
+
+async function reloadKeepingScroll(){
+  const y=window.scrollY;
+  await loadPlano();
+  window.scrollTo(0,y);
+}
+
+/* ---------- filtros / KPIs clicáveis ---------- */
+$('searchInput').addEventListener('input',render);
+$('respFilter').addEventListener('change',render);
+$('setorFilter').addEventListener('change',render);
+$('sortSelect').addEventListener('change',render);
+$('statusFilter').addEventListener('change',()=>{activeStatusFilter=null;syncKPIActive();render();});
+$('clearBtn').addEventListener('click',()=>{
+  $('searchInput').value='';$('respFilter').value='';$('setorFilter').value='';$('statusFilter').value='';
+  activeStatusFilter=null;syncKPIActive();render();
+});
+document.querySelectorAll('.kpi').forEach(k=>k.addEventListener('click',()=>{
+  const f=k.getAttribute('data-filter');
+  activeStatusFilter=(f==='__all__')?null:f;
+  $('statusFilter').value='';
+  syncKPIActive();render();
+}));
+function syncKPIActive(){
+  document.querySelectorAll('.kpi').forEach(k=>k.classList.remove('active'));
+  const f=activeStatusFilter||'__all__';
+  const el=document.querySelector('.kpi[data-filter="'+f+'"]');
+  if(el)el.classList.add('active');
+}
+
+/* ---------- modal ---------- */
+const modalOverlay=$('modalOverlay');
+function openModal(){
+  editingId=null;
+  $('modalTitle').textContent='Novo tema · '+unidadeNome();
+  $('modalSave').textContent='Adicionar tema';
+  $('modalDelete').style.display='none';
+  $('fAtualizacaoWrap').style.display='';
+  modalOverlay.classList.add('show');
+  $('fTema').focus();
+}
+function openModalForEdit(row){
+  editingId=row.id;
+  $('modalTitle').textContent='Editar tema #'+(row.num??'');
+  $('modalSave').textContent='Salvar alterações';
+  $('modalDelete').style.display='';
+  $('fTema').value=row.tema||'';
+  $('fAcao').value=row.acao||'';
+  $('fAtualizacao').value='';
+  $('fAtualizacaoWrap').style.display='none';
+  $('fResponsavel').value=row.responsavel||'';
+  $('fExecutante').value=row.executante||'';
+  $('fDisciplina').value=row.disciplina||'';
+  $('fSetor').value=row.setor||'';
+  $('fEscopo').value=row.escopo||'';
+  $('fDataPlanejada').value=row.data_planejada||'';
+  $('fDataReplanejada').value=row.data_replanejada||'';
+  $('fDataRealizada').value=row.data_realizada||'';
+  $('fStatus').value=row.status||'';
+  modalOverlay.classList.add('show');
+  $('fTema').focus();
+}
+function closeModal(){
+  modalOverlay.classList.remove('show');
+  editingId=null;
+  ['fTema','fAcao','fAtualizacao','fResponsavel','fExecutante','fEscopo','fDataPlanejada','fDataReplanejada','fDataRealizada'].forEach(id=>$(id).value='');
+  $('fDisciplina').value='';$('fSetor').value='';$('fStatus').value='';
+  $('fTema').closest('.field').classList.remove('invalid');
+}
+$('newTemaBtn').addEventListener('click',openModal);
+$('modalClose').addEventListener('click',closeModal);
+$('modalCancel').addEventListener('click',closeModal);
+modalOverlay.addEventListener('click',e=>{if(e.target===modalOverlay)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modalOverlay.classList.contains('show'))closeModal();});
+
+$('modalSave').addEventListener('click',async()=>{
+  const tema=$('fTema').value.trim();
+  const temaField=$('fTema').closest('.field');
+  if(!tema){temaField.classList.add('invalid');$('fTema').focus();return;}
+  temaField.classList.remove('invalid');
+
+  const payload={
+    tema,
+    acao:$('fAcao').value.trim()||null,
+    responsavel:$('fResponsavel').value.trim()||null,
+    executante:$('fExecutante').value.trim()||null,
+    disciplina:$('fDisciplina').value||null,
+    setor:$('fSetor').value||null,
+    escopo:$('fEscopo').value.trim()||null,
+    data_planejada:$('fDataPlanejada').value||null,
+    data_replanejada:$('fDataReplanejada').value||null,
+    data_realizada:$('fDataRealizada').value||null,
+    atualizado_em:new Date().toISOString()
+  };
+  payload.status=$('fStatus').value||computeStatus(payload);
+
+  const btn=$('modalSave');btn.disabled=true;btn.textContent='Salvando…';
   try{
-    const payload={
-      num:$('mi-num').value?Number($('mi-num').value):null,
-      tema:$('mi-tema').value.trim()||null,
-      acao:$('mi-acao').value.trim()||null,
-      responsavel:$('mi-resp').value.trim()||null,
-      data_planejada:$('mi-dp').value||null,
-      data_replanejada:$('mi-dr').value||null,
-      data_realizada:$('mi-dre').value||null,
-      status:$('mi-status').value,
-      atualizado_em:new Date().toISOString()
-    };
-    if(EDIT_ID){
-      await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+EDIT_ID),payload);
+    let targetId=editingId;
+    if(editingId){
+      await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+editingId),payload);
     }else{
+      payload.num=Math.max(0,...DATA.map(r=>r.num||0))+1;
       const rows=await sb('POST','rso_plano_acao',pcoComTag(payload));
       const novo=rows&&rows[0];
-      const upd=$('mi-upd').value.trim();
-      if(novo&&upd){
-        await sb('POST','rso_status_updates',pcoComTag({item_id:novo.id,texto:upd,autor:userNome()}));
-      }
+      targetId=novo?novo.id:null;
+      const upd=$('fAtualizacao').value.trim();
+      if(novo&&upd)await sb('POST','rso_status_updates',pcoComTag({item_id:novo.id,texto:upd,autor:userNome(),tipo:'status'}));
+      NEW_ID=targetId;
     }
-    closeModal('ov-item');
+    closeModal();
     await loadPlano();
-  }catch(err){alert('Erro ao salvar: '+err.message);}
-  btn.disabled=false;btn.textContent='Salvar';
-}
-async function deleteItem(){
-  if(!EDIT_ID)return;
-  const i=ITENS.find(x=>x.id===EDIT_ID);
-  if(!confirm('Excluir o item '+(i?.num??'')+' e todo o seu histórico de status?'))return;
+    if(targetId){
+      setTimeout(()=>{
+        const el=document.querySelector(`[data-card-id="${targetId}"]`);
+        if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+        setTimeout(()=>{NEW_ID=null;},2500);
+      },100);
+    }
+  }catch(err){
+    if(/PGRST204|column .* does not exist|schema cache/i.test(err.message)){
+      alert('O banco ainda não tem os novos campos dos blocos. Rode o script supabase_rso_plano_acao_v2.sql no Supabase e tente de novo.\n\nDetalhe: '+err.message);
+    }else alert('Erro ao salvar: '+err.message);
+  }
+  btn.disabled=false;btn.textContent=editingId?'Salvar alterações':'Adicionar tema';
+});
+
+$('modalDelete').addEventListener('click',async()=>{
+  if(!editingId)return;
+  const row=DATA.find(r=>r.id===editingId);
+  if(!confirm('Excluir o tema #'+(row?.num??'')+' e todo o histórico dele?'))return;
   try{
-    await sb('DELETE',pcoComUnidade('rso_plano_acao?id=eq.'+EDIT_ID));
-    closeModal('ov-item');
+    await sb('DELETE',pcoComUnidade('rso_plano_acao?id=eq.'+editingId));
+    closeModal();
     await loadPlano();
   }catch(err){alert('Erro ao excluir: '+err.message);}
-}
-function openUpdModal(id){
-  UPD_ITEM=ITENS.find(x=>x.id===id);if(!UPD_ITEM)return;
-  $('mu-item-label').textContent='Item '+(UPD_ITEM.num??'')+' · '+(UPD_ITEM.tema||'').slice(0,90);
-  $('mu-texto').value='';$('mu-status').value='';
-  $('ov-upd').classList.add('open');
-  setTimeout(()=>$('mu-texto').focus(),50);
-}
-async function saveUpdate(){
-  const texto=$('mu-texto').value.trim();
-  if(!texto){alert('Escreva a atualização.');return;}
-  const btn=$('mu-save');btn.disabled=true;btn.textContent='Registrando…';
-  try{
-    await sb('POST','rso_status_updates',pcoComTag({item_id:UPD_ITEM.id,texto,autor:userNome()}));
-    const patch={atualizado_em:new Date().toISOString()};
-    const novoSt=$('mu-status').value;
-    if(novoSt)patch.status=novoSt;
-    await sb('PATCH',pcoComUnidade('rso_plano_acao?id=eq.'+UPD_ITEM.id),patch);
-    closeModal('ov-upd');
-    await loadPlano();
-  }catch(err){alert('Erro ao registrar: '+err.message);}
-  btn.disabled=false;btn.textContent='Registrar';
-}
-document.querySelectorAll('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open');}));
+});
 
-/* --- exportações do plano --- */
-function exportPlanoExcel(){
+/* ---------- exportações do plano ---------- */
+$('printBtn').addEventListener('click',()=>window.print());
+$('excelBtn').addEventListener('click',()=>{
   if(typeof XLSX==='undefined'){alert('Biblioteca de Excel (SheetJS) não carregou — verifique a conexão.');return;}
-  const list=filteredItens();
-  if(!list.length){alert('Nenhum item para exportar com os filtros atuais.');return;}
+  const rows=sortRows(filteredRows(),$('sortSelect').value);
+  if(!rows.length){alert('Nenhuma ação para exportar com os filtros atuais.');return;}
   const wb=XLSX.utils.book_new();
-  const rows=list.map(i=>{
-    const last=(UPDATES[i.id]||[])[0];
-    return {'#':i.num??'','Tema':i.tema||'','Ação':i.acao||'',
+  const plano=rows.map(r=>{
+    const last=(UPD_STATUS[r.id]||[])[0];
+    return {'#':r.num??'','Tema':r.tema||'','Ação':r.acao||'',
       'Última atualização':last?last.texto:'','Data da atualização':last?fmtTS(last.criado_em):'',
-      'Responsável':i.responsavel||'','Data Planejada':i.data_planejada?fmtDFull(i.data_planejada):'',
-      'Data Replanejada':i.data_replanejada?fmtDFull(i.data_replanejada):'',
-      'Data Realizada':i.data_realizada?fmtDFull(i.data_realizada):'',
-      'Desvio (dias)':desvioDias(i)??'','Situação':i.status};
+      'Observação':r.observacao||'','Responsável':r.responsavel||'','Executante':r.executante||'',
+      'Disciplina':r.disciplina||'','Setor':r.setor||'','Escopo':r.escopo||'',
+      'Data Planejada':fmtBr(r.data_planejada)||'','Data Replanejada':fmtBr(r.data_replanejada)||'',
+      'Data Realizada':fmtBr(r.data_realizada)||'','Desvio (dias)':desvioDias(r)??'','Status':r.status};
   });
-  const ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:4},{wch:52},{wch:38},{wch:60},{wch:17},{wch:24},{wch:13},{wch:14},{wch:13},{wch:11},{wch:13}];
+  const ws=XLSX.utils.json_to_sheet(plano);
+  ws['!cols']=[{wch:4},{wch:52},{wch:38},{wch:60},{wch:17},{wch:40},{wch:22},{wch:20},{wch:16},{wch:16},{wch:24},{wch:13},{wch:14},{wch:13},{wch:11},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws,'Plano de Ação');
   const hist=[];
-  list.forEach(i=>{(UPDATES[i.id]||[]).slice().reverse().forEach(u=>{
-    hist.push({'#':i.num??'','Tema':i.tema||'','Atualização':u.texto,'Data e hora':fmtTS(u.criado_em),'Autor':u.autor||''});
-  });});
-  const wsH=XLSX.utils.json_to_sheet(hist.length?hist:[{'#':'','Tema':'','Atualização':'','Data e hora':'','Autor':''}]);
-  wsH['!cols']=[{wch:4},{wch:52},{wch:70},{wch:17},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,wsH,'Histórico de Status');
+  rows.forEach(r=>{
+    [...(UPD_STATUS[r.id]||[])].reverse().forEach(u=>hist.push({'#':r.num??'','Tema':r.tema||'','Tipo':'Atualização de status','Texto':u.texto,'Data e hora':fmtTS(u.criado_em),'Autor':u.autor||''}));
+    [...(UPD_OBS[r.id]||[])].reverse().forEach(u=>hist.push({'#':r.num??'','Tema':r.tema||'','Tipo':'Observação','Texto':u.texto,'Data e hora':fmtTS(u.criado_em),'Autor':u.autor||''}));
+  });
+  const wsH=XLSX.utils.json_to_sheet(hist.length?hist:[{'#':'','Tema':'','Tipo':'','Texto':'','Data e hora':'','Autor':''}]);
+  wsH['!cols']=[{wch:4},{wch:52},{wch:20},{wch:70},{wch:17},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,wsH,'Histórico');
   const uTag=unidadeNome().replace(/\s+/g,'_');
   XLSX.writeFile(wb,`Plano_de_Acao_RSO_${uTag}_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-function exportPlanoPDF(){
-  const list=filteredItens();
-  if(!list.length){alert('Nenhum item para exportar com os filtros atuais.');return;}
-  const col=v=>v==null?'':(v>0?'#C0392B':(v<0?'#2e7d32':''));
-  const bmap={'Concluído':['#e8efe1','#1d5c1a','✅ '],'Atrasado':['#fdecea','#C0392B','🔴 '],
-    'Atenção':['#FEF3C7','#7c4a00','🟡 '],'Cancelado':['#f3f4f6','#6b7280','⛔ '],'Em andamento':['#eef2f8','#223a60','']};
-  const body=list.map(i=>{
-    const ups=(UPDATES[i.id]||[]).slice().reverse();
-    const dv=desvioDias(i);
-    const b=bmap[i.status]||bmap['Em andamento'];
-    const upsHtml=ups.length?ups.map(u=>`<div class="u"><span class="ud">[${fmtTS(u.criado_em)}]</span> ${esc(u.texto)}</div>`).join(''):'<span style="color:#8a95a6">—</span>';
-    return `<tr>
-      <td class="num">${i.num??''}</td>
-      <td class="tm">${esc(i.tema||'')}</td>
-      <td>${esc(i.acao||'')}</td>
-      <td class="ups">${upsHtml}</td>
-      <td>${esc(i.responsavel||'—')}</td>
-      <td class="num">${fmtD(i.data_planejada)}</td>
-      <td class="num">${fmtD(i.data_replanejada)}</td>
-      <td class="num">${fmtD(i.data_realizada)}</td>
-      <td class="num" style="color:${col(dv)};font-weight:700">${dv==null?'—':dv}</td>
-      <td><span class="bdg" style="background:${b[0]};color:${b[1]}">${b[2]}${esc(i.status)}</span></td>
-    </tr>`;
-  }).join('');
-  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-  <title>Plano de Ação RSO · ${esc(unidadeNome())}</title>
-  <style>
-    @page{size:A4 landscape;margin:11mm}
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Montserrat',system-ui,Arial,sans-serif;color:#1a2332;font-size:9.5px}
-    .hd{border-bottom:3px solid #304F7E;padding-bottom:9px;margin-bottom:11px}
-    .eyebrow{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#304F7E;font-weight:700}
-    h1{font-size:16px;font-weight:800;margin-top:3px}
-    .meta{font-size:9.5px;color:#546175;margin-top:5px}.meta b{color:#1a2332}
-    table{width:100%;border-collapse:collapse}
-    th{background:#304F7E;color:#fff;font-size:7.4px;letter-spacing:.4px;text-transform:uppercase;padding:5px 6px;text-align:left}
-    td{padding:5px 6px;border-bottom:1px solid #e6e9ee;vertical-align:top;line-height:1.4}
-    td.num{white-space:nowrap;font-variant-numeric:tabular-nums}
-    td.tm{font-weight:700;min-width:130px}
-    td.ups{min-width:180px}
-    .u{margin-bottom:3px}.ud{font-family:monospace;font-size:7.6px;color:#546175}
-    .bdg{display:inline-block;font-size:7.6px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:2px 6px;white-space:nowrap}
-    tr:nth-child(even) td{background:#f7f9fc}
-    tr{page-break-inside:avoid}
-    thead{display:table-header-group}
-    .ft{margin-top:14px;font-size:8px;color:#8a95a6;text-align:right}
-  </style></head><body>
-    <div class="hd">
-      <div class="eyebrow">PCO · Planejamento &amp; Controle · Alinhamento Semanal — RSO</div>
-      <h1>📋 Plano de Ação · RSO</h1>
-      <div class="meta"><b>Unidade:</b> ${esc(unidadeNome())} &nbsp;·&nbsp; <b>Emissão:</b> ${new Date().toLocaleDateString('pt-BR')} &nbsp;·&nbsp; <b>Responsável:</b> ${esc(userNome())} &nbsp;·&nbsp; ${list.length} itens</div>
-    </div>
-    <table><thead><tr>
-      <th>#</th><th>Tema</th><th>Ação</th><th>Status · histórico</th><th>Responsável</th>
-      <th>Planejada</th><th>Replanejada</th><th>Realizada</th><th>Desvio (d)</th><th>Situação</th>
-    </tr></thead><tbody>${body}</tbody></table>
-    <div class="ft">Gerado pelo PCO Digital em ${new Date().toLocaleString('pt-BR')}</div>
-  </body></html>`;
-  const w=window.open('','_blank');
-  if(!w){alert('O navegador bloqueou a janela de impressão — libere pop-ups para este site.');return;}
-  w.document.write(html);w.document.close();
-  w.onload=()=>setTimeout(()=>w.print(),300);
-}
+});
 
 /* ================= ABA 2 — RESUMO DAS EMPRESAS ================= */
 let RS_LOADED=false, cronos=[], byC={}, charts={}, SEMANAS=[], SEMANA_STATE=null;
@@ -620,7 +959,6 @@ async function loadResumo(){
     else $('rs-empty').innerHTML='<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
   }
 }
-function latest(cId){const a=byC[cId]||[];return a[a.length-1];}
 function serie(cId){
   const arr=[...(byC[cId]||[])].sort((a,b)=>{
     const da=String(a.data_corte||''),db=String(b.data_corte||'');
@@ -650,10 +988,10 @@ function renderResumoKPIs(list){
   const atrasados=linhas.filter(r=>r.desvio!=null&&r.desvio<-5).length;
   const totalRev=list.reduce((s,c)=>s+(byC[c.id]||[]).length,0);
   $('rs-kpis').innerHTML=
-    `<div class="kpi"><div class="v">${list.length}</div><div class="l">Contratos ativos</div></div>`+
-    `<div class="kpi"><div class="v">${totalRev}</div><div class="l">Revisões analisadas</div></div>`+
-    `<div class="kpi ${media!=null&&media<0?'red':'green'}"><div class="v">${media!=null?nf(media,1):'—'}</div><div class="l">Desvio médio acumulado</div></div>`+
-    `<div class="kpi ${atrasados?'red':'green'}"><div class="v">${atrasados}</div><div class="l">Contratos atrasados (&gt;5%)</div></div>`;
+    `<div class="rkpi"><div class="v">${list.length}</div><div class="l">Contratos ativos</div></div>`+
+    `<div class="rkpi"><div class="v">${totalRev}</div><div class="l">Revisões analisadas</div></div>`+
+    `<div class="rkpi ${media!=null&&media<0?'red':'green'}"><div class="v">${media!=null?nf(media,1):'—'}</div><div class="l">Desvio médio acumulado</div></div>`+
+    `<div class="rkpi ${atrasados?'red':'green'}"><div class="v">${atrasados}</div><div class="l">Contratos atrasados (&gt;5%)</div></div>`;
 }
 function renderDesvioChart(list){
   if(typeof Chart==='undefined')return;
@@ -814,6 +1152,7 @@ function doLogout(){sessionStorage.clear();window.location.href='login.html';}
   $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
   $('user-nome').textContent=nome||email;$('user-email').textContent=email;
   pcoRenderSwitcher('unidade-switcher');
+  syncKPIActive();
   loadPlano();
 })();
 </script>
