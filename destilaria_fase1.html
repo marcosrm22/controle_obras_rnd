@@ -275,6 +275,29 @@ body.locked .textarea{pointer-events:none;opacity:.4}
 body.locked .handle{display:none!important}
 body.locked #btn-delete-el{pointer-events:none;opacity:.4}
 body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
+
+/* ── EMPRESA EXECUTORA ── */
+.emp-dot{width:10px;height:10px;border-radius:3px;display:inline-block;
+  margin-right:7px;vertical-align:-1px;border:1px solid rgba(0,0,0,.15)}
+.emp-row{cursor:pointer;transition:background .12s}
+.emp-row:hover{background:var(--teal-soft)}
+.emp-row.filtered{background:var(--teal-soft);box-shadow:inset 3px 0 0 var(--teal)}
+.emp-bar{height:9px;background:#eceff3;border-radius:5px;overflow:hidden;
+  display:flex;min-width:120px;border:1px solid var(--border)}
+.emp-bar span{height:100%;display:block;transition:width .4s}
+.emp-bar .s-done{background:var(--c-done)}
+.emp-bar .s-wip{background:var(--c-wip)}
+.emp-bar .s-pend{background:#dfe3e9}
+.emp-pct{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  min-width:44px;display:inline-block;text-align:right}
+.emp-select{height:28px;padding:2px 8px;font-size:10px;max-width:200px;
+  font-family:'Montserrat',sans-serif;font-weight:600;border:1px solid var(--border-2);
+  background:var(--bg-2);color:var(--text);cursor:pointer}
+body.locked #btn-aplicar-empresa,
+body.locked #btn-nova-empresa{pointer-events:none;opacity:.4}
+.emp-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.3px;
+  padding:2px 7px;border-radius:3px;color:#fff;white-space:nowrap}
+.emp-tag.none{background:#c1c9d3;color:#546175}
 </style>
 </head>
 <body>
@@ -356,6 +379,45 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-peso"></div></div>
 </div>
 
+<!-- AVANÇO POR EMPRESA -->
+<div class="table-section" id="empresas-section" style="margin-bottom:14px">
+  <div class="table-header">
+    <span class="table-header-title">🏗 Avanço por Empresa Executora — <span id="empresas-count">0 empresas</span></span>
+    <div class="table-header-actions">
+      <button class="tool-btn" id="btn-limpar-filtro" onclick="setFiltroEmpresa(null)" style="display:none">
+        ✕ Limpar filtro
+      </button>
+      <button class="tool-btn" onclick="exportEmpresasCSV()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v9M4 7l4 4 4-4"/><path d="M2 13h12"/></svg>
+        Baixar CSV
+      </button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th class="num">Elem.</th>
+          <th class="num">Final.</th>
+          <th class="num">Andam.</th>
+          <th class="num">Pend.</th>
+          <th class="num">Peso total</th>
+          <th class="num">Peso concl.</th>
+          <th style="min-width:200px">Avanço ponderado (peso)</th>
+        </tr>
+      </thead>
+      <tbody id="empresas-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="padding:8px 14px;font-size:9px;color:var(--text-mute);border-top:1px solid var(--border)">
+    Clique em uma linha para filtrar a planta e a tabela de elementos por empresa.
+    O avanço é calculado por peso: <strong>peso finalizado ÷ peso total da empresa</strong>.
+  </div>
+</div>
+
 <!-- LEGEND -->
 <div class="legend-wrap">
   <div class="legend-title">Legenda</div>
@@ -422,6 +484,23 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="1" width="14" height="14" stroke-dasharray="3 2"/></svg>
       Sel. Todos
     </button>
+  </div>
+  <div class="toolbar-section">
+    <span class="toolbar-label">Empresa Executora</span>
+    <select class="emp-select input" id="bulk-empresa"></select>
+    <button class="tool-btn" id="btn-nova-empresa" onclick="openNovaEmpresa()" title="Cadastrar nova empresa">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+      Nova
+    </button>
+    <button class="tool-btn" id="btn-aplicar-empresa" onclick="aplicarEmpresaSelecao()"
+      style="background:var(--teal);border-color:var(--teal);color:#fff">
+      Aplicar a selecao (<span id="bulk-count">0</span>)
+    </button>
+  </div>
+  <div class="toolbar-section">
+    <span class="toolbar-label">Colorir por</span>
+    <button class="tool-btn active" id="btn-color-status" onclick="setColorMode('status')">Status</button>
+    <button class="tool-btn" id="btn-color-empresa" onclick="setColorMode('empresa')">Empresa</button>
   </div>
   <div class="toolbar-section">
     <button class="tool-btn danger" onclick="clearAll()">
@@ -510,6 +589,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         <input type="text" class="input" id="op-name" placeholder="ex.: Coluna C-101" maxlength="40"/>
       </div>
       <div class="field">
+        <span class="field-label">Empresa Executora</span>
+        <select class="input" id="op-empresa" onchange="setEmpresa(this.value)"></select>
+      </div>
+      <div class="field">
         <span class="field-label">Peso (para cálculo de avanço)</span>
         <input type="number" class="input" id="op-peso" min="0" step="0.5" placeholder="ex.: 10"/>
       </div>
@@ -549,10 +632,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="table-wrap">
     <table class="data-table">
       <thead>
-        <tr><th>Nome / Tag</th><th>Tipo</th><th class="num">Peso</th><th>Status</th><th>Observações</th></tr>
+        <tr><th>Nome / Tag</th><th>Empresa</th><th>Tipo</th><th class="num">Peso</th><th>Status</th><th>Observações</th></tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="5" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>
+        <tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>
       </tbody>
     </table>
   </div>
@@ -586,11 +669,25 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   </div>
 </div>
 
+<!-- MODAL: NOVA EMPRESA -->
+<div class="modal-overlay" id="modal-empresa">
+  <div class="modal-box">
+    <h3>Nova Empresa Executora</h3>
+    <p>Digite o nome da empresa. Ela ficará disponível na lista para todos os elementos desta base.</p>
+    <input type="text" class="pwd-input" id="empresa-input" placeholder="ex.: ALFA MONTAGENS" maxlength="60"/>
+    <div class="pwd-error" id="empresa-error"></div>
+    <div class="modal-btns">
+      <button class="tool-btn" onclick="closeModal('modal-empresa')">Cancelar</button>
+      <button class="tool-btn" style="background:var(--teal);border-color:var(--teal);color:#fff" onclick="confirmNovaEmpresa()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: IMPORTAR CSV -->
 <div class="modal-overlay" id="modal-import">
   <div class="modal-box wide">
     <h3>Importar CSV</h3>
-    <p>Selecione um arquivo <strong>.csv</strong> exportado deste sistema. Campos atualizados por <code>id</code>: <code>status</code>, <code>nome</code>, <code>peso</code>, <code>observacoes</code>.</p>
+    <p>Selecione um arquivo <strong>.csv</strong> exportado deste sistema. Campos atualizados por <code>id</code>: <code>status</code>, <code>nome</code>, <code>empresa</code>, <code>peso</code>, <code>observacoes</code>.</p>
     <div class="import-area" onclick="document.getElementById('import-file').click()">
       <p>🗂 <strong>Clique para selecionar</strong> ou arraste um CSV aqui</p>
     </div>
@@ -613,10 +710,21 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
 const EDIT_PASSWORD = (window.PCO_CONFIG||{}).system?.passwordEdicao || '1234';
 const SB_URL  = (window.PCO_CONFIG||{}).supabase?.url || '';
 const SB_KEY  = (window.PCO_CONFIG||{}).supabase?.key || '';
-const TOKEN   = sessionStorage.getItem('pco_token') || SB_KEY;
+/* Sempre a publishable key: o pco_token expira e gera PGRST303 */
+const TOKEN   = SB_KEY;
 const TABLE   = 'bases_civis_elementos';
 const PAGINA  = 'destilaria_fase1';
 const STORAGE_KEY = 'dest_fase1_v1';
+const STORAGE_EMP = 'dest_fase1_empresas_v1';
+
+/* ── EMPRESAS EXECUTORAS ──
+   Pre-cadastre empresas fixas aqui se quiser, ex.:
+   const EMPRESAS_SEED = ['ALFA MONTAGENS','BETA ENGENHARIA'];            */
+const EMPRESAS_SEED = [];
+const SEM_EMPRESA   = 'Sem empresa definida';
+const EMPRESA_PALETTE = ['#304F7E','#007D77','#B45309','#7C3AED','#BE185D',
+  '#0369A1','#4D7C0F','#B91C1C','#0F766E','#A16207','#5B21B6','#155E75',
+  '#9D174D','#065F46','#92400E','#3730A3'];
 
 const SVG_NS   = 'http://www.w3.org/2000/svg';
 const WORLD_W  = 9900;
@@ -641,6 +749,9 @@ let isUnlocked  = false;
 let modalCb     = null;
 let pendingCsv  = null;
 let vpScale = 1, vpTx = 0, vpTy = 0;
+let colorMode      = 'status';   // 'status' | 'empresa'
+let filtroEmpresa  = null;       // nome da empresa filtrada (null = todas)
+let empresasExtras = [];         // empresas cadastradas sem elemento ainda
 
 /* ================================================================
    UTILS
@@ -649,6 +760,59 @@ function uid(){ return 'f'+Date.now().toString(36)+Math.random().toString(36).sl
 function snapV(v){ return Math.round(v/SNAP)*SNAP }
 function pct(a,b){ return b?Math.round(a/b*100):0 }
 function fmtN(n){ return n>0?Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1}):'0' }
+function pct1(a,b){ return b?Math.round(a/b*1000)/10:0 }
+
+/* ── EMPRESA ── */
+function normEmpresa(v){ return String(v==null?'':v).trim().replace(/\s+/g,' ') }
+function keyEmpresa(v){ return normEmpresa(v).toUpperCase() }
+
+function loadEmpresasExtras(){
+  try{ empresasExtras = JSON.parse(localStorage.getItem(STORAGE_EMP)||'[]')||[] }
+  catch(_){ empresasExtras = [] }
+}
+function saveEmpresasExtras(){
+  try{ localStorage.setItem(STORAGE_EMP,JSON.stringify(empresasExtras)) }catch(_){}
+}
+function addEmpresaExtra(nome){
+  const n=normEmpresa(nome); if(!n) return;
+  if(!empresasExtras.some(e=>keyEmpresa(e)===keyEmpresa(n))){
+    empresasExtras.push(n); saveEmpresasExtras();
+  }
+}
+
+/* Lista unica: seed + cadastradas manualmente + as ja usadas nos elementos */
+function empresasList(){
+  const m=new Map();
+  [].concat(EMPRESAS_SEED,empresasExtras).forEach(e=>{
+    const n=normEmpresa(e); if(n) m.set(keyEmpresa(n),n);
+  });
+  elements.forEach(el=>{
+    const n=normEmpresa(el.empresa); if(n) m.set(keyEmpresa(n),n);
+  });
+  return [...m.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+
+/* Cor estavel por hash do nome (nao muda ao incluir outras empresas) */
+function empresaColor(nome){
+  const n=keyEmpresa(nome); if(!n) return '#c1c9d3';
+  let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0;
+  return EMPRESA_PALETTE[h%EMPRESA_PALETTE.length];
+}
+
+function fillEmpresaSelect(sel,valor){
+  if(!sel) return;
+  const list=empresasList();
+  const cur=normEmpresa(valor);
+  sel.innerHTML='<option value="">— nao definida —</option>'+
+    list.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  sel.value = list.some(e=>keyEmpresa(e)===keyEmpresa(cur)) ? cur : '';
+}
+
+function empresaTagHTML(nome){
+  const n=normEmpresa(nome);
+  if(!n) return '<span class="emp-tag none">— nao definida —</span>';
+  return `<span class="emp-tag" style="background:${empresaColor(n)}">${esc(n)}</span>`;
+}
 
 /* ================================================================
    SUPABASE
@@ -679,6 +843,7 @@ function toRow(el){
   return {
     id:el.id, pagina:PAGINA, kind:el.kind,
     nome:el.nome||'', status:el.status||'pend',
+    empresa: normEmpresa(el.empresa)||null,
     peso:el.peso||0, note:el.note||'',
     x:el.x, y:el.y, w:el.w, h:el.h,
     points: el.points ? JSON.stringify(el.points) : null,
@@ -688,6 +853,7 @@ function fromRow(r){
   return {
     id:r.id, kind:r.kind||'square',
     nome:r.nome||'', status:r.status||'pend',
+    empresa: normEmpresa(r.empresa),
     peso:Number(r.peso)||0, note:r.note||'',
     x:Number(r.x), y:Number(r.y),
     w:Number(r.w), h:Number(r.h),
@@ -1096,6 +1262,7 @@ function selectAll(){
   toast(`${selectedIds.size} elemento(s) selecionado(s)`);
 }
 function updateMultiHint(){
+  const _c=document.getElementById('bulk-count'); if(_c)_c.textContent=selectedIds.size;
   const n=selectedIds.size;
   const hint=document.getElementById('hint-multisel');
   hint.classList.toggle('visible',n>1);
@@ -1134,7 +1301,10 @@ function clearAll(){
 /* ================================================================
    RENDER
    ================================================================ */
-function render(){renderSVG();renderKPIs();renderTable();renderDetail();updateEmptyMsg()}
+function render(){
+  renderSVG();renderKPIs();renderEmpresas();renderTable();renderDetail();
+  updateEmptyMsg();refreshBulkEmpresa();
+}
 
 function renderSVG(){
   const layer=document.getElementById('elements-layer');
@@ -1148,6 +1318,13 @@ function renderElement(layer,el){
   const sel=el.id===selectedId;
   const multi=selectedIds.has(el.id);
   const cfg=STATUS_CFG[el.status]||STATUS_CFG.pend;
+  const useEmp  = (colorMode==='empresa');
+  const empC    = empresaColor(el.empresa);
+  const fillC   = useEmp ? empC : cfg.fill;
+  const strokeC = useEmp ? empC : cfg.stroke;
+  const textC   = useEmp ? '#1a2332' : cfg.text;
+  const dimmed  = !!filtroEmpresa &&
+    (keyEmpresa(el.empresa)||keyEmpresa(SEM_EMPRESA)) !== keyEmpresa(filtroEmpresa);
   const {x,y,w,h}=el;
   const fs=Math.min(16,Math.max(8,Math.min(w,h)/5));
   const fsub=Math.max(7,fs-3);
@@ -1155,6 +1332,11 @@ function renderElement(layer,el){
   const g=document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','el-group'+(sel?' selected':multi?' multi-selected':''));
   g.setAttribute('data-id',el.id);
+  if(dimmed) g.setAttribute('opacity','0.12');
+  const tip=document.createElementNS(SVG_NS,'title');
+  tip.textContent=(el.nome||'(sem nome)')+' · '+(normEmpresa(el.empresa)||'sem empresa')
+    +' · '+cfg.badge+(el.peso?' · peso '+el.peso:'');
+  g.appendChild(tip);
 
   // Shape (rect, ellipse, or polygon)
   let shape;
@@ -1172,8 +1354,9 @@ function renderElement(layer,el){
     shape.setAttribute('rx',4);
   }
   shape.setAttribute('class','el-shape');
-  shape.setAttribute('fill',cfg.fill);
-  shape.setAttribute('stroke',sel?'#EAA239':cfg.stroke);
+  shape.setAttribute('fill',fillC);
+  if(useEmp) shape.setAttribute('fill-opacity','0.30');
+  shape.setAttribute('stroke',sel?'#EAA239':strokeC);
   shape.setAttribute('stroke-width',sel?3:1.5);
   g.appendChild(shape);
 
@@ -1182,7 +1365,7 @@ function renderElement(layer,el){
     const lbl=document.createElementNS(SVG_NS,'text');
     lbl.setAttribute('class','el-label');
     lbl.setAttribute('x',x); lbl.setAttribute('y',el.peso?y-fsub:y);
-    lbl.setAttribute('fill',cfg.text); lbl.setAttribute('font-size',fs);
+    lbl.setAttribute('fill',textC); lbl.setAttribute('font-size',fs);
     lbl.textContent=el.nome||(el.id.slice(0,5));
     g.appendChild(lbl);
   }
@@ -1192,7 +1375,7 @@ function renderElement(layer,el){
     const sub=document.createElementNS(SVG_NS,'text');
     sub.setAttribute('class','el-sub');
     sub.setAttribute('x',x); sub.setAttribute('y',y+fs*0.7);
-    sub.setAttribute('fill',cfg.text); sub.setAttribute('font-size',fsub);
+    sub.setAttribute('fill',textC); sub.setAttribute('font-size',fsub);
     sub.textContent='peso: '+el.peso;
     g.appendChild(sub);
   }
@@ -1323,13 +1506,15 @@ function renderDetail(){
     el.kind==='circle'?'ELEMENTO CIRCULAR':
     el.kind==='polygon'?'ELEMENTO POLIGONAL':'ELEMENTO QUADRADO';
   document.getElementById('detail-name').textContent=el.nome||'(sem nome)';
-  document.getElementById('detail-sub').textContent='Peso: '+(el.peso||0);
+  document.getElementById('detail-sub').innerHTML=
+    'Peso: '+(el.peso||0)+' &nbsp;·&nbsp; '+empresaTagHTML(el.empresa);
   const st=el.status||'pend';
   const badge=document.getElementById('detail-badge');
   badge.className='status-badge-ui '+st;
   badge.textContent=STATUS_CFG[st].badge;
   document.querySelectorAll('.status-opt[data-s]').forEach(b=>b.classList.toggle('active',b.dataset.s===st));
   document.getElementById('op-name').value=el.nome||'';
+  fillEmpresaSelect(document.getElementById('op-empresa'),el.empresa);
   document.getElementById('op-peso').value=el.peso||'';
   document.getElementById('op-note').value=el.note||'';
 }
@@ -1338,12 +1523,163 @@ function setStatus(s){
   const el=elements.find(e=>e.id===selectedId);if(!el)return;
   el.status=s;renderSVG();renderDetail();renderKPIs();
 }
+function setEmpresa(v){
+  const el=elements.find(e=>e.id===selectedId);if(!el)return;
+  el.empresa=normEmpresa(v);
+  renderSVG();renderDetail();renderEmpresas();renderTable();
+}
 function saveSelected(){
   const el=elements.find(e=>e.id===selectedId);if(!el)return;
   el.nome =document.getElementById('op-name').value.trim()||'Elemento';
+  el.empresa=normEmpresa(document.getElementById('op-empresa').value);
   el.peso =parseFloat(document.getElementById('op-peso').value)||0;
   el.note =document.getElementById('op-note').value;
   save();render();toast('Salvo ✓');
+}
+
+/* ================================================================
+   EMPRESA — cadastro, aplicacao em lote, filtro, modo de cor
+   ================================================================ */
+function refreshBulkEmpresa(){
+  const sel=document.getElementById('bulk-empresa');
+  if(sel) fillEmpresaSelect(sel,sel.value);
+  const c=document.getElementById('bulk-count');
+  if(c) c.textContent=selectedIds.size;
+}
+
+function openNovaEmpresa(){
+  if(!isUnlocked){toast('Libere a edição primeiro',true);return}
+  document.getElementById('empresa-input').value='';
+  document.getElementById('empresa-error').textContent='';
+  document.getElementById('modal-empresa').classList.add('visible');
+  setTimeout(()=>document.getElementById('empresa-input').focus(),80);
+}
+function confirmNovaEmpresa(){
+  const v=normEmpresa(document.getElementById('empresa-input').value);
+  if(!v){document.getElementById('empresa-error').textContent='Informe o nome da empresa';return}
+  addEmpresaExtra(v);
+  closeModal('modal-empresa');
+  refreshBulkEmpresa();
+  const bulk=document.getElementById('bulk-empresa'); if(bulk) bulk.value=v;
+  const op=document.getElementById('op-empresa');
+  if(op){ fillEmpresaSelect(op, selectedId?(elements.find(e=>e.id===selectedId)||{}).empresa:''); }
+  renderEmpresas();
+  toast('Empresa "'+v+'" cadastrada ✓');
+}
+document.getElementById('empresa-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') confirmNovaEmpresa();
+});
+
+function aplicarEmpresaSelecao(){
+  if(!isUnlocked){toast('Libere a edição primeiro',true);return}
+  if(!selectedIds.size){toast('Selecione ao menos um elemento na planta',true);return}
+  const v=normEmpresa(document.getElementById('bulk-empresa').value);
+  let n=0;
+  elements.forEach(el=>{ if(selectedIds.has(el.id)){ el.empresa=v; n++ } });
+  save();render();
+  toast(n+' elemento'+(n!==1?'s':'')+(v?' → '+v:' sem empresa')+' ✓');
+}
+
+function setColorMode(m){
+  colorMode=m;
+  document.getElementById('btn-color-status').classList.toggle('active',m==='status');
+  document.getElementById('btn-color-empresa').classList.toggle('active',m==='empresa');
+  renderSVG();
+}
+
+function setFiltroEmpresa(nome){
+  filtroEmpresa = nome ? normEmpresa(nome) : null;
+  document.getElementById('btn-limpar-filtro').style.display = filtroEmpresa?'inline-flex':'none';
+  renderSVG();renderEmpresas();renderTable();
+}
+
+/* ================================================================
+   ESTATISTICAS POR EMPRESA
+   ================================================================ */
+function statsPorEmpresa(){
+  const m=new Map();
+  elements.forEach(el=>{
+    const nome=normEmpresa(el.empresa)||SEM_EMPRESA;
+    const k=keyEmpresa(nome);
+    if(!m.has(k)) m.set(k,{nome,total:0,done:0,wip:0,pend:0,pTot:0,pDone:0,pWip:0,pPend:0});
+    const st=['done','wip','pend'].includes(el.status)?el.status:'pend';
+    const p=Number(el.peso)||0;
+    const s=m.get(k);
+    s.total++; s[st]++; s.pTot+=p;
+    if(st==='done')s.pDone+=p; else if(st==='wip')s.pWip+=p; else s.pPend+=p;
+  });
+  return [...m.values()].sort((a,b)=>
+    (b.pTot-a.pTot) || (b.total-a.total) || a.nome.localeCompare(b.nome,'pt-BR'));
+}
+
+function renderEmpresas(){
+  const body=document.getElementById('empresas-body');
+  const stats=statsPorEmpresa();
+  const nEmp=stats.filter(s=>s.nome!==SEM_EMPRESA).length;
+  document.getElementById('empresas-count').textContent=
+    nEmp+' empresa'+(nEmp!==1?'s':'')+
+    (stats.some(s=>s.nome===SEM_EMPRESA)?' · + elementos sem empresa':'');
+  if(!stats.length){
+    body.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>';
+    return;
+  }
+  body.innerHTML='';
+  stats.forEach(s=>{
+    const isNone = s.nome===SEM_EMPRESA;
+    const cor = isNone?'#c1c9d3':empresaColor(s.nome);
+    const base = s.pTot>0 ? s.pTot : 0;
+    const pD = base? pct1(s.pDone,base):0;
+    const pW = base? pct1(s.pWip ,base):0;
+    const pP = base? Math.max(0,100-pD-pW):100;
+    const avanco = base? pD : pct1(s.done,s.total);
+    const tr=document.createElement('tr');
+    tr.className='emp-row'+(filtroEmpresa&&keyEmpresa(filtroEmpresa)===keyEmpresa(s.nome)?' filtered':'');
+    tr.innerHTML=`
+      <td style="font-weight:700">
+        <span class="emp-dot" style="background:${cor}"></span>${esc(s.nome)}
+        ${isNone?'<span style="font-weight:500;color:var(--text-mute);font-size:9px"> (atribuir)</span>':''}
+      </td>
+      <td class="num">${s.total}</td>
+      <td class="num" style="color:var(--c-done);font-weight:700">${s.done}</td>
+      <td class="num" style="color:var(--c-wip);font-weight:700">${s.wip}</td>
+      <td class="num" style="color:var(--text-dim)">${s.pend}</td>
+      <td class="num">${fmtN(s.pTot)}</td>
+      <td class="num" style="font-weight:700">${fmtN(s.pDone)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="emp-bar" style="flex:1">
+            <span class="s-done" style="width:${pD}%"></span>
+            <span class="s-wip"  style="width:${pW}%"></span>
+            <span class="s-pend" style="width:${pP}%"></span>
+          </div>
+          <span class="emp-pct" style="color:${avanco>=100?'var(--c-done)':'var(--text)'}">${avanco.toFixed(1).replace('.',',')}%</span>
+        </div>
+      </td>`;
+    tr.addEventListener('click',()=>{
+      setFiltroEmpresa(filtroEmpresa&&keyEmpresa(filtroEmpresa)===keyEmpresa(s.nome)?null:s.nome);
+    });
+    body.appendChild(tr);
+  });
+}
+
+function exportEmpresasCSV(){
+  const SEP=';';
+  const cols=['empresa','elementos','finalizados','em_andamento','pendentes',
+    'peso_total','peso_finalizado','peso_em_andamento','peso_pendente','avanco_peso_pct'];
+  const rows=statsPorEmpresa().map(s=>[
+    s.nome,s.total,s.done,s.wip,s.pend,
+    String(s.pTot).replace('.',','),String(s.pDone).replace('.',','),
+    String(s.pWip).replace('.',','),String(s.pPend).replace('.',','),
+    String(s.pTot?pct1(s.pDone,s.pTot):pct1(s.done,s.total)).replace('.',',')
+  ].map(csvEsc).join(SEP));
+  const csv='\uFEFF'+'sep=;\n'+cols.join(SEP)+'\n'+rows.join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`destilaria_fase1_avanco_empresas_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url)},200);
+  toast('CSV por empresa exportado ✓');
 }
 function updateEmptyMsg(){
   if(!elements.length)
@@ -1357,18 +1693,23 @@ function updateEmptyMsg(){
    ================================================================ */
 function renderTable(){
   const tbody=document.getElementById('table-body');
-  document.getElementById('table-count').textContent=elements.length+' registros';
-  if(!elements.length){
-    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">Nenhum elemento cadastrado</td></tr>';
+  const lista = filtroEmpresa
+    ? elements.filter(el=>(keyEmpresa(el.empresa)||keyEmpresa(SEM_EMPRESA))===keyEmpresa(filtroEmpresa))
+    : elements;
+  document.getElementById('table-count').textContent=
+    lista.length+' registros'+(filtroEmpresa?' · filtrado: '+filtroEmpresa:'');
+  if(!lista.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">Nenhum elemento'+(filtroEmpresa?' para esta empresa':' cadastrado')+'</td></tr>';
     return;
   }
   tbody.innerHTML='';
-  elements.forEach(el=>{
+  lista.forEach(el=>{
     const tr=document.createElement('tr');
     tr.dataset.id=el.id;
     if(el.id===selectedId) tr.classList.add('selected');
     tr.innerHTML=`
       <td style="font-weight:700">${esc(el.nome||'—')}</td>
+      <td>${empresaTagHTML(el.empresa)}</td>
       <td>${el.kind==='circle'?'⭕ Circular':el.kind==='polygon'?'🔷 Polígono':'⬛ Quadrado'}</td>
       <td class="num">${el.peso||'—'}</td>
       <td><span class="inline-badge ${el.status}">${STATUS_CFG[el.status||'pend'].badge}</span></td>
@@ -1387,9 +1728,9 @@ function csvEsc(v){
 }
 function exportCSV(){
   const SEP=';';
-  const cols=['id','nome','tipo','peso','status','observacoes','cx','cy','w','h'];
+  const cols=['id','nome','empresa','tipo','peso','status','observacoes','cx','cy','w','h'];
   const rows=elements.map(el=>[
-    el.id,el.nome||'',el.kind,el.peso||0,el.status,el.note||'',
+    el.id,el.nome||'',normEmpresa(el.empresa),el.kind,el.peso||0,el.status,el.note||'',
     el.x,el.y,el.w,el.h
   ].map(csvEsc).join(SEP));
   const csv='\uFEFF'+'sep=;\n'+cols.join(SEP)+'\n'+rows.join('\n');
@@ -1457,6 +1798,7 @@ function confirmImport(){
     if(!el){miss++;return}
     if(['done','wip','pend'].includes(row['status'])) el.status=row['status'];
     if(row['nome']) el.nome=row['nome'];
+    if(row['empresa']!=null&&row['empresa']!=='') el.empresa=normEmpresa(row['empresa']);
     const p=parseFloat(row['peso']);if(!isNaN(p)) el.peso=p;
     el.note=row['observacoes']!=null?row['observacoes']:el.note;
     upd++;
@@ -1554,6 +1896,7 @@ function zoomFitPlanta(){
 
 updateLockUI();
 (async()=>{
+  loadEmpresasExtras();
   await loadData();
   render();
   // Aguarda o layout estabilizar antes de enquadrar
