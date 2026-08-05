@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lookahead · LPS E&amp;I · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="lps_ei_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="lps-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <div class="search"><input type="text" id="q" placeholder="Buscar atividade, código, pacote, empresa…"></div>
+    <select class="f" id="fArea"></select>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fStatus"><option value="">Todos os status</option></select>
+    <select class="f" id="fRestr">
+      <option value="">Restrições: todas</option>
+      <option value="com">Só com restrição aberta</option>
+      <option value="sem">Só liberadas</option>
+    </select>
+    <button class="btn solid" id="btnNovo">+ Nova atividade</button>
+    <button class="btn" id="btnXls">⤓ Excel</button>
+    <button class="btn" onclick="window.print()">⎙ PDF</button>
+  </div>
+
+  <div class="toolbar no-print" style="margin-top:-4px">
+    <button class="btn sm" id="wkPrev">← Semana anterior</button>
+    <input type="date" class="f" id="wkBase" style="max-width:160px">
+    <button class="btn sm" id="wkNext">Próxima semana →</button>
+    <button class="btn sm" id="wkHoje">Hoje</button>
+    <select class="f" id="nWeeks">
+      <option value="4">Horizonte: 4 semanas</option>
+      <option value="6" selected>Horizonte: 6 semanas</option>
+      <option value="8">Horizonte: 8 semanas</option>
+      <option value="12">Horizonte: 12 semanas</option>
+    </select>
+    <span class="small muted" id="wkInfo"></span>
+  </div>
+
+  <div class="notice">
+    O lookahead é a ponte entre o cronograma-mestre e a programação semanal: aqui as
+    atividades são detalhadas, ganham responsável e passam pela peneira das restrições.
+    <b>Só entra no kanban da semana o que estiver livre de restrição aberta.</b>
+    Use o botão <b>▶</b> de cada linha para programar a atividade na semana-base.
+  </div>
+
+  <div class="tablewrap">
+    <table class="grid">
+      <thead>
+        <tr id="headRow">
+          <th style="min-width:250px">Atividade</th>
+          <th style="min-width:110px">Área</th>
+          <th style="min-width:140px">Empresa</th>
+          <th class="ctr" style="min-width:92px">Início</th>
+          <th class="ctr" style="min-width:92px">Término</th>
+          <th class="ctr" style="min-width:88px">Avanço</th>
+          <th class="ctr" style="min-width:84px">Restrições</th>
+        </tr>
+      </thead>
+      <tbody id="tb"><tr><td colspan="7" class="loading-line">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="small muted" style="margin-top:10px" id="foot"></div>
+</div>
+
+<!-- ===== MODAL ATIVIDADE ===== -->
+<div class="modal" id="mAt"><div class="modal-box wide">
+  <div class="modal-head">
+    <div><h3 id="mTitle">Nova atividade</h3>
+    <div class="mh-sub">Atividade do lookahead de elétrica / instrumentação</div></div>
+    <button class="modal-close" onclick="LPS.closeModal('mAt')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow">
+      <div class="field"><label>Código / EAP</label><input id="aCod" placeholder="1.4.3.2"></div>
+      <div class="field"><label>Pacote de trabalho / CWA</label><input id="aPac" placeholder="CWA-204"></div>
+      <div class="field"><label>Disciplina</label><select id="aDisc"></select></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Descrição da atividade *</label>
+      <input id="aDesc" placeholder="Ex.: Lançamento de cabos de força — CCM-02 até bombas de mosto"></div></div>
+    <div class="frow">
+      <div class="field"><label>Área</label><select id="aArea"></select></div>
+      <div class="field"><label>Contrato / empresa</label><select id="aCtr"></select>
+        <div class="hint">A lista vem da tela de Contratos.</div></div>
+      <div class="field"><label>Status</label><select id="aStatus"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Início previsto</label><input type="date" id="aIni"></div>
+      <div class="field"><label>Término previsto</label><input type="date" id="aFim"></div>
+      <div class="field"><label>Avanço (%)</label><input type="number" id="aPct" min="0" max="100" step="1" value="0"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Quantidade prevista</label><input type="text" id="aQtdP" placeholder="1.250"></div>
+      <div class="field"><label>Quantidade realizada</label><input type="text" id="aQtdR" placeholder="380"></div>
+      <div class="field"><label>Unidade</label><input id="aUn" placeholder="m · pç · un"></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Observações</label><textarea id="aObs"></textarea></div></div>
+
+    <div id="restrBox"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
+    <span class="spacer"></span>
+    <button class="btn" onclick="LPS.closeModal('mAt')">Cancelar</button>
+    <button class="btn solid" id="mSave">Salvar atividade</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.LPS;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'lookahead',
+  title:'Lookahead',
+  subtitle:'Planejamento de médio prazo — atividades detalhadas, peneiradas pelas restrições antes de entrar na programação semanal'
+});
+
+var EDIT = L.canEdit();
+var ATIV = [], CTRS = [], RESTR = [], PROG = [], editando = null;
+var BASE = L.mondayOf(), NW = 6;
+$('wkBase').value = BASE;
+
+/* ================= CARGA ================= */
+function load(){
+  return Promise.all([
+    L.loadAreas(true),
+    L.sbGetAll(L.comUnidade('lps_ei_atividades?select=*&ativo=eq.true&order=inicio.asc,descricao.asc')),
+    L.sbGetAll(L.comUnidade('lps_ei_contratos?select=id,codigo,escopo,empresa,areas,status&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('lps_ei_restricoes?select=id,num,descricao,categoria,status,atividade_id,area,responsavel,data_necessidade&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('lps_ei_programacao?select=id,atividade_id,semana,coluna&ativo=eq.true'))
+  ]).then(function(r){
+    ATIV = r[1]; CTRS = r[2]; RESTR = r[3]; PROG = r[4];
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('tb').innerHTML = '<tr><td colspan="7" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+  });
+}
+
+function fillSelects(){
+  $('fArea').innerHTML = L.areaOptions('', true);
+  $('aArea').innerHTML = L.areaOptions('', false);
+  $('fStatus').innerHTML = '<option value="">Todos os status</option>'
+    + L.ATIV_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('aStatus').innerHTML = L.ATIV_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('aDisc').innerHTML = '<option value=""></option>'
+    + L.DISCIPLINAS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('aCtr').innerHTML = '<option value="">— sem contrato vinculado —</option>'
+    + CTRS.map(function(c){
+        return '<option value="'+c.id+'">'+esc((c.empresa||'?') + ' · ' + c.escopo).slice(0,90)+'</option>';
+      }).join('');
+
+  var emps = [];
+  ATIV.forEach(function(a){ if(a.empresa && emps.indexOf(a.empresa) < 0) emps.push(a.empresa); });
+  CTRS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cur = $('fEmpresa').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===cur?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+}
+
+/* ================= SEMANAS ================= */
+function weeks(){
+  var out = [];
+  for(var i = 0; i < NW; i++){
+    var ini = L.addDays(BASE, i*7);
+    out.push({ ini:ini, fim:L.addDays(ini,6), label:L.weekLabel(ini), rng:L.weekRangeLabel(ini) });
+  }
+  return out;
+}
+
+function restrDe(id){
+  return RESTR.filter(function(r){
+    return r.atividade_id === id && (r.status === 'Aberta' || r.status === 'Em tratativa');
+  });
+}
+
+/* ================= FILTRO ================= */
+function visiveis(){
+  var q = L.deacc($('q').value), fa = $('fArea').value, fe = $('fEmpresa').value,
+      fs = $('fStatus').value, fr = $('fRestr').value;
+  return ATIV.filter(function(a){
+    if(fa && a.area !== fa) return false;
+    if(fe && a.empresa !== fe) return false;
+    if(fs && a.status !== fs) return false;
+    if(fr === 'com' && !restrDe(a.id).length) return false;
+    if(fr === 'sem' && restrDe(a.id).length) return false;
+    if(!q) return true;
+    return L.deacc([a.codigo,a.descricao,a.pacote,a.empresa,a.obs,a.area].join(' ')).indexOf(q) > -1;
+  });
+}
+
+/* ================= RENDER ================= */
+function render(){
+  var wks = weeks();
+  var hoje = L.mondayOf();
+
+  /* cabeçalho dinâmico */
+  var base = ['<th style="min-width:250px">Atividade</th>',
+    '<th style="min-width:110px">Área</th>',
+    '<th style="min-width:140px">Empresa</th>',
+    '<th class="ctr" style="min-width:92px">Início</th>',
+    '<th class="ctr" style="min-width:92px">Término</th>',
+    '<th class="ctr" style="min-width:88px">Avanço</th>',
+    '<th class="ctr" style="min-width:84px">Restrições</th>'];
+  wks.forEach(function(w){
+    base.push('<th class="ctr la-wk la-week-hd'+(w.ini===hoje?' cur':'')+'">'
+      + w.label + '<small>' + w.rng + '</small></th>');
+  });
+  if(EDIT) base.push('<th class="ctr no-print" style="width:76px"></th>');
+  $('headRow').innerHTML = base.join('');
+
+  var vis = visiveis();
+  renderKpis(wks);
+
+  $('tb').innerHTML = vis.map(function(a){
+    var rs = restrDe(a.id);
+    var atrasada = a.termino && a.status !== 'Concluída' && a.termino < L.todayISO();
+    var cells = wks.map(function(w){
+      var on = a.inicio && a.termino && !(a.termino < w.ini || a.inicio > w.fim);
+      if(!on) return '<td class="la-cell"></td>';
+      var cls = a.status === 'Concluída' ? 'done'
+              : (atrasada ? 'late' : (a.status === 'Em execução' ? 'wip' : 'plan'));
+      return '<td class="la-cell"><span class="la-blk '+cls+'">'
+        + (a.status === 'Concluída' ? '✓' : (rs.length ? '⚑' : '')) + '</span></td>';
+    }).join('');
+
+    var progNaSemana = PROG.filter(function(p){
+      return p.atividade_id === a.id && String(p.semana).slice(0,10) === BASE; }).length;
+
+    return '<tr>'
+      + '<td>' + (a.codigo ? '<span class="code">'+esc(a.codigo)+'</span> ' : '')
+        + '<b>'+esc(a.descricao)+'</b>'
+        + (a.pacote ? '<div class="small muted">'+esc(a.pacote)+'</div>' : '')
+        + '<div class="small">'+statusPill(a, atrasada)+'</div></td>'
+      + '<td>'+(a.area ? '<span class="tag b">'+esc(a.area)+'</span>' : '<span class="muted">—</span>')+'</td>'
+      + '<td class="small">'+esc(a.empresa||'—')+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(a.inicio)+'</td>'
+      + '<td class="ctr'+(atrasada?'" style="color:var(--terracota);font-weight:700':'')+'">'+L.fmtBrDash(a.termino)+'</td>'
+      + '<td class="ctr"><div class="barline"><div class="bar"><span class="s-'
+        + (a.status==='Concluída'?'g':(atrasada?'r':'b'))+'" style="width:'+(+a.pct||0)+'%"></span></div>'
+        + '<span class="pct">'+nf(+a.pct||0,0)+'%</span></div></td>'
+      + '<td class="ctr">'+(rs.length
+          ? '<span class="pill '+(rs.length>2?'r':'y')+'" title="'
+            + esc(rs.map(function(r){return r.descricao;}).join(' | ')) + '">⚑ '+rs.length+'</span>'
+          : '<span class="pill g">livre</span>')+'</td>'
+      + cells
+      + (EDIT ? '<td class="ctr no-print nowrap">'
+          + '<button class="btn sm" data-ed="'+a.id+'" title="Editar">✎</button> '
+          + '<button class="btn sm" data-prog="'+a.id+'" title="Programar na semana-base"'
+          + (progNaSemana?' disabled':'')+'>▶</button></td>' : '')
+      + '</tr>';
+  }).join('') || '<tr><td colspan="'+(7+wks.length+(EDIT?1:0))+'" class="empty"><div class="big">▶</div>'
+      + 'Nenhuma atividade no lookahead.'
+      + (EDIT ? '<br><span class="small">Use <b>+ Nova atividade</b> para começar.</span>' : '')
+      + '</td></tr>';
+
+  document.querySelectorAll('button[data-ed]').forEach(function(b){
+    b.addEventListener('click', function(){ abrir(+b.dataset.ed); });
+  });
+  document.querySelectorAll('button[data-prog]').forEach(function(b){
+    b.addEventListener('click', function(){ programar(+b.dataset.prog); });
+  });
+
+  $('wkInfo').innerHTML = 'Janela: <b>' + L.fmtBr(BASE) + '</b> a <b>'
+    + L.fmtBr(wks[wks.length-1].fim) + '</b>';
+  $('foot').innerHTML = vis.length + ' de ' + ATIV.length + ' atividades · '
+    + '⚑ marca semanas de atividades com restrição aberta';
+}
+
+function statusPill(a, atrasada){
+  if(a.status === 'Concluída') return '<span class="pill g">Concluída</span>';
+  if(a.status === 'Paralisada') return '<span class="pill r">Paralisada</span>';
+  if(atrasada) return '<span class="pill r">Atrasada</span>';
+  if(a.status === 'Em execução') return '<span class="pill b">Em execução</span>';
+  return '<span class="pill n">Não iniciada</span>';
+}
+
+function renderKpis(wks){
+  var fimJanela = wks[wks.length-1].fim;
+  var naJanela = ATIV.filter(function(a){
+    return a.inicio && a.termino && !(a.termino < BASE || a.inicio > fimJanela);
+  });
+  var comRestr = naJanela.filter(function(a){ return restrDe(a.id).length; });
+  var atrasadas = ATIV.filter(function(a){
+    return a.termino && a.status !== 'Concluída' && a.termino < L.todayISO(); });
+  var concl = ATIV.filter(function(a){ return a.status === 'Concluída'; }).length;
+  var livres = naJanela.length - comRestr.length;
+  var prontidao = naJanela.length ? Math.round(livres / naJanela.length * 100) : 0;
+
+  $('kpis').innerHTML =
+    kpi('b-blue', ATIV.length, 'Atividades', concl + ' concluídas') +
+    kpi('b-violet', naJanela.length, 'Na janela', NW + ' semanas à frente') +
+    kpi('b-green', livres, 'Livres', 'prontas para programar') +
+    kpi('b-gold', comRestr.length, 'Com restrição', 'não podem ser programadas') +
+    kpi('b-red', atrasadas.length, 'Atrasadas', 'término vencido') +
+    kpi('b-gray', prontidao + '%', 'Prontidão', 'da janela do lookahead');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+/* ================= PROGRAMAR NA SEMANA ================= */
+function programar(id){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var a = ATIV.filter(function(x){ return x.id === id; })[0];
+  if(!a) return;
+  var rs = restrDe(id);
+  if(rs.length && !confirm('Esta atividade tem ' + rs.length + ' restrição(ões) aberta(s):\n\n'
+      + rs.map(function(r){ return '• ' + r.descricao; }).join('\n')
+      + '\n\nNo LPS, o correto é remover a restrição antes de programar.\nProgramar mesmo assim?')) return;
+
+  L.sb('POST','lps_ei_programacao', L.comTag({
+    semana: BASE, atividade_id: a.id, descricao: a.descricao,
+    area: a.area || null, empresa: a.empresa || null, disciplina: a.disciplina || null,
+    qtd_prog: a.qtd_prev == null ? null : a.qtd_prev, un: a.un || null,
+    coluna: 'programada', criado_por: L.userNome()
+  })).then(function(){
+    L.toast('Atividade programada na semana de ' + L.fmtBr(BASE) + '.','ok');
+    return load();
+  }).catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+}
+
+/* ================= MODAL ================= */
+function abrir(id){
+  editando = id ? ATIV.filter(function(a){ return a.id === id; })[0] : null;
+  $('mTitle').textContent = editando ? 'Editar atividade' : 'Nova atividade';
+  $('mDel').style.display = editando ? '' : 'none';
+  var a = editando || {};
+  $('aCod').value = a.codigo || ''; $('aPac').value = a.pacote || '';
+  $('aDisc').value = a.disciplina || ''; $('aDesc').value = a.descricao || '';
+  $('aArea').value = a.area || ''; $('aCtr').value = a.contrato_id || '';
+  $('aStatus').value = a.status || 'Não iniciada';
+  $('aIni').value = a.inicio || ''; $('aFim').value = a.termino || '';
+  $('aPct').value = a.pct == null ? 0 : a.pct;
+  $('aQtdP').value = a.qtd_prev == null ? '' : L.nf(a.qtd_prev,2);
+  $('aQtdR').value = a.qtd_real == null ? '' : L.nf(a.qtd_real,2);
+  $('aUn').value = a.un || ''; $('aObs').value = a.obs || '';
+
+  var rs = editando ? RESTR.filter(function(r){ return r.atividade_id === editando.id; }) : [];
+  $('restrBox').innerHTML = editando
+    ? '<div class="section-label">Restrições vinculadas</div>' + (rs.length
+        ? '<table class="grid"><thead><tr><th class="ctr">#</th><th>Restrição</th>'
+          + '<th>Categoria</th><th>Status</th><th>Responsável</th><th class="ctr">Necessária</th>'
+          + '</tr></thead><tbody>' + rs.map(function(r){
+              var c = r.status === 'Removida' ? 'g' : (r.status === 'Cancelada' ? 'n' : 'y');
+              return '<tr><td class="ctr code">'+(r.num||'—')+'</td><td>'+esc(r.descricao)+'</td>'
+                + '<td class="small">'+esc(r.categoria||'—')+'</td>'
+                + '<td><span class="pill '+c+'">'+esc(r.status)+'</span></td>'
+                + '<td class="small">'+esc(r.responsavel||'—')+'</td>'
+                + '<td class="ctr">'+L.fmtBrDash(r.data_necessidade)+'</td></tr>';
+            }).join('') + '</tbody></table>'
+        : '<div class="empty small">Nenhuma restrição vinculada — atividade liberada para programação.</div>')
+      + '<div class="small muted" style="margin-top:8px">'
+      + '<a href="lps_ei_restricoes.html?atividade='+editando.id+'">Registrar restrição para esta atividade →</a></div>'
+    : '';
+
+  L.openModal('mAt');
+}
+
+$('aCtr').addEventListener('change', function(){
+  var c = CTRS.filter(function(x){ return String(x.id) === $('aCtr').value; })[0];
+  if(c && c.empresa && !$('aArea').value){
+    var ars = c.areas;
+    if(typeof ars === 'string'){ try{ ars = JSON.parse(ars); }catch(_){ ars = []; } }
+    if(Array.isArray(ars) && ars.length === 1) $('aArea').value = ars[0];
+  }
+});
+
+$('mSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var desc = $('aDesc').value.trim();
+  if(!desc) return L.toast('Descreva a atividade.','warn');
+  var ini = $('aIni').value || null, fim = $('aFim').value || null;
+  if(ini && fim && fim < ini) return L.toast('O término não pode ser anterior ao início.','warn');
+
+  var ctrId = $('aCtr').value ? parseInt($('aCtr').value,10) : null;
+  var ctr = CTRS.filter(function(c){ return c.id === ctrId; })[0];
+
+  var body = {
+    codigo: $('aCod').value.trim() || null,
+    pacote: $('aPac').value.trim() || null,
+    disciplina: $('aDisc').value || null,
+    descricao: desc,
+    area: $('aArea').value || null,
+    contrato_id: ctrId,
+    empresa: ctr ? ctr.empresa : null,
+    status: $('aStatus').value,
+    inicio: ini, termino: fim,
+    pct: Math.max(0, Math.min(100, parseInt($('aPct').value,10) || 0)),
+    qtd_prev: $('aQtdP').value.trim() ? L.parseNum($('aQtdP').value) : null,
+    qtd_real: $('aQtdR').value.trim() ? L.parseNum($('aQtdR').value) : null,
+    un: $('aUn').value.trim() || null,
+    obs: $('aObs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+  if(body.pct >= 100 && body.status !== 'Concluída') body.status = 'Concluída';
+  if(body.status === 'Concluída') body.pct = 100;
+
+  var p = editando
+    ? L.sb('PATCH','lps_ei_atividades?id=eq.'+editando.id, body)
+    : L.sb('POST','lps_ei_atividades', L.comTag(Object.assign(body,{criado_por:L.userNome()})));
+  p.then(function(){ L.closeModal('mAt'); L.toast('Atividade salva.','ok'); return load(); })
+   .catch(function(e){ L.toast('Erro ao salvar: '+e.message,'warn'); });
+});
+
+$('mDel').addEventListener('click', function(){
+  if(!editando || !EDIT) return;
+  if(!confirm('Excluir a atividade "'+editando.descricao+'"?')) return;
+  L.sb('PATCH','lps_ei_atividades?id=eq.'+editando.id,{ativo:false})
+    .then(function(){ L.closeModal('mAt'); L.toast('Atividade excluída.','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var wks = weeks();
+  var head = ['Código','Pacote','Atividade','Área','Nome da área','Disciplina','Empresa','Status',
+              'Início','Término','Avanço %','Qtd prevista','Qtd realizada','Un.',
+              'Restrições abertas','Observações'];
+  wks.forEach(function(w){ head.push(w.label + ' (' + w.rng + ')'); });
+  var aoa = [head];
+  visiveis().forEach(function(a){
+    var rs = restrDe(a.id);
+    var row = [a.codigo,a.pacote,a.descricao,a.area,L.areaNome(a.area),a.disciplina,a.empresa,a.status,
+      L.fmtBr(a.inicio),L.fmtBr(a.termino),+a.pct||0,
+      a.qtd_prev==null?'':Number(a.qtd_prev), a.qtd_real==null?'':Number(a.qtd_real), a.un,
+      rs.length, a.obs];
+    wks.forEach(function(w){
+      var on = a.inicio && a.termino && !(a.termino < w.ini || a.inicio > w.fim);
+      row.push(on ? 'X' : '');
+    });
+    aoa.push(row);
+  });
+  L.exportXlsx([{ nome:'Lookahead', aoa:aoa,
+    cols:[{wch:12},{wch:14},{wch:52},{wch:10},{wch:24},{wch:20},{wch:22},{wch:14},
+          {wch:11},{wch:11},{wch:9},{wch:12},{wch:13},{wch:7},{wch:16},{wch:34}] }],
+    'LPS_EI_lookahead_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+$('q').addEventListener('input', render);
+['fArea','fEmpresa','fStatus','fRestr'].forEach(function(id){
+  $(id).addEventListener('change', render);
+});
+$('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
+$('wkBase').addEventListener('change', function(){
+  BASE = L.mondayOf(this.value); this.value = BASE; render();
+});
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+$('btnNovo').addEventListener('click', function(){ abrir(null); });
+L.wireModal('mAt');
+if(!EDIT) $('btnNovo').style.display = 'none';
+
+load();
+})();
+</script>
+</body>
+</html>

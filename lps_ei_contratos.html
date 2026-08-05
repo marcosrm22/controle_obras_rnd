@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Contratos · LPS E&amp;I · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="lps_ei_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="lps-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="tabs no-print">
+    <button class="tab active" data-tab="lista">Contratos</button>
+    <button class="tab" data-tab="cobertura">Cobertura por Área</button>
+  </div>
+
+  <!-- ===== ABA 1 · LISTA ===== -->
+  <section id="tab-lista">
+    <div class="toolbar no-print">
+      <div class="search"><input type="text" id="q" placeholder="Buscar escopo, empresa, contrato, responsável…"></div>
+      <select class="f" id="fArea"></select>
+      <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+      <select class="f" id="fStatus"><option value="">Todos os status</option></select>
+      <select class="f" id="fDisc"><option value="">Todas as disciplinas</option></select>
+      <select class="f" id="fSort">
+        <option value="empresa">Ordenar por empresa</option>
+        <option value="status">Ordenar por status</option>
+        <option value="inicio">Ordenar por início previsto</option>
+        <option value="contrato">Ordenar por data de contrato</option>
+        <option value="valor">Ordenar por valor</option>
+      </select>
+      <button class="btn solid" id="btnNovo">+ Novo contrato</button>
+      <button class="btn" id="btnXls">⤓ Excel</button>
+      <button class="btn" onclick="window.print()">⎙ PDF</button>
+    </div>
+
+    <div class="seg-view no-print" style="margin-bottom:12px">
+      <button class="btn sm" id="vwCards">▤ Cartões</button>
+      <button class="btn sm" id="vwTable">▦ Tabela</button>
+    </div>
+
+    <div id="viewCards" class="cardlist"></div>
+
+    <div id="viewTable" class="tablewrap hide">
+      <table class="grid">
+        <thead><tr>
+          <th style="min-width:110px">Contrato</th>
+          <th style="min-width:240px">Escopo</th>
+          <th style="min-width:170px">Empresa</th>
+          <th style="min-width:130px">Disciplina</th>
+          <th style="min-width:180px">Áreas</th>
+          <th style="min-width:150px">Status</th>
+          <th class="ctr">Contrato</th>
+          <th class="ctr">Mobiliz.</th>
+          <th class="ctr">Início prev.</th>
+          <th class="ctr">Fim prev.</th>
+          <th class="num">Valor</th>
+          <th class="ctr no-print" style="width:60px"></th>
+        </tr></thead>
+        <tbody id="tbCtr"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== ABA 2 · COBERTURA ===== -->
+  <section id="tab-cobertura" class="hide">
+    <div class="notice">
+      Matriz de cobertura: mostra qual empresa responde por cada área. Áreas em
+      <b>vermelho</b> ainda não têm contrato firmado — são o gargalo mais à montante
+      do LPS, porque travam qualquer programação de execução.
+    </div>
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr>
+          <th class="ctr" style="width:44px">Sit.</th>
+          <th style="min-width:200px">Área</th>
+          <th style="min-width:280px">Contratos vinculados</th>
+          <th style="min-width:170px">Empresa executante</th>
+          <th class="ctr" style="min-width:100px">Início previsto</th>
+          <th class="ctr" style="min-width:100px">Fim previsto</th>
+        </tr></thead>
+        <tbody id="tbCob"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal" id="mCtr"><div class="modal-box wide">
+  <div class="modal-head">
+    <div><h3 id="mTitle">Novo contrato</h3>
+    <div class="mh-sub">Escopo de elétrica / instrumentação e empresa executante</div></div>
+    <button class="modal-close" onclick="LPS.closeModal('mCtr')">&times;</button>
+  </div>
+  <div class="modal-body">
+
+    <div class="section-label" style="margin-top:0">Identificação</div>
+    <div class="frow">
+      <div class="field"><label>Nº do contrato / pedido</label><input id="cCod" placeholder="CT-2026-014"></div>
+      <div class="field"><label>Empresa executante *</label><input id="cEmp" list="empresas" placeholder="Nome da contratada">
+        <datalist id="empresas"></datalist></div>
+      <div class="field"><label>Disciplina</label><select id="cDisc"></select></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Escopo *</label><input id="cEsc" placeholder="Ex.: Montagem eletromecânica de eletrocalhas, cabeamento e instrumentação de campo">
+    </div></div>
+
+    <div class="section-label">Áreas de atuação</div>
+    <div class="checkgrid" id="cAreas"></div>
+    <div class="small muted" style="margin-top:6px">
+      Marque todas as áreas onde a empresa vai atuar — é isso que alimenta o semáforo
+      de contratação no painel por área.
+    </div>
+
+    <div class="section-label">Situação e datas</div>
+    <div class="frow">
+      <div class="field"><label>Status</label><select id="cStatus"></select></div>
+      <div class="field"><label>Data da RFQ / cotação</label><input type="date" id="cRfq"></div>
+      <div class="field"><label>Data do contrato</label><input type="date" id="cContrato"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Mobilização</label><input type="date" id="cMob"></div>
+      <div class="field"><label>Início previsto</label><input type="date" id="cIniP"></div>
+      <div class="field"><label>Término previsto</label><input type="date" id="cFimP"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Início real</label><input type="date" id="cIniR"></div>
+      <div class="field"><label>Término real</label><input type="date" id="cFimR"></div>
+      <div class="field"><label>Efetivo previsto (pessoas)</label><input type="number" id="cEfet" min="0"></div>
+    </div>
+
+    <div class="section-label">Comercial e contatos</div>
+    <div class="frow">
+      <div class="field"><label>Valor do contrato (R$)</label><input type="text" id="cValor" placeholder="1.250.000,00"></div>
+      <div class="field"><label>Responsável interno</label><input id="cResp" placeholder="Gestor do contrato"></div>
+      <div class="field"><label>Contato da contratada</label><input id="cContato" placeholder="Nome · telefone · e-mail"></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Observações</label><textarea id="cObs"></textarea></div></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
+    <span class="spacer"></span>
+    <button class="btn" onclick="LPS.closeModal('mCtr')">Cancelar</button>
+    <button class="btn solid" id="mSave">Salvar contrato</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.LPS;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc;
+
+L.renderShell({
+  page:'contratos',
+  title:'Gestão de Contratos',
+  subtitle:'Escopos contratados de elétrica e instrumentação — empresa executante, áreas de atuação e marcos contratuais'
+});
+
+var EDIT = L.canEdit();
+var DADOS = [], editando = null, VIEW = 'cards';
+
+var CONTR_OK = ['Contratado','Mobilizado','Em execução','Concluído'];
+var CONTR_AND = ['Em definição de escopo','Em cotação','Em negociação'];
+
+function statusCls(st){
+  if(st === 'Concluído') return 'g';
+  if(st === 'Cancelado') return 'n';
+  if(CONTR_OK.indexOf(st) > -1) return 'b';
+  if(CONTR_AND.indexOf(st) > -1) return 'y';
+  return 'n';
+}
+function areasDe(c){
+  var a = c.areas;
+  if(typeof a === 'string'){ try{ a = JSON.parse(a); }catch(_){ a = []; } }
+  return Array.isArray(a) ? a : [];
+}
+
+/* ================= ABAS ================= */
+document.querySelectorAll('.tab').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    ['lista','cobertura'].forEach(function(t){
+      $('tab-'+t).classList.toggle('hide', t !== b.dataset.tab);
+    });
+  });
+});
+
+/* ================= CARGA ================= */
+function load(){
+  return Promise.all([
+    L.loadAreas(true),
+    L.sbGetAll(L.comUnidade('lps_ei_contratos?select=*&ativo=eq.true&order=empresa.asc,escopo.asc'))
+  ]).then(function(r){
+    DADOS = r[1];
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('viewCards').innerHTML = '<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+  });
+}
+
+function fillSelects(){
+  $('fArea').innerHTML = L.areaOptions('', true);
+  $('fStatus').innerHTML = '<option value="">Todos os status</option>'
+    + L.CONTRATO_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('fDisc').innerHTML = '<option value="">Todas as disciplinas</option>'
+    + L.DISCIPLINAS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('cStatus').innerHTML = L.CONTRATO_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('cDisc').innerHTML = '<option value=""></option>'
+    + L.DISCIPLINAS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+
+  var emps = [];
+  DADOS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cur = $('fEmpresa').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===cur?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  $('empresas').innerHTML = emps.map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
+
+  $('cAreas').innerHTML = L.areasCache().map(function(a){
+    return '<label><input type="checkbox" value="'+esc(a.codigo)+'"> '
+      + esc(a.codigo) + ' · ' + esc(a.nome) + '</label>';
+  }).join('') || '<span class="small muted">Nenhuma área cadastrada — cadastre em Painel por Área → Cadastro de Áreas.</span>';
+}
+
+/* ================= FILTRO / ORDENAÇÃO ================= */
+function visiveis(){
+  var q = L.deacc($('q').value), fa = $('fArea').value, fe = $('fEmpresa').value,
+      fs = $('fStatus').value, fd = $('fDisc').value, srt = $('fSort').value;
+  var out = DADOS.filter(function(c){
+    if(fa && areasDe(c).indexOf(fa) < 0) return false;
+    if(fe && c.empresa !== fe) return false;
+    if(fs && c.status !== fs) return false;
+    if(fd && c.disciplina !== fd) return false;
+    if(!q) return true;
+    return L.deacc([c.codigo,c.escopo,c.empresa,c.responsavel,c.contato,c.obs,
+                    areasDe(c).join(' ')].join(' ')).indexOf(q) > -1;
+  });
+  var ordSt = {};
+  L.CONTRATO_STATUS.forEach(function(s,i){ ordSt[s] = i; });
+  out.sort(function(a,b){
+    if(srt === 'status') return (ordSt[a.status]||99) - (ordSt[b.status]||99);
+    if(srt === 'inicio') return String(a.data_inicio_prev||'9999').localeCompare(String(b.data_inicio_prev||'9999'));
+    if(srt === 'contrato') return String(a.data_contrato||'9999').localeCompare(String(b.data_contrato||'9999'));
+    if(srt === 'valor') return (+b.valor||0) - (+a.valor||0);
+    return String(a.empresa||'zzz').localeCompare(String(b.empresa||'zzz'),'pt-BR');
+  });
+  return out;
+}
+
+/* ================= RENDER ================= */
+function render(){ renderKpis(); renderLista(); renderCobertura(); }
+
+function renderKpis(){
+  var firmados = DADOS.filter(function(c){ return CONTR_OK.indexOf(c.status) > -1; });
+  var andamento = DADOS.filter(function(c){ return CONTR_AND.indexOf(c.status) > -1; });
+  var emExec = DADOS.filter(function(c){ return c.status === 'Em execução'; });
+  var valor = DADOS.filter(function(c){ return c.status !== 'Cancelado'; })
+                   .reduce(function(s,c){ return s + (+c.valor||0); }, 0);
+  var emps = {};
+  DADOS.forEach(function(c){ if(c.empresa && c.status !== 'Cancelado') emps[c.empresa] = 1; });
+  var cob = coberturaAreas();
+  var semCtr = cob.filter(function(x){ return !x.firmados.length; }).length;
+
+  $('kpis').innerHTML =
+    kpi('b-blue', DADOS.length, 'Contratos', 'cadastrados') +
+    kpi('b-green', firmados.length, 'Firmados', emExec.length + ' em execução') +
+    kpi('b-gold', andamento.length, 'Em processo', 'cotação / negociação') +
+    kpi('b-red', semCtr, 'Áreas sem contrato', 'de ' + cob.length + ' áreas') +
+    kpi('b-violet', Object.keys(emps).length, 'Empresas', 'executantes ativas') +
+    kpi('b-gray', L.nfMoney(valor), 'Valor total', 'contratos não cancelados');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+function renderLista(){
+  var vis = visiveis();
+  $('viewCards').classList.toggle('hide', VIEW !== 'cards');
+  $('viewTable').classList.toggle('hide', VIEW !== 'table');
+
+  if(!vis.length){
+    var vazio = '<div class="empty"><div class="big">§</div>Nenhum contrato encontrado.'
+      + (EDIT ? '<br><span class="small">Use <b>+ Novo contrato</b> para cadastrar o primeiro escopo.</span>' : '')
+      + '</div>';
+    $('viewCards').innerHTML = vazio;
+    $('tbCtr').innerHTML = '<tr><td colspan="12">'+vazio+'</td></tr>';
+    return;
+  }
+
+  /* ---- cartões ---- */
+  $('viewCards').innerHTML = vis.map(function(c){
+    var ars = areasDe(c);
+    var atraso = c.data_fim_prev && !c.data_fim_real && c.data_fim_prev < L.todayISO();
+    return '<div class="card" style="border-top-color:'+corStatus(c.status)+'">'
+      + '<div class="c-top"><div>'
+        + '<div class="c-title">'+esc(c.empresa || 'Empresa a definir')+'</div>'
+        + '<div class="c-sub">'+esc(c.codigo || 'sem nº')+(c.disciplina?' · '+esc(c.disciplina):'')+'</div>'
+      + '</div><span class="pill '+statusCls(c.status)+'">'+esc(c.status)+'</span></div>'
+      + '<div class="c-meta">'+esc(c.escopo)+'</div>'
+      + '<div style="margin-top:9px">'+(ars.length
+          ? ars.map(function(a){ return '<span class="tag b" title="'+esc(L.areaNome(a))+'">'+esc(a)+'</span>'; }).join('')
+          : '<span class="tag" style="color:var(--terracota)">sem área vinculada</span>')+'</div>'
+      + '<div class="c-meta">'
+        + '<b>Contrato:</b> '+L.fmtBrDash(c.data_contrato)
+        + ' &nbsp;·&nbsp; <b>Mobilização:</b> '+L.fmtBrDash(c.data_mobilizacao)+'<br>'
+        + '<b>Execução prevista:</b> '+L.fmtBrDash(c.data_inicio_prev)+' → '
+        + '<span'+(atraso?' style="color:var(--terracota);font-weight:700"':'')+'>'
+        + L.fmtBrDash(c.data_fim_prev)+'</span>'
+        + (c.data_fim_real ? ' &nbsp;·&nbsp; <b>concluído em</b> '+L.fmtBr(c.data_fim_real) : '')
+      + '</div>'
+      + '<div class="c-foot">'
+        + '<span class="small muted">'+(c.valor ? L.nfMoney(c.valor) : '')
+        + (c.responsavel ? (c.valor?' · ':'')+'gestor: '+esc(c.responsavel) : '')+'</span>'
+        + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'">editar</button>' : '')
+      + '</div></div>';
+  }).join('');
+
+  /* ---- tabela ---- */
+  $('tbCtr').innerHTML = vis.map(function(c){
+    var ars = areasDe(c);
+    return '<tr><td><span class="code">'+esc(c.codigo||'—')+'</span></td>'
+      + '<td>'+esc(c.escopo)+'</td>'
+      + '<td><b>'+esc(c.empresa||'—')+'</b></td>'
+      + '<td class="small">'+esc(c.disciplina||'—')+'</td>'
+      + '<td>'+(ars.length ? ars.map(function(a){ return '<span class="tag b">'+esc(a)+'</span>'; }).join('') : '<span class="muted">—</span>')+'</td>'
+      + '<td><span class="pill '+statusCls(c.status)+'">'+esc(c.status)+'</span></td>'
+      + '<td class="ctr">'+L.fmtBrDash(c.data_contrato)+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(c.data_mobilizacao)+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(c.data_inicio_prev)+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(c.data_fim_prev)+'</td>'
+      + '<td class="num">'+(c.valor ? L.nf(c.valor,2) : '—')+'</td>'
+      + '<td class="ctr no-print">'+(EDIT ? '<button class="btn sm" data-ed="'+c.id+'">editar</button>' : '')+'</td></tr>';
+  }).join('');
+
+  document.querySelectorAll('button[data-ed]').forEach(function(b){
+    b.addEventListener('click', function(){ abrir(+b.dataset.ed); });
+  });
+}
+
+function corStatus(st){
+  if(st === 'Concluído') return 'var(--green)';
+  if(st === 'Cancelado') return 'var(--cinza)';
+  if(CONTR_OK.indexOf(st) > -1) return 'var(--blue)';
+  if(CONTR_AND.indexOf(st) > -1) return 'var(--gold)';
+  return 'var(--cinza)';
+}
+
+/* ================= COBERTURA ================= */
+function coberturaAreas(){
+  return L.areasCache().map(function(a){
+    var lig = DADOS.filter(function(c){
+      return c.status !== 'Cancelado' && areasDe(c).indexOf(a.codigo) > -1;
+    });
+    return {
+      area: a,
+      todos: lig,
+      firmados: lig.filter(function(c){ return CONTR_OK.indexOf(c.status) > -1; }),
+      processo: lig.filter(function(c){ return CONTR_AND.indexOf(c.status) > -1; })
+    };
+  });
+}
+
+function renderCobertura(){
+  var cob = coberturaAreas();
+  $('tbCob').innerHTML = cob.map(function(x){
+    var g = x.firmados.length ? 'g' : (x.processo.length ? 'y' : 'r');
+    var ref = x.firmados.length ? x.firmados : x.processo;
+    var ini = ref.map(function(c){ return c.data_inicio_prev; }).filter(Boolean).sort()[0];
+    var fim = ref.map(function(c){ return c.data_fim_prev; }).filter(Boolean).sort().pop();
+    var t = { g:'OK', y:'!', r:'✕' };
+    return '<tr><td class="ctr"><span class="dot '+g+'">'+t[g]+'</span></td>'
+      + '<td><span class="code">'+esc(x.area.codigo)+'</span><br><b>'+esc(x.area.nome)+'</b></td>'
+      + '<td>'+(x.todos.length
+          ? x.todos.map(function(c){
+              return '<div style="margin-bottom:4px"><span class="pill '+statusCls(c.status)+'">'
+                + esc(c.status)+'</span> <span class="small">'+esc(c.escopo)+'</span></div>';
+            }).join('')
+          : '<span class="muted small">Nenhum contrato vinculado a esta área</span>')+'</td>'
+      + '<td>'+(ref.length
+          ? ref.map(function(c){ return '<b>'+esc(c.empresa||'—')+'</b>'; }).join('<br>')
+          : '<span class="muted">—</span>')+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(ini)+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(fim)+'</td></tr>';
+  }).join('') || '<tr><td colspan="6" class="empty">Nenhuma área cadastrada.</td></tr>';
+}
+
+/* ================= MODAL ================= */
+function abrir(id){
+  editando = id ? DADOS.filter(function(c){ return c.id === id; })[0] : null;
+  $('mTitle').textContent = editando ? 'Editar contrato' : 'Novo contrato';
+  $('mDel').style.display = editando ? '' : 'none';
+  var c = editando || {};
+  $('cCod').value = c.codigo || ''; $('cEmp').value = c.empresa || '';
+  $('cDisc').value = c.disciplina || ''; $('cEsc').value = c.escopo || '';
+  $('cStatus').value = c.status || 'Em definição de escopo';
+  $('cRfq').value = c.data_rfq || ''; $('cContrato').value = c.data_contrato || '';
+  $('cMob').value = c.data_mobilizacao || ''; $('cIniP').value = c.data_inicio_prev || '';
+  $('cFimP').value = c.data_fim_prev || ''; $('cIniR').value = c.data_inicio_real || '';
+  $('cFimR').value = c.data_fim_real || ''; $('cEfet').value = c.efetivo_prev == null ? '' : c.efetivo_prev;
+  $('cValor').value = c.valor == null ? '' : L.nf(c.valor, 2);
+  $('cResp').value = c.responsavel || ''; $('cContato').value = c.contato || '';
+  $('cObs').value = c.obs || '';
+
+  var sel = areasDe(c);
+  document.querySelectorAll('#cAreas input').forEach(function(i){
+    i.checked = sel.indexOf(i.value) > -1;
+  });
+  L.openModal('mCtr');
+}
+
+$('mSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var esc0 = $('cEsc').value.trim(), emp = $('cEmp').value.trim();
+  if(!esc0) return L.toast('Descreva o escopo do contrato.','warn');
+  if(!emp) return L.toast('Informe a empresa executante.','warn');
+
+  var ars = [];
+  document.querySelectorAll('#cAreas input:checked').forEach(function(i){ ars.push(i.value); });
+
+  var body = {
+    codigo: $('cCod').value.trim() || null,
+    escopo: esc0, empresa: emp,
+    disciplina: $('cDisc').value || null,
+    areas: ars,
+    status: $('cStatus').value,
+    valor: $('cValor').value.trim() ? L.parseNum($('cValor').value) : null,
+    data_rfq: $('cRfq').value || null,
+    data_contrato: $('cContrato').value || null,
+    data_mobilizacao: $('cMob').value || null,
+    data_inicio_prev: $('cIniP').value || null,
+    data_fim_prev: $('cFimP').value || null,
+    data_inicio_real: $('cIniR').value || null,
+    data_fim_real: $('cFimR').value || null,
+    efetivo_prev: $('cEfet').value ? parseInt($('cEfet').value,10) : null,
+    responsavel: $('cResp').value.trim() || null,
+    contato: $('cContato').value.trim() || null,
+    obs: $('cObs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+
+  var p = editando
+    ? L.sb('PATCH','lps_ei_contratos?id=eq.'+editando.id, body)
+    : L.sb('POST','lps_ei_contratos', L.comTag(Object.assign(body,{criado_por:L.userNome()})));
+  p.then(function(){ L.closeModal('mCtr'); L.toast('Contrato salvo.','ok'); return load(); })
+   .catch(function(e){ L.toast('Erro ao salvar: '+e.message,'warn'); });
+});
+
+$('mDel').addEventListener('click', function(){
+  if(!editando || !EDIT) return;
+  if(!confirm('Excluir o contrato de "'+(editando.empresa||editando.escopo)+'"?')) return;
+  L.sb('PATCH','lps_ei_contratos?id=eq.'+editando.id,{ativo:false})
+    .then(function(){ L.closeModal('mCtr'); L.toast('Contrato excluído.','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var aoa = [['Nº contrato','Escopo','Empresa','Disciplina','Áreas','Status','Valor (R$)',
+              'RFQ','Contrato','Mobilização','Início prev.','Fim prev.','Início real','Fim real',
+              'Efetivo prev.','Responsável','Contato','Observações']];
+  visiveis().forEach(function(c){
+    aoa.push([c.codigo,c.escopo,c.empresa,c.disciplina,areasDe(c).join(' / '),c.status,
+      c.valor==null?'':Number(c.valor),
+      L.fmtBr(c.data_rfq),L.fmtBr(c.data_contrato),L.fmtBr(c.data_mobilizacao),
+      L.fmtBr(c.data_inicio_prev),L.fmtBr(c.data_fim_prev),
+      L.fmtBr(c.data_inicio_real),L.fmtBr(c.data_fim_real),
+      c.efetivo_prev,c.responsavel,c.contato,c.obs]);
+  });
+
+  var aoa2 = [['Área','Nome','Situação','Contratos','Empresa(s)','Início prev.','Fim prev.']];
+  coberturaAreas().forEach(function(x){
+    var ref = x.firmados.length ? x.firmados : x.processo;
+    aoa2.push([x.area.codigo, x.area.nome,
+      x.firmados.length ? 'Contratado' : (x.processo.length ? 'Em processo' : 'SEM CONTRATO'),
+      x.todos.length,
+      ref.map(function(c){ return c.empresa; }).filter(Boolean).join(' / '),
+      L.fmtBr(ref.map(function(c){ return c.data_inicio_prev; }).filter(Boolean).sort()[0]),
+      L.fmtBr(ref.map(function(c){ return c.data_fim_prev; }).filter(Boolean).sort().pop())]);
+  });
+
+  L.exportXlsx([
+    { nome:'Contratos', aoa:aoa, cols:[{wch:14},{wch:48},{wch:24},{wch:20},{wch:22},{wch:18},
+      {wch:15},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:12},{wch:20},{wch:26},{wch:40}] },
+    { nome:'Cobertura por Área', aoa:aoa2, cols:[{wch:12},{wch:30},{wch:16},{wch:10},{wch:34},{wch:12},{wch:12}] }
+  ], 'LPS_EI_contratos_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+['q'].forEach(function(id){ $(id).addEventListener('input', renderLista); });
+['fArea','fEmpresa','fStatus','fDisc','fSort'].forEach(function(id){
+  $(id).addEventListener('change', renderLista);
+});
+$('btnNovo').addEventListener('click', function(){ abrir(null); });
+$('vwCards').addEventListener('click', function(){ VIEW='cards'; renderLista(); });
+$('vwTable').addEventListener('click', function(){ VIEW='table'; renderLista(); });
+L.wireModal('mCtr');
+if(!EDIT) $('btnNovo').style.display = 'none';
+
+load();
+})();
+</script>
+</body>
+</html>

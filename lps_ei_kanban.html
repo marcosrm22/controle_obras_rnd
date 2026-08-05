@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Programação Semanal · LPS E&amp;I · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+.ppc-badge{font-family:var(--mono);font-size:15px;font-weight:800;padding:3px 10px;border:1px solid}
+.ppc-badge.g{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
+.ppc-badge.y{background:var(--gold-soft);color:#7c4a00;border-color:#f0c87a}
+.ppc-badge.r{background:var(--red-soft);color:#8c2b1f;border-color:#e8b4ac}
+.causa-row{display:grid;grid-template-columns:250px 1fr 46px;gap:12px;align-items:center;
+  padding:6px 0;border-bottom:1px solid var(--border-2);font-size:11.5px}
+.causa-row .cb{background:#eef1f4;height:15px}
+.causa-row .cb i{display:block;height:100%;background:var(--terracota)}
+.causa-row .cv{font-family:var(--mono);font-weight:700;text-align:right}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="lps_ei_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="lps-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <button class="btn sm" id="wkPrev">← Semana anterior</button>
+    <input type="date" class="f" id="wkBase" style="max-width:160px">
+    <button class="btn sm" id="wkNext">Próxima semana →</button>
+    <button class="btn sm" id="wkHoje">Semana atual</button>
+    <span class="small muted" id="wkInfo" style="margin-right:auto"></span>
+    <select class="f" id="fArea"></select>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <button class="btn solid" id="btnNovo">+ Novo card</button>
+    <button class="btn" id="btnHerdar">⟳ Herdar semana anterior</button>
+    <button class="btn" id="btnXls">⤓ Excel</button>
+    <button class="btn" onclick="window.print()">⎙ PDF</button>
+  </div>
+
+  <div class="notice" id="hint">
+    Arraste os cards entre as colunas conforme a semana avança. Ao mover para
+    <b>Não concluída</b>, o sistema pede a <b>causa</b> — é essa informação que alimenta
+    o Pareto do LPS e mostra o que precisa mudar no processo, não na equipe.
+    O <b>PPC</b> é calculado sobre tudo o que foi programado na semana.
+  </div>
+
+  <div id="lanes"><div class="loading-line">Carregando…</div></div>
+
+  <div id="paretoWrap" class="hide">
+    <div class="section-label">Causas de não cumprimento · semana</div>
+    <div id="parCausas"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL CARD ===== -->
+<div class="modal" id="mC"><div class="modal-box">
+  <div class="modal-head">
+    <div><h3 id="mTitle">Novo card</h3>
+    <div class="mh-sub" id="mSub">Programação semanal</div></div>
+    <button class="modal-close" onclick="LPS.closeModal('mC')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Atividade do lookahead</label><select id="cAtiv"></select>
+      <div class="hint">Escolher uma atividade preenche descrição, área e empresa automaticamente.</div>
+    </div></div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Descrição *</label><input id="cDesc" placeholder="O que será feito nesta semana"></div></div>
+    <div class="frow">
+      <div class="field"><label>Área</label><select id="cArea"></select></div>
+      <div class="field"><label>Empresa *</label><input id="cEmp" list="empresas"><datalist id="empresas"></datalist></div>
+      <div class="field"><label>Disciplina</label><select id="cDisc"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Responsável / encarregado</label><input id="cResp"></div>
+      <div class="field"><label>Equipe</label><input id="cEquipe" placeholder="Ex.: 4 eletricistas + 1 encarregado"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Qtd. programada</label><input id="cQtdP" placeholder="250"></div>
+      <div class="field"><label>Qtd. realizada</label><input id="cQtdR" placeholder="180"></div>
+      <div class="field"><label>Unidade</label><input id="cUn" placeholder="m · pç"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Coluna</label><select id="cCol"></select></div>
+      <div class="field"><label>Semana</label><input type="date" id="cSem"></div>
+    </div>
+    <div class="frow" id="causaRow"><div class="field" style="grid-column:1/-1">
+      <label>Causa do não cumprimento</label><select id="cCausa"></select></div></div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Observações</label><textarea id="cObs"></textarea></div></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
+    <span class="spacer"></span>
+    <button class="btn" onclick="LPS.closeModal('mC')">Cancelar</button>
+    <button class="btn solid" id="mSave">Salvar</button>
+  </div>
+</div></div>
+
+<!-- ===== MODAL CAUSA (drag para não concluída) ===== -->
+<div class="modal" id="mCausa"><div class="modal-box" style="width:min(520px,100%)">
+  <div class="modal-head">
+    <div><h3>Por que não foi concluída?</h3>
+    <div class="mh-sub" id="causaSub"></div></div>
+    <button class="modal-close" onclick="LPS.closeModal('mCausa')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="field"><label>Causa *</label><select id="qCausa"></select></div>
+    <div class="field" style="margin-top:12px"><label>Detalhe (opcional)</label>
+      <textarea id="qObs" placeholder="Contexto que ajude na análise da semana"></textarea></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" id="qCancel">Cancelar</button>
+    <button class="btn solid" id="qOk">Confirmar</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.LPS;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'kanban',
+  title:'Programação Semanal',
+  subtitle:'Kanban do compromisso semanal por empresa — o curto prazo do Last Planner System'
+});
+
+var EDIT = L.canEdit();
+var CARDS = [], ATIV = [], CTRS = [], editando = null;
+var BASE = L.mondayOf(), pendingDrop = null;
+$('wkBase').value = BASE;
+
+/* ================= CARGA ================= */
+function load(){
+  return Promise.all([
+    L.loadAreas(true),
+    L.sbGetAll(L.comUnidade('lps_ei_programacao?select=*&ativo=eq.true&order=ordem.asc,id.asc')),
+    L.sbGetAll(L.comUnidade('lps_ei_atividades?select=id,codigo,descricao,area,empresa,disciplina,qtd_prev,un&ativo=eq.true&order=descricao.asc')),
+    L.sbGetAll(L.comUnidade('lps_ei_contratos?select=id,empresa&ativo=eq.true'))
+  ]).then(function(r){
+    CARDS = r[1]; ATIV = r[2]; CTRS = r[3];
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('lanes').innerHTML = '<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+  });
+}
+
+function fillSelects(){
+  $('fArea').innerHTML = L.areaOptions('', true);
+  $('cArea').innerHTML = L.areaOptions('', false);
+  $('cDisc').innerHTML = '<option value=""></option>'
+    + L.DISCIPLINAS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('cCol').innerHTML = L.KB_COLS.map(function(c){
+    return '<option value="'+c.key+'">'+esc(c.label)+'</option>'; }).join('');
+  var causas = '<option value=""></option>'
+    + L.CAUSAS_PPC.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+  $('cCausa').innerHTML = causas;
+  $('qCausa').innerHTML = causas;
+  $('cAtiv').innerHTML = '<option value="">— card avulso —</option>'
+    + ATIV.map(function(a){
+        return '<option value="'+a.id+'">'
+          + esc((a.codigo ? a.codigo + ' · ' : '') + a.descricao).slice(0,110) + '</option>';
+      }).join('');
+
+  var emps = [];
+  CTRS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  CARDS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cur = $('fEmpresa').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===cur?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  $('empresas').innerHTML = emps.map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
+}
+
+/* ================= SELEÇÃO DA SEMANA ================= */
+function daSemana(wk){
+  var fa = $('fArea').value, fe = $('fEmpresa').value;
+  return CARDS.filter(function(c){
+    if(String(c.semana).slice(0,10) !== wk) return false;
+    if(fa && c.area !== fa) return false;
+    if(fe && c.empresa !== fe) return false;
+    return true;
+  });
+}
+
+function ppcDe(list){
+  if(!list.length) return null;
+  var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
+  return Math.round(done / list.length * 100);
+}
+function ppcCls(p){ return p == null ? 'n' : (p >= 85 ? 'g' : (p >= 70 ? 'y' : 'r')); }
+
+/* ================= RENDER ================= */
+function render(){
+  var wk = BASE;
+  var list = daSemana(wk);
+  $('wkInfo').innerHTML = 'Semana <b>' + L.weekLabel(wk) + '</b> · '
+    + L.fmtBr(wk) + ' a ' + L.fmtBr(L.addDays(wk,6));
+
+  renderKpis(list);
+
+  /* agrupa por empresa */
+  var g = {};
+  list.forEach(function(c){
+    var k = c.empresa || '(sem empresa)';
+    (g[k] = g[k] || []).push(c);
+  });
+  var emps = Object.keys(g).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+
+  if(!emps.length){
+    $('lanes').innerHTML = '<div class="empty"><div class="big">▥</div>'
+      + 'Nenhum card programado para esta semana.'
+      + (EDIT ? '<br><span class="small">Use <b>+ Novo card</b>, o botão <b>▶</b> do Lookahead, '
+        + 'ou <b>⟳ Herdar semana anterior</b>.</span>' : '') + '</div>';
+    $('paretoWrap').classList.add('hide');
+    return;
+  }
+
+  $('lanes').innerHTML = emps.map(function(emp){
+    var cs = g[emp];
+    var p = ppcDe(cs);
+    var done = cs.filter(function(c){ return c.coluna === 'concluida'; }).length;
+    return '<div class="kb-lane">'
+      + '<div class="kb-lane-head">'
+        + '<div><div class="ln">'+esc(emp)+'</div>'
+        + '<div class="lm">'+cs.length+' cards · '+done+' concluídos</div></div>'
+        + '<div><span class="lm" style="margin-right:8px">PPC</span>'
+        + '<span class="ppc-badge '+ppcCls(p)+'">'+(p==null?'—':p+'%')+'</span></div>'
+      + '</div>'
+      + '<div class="kb-cols">'
+        + L.KB_COLS.map(function(col){
+            var items = cs.filter(function(c){ return c.coluna === col.key; });
+            return '<div class="kb-col '+col.cls+'" data-col="'+col.key+'">'
+              + '<div class="kb-col-head"><span>'+esc(col.label)+'</span><span>'+items.length+'</span></div>'
+              + (items.length ? items.map(cardHtml).join('')
+                              : '<div class="kb-empty">vazio</div>')
+              + '</div>';
+          }).join('')
+      + '</div></div>';
+  }).join('');
+
+  wireDnD();
+  renderPareto(list);
+}
+
+function cardHtml(c){
+  var col = L.KB_COLS.filter(function(x){ return x.key === c.coluna; })[0] || L.KB_COLS[0];
+  var pct = (c.qtd_prog && c.qtd_real != null)
+    ? Math.round(Math.min(100, (c.qtd_real / c.qtd_prog) * 100)) : null;
+  return '<div class="kb-card '+col.cls+'" draggable="'+(EDIT?'true':'false')+'" data-id="'+c.id+'">'
+    + '<div class="kc-title">'+esc(c.descricao)+'</div>'
+    + '<div class="kc-meta">'
+      + (c.area ? '<span class="tag b">'+esc(c.area)+'</span> ' : '')
+      + (c.responsavel ? esc(c.responsavel) : '')
+      + (c.equipe ? ' · ' + esc(c.equipe) : '')
+    + '</div>'
+    + (c.qtd_prog ? '<div class="kc-meta mono">'+nf(c.qtd_real||0,0)+' / '+nf(c.qtd_prog,0)
+        + ' ' + esc(c.un||'') + (pct!=null?' · '+pct+'%':'') + '</div>' : '')
+    + (c.causa ? '<div class="kc-meta" style="color:var(--terracota);font-weight:700">⚠ '+esc(c.causa)+'</div>' : '')
+    + '<div class="kc-foot">'
+      + '<span class="small muted">'+(c.atividade_id ? 'lookahead #'+c.atividade_id : 'avulso')+'</span>'
+      + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'">✎</button>' : '')
+    + '</div></div>';
+}
+
+function renderKpis(list){
+  var p = ppcDe(list);
+  var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
+  var fail = list.filter(function(c){ return c.coluna === 'nao_concluida'; }).length;
+  var exec = list.filter(function(c){ return c.coluna === 'execucao'; }).length;
+  var prog = list.filter(function(c){ return c.coluna === 'programada'; }).length;
+  var emps = {};
+  list.forEach(function(c){ if(c.empresa) emps[c.empresa] = 1; });
+
+  /* PPC das 4 semanas anteriores, para tendência */
+  var hist = [];
+  for(var i = 4; i >= 1; i--){
+    var w = L.addDays(BASE, -7*i);
+    var lw = CARDS.filter(function(c){ return String(c.semana).slice(0,10) === w; });
+    if(lw.length) hist.push(ppcDe(lw));
+  }
+  var media = hist.length ? Math.round(hist.reduce(function(a,b){ return a+b; },0)/hist.length) : null;
+
+  $('kpis').innerHTML =
+    '<div class="kpi static b-blue"><div class="num">'+(p==null?'—':p+'%')+'</div>'
+      + '<div class="label">PPC da semana</div><div class="sub">'+done+' de '+list.length+' concluídos</div></div>' +
+    kpi('b-gray', prog, 'Programadas', 'ainda não iniciadas') +
+    kpi('b-violet', exec, 'Em execução', 'em andamento') +
+    kpi('b-green', done, 'Concluídas', 'compromisso cumprido') +
+    kpi('b-red', fail, 'Não concluídas', 'com causa registrada') +
+    kpi('b-gold', (media==null?'—':media+'%'), 'PPC médio', 'últimas ' + hist.length + ' semanas');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+/* ================= PARETO DE CAUSAS ================= */
+function renderPareto(list){
+  var fails = list.filter(function(c){ return c.coluna === 'nao_concluida'; });
+  if(!fails.length){ $('paretoWrap').classList.add('hide'); return; }
+  $('paretoWrap').classList.remove('hide');
+  var g = {};
+  fails.forEach(function(c){
+    var k = c.causa || '(causa não informada)';
+    g[k] = (g[k] || 0) + 1;
+  });
+  var arr = Object.keys(g).map(function(k){ return { k:k, n:g[k] }; })
+    .sort(function(a,b){ return b.n - a.n; });
+  var max = arr[0].n;
+  $('parCausas').innerHTML = arr.map(function(o){
+    return '<div class="causa-row"><div>'+esc(o.k)+'</div>'
+      + '<div class="cb"><i style="width:'+(o.n/max*100)+'%"></i></div>'
+      + '<div class="cv">'+o.n+'</div></div>';
+  }).join('');
+}
+
+/* ================= DRAG & DROP ================= */
+function wireDnD(){
+  document.querySelectorAll('.kb-card').forEach(function(el){
+    el.addEventListener('dragstart', function(ev){
+      if(!EDIT) return;
+      ev.dataTransfer.setData('text/plain', el.dataset.id);
+      ev.dataTransfer.effectAllowed = 'move';
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', function(){ el.classList.remove('dragging'); });
+  });
+  document.querySelectorAll('.kb-col').forEach(function(col){
+    col.addEventListener('dragover', function(ev){
+      if(!EDIT) return;
+      ev.preventDefault(); ev.dataTransfer.dropEffect = 'move';
+      col.classList.add('drag');
+    });
+    col.addEventListener('dragleave', function(){ col.classList.remove('drag'); });
+    col.addEventListener('drop', function(ev){
+      ev.preventDefault(); col.classList.remove('drag');
+      if(!EDIT) return;
+      var id = parseInt(ev.dataTransfer.getData('text/plain'), 10);
+      mover(id, col.dataset.col);
+    });
+  });
+  document.querySelectorAll('button[data-ed]').forEach(function(b){
+    b.addEventListener('click', function(ev){
+      ev.stopPropagation(); abrir(+b.dataset.ed);
+    });
+  });
+}
+
+function mover(id, coluna){
+  var c = CARDS.filter(function(x){ return x.id === id; })[0];
+  if(!c || c.coluna === coluna) return;
+  if(coluna === 'nao_concluida'){
+    pendingDrop = { id:id, card:c };
+    $('causaSub').textContent = c.descricao;
+    $('qCausa').value = c.causa || '';
+    $('qObs').value = '';
+    L.openModal('mCausa');
+    return;
+  }
+  var body = { coluna:coluna, atualizado_em:new Date().toISOString() };
+  if(coluna !== 'nao_concluida') body.causa = null;
+  if(coluna === 'concluida' && c.qtd_prog && c.qtd_real == null) body.qtd_real = c.qtd_prog;
+  aplicar(id, body);
+}
+
+function aplicar(id, body){
+  L.sb('PATCH','lps_ei_programacao?id=eq.'+id, body)
+    .then(function(){ return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+}
+
+$('qOk').addEventListener('click', function(){
+  if(!pendingDrop) return;
+  var causa = $('qCausa').value;
+  if(!causa) return L.toast('Selecione a causa do não cumprimento.','warn');
+  var obs = $('qObs').value.trim();
+  var atual = pendingDrop.card.obs || '';
+  aplicar(pendingDrop.id, {
+    coluna:'nao_concluida', causa:causa,
+    obs: obs ? (atual ? atual + '\n' + obs : obs) : (atual || null),
+    atualizado_em:new Date().toISOString()
+  });
+  pendingDrop = null;
+  L.closeModal('mCausa');
+});
+$('qCancel').addEventListener('click', function(){
+  pendingDrop = null; L.closeModal('mCausa'); render();
+});
+
+/* ================= HERDAR SEMANA ANTERIOR ================= */
+$('btnHerdar').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var ant = L.addDays(BASE, -7);
+  var pend = CARDS.filter(function(c){
+    return String(c.semana).slice(0,10) === ant
+        && (c.coluna === 'nao_concluida' || c.coluna === 'execucao' || c.coluna === 'programada');
+  });
+  if(!pend.length) return L.toast('Nada pendente na semana de ' + L.fmtBr(ant) + '.','warn');
+  if(!confirm('Trazer ' + pend.length + ' card(s) não concluído(s) da semana de '
+      + L.fmtBr(ant) + ' para a semana de ' + L.fmtBr(BASE) + '?')) return;
+
+  var novos = pend.map(function(c){
+    return L.comTag({
+      semana: BASE, atividade_id: c.atividade_id, descricao: c.descricao,
+      area: c.area, empresa: c.empresa, disciplina: c.disciplina,
+      responsavel: c.responsavel, equipe: c.equipe,
+      qtd_prog: c.qtd_prog == null ? null
+        : Math.max(0, (+c.qtd_prog||0) - (+c.qtd_real||0)),
+      un: c.un, coluna: 'programada',
+      obs: c.causa ? ('Reprogramado — causa anterior: ' + c.causa) : null,
+      criado_por: L.userNome()
+    });
+  });
+  L.sbInsertChunked('lps_ei_programacao', novos, 100)
+    .then(function(){ L.toast(novos.length + ' card(s) reprogramado(s).','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= MODAL CARD ================= */
+$('cAtiv').addEventListener('change', function(){
+  var a = ATIV.filter(function(x){ return String(x.id) === $('cAtiv').value; })[0];
+  if(!a) return;
+  if(!$('cDesc').value) $('cDesc').value = a.descricao;
+  if(!$('cArea').value && a.area) $('cArea').value = a.area;
+  if(!$('cEmp').value && a.empresa) $('cEmp').value = a.empresa;
+  if(!$('cDisc').value && a.disciplina) $('cDisc').value = a.disciplina;
+  if(!$('cQtdP').value && a.qtd_prev != null) $('cQtdP').value = L.nf(a.qtd_prev,2);
+  if(!$('cUn').value && a.un) $('cUn').value = a.un;
+});
+$('cCol').addEventListener('change', function(){
+  $('causaRow').classList.toggle('hide', this.value !== 'nao_concluida');
+});
+
+function abrir(id){
+  editando = id ? CARDS.filter(function(c){ return c.id === id; })[0] : null;
+  $('mTitle').textContent = editando ? 'Editar card' : 'Novo card';
+  $('mSub').textContent = 'Semana de ' + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
+  $('mDel').style.display = editando ? '' : 'none';
+  var c = editando || {};
+  $('cAtiv').value = c.atividade_id || '';
+  $('cDesc').value = c.descricao || '';
+  $('cArea').value = c.area || '';
+  $('cEmp').value = c.empresa || '';
+  $('cDisc').value = c.disciplina || '';
+  $('cResp').value = c.responsavel || '';
+  $('cEquipe').value = c.equipe || '';
+  $('cQtdP').value = c.qtd_prog == null ? '' : L.nf(c.qtd_prog,2);
+  $('cQtdR').value = c.qtd_real == null ? '' : L.nf(c.qtd_real,2);
+  $('cUn').value = c.un || '';
+  $('cCol').value = c.coluna || 'programada';
+  $('cSem').value = c.semana ? String(c.semana).slice(0,10) : BASE;
+  $('cCausa').value = c.causa || '';
+  $('cObs').value = c.obs || '';
+  $('causaRow').classList.toggle('hide', $('cCol').value !== 'nao_concluida');
+  L.openModal('mC');
+}
+
+$('mSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var d = $('cDesc').value.trim();
+  if(!d) return L.toast('Descreva o que será feito.','warn');
+  if(!$('cEmp').value.trim()) return L.toast('Informe a empresa responsável.','warn');
+  var col = $('cCol').value;
+  if(col === 'nao_concluida' && !$('cCausa').value)
+    return L.toast('Cards não concluídos precisam de uma causa.','warn');
+
+  var body = {
+    semana: L.mondayOf($('cSem').value || BASE),
+    atividade_id: $('cAtiv').value ? parseInt($('cAtiv').value,10) : null,
+    descricao: d,
+    area: $('cArea').value || null,
+    empresa: $('cEmp').value.trim(),
+    disciplina: $('cDisc').value || null,
+    responsavel: $('cResp').value.trim() || null,
+    equipe: $('cEquipe').value.trim() || null,
+    qtd_prog: $('cQtdP').value.trim() ? L.parseNum($('cQtdP').value) : null,
+    qtd_real: $('cQtdR').value.trim() ? L.parseNum($('cQtdR').value) : null,
+    un: $('cUn').value.trim() || null,
+    coluna: col,
+    causa: col === 'nao_concluida' ? $('cCausa').value : null,
+    obs: $('cObs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+
+  var p = editando
+    ? L.sb('PATCH','lps_ei_programacao?id=eq.'+editando.id, body)
+    : L.sb('POST','lps_ei_programacao', L.comTag(Object.assign(body,{criado_por:L.userNome()})));
+  p.then(function(){ L.closeModal('mC'); L.toast('Card salvo.','ok'); return load(); })
+   .catch(function(e){ L.toast('Erro ao salvar: '+e.message,'warn'); });
+});
+
+$('mDel').addEventListener('click', function(){
+  if(!editando || !EDIT) return;
+  if(!confirm('Excluir o card "'+editando.descricao+'"?')) return;
+  L.sb('PATCH','lps_ei_programacao?id=eq.'+editando.id,{ativo:false})
+    .then(function(){ L.closeModal('mC'); L.toast('Card excluído.','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var list = daSemana(BASE);
+  var COLTXT = {};
+  L.KB_COLS.forEach(function(c){ COLTXT[c.key] = c.label; });
+
+  var aoa = [['Semana','Empresa','Área','Nome da área','Disciplina','Descrição',
+              'Responsável','Equipe','Qtd programada','Qtd realizada','Un.',
+              'Situação','Causa do não cumprimento','Observações']];
+  list.forEach(function(c){
+    aoa.push([L.fmtBr(c.semana), c.empresa, c.area, L.areaNome(c.area), c.disciplina,
+      c.descricao, c.responsavel, c.equipe,
+      c.qtd_prog==null?'':Number(c.qtd_prog), c.qtd_real==null?'':Number(c.qtd_real), c.un,
+      COLTXT[c.coluna]||c.coluna, c.causa, c.obs]);
+  });
+
+  /* PPC por empresa */
+  var g = {};
+  list.forEach(function(c){
+    var k = c.empresa || '(sem empresa)';
+    var o = g[k] || (g[k] = { tot:0, done:0, fail:0 });
+    o.tot++;
+    if(c.coluna === 'concluida') o.done++;
+    if(c.coluna === 'nao_concluida') o.fail++;
+  });
+  var aoa2 = [['Empresa','Programados','Concluídos','Não concluídos','PPC %']];
+  Object.keys(g).sort().forEach(function(k){
+    var o = g[k];
+    aoa2.push([k, o.tot, o.done, o.fail, o.tot ? Math.round(o.done/o.tot*100) : 0]);
+  });
+  var ppcG = ppcDe(list);
+  aoa2.push([]);
+  aoa2.push(['TOTAL', list.length,
+    list.filter(function(c){ return c.coluna==='concluida'; }).length,
+    list.filter(function(c){ return c.coluna==='nao_concluida'; }).length,
+    ppcG == null ? '' : ppcG]);
+
+  /* Pareto de causas */
+  var gc = {};
+  list.filter(function(c){ return c.coluna === 'nao_concluida'; }).forEach(function(c){
+    var k = c.causa || '(não informada)';
+    gc[k] = (gc[k] || 0) + 1;
+  });
+  var aoa3 = [['Causa','Ocorrências']];
+  Object.keys(gc).sort(function(a,b){ return gc[b]-gc[a]; }).forEach(function(k){
+    aoa3.push([k, gc[k]]);
+  });
+
+  L.exportXlsx([
+    { nome:'Programação', aoa:aoa, cols:[{wch:12},{wch:24},{wch:10},{wch:24},{wch:20},{wch:52},
+      {wch:20},{wch:26},{wch:14},{wch:13},{wch:7},{wch:16},{wch:34},{wch:34}] },
+    { nome:'PPC por empresa', aoa:aoa2, cols:[{wch:28},{wch:13},{wch:12},{wch:16},{wch:9}] },
+    { nome:'Causas', aoa:aoa3, cols:[{wch:44},{wch:13}] }
+  ], 'LPS_EI_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+$('wkBase').addEventListener('change', function(){
+  BASE = L.mondayOf(this.value); this.value = BASE; render();
+});
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+$('fArea').addEventListener('change', render);
+$('fEmpresa').addEventListener('change', render);
+$('btnNovo').addEventListener('click', function(){ abrir(null); });
+['mC','mCausa'].forEach(L.wireModal);
+if(!EDIT){
+  $('btnNovo').style.display = 'none';
+  $('btnHerdar').style.display = 'none';
+}
+
+load();
+})();
+</script>
+</body>
+</html>

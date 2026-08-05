@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Materiais · LPS E&amp;I · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="lps_ei_core.js"></script>
+<script src="lps_ei_materiais_calc.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="lps-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="tabs no-print">
+    <button class="tab" data-tab="fontes">Fontes de Dados</button>
+    <button class="tab active" data-tab="status">Status por Área</button>
+    <button class="tab" data-tab="itens">Itens</button>
+  </div>
+
+  <!-- ================= ABA · FONTES ================= -->
+  <section id="tab-fontes" class="hide">
+    <div class="notice">
+      Envie aqui as <b>listas de material</b> (que definem a demanda por área) e o
+      <b>Tracker de suprimentos</b> (que traz o que já foi pedido e recebido). Tudo é
+      processado no navegador; nada sobe para o banco até você clicar em
+      <b>Publicar snapshot</b> — que grava o estado atual para a unidade
+      <b id="unLabel"></b> e passa a ser o que todo mundo enxerga.
+    </div>
+
+    <div class="frow" style="grid-template-columns:1fr 1fr;align-items:start">
+
+      <!-- LISTAS -->
+      <div>
+        <div class="section-label" style="margin-top:0">1 · Listas de material</div>
+        <div class="drop" id="dropListas">
+          <div class="dp-title">Listas de solicitação (Aplus / VIA PACS)</div>
+          <div class="dp-sub">
+            Aceita vários arquivos de uma vez. O layout é detectado automaticamente:
+            Aplus (CÓDIGO + LINE NUMBER) ou PACS (COD + REFERÊNCIA + LINE NUMBER).
+            Reenviar um arquivo com a mesma TAG substitui a revisão anterior.
+          </div>
+          <label>⤒ Selecionar listas (.xlsx)
+            <input type="file" id="fileListas" accept=".xlsx,.xls,.xlsm" multiple></label>
+        </div>
+        <div class="filelist" id="listaFiles"></div>
+      </div>
+
+      <!-- TRACKER -->
+      <div>
+        <div class="section-label" style="margin-top:0">2 · Tracker (base de dados)</div>
+        <div class="drop" id="dropTrk">
+          <div class="dp-title">Arquivo atualizado do Tracker</div>
+          <div class="dp-sub">
+            Um único arquivo. As colunas são reconhecidas automaticamente e você pode
+            corrigir o mapeamento logo abaixo, caso o layout mude.
+          </div>
+          <label>⤒ Selecionar Tracker (.xlsx)
+            <input type="file" id="fileTrk" accept=".xlsx,.xls,.xlsm,.csv"></label>
+        </div>
+        <div class="filelist" id="trkFile"></div>
+      </div>
+    </div>
+
+    <div id="mapWrap" class="hide">
+      <div class="section-label">3 · Mapeamento das colunas do Tracker</div>
+      <div class="notice warn">
+        Confira cada campo. O <b>Código do material</b> é obrigatório — é a chave que
+        liga o Tracker às listas. Se o Tracker tiver <b>Line Number</b>, o casamento é
+        item a item; sem ele, a quantidade de cada código é rateada entre as áreas
+        proporcionalmente à demanda de cada uma.
+      </div>
+      <div class="frow" id="mapFields"></div>
+      <div class="toolbar">
+        <button class="btn" id="btnRemap">↻ Reprocessar com este mapeamento</button>
+        <span class="small muted" id="mapInfo"></span>
+      </div>
+    </div>
+
+    <div class="section-label">4 · Publicação</div>
+    <div class="toolbar">
+      <button class="btn solid" id="btnPub">☁ Publicar snapshot</button>
+      <button class="btn" id="btnRecarregar">↻ Descartar alterações e recarregar</button>
+      <span class="small muted" id="snapInfo"></span>
+    </div>
+    <div id="histWrap"></div>
+  </section>
+
+  <!-- ================= ABA · STATUS POR ÁREA ================= -->
+  <section id="tab-status">
+    <div class="kpis" id="kpis"></div>
+    <div class="toolbar no-print">
+      <div class="search"><input type="text" id="qArea" placeholder="Buscar área…"></div>
+      <select class="f" id="fOrdem">
+        <option value="pct">Menor avanço primeiro</option>
+        <option value="area">Ordem alfabética</option>
+        <option value="pend">Mais pendências primeiro</option>
+        <option value="itens">Mais itens primeiro</option>
+      </select>
+      <button class="btn" id="btnXlsArea">⤓ Excel</button>
+      <button class="btn" onclick="window.print()">⎙ PDF</button>
+    </div>
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr>
+          <th class="ctr" style="width:44px">Sit.</th>
+          <th style="min-width:200px">Área</th>
+          <th class="num">Itens</th>
+          <th class="num">Recebidos</th>
+          <th class="num">Parciais</th>
+          <th class="num">Em processo</th>
+          <th class="num">Não pedidos</th>
+          <th class="num">Cancel.</th>
+          <th style="min-width:170px">Avanço (itens recebidos)</th>
+        </tr></thead>
+        <tbody id="tbArea"><tr><td colspan="9" class="loading-line">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="small muted" style="margin-top:10px" id="areaFoot"></div>
+  </section>
+
+  <!-- ================= ABA · ITENS ================= -->
+  <section id="tab-itens" class="hide">
+    <div class="toolbar no-print">
+      <div class="search"><input type="text" id="qIt" placeholder="Buscar código, descrição, line number, pedido…"></div>
+      <select class="f" id="fItArea"><option value="">Todas as áreas</option></select>
+      <select class="f" id="fItSit"><option value="">Todas as situações</option></select>
+      <label class="btn" style="cursor:pointer"><input type="checkbox" id="fSemTrk" style="margin-right:6px">Só itens sem tracker</label>
+      <button class="btn" id="btnXlsIt">⤓ Excel</button>
+    </div>
+    <div class="small muted" id="itCount" style="margin-bottom:8px"></div>
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr>
+          <th style="min-width:120px">Área</th>
+          <th style="min-width:90px">Código</th>
+          <th style="min-width:280px">Descrição</th>
+          <th>Un.</th>
+          <th class="num">Demanda</th>
+          <th class="num">Recebido</th>
+          <th style="min-width:130px">Situação</th>
+          <th style="min-width:120px">Line number</th>
+          <th style="min-width:120px">Pedido / OC</th>
+          <th class="ctr" style="min-width:96px">Previsão</th>
+        </tr></thead>
+        <tbody id="tbIt"></tbody>
+      </table>
+    </div>
+    <div class="small muted" style="margin-top:8px">Exibindo no máximo 1.000 linhas — refine os filtros ou use o Excel para a base completa.</div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+var L = window.LPS, M = window.LPS_MAT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'materiais',
+  title:'Controle de Materiais',
+  subtitle:'Listas de material × Tracker de suprimentos — chegada dos itens consolidada por área'
+});
+
+var EDIT = L.canEdit();
+var DATA = { gerado:'', listas:[], tracker:null, areasExtra:{} };
+var RES = null, SNAP = null, TRK_RAW = null, DIRTY = false, HIST = [];
+
+$('unLabel').textContent = L.unidadeNome() + ' (' + L.unidade() + ')';
+
+/* ================= ABAS ================= */
+document.querySelectorAll('.tab').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    ['fontes','status','itens'].forEach(function(t){
+      $('tab-'+t).classList.toggle('hide', t !== b.dataset.tab);
+    });
+  });
+});
+
+/* ================= CARGA ================= */
+function load(){
+  return L.sbGetAll(L.comUnidade(
+    'lps_ei_materiais_snapshots?select=id,gerado,criado_em,criado_por,dados&order=id.desc&limit=8'
+  )).then(function(rows){
+    HIST = rows || [];
+    $('setup').style.display = 'none';
+    if(HIST.length && HIST[0].dados){
+      SNAP = HIST[0];
+      DATA = Object.assign({ gerado:'', listas:[], tracker:null, areasExtra:{} }, HIST[0].dados);
+    }
+    DIRTY = false;
+    recompute();
+    renderFontes();
+    renderHist();
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('tbArea').innerHTML = '<tr><td colspan="9" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+  });
+}
+
+function recompute(){
+  try {
+    RES = M.build(DATA);
+  } catch(e){
+    RES = null;
+    L.toast('Erro ao consolidar: '+e.message, 'warn');
+  }
+  renderStatus();
+  renderItens();
+  fillItFilters();
+}
+
+/* ================= FONTES · LISTAS ================= */
+$('fileListas').addEventListener('change', function(e){
+  var files = [].slice.call(e.target.files || []);
+  if(!files.length) return;
+  var ok = 0, fail = 0, tot = 0, erros = [];
+  var seq = Promise.resolve();
+  files.forEach(function(f){
+    seq = seq.then(function(){
+      return M.parseListaFile(f).then(function(r){
+        if(r.err){ fail++; erros.push(r.name + ': ' + r.err); return; }
+        DATA.listas = DATA.listas.filter(function(x){ return x.tag !== r.tag; });
+        DATA.listas.push(r);
+        ok++; tot += r.items.length;
+      });
+    });
+  });
+  seq.then(function(){
+    DATA.gerado = new Date().toLocaleDateString('pt-BR');
+    DIRTY = true;
+    recompute(); renderFontes();
+    if(erros.length) console.warn('Listas ignoradas:', erros);
+    L.toast(ok + ' lista(s) carregada(s)' + (fail ? ', ' + fail + ' ignorada(s)' : '')
+      + ' · ' + nf(tot) + ' itens', fail ? 'warn' : 'ok');
+  });
+  e.target.value = '';
+});
+
+/* ================= FONTES · TRACKER ================= */
+$('fileTrk').addEventListener('change', function(e){
+  var f = (e.target.files || [])[0];
+  if(!f) return;
+  M.parseTrackerFile(f, null).then(function(r){
+    if(r.err){
+      L.toast('Tracker: ' + r.err, 'warn');
+      if(r.header){ TRK_RAW = { header:r.header, aoa:null, headerRow:0 }; renderMap(r.map || {}); }
+      return;
+    }
+    TRK_RAW = { aoa:r.aoa, headerRow:r.headerRow, header:r.header, arquivo:r.arquivo };
+    DATA.tracker = {
+      arquivo: r.arquivo, carregado: r.carregado,
+      header: r.header, map: r.map, rows: r.rows
+    };
+    DIRTY = true;
+    recompute(); renderFontes(); renderMap(r.map);
+    L.toast('Tracker carregado · ' + nf(r.rows.length) + ' linhas', 'ok');
+  });
+  e.target.value = '';
+});
+
+function renderMap(map){
+  var header = (TRK_RAW && TRK_RAW.header) || (DATA.tracker && DATA.tracker.header) || [];
+  if(!header.length){ $('mapWrap').classList.add('hide'); return; }
+  $('mapWrap').classList.remove('hide');
+  $('mapFields').innerHTML = M.TRACKER_FIELDS.map(function(f){
+    var sel = map[f.k];
+    var opts = '<option value="">— não usar —</option>' + header.map(function(h, j){
+      return '<option value="'+j+'"'+(String(sel)===String(j)?' selected':'')+'>'
+        + esc((h || '(coluna ' + (j+1) + ')')) + '</option>';
+    }).join('');
+    return '<div class="field"><label>'+esc(f.label)+(f.req?' *':'')+'</label>'
+      + '<select class="mapf" data-k="'+f.k+'">'+opts+'</select></div>';
+  }).join('');
+  $('mapInfo').textContent = TRK_RAW && TRK_RAW.aoa
+    ? 'Reprocessamento disponível nesta sessão.'
+    : 'Para alterar o mapeamento é preciso reenviar o arquivo do Tracker.';
+  $('btnRemap').disabled = !(TRK_RAW && TRK_RAW.aoa);
+}
+
+$('btnRemap').addEventListener('click', function(){
+  if(!TRK_RAW || !TRK_RAW.aoa) return;
+  var map = {};
+  document.querySelectorAll('.mapf').forEach(function(s){
+    if(s.value !== '') map[s.dataset.k] = parseInt(s.value, 10);
+  });
+  if(map.cod == null) return L.toast('Selecione a coluna do código do material.','warn');
+  var rows = M.buildTrackerRows(TRK_RAW.aoa, TRK_RAW.headerRow, map);
+  DATA.tracker = {
+    arquivo: TRK_RAW.arquivo, carregado: new Date().toISOString(),
+    header: TRK_RAW.header, map: map, rows: rows
+  };
+  DIRTY = true;
+  recompute(); renderFontes();
+  L.toast('Reprocessado · ' + nf(rows.length) + ' linhas', 'ok');
+});
+
+function renderFontes(){
+  $('listaFiles').innerHTML = DATA.listas.length
+    ? DATA.listas.map(function(l, i){
+        return '<div class="fileitem"><div>'
+          + '<div class="fn">'+esc(l.nome || l.tag)+'</div>'
+          + '<div class="fm">'+esc(l.tag)+(l.rev?' · rev '+esc(l.rev):'')
+          + ' · '+esc(l.src||'')+' · '+nf(l.items.length)+' itens</div></div>'
+          + (EDIT ? '<button class="btn sm danger" data-rm="'+i+'">remover</button>' : '')
+          + '</div>';
+      }).join('')
+    : '<div class="small muted" style="padding:8px 2px">Nenhuma lista carregada.</div>';
+
+  document.querySelectorAll('#listaFiles button[data-rm]').forEach(function(b){
+    b.addEventListener('click', function(){
+      DATA.listas.splice(+b.dataset.rm, 1);
+      DIRTY = true; recompute(); renderFontes();
+    });
+  });
+
+  $('trkFile').innerHTML = DATA.tracker
+    ? '<div class="fileitem"><div><div class="fn">'+esc(DATA.tracker.arquivo||'Tracker')+'</div>'
+      + '<div class="fm">'+nf((DATA.tracker.rows||[]).length)+' linhas · carregado '
+      + L.fmtTS(DATA.tracker.carregado)+'</div></div>'
+      + (EDIT ? '<button class="btn sm danger" id="rmTrk">remover</button>' : '') + '</div>'
+    : '<div class="small muted" style="padding:8px 2px">Nenhum Tracker carregado.</div>';
+
+  if($('rmTrk')) $('rmTrk').addEventListener('click', function(){
+    DATA.tracker = null; TRK_RAW = null; DIRTY = true;
+    recompute(); renderFontes(); $('mapWrap').classList.add('hide');
+  });
+
+  if(DATA.tracker && DATA.tracker.header && !$('mapFields').innerHTML) renderMap(DATA.tracker.map || {});
+
+  $('snapInfo').innerHTML = SNAP
+    ? 'Último snapshot: <b>' + L.fmtTS(SNAP.criado_em) + '</b>'
+      + (SNAP.criado_por ? ' por ' + esc(SNAP.criado_por) : '')
+      + (DIRTY ? ' · <span style="color:var(--terracota);font-weight:700">alterações não publicadas</span>' : '')
+    : (DIRTY ? '<span style="color:var(--terracota);font-weight:700">Nada publicado ainda para esta unidade.</span>'
+             : 'Nenhum snapshot para esta unidade.');
+  $('btnPub').disabled = !EDIT;
+}
+
+function renderHist(){
+  if(HIST.length < 2){ $('histWrap').innerHTML = ''; return; }
+  $('histWrap').innerHTML = '<div class="section-label">Histórico de publicações</div>'
+    + '<div class="tablewrap"><table class="grid"><thead><tr>'
+    + '<th class="ctr">#</th><th>Publicado em</th><th>Por</th><th class="num">Listas</th>'
+    + '<th class="num">Linhas tracker</th><th class="ctr no-print"></th></tr></thead><tbody>'
+    + HIST.map(function(h, i){
+        var d = h.dados || {};
+        return '<tr><td class="ctr code">'+h.id+'</td><td>'+L.fmtTS(h.criado_em)
+          + (i===0?' <span class="pill b">atual</span>':'')+'</td>'
+          + '<td class="small">'+esc(h.criado_por||'—')+'</td>'
+          + '<td class="num">'+((d.listas||[]).length)+'</td>'
+          + '<td class="num">'+nf(((d.tracker||{}).rows||[]).length)+'</td>'
+          + '<td class="ctr no-print">'+(i>0?'<button class="btn sm" data-rest="'+h.id+'">restaurar</button>':'')+'</td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+
+  document.querySelectorAll('button[data-rest]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var h = HIST.filter(function(x){ return x.id === +b.dataset.rest; })[0];
+      if(!h || !confirm('Carregar o snapshot #'+h.id+' na tela?\n\nEle só substitui o atual depois que você publicar.')) return;
+      DATA = Object.assign({ gerado:'', listas:[], tracker:null, areasExtra:{} }, h.dados);
+      TRK_RAW = null; DIRTY = true;
+      recompute(); renderFontes();
+      L.toast('Snapshot #'+h.id+' carregado na tela.','ok');
+    });
+  });
+}
+
+/* ================= PUBLICAR ================= */
+$('btnPub').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  if(!DATA.listas.length) return L.toast('Carregue ao menos uma lista de material.','warn');
+  var b = $('btnPub');
+  b.disabled = true; b.innerHTML = '<span class="spin"></span> Publicando…';
+
+  var payload = Object.assign({}, DATA);
+  if(RES) payload.resumo = M.resumoParaSnapshot(RES);
+
+  var mb = JSON.stringify(payload).length / 1048576;
+  if(mb > 25 && !confirm('Este snapshot tem cerca de ' + mb.toFixed(1) + ' MB.\n\n'
+      + 'Snapshots muito grandes deixam o carregamento da página lento. '
+      + 'Considere reduzir o Tracker às colunas realmente usadas.\n\nPublicar assim mesmo?')){
+    b.disabled = false; b.textContent = '☁ Publicar snapshot';
+    return;
+  }
+
+  L.sb('POST','lps_ei_materiais_snapshots', L.comTag({
+    gerado: DATA.gerado || new Date().toLocaleDateString('pt-BR'),
+    criado_por: L.userNome(),
+    dados: payload
+  })).then(function(){
+    DIRTY = false;
+    L.toast('Snapshot publicado para ' + L.unidadeNome() + '.','ok');
+    return load();
+  }).catch(function(e){
+    L.toast('Falha ao publicar: '+e.message,'warn');
+  }).then(function(){
+    b.disabled = false; b.textContent = '☁ Publicar snapshot';
+  });
+});
+
+$('btnRecarregar').addEventListener('click', function(){
+  if(DIRTY && !confirm('Descartar as alterações não publicadas?')) return;
+  load();
+});
+
+/* ================= STATUS POR ÁREA ================= */
+function areasVis(){
+  if(!RES) return [];
+  var q = L.deacc($('qArea').value), o = $('fOrdem').value;
+  var out = RES.areas.filter(function(a){
+    return !q || L.deacc(a.area).indexOf(q) > -1;
+  });
+  out.sort(function(x,y){
+    if(o === 'area') return String(x.area).localeCompare(String(y.area),'pt-BR');
+    if(o === 'pend') return (y.itens - y.recebidos) - (x.itens - x.recebidos);
+    if(o === 'itens') return y.itens - x.itens;
+    return x.pct - y.pct;
+  });
+  return out;
+}
+
+function renderStatus(){
+  if(!RES || !RES.tot.itens){
+    $('kpis').innerHTML = '';
+    $('tbArea').innerHTML = '<tr><td colspan="9" class="empty"><div class="big">▤</div>'
+      + 'Nenhuma lista de material carregada.<br>'
+      + '<span class="small">Vá em <b>Fontes de Dados</b> e envie as listas + o Tracker.</span></td></tr>';
+    $('areaFoot').textContent = '';
+    return;
+  }
+  var t = RES.tot;
+  $('kpis').innerHTML =
+    kpi('b-blue',  nf(t.itens),      'Itens · área',   t.areas + ' áreas · ' + t.listas + ' listas') +
+    kpi('b-green', nf(t.recebidos),  'Recebidos',      nf(t.pct,1) + '% do total') +
+    kpi('b-gold',  nf(t.parciais),   'Parciais',       'recebimento incompleto') +
+    kpi('b-violet',nf(t.pendentes),  'Em processo',    'pedido, fabricação, trânsito') +
+    kpi('b-red',   nf(t.naopedidos), 'Não pedidos',    'sem OC identificada') +
+    kpi('b-gray',  nf(t.semTracker), 'Sem tracker',    'itens não localizados na base');
+
+  var vis = areasVis();
+  $('tbArea').innerHTML = vis.map(function(a){
+    var pend = a.itens - a.recebidos - a.parciais - a.naopedidos - a.cancelados;
+    var g = a.pct >= 95 ? 'g' : (a.pct >= 50 ? 'y' : 'r');
+    var tt = { g:'OK', y:'!', r:'✕' };
+    var base = a.itens - a.cancelados;
+    var seg = function(n,c){ return base>0 ? '<span class="s-'+c+'" style="width:'+(n/base*100)+'%"></span>' : ''; };
+    return '<tr><td class="ctr"><span class="dot '+g+'">'+tt[g]+'</span></td>'
+      + '<td><b>'+esc(a.area)+'</b></td>'
+      + '<td class="num">'+nf(a.itens)+'</td>'
+      + '<td class="num" style="color:var(--green);font-weight:700">'+nf(a.recebidos)+'</td>'
+      + '<td class="num" style="color:var(--gold-dark)">'+nf(a.parciais)+'</td>'
+      + '<td class="num">'+nf(pend)+'</td>'
+      + '<td class="num" style="color:var(--terracota);font-weight:700">'+nf(a.naopedidos)+'</td>'
+      + '<td class="num muted">'+nf(a.cancelados)+'</td>'
+      + '<td><div class="barline"><div class="bar">'
+        + seg(a.recebidos,'g') + seg(a.parciais,'y') + seg(pend,'b') + seg(a.naopedidos,'r')
+        + '</div><span class="pct">'+nf(a.pct,0)+'%</span></div></td></tr>';
+  }).join('') || '<tr><td colspan="9" class="empty">Nenhuma área com esse filtro.</td></tr>';
+
+  var f = [vis.length + ' de ' + RES.areas.length + ' áreas'];
+  if(RES.tot.trackerRows) f.push(nf(RES.tot.trackerRows) + ' linhas de tracker');
+  if(RES.tot.semDemanda) f.push('<b>' + nf(RES.tot.semDemanda)
+    + ' código(s) do tracker sem demanda nas listas</b>');
+  if(!DATA.tracker) f.push('<b style="color:var(--terracota)">Tracker não carregado — todos os itens aparecem como não pedidos.</b>');
+  $('areaFoot').innerHTML = f.join(' · ');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+/* ================= ITENS ================= */
+function fillItFilters(){
+  if(!RES) return;
+  var cur = $('fItArea').value;
+  $('fItArea').innerHTML = '<option value="">Todas as áreas</option>'
+    + RES.areas.map(function(a){
+        return '<option'+(a.area===cur?' selected':'')+'>'+esc(a.area)+'</option>'; }).join('');
+  if(!$('fItSit').dataset.done){
+    $('fItSit').innerHTML = '<option value="">Todas as situações</option>'
+      + Object.keys(M.STATUS_META).map(function(k){
+          return '<option value="'+k+'">'+esc(M.STATUS_META[k].label)+'</option>'; }).join('');
+    $('fItSit').dataset.done = '1';
+  }
+}
+
+function itensVis(){
+  if(!RES) return [];
+  var q = L.deacc($('qIt').value), fa = $('fItArea').value,
+      fs = $('fItSit').value, semTrk = $('fSemTrk').checked;
+  return RES.itens.filter(function(d){
+    if(fa && d.area !== fa) return false;
+    if(fs && d.sit !== fs) return false;
+    if(semTrk && d.matched) return false;
+    if(!q) return true;
+    return L.deacc([d.cod, d.desc, d.ref, d.lines.join(' '), d.pedidos.join(' '),
+                    d.fornec.join(' ')].join(' ')).indexOf(q) > -1;
+  });
+}
+
+function renderItens(){
+  if(!RES){ $('tbIt').innerHTML = ''; return; }
+  var vis = itensVis();
+  $('itCount').textContent = nf(vis.length) + ' item(ns) · '
+    + nf(vis.reduce(function(s,d){ return s + d.qtd; },0), 0) + ' de demanda acumulada';
+  $('tbIt').innerHTML = vis.slice(0, 1000).map(function(d){
+    var m = M.STATUS_META[d.sit] || M.STATUS_META.naopedido;
+    return '<tr><td class="small">'+esc(d.area)+'</td>'
+      + '<td class="code">'+esc(d.cod)+'</td>'
+      + '<td>'+esc(d.desc||'—')+(d.rateado?' <span class="tag" title="Quantidade rateada entre áreas por não haver Line Number no tracker">rateado</span>':'')+'</td>'
+      + '<td class="small">'+esc(d.un||'')+'</td>'
+      + '<td class="num">'+nf(d.qtd,2)+'</td>'
+      + '<td class="num">'+nf(d.rec,2)+'</td>'
+      + '<td><span class="pill '+m.cls+'">'+esc(m.label)+'</span>'
+        + (d.statusTxt && L.deacc(d.statusTxt) !== L.deacc(m.label)
+            ? '<div class="small muted">'+esc(d.statusTxt)+'</div>' : '')+'</td>'
+      + '<td class="small mono">'+esc(d.lines.slice(0,2).join(', ')||'—')+'</td>'
+      + '<td class="small mono">'+esc(d.pedidos.slice(0,2).join(', ')||'—')+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(d.prev)+'</td></tr>';
+  }).join('') || '<tr><td colspan="10" class="empty">Nenhum item com esses filtros.</td></tr>';
+}
+
+/* ================= EXPORTS ================= */
+$('btnXlsArea').addEventListener('click', function(){
+  if(!RES) return L.toast('Nada para exportar.','warn');
+  var aoa = [['Área','Itens','Recebidos','Parciais','Em processo','Não pedidos',
+              'Cancelados','% recebido (itens)','% recebido (quantidade)']];
+  areasVis().forEach(function(a){
+    var pend = a.itens - a.recebidos - a.parciais - a.naopedidos - a.cancelados;
+    aoa.push([a.area, a.itens, a.recebidos, a.parciais, pend, a.naopedidos, a.cancelados,
+      Math.round(a.pct*10)/10, Math.round(a.pctQtd*10)/10]);
+  });
+  var t = RES.tot;
+  var res = [['Resumo geral',''],
+    ['Unidade', L.unidadeNome()],
+    ['Gerado em', new Date().toLocaleString('pt-BR')],
+    ['Listas carregadas', t.listas],
+    ['Linhas do tracker', t.trackerRows],
+    ['Itens (área × código)', t.itens],
+    ['Recebidos', t.recebidos],
+    ['Parciais', t.parciais],
+    ['Em processo', t.pendentes],
+    ['Não pedidos', t.naopedidos],
+    ['Cancelados', t.cancelados],
+    ['% recebido', Math.round(t.pct*10)/10],
+    ['Itens sem correspondência no tracker', t.semTracker],
+    ['Códigos do tracker sem demanda', t.semDemanda]];
+  L.exportXlsx([
+    { nome:'Status por Área', aoa:aoa, cols:[{wch:28},{wch:9},{wch:11},{wch:9},{wch:12},{wch:12},{wch:11},{wch:16},{wch:18}] },
+    { nome:'Resumo', aoa:res, cols:[{wch:34},{wch:20}] }
+  ], 'LPS_EI_materiais_areas_' + L.stamp() + '.xlsx');
+});
+
+$('btnXlsIt').addEventListener('click', function(){
+  if(!RES) return L.toast('Nada para exportar.','warn');
+  var aoa = [['Área','Código','Referência','Descrição','Unidade','Demanda','Pedido','Recebido',
+              '% recebido','Situação','Status no tracker','Line numbers','Pedidos / OC',
+              'Fornecedor','Previsão','Listas','Rateado']];
+  itensVis().forEach(function(d){
+    var m = M.STATUS_META[d.sit] || {};
+    aoa.push([d.area, d.cod, d.ref, d.desc, d.un,
+      Math.round(d.qtd*1000)/1000, Math.round(d.ped*1000)/1000, Math.round(d.rec*1000)/1000,
+      Math.round(d.pct*10)/10, m.label||d.sit, d.statusTxt,
+      d.lines.join(', '), d.pedidos.join(', '), d.fornec.join(', '),
+      L.fmtBr(d.prev), d.listas.join(', '), d.rateado ? 'Sim' : '']);
+  });
+  L.exportXlsx([{ nome:'Itens', aoa:aoa,
+    cols:[{wch:22},{wch:12},{wch:16},{wch:46},{wch:8},{wch:11},{wch:11},{wch:11},{wch:11},
+          {wch:16},{wch:22},{wch:22},{wch:20},{wch:22},{wch:11},{wch:22},{wch:9}] }],
+    'LPS_EI_materiais_itens_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+$('qArea').addEventListener('input', renderStatus);
+$('fOrdem').addEventListener('change', renderStatus);
+$('qIt').addEventListener('input', renderItens);
+['fItArea','fItSit','fSemTrk'].forEach(function(id){
+  $(id).addEventListener('change', renderItens);
+});
+
+window.addEventListener('beforeunload', function(e){
+  if(DIRTY){ e.preventDefault(); e.returnValue = ''; }
+});
+
+load();
+})();
+</script>
+</body>
+</html>

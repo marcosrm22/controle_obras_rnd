@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Restrições · LPS E&amp;I · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+.pareto-row{display:grid;grid-template-columns:220px 1fr 66px;gap:12px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border-2)}
+.pareto-row .pl{font-size:11.5px;font-weight:700}
+.pareto-row .pb{background:#eef1f4;height:16px;position:relative}
+.pareto-row .pb i{display:block;height:100%;background:var(--terracota)}
+.pareto-row .pb.rem i{background:var(--green)}
+.pareto-row .pv{font-family:var(--mono);font-size:12px;font-weight:700;text-align:right}
+.aging{font-family:var(--mono);font-size:11px;font-weight:700}
+.aging.a0{color:var(--green)}.aging.a1{color:var(--gold-dark)}.aging.a2{color:var(--terracota)}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="lps_ei_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="lps-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="tabs no-print">
+    <button class="tab active" data-tab="lista">Restrições</button>
+    <button class="tab" data-tab="pareto">Pareto &amp; Análise</button>
+  </div>
+
+  <!-- ===== LISTA ===== -->
+  <section id="tab-lista">
+    <div class="toolbar no-print">
+      <div class="search"><input type="text" id="q" placeholder="Buscar restrição, responsável, ação…"></div>
+      <select class="f" id="fArea"></select>
+      <select class="f" id="fCat"><option value="">Todas as categorias</option></select>
+      <select class="f" id="fStatus"><option value="">Abertas e em tratativa</option></select>
+      <select class="f" id="fResp"><option value="">Todos os responsáveis</option></select>
+      <select class="f" id="fSort">
+        <option value="urg">Ordenar por urgência</option>
+        <option value="num">Ordenar por número</option>
+        <option value="cat">Ordenar por categoria</option>
+        <option value="area">Ordenar por área</option>
+        <option value="aging">Ordenar por tempo em aberto</option>
+      </select>
+      <button class="btn solid" id="btnNovo">+ Nova restrição</button>
+      <button class="btn" id="btnXls">⤓ Excel</button>
+      <button class="btn" onclick="window.print()">⎙ PDF</button>
+    </div>
+
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr>
+          <th class="ctr" style="width:52px">#</th>
+          <th style="min-width:300px">Restrição</th>
+          <th style="min-width:150px">Categoria</th>
+          <th style="min-width:110px">Área</th>
+          <th style="min-width:180px">Atividade impactada</th>
+          <th style="min-width:140px">Responsável</th>
+          <th class="ctr" style="min-width:96px">Necessária em</th>
+          <th class="ctr" style="min-width:76px">Em aberto</th>
+          <th style="min-width:130px">Status</th>
+          <th class="ctr no-print" style="width:60px"></th>
+        </tr></thead>
+        <tbody id="tb"><tr><td colspan="10" class="loading-line">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="small muted" style="margin-top:10px" id="foot"></div>
+  </section>
+
+  <!-- ===== PARETO ===== -->
+  <section id="tab-pareto" class="hide">
+    <div class="notice">
+      O Pareto das restrições mostra <b>onde a obra trava com mais frequência</b>.
+      As barras vermelhas são o que ainda está aberto; as verdes, o que já foi removido.
+      Categorias com muitas restrições abertas indicam um processo a montante que
+      precisa de ação estrutural, não de tratativa caso a caso.
+    </div>
+    <div class="section-label">Por categoria</div>
+    <div id="parCat"></div>
+    <div class="section-label">Por área</div>
+    <div id="parArea"></div>
+    <div class="section-label">Por responsável</div>
+    <div id="parResp"></div>
+  </section>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal" id="mR"><div class="modal-box wide">
+  <div class="modal-head">
+    <div><h3 id="mTitle">Nova restrição</h3>
+    <div class="mh-sub">Impedimento identificado no lookahead que precisa ser removido antes da programação</div></div>
+    <button class="modal-close" onclick="LPS.closeModal('mR')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Descrição da restrição *</label>
+      <textarea id="rDesc" placeholder="Ex.: Cabo de força 3x95mm² para o CCM-02 não tem pedido colocado"></textarea>
+    </div></div>
+    <div class="frow">
+      <div class="field"><label>Categoria *</label><select id="rCat"></select></div>
+      <div class="field"><label>Área</label><select id="rArea"></select></div>
+      <div class="field"><label>Status</label><select id="rStatus"></select></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Atividade impactada</label><select id="rAtiv"></select>
+      <div class="hint">Vincular a atividade faz a restrição aparecer no lookahead e bloquear a programação.</div>
+    </div></div>
+    <div class="frow">
+      <div class="field"><label>Responsável pela remoção *</label><input id="rResp" list="resps" placeholder="Nome"><datalist id="resps"></datalist></div>
+      <div class="field"><label>Setor</label><input id="rSetor" list="setores" placeholder="Suprimentos, Engenharia…"><datalist id="setores"></datalist></div>
+      <div class="field"><label>Empresa envolvida</label><input id="rEmp" list="empresas"><datalist id="empresas"></datalist></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Identificada em</label><input type="date" id="rIdent"></div>
+      <div class="field"><label>Necessária até *</label><input type="date" id="rNec">
+        <div class="hint">Data em que a restrição precisa estar removida para não atrasar a atividade.</div></div>
+      <div class="field"><label>Prometida para</label><input type="date" id="rProm"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Removida em</label><input type="date" id="rRem">
+        <div class="hint">Preencher marca automaticamente como removida.</div></div>
+      <div class="field"><label>Impacto se não removida</label><input id="rImp" placeholder="Ex.: paralisa 2 equipes por 5 dias"></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Ação / plano de remoção</label><textarea id="rAcao"></textarea></div></div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Observações</label><textarea id="rObs"></textarea></div></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
+    <span class="spacer"></span>
+    <button class="btn" id="btnRemover" style="display:none">✓ Marcar como removida</button>
+    <button class="btn" onclick="LPS.closeModal('mR')">Cancelar</button>
+    <button class="btn solid" id="mSave">Salvar</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.LPS;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'restricoes',
+  title:'Controle de Restrições',
+  subtitle:'Impedimentos identificados no lookahead — categoria, responsável e prazo para remoção'
+});
+
+var EDIT = L.canEdit();
+var DADOS = [], ATIV = [], CTRS = [], editando = null;
+var SETORES = ['Suprimentos','Contratos','Engenharia','Projetos','Obra / Execução',
+               'Comissionamento','Qualidade','Segurança','Planejamento','Cliente'];
+
+/* pré-seleção de atividade via ?atividade=ID (vindo do lookahead) */
+var PRE_ATIV = (function(){
+  var m = window.location.search.match(/[?&]atividade=(\d+)/);
+  return m ? parseInt(m[1],10) : null;
+})();
+
+/* ================= ABAS ================= */
+document.querySelectorAll('.tab').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    ['lista','pareto'].forEach(function(t){
+      $('tab-'+t).classList.toggle('hide', t !== b.dataset.tab);
+    });
+  });
+});
+
+/* ================= CARGA ================= */
+function load(){
+  return Promise.all([
+    L.loadAreas(true),
+    L.sbGetAll(L.comUnidade('lps_ei_restricoes?select=*&ativo=eq.true&order=num.asc')),
+    L.sbGetAll(L.comUnidade('lps_ei_atividades?select=id,codigo,descricao,area,empresa,inicio,termino&ativo=eq.true&order=descricao.asc')),
+    L.sbGetAll(L.comUnidade('lps_ei_contratos?select=id,empresa&ativo=eq.true'))
+  ]).then(function(r){
+    DADOS = r[1]; ATIV = r[2]; CTRS = r[3];
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+    if(PRE_ATIV){ abrir(null); $('rAtiv').value = String(PRE_ATIV); onAtivChange(); PRE_ATIV = null; }
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('tb').innerHTML = '<tr><td colspan="10" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+  });
+}
+
+function fillSelects(){
+  $('fArea').innerHTML = L.areaOptions('', true);
+  $('rArea').innerHTML = L.areaOptions('', false);
+  $('fCat').innerHTML = '<option value="">Todas as categorias</option>'
+    + L.RESTR_CATEGORIAS.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+  $('rCat').innerHTML = L.RESTR_CATEGORIAS.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+  $('fStatus').innerHTML = '<option value="">Abertas e em tratativa</option>'
+    + '<option value="__all">Todas (inclui removidas)</option>'
+    + L.RESTR_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('rStatus').innerHTML = L.RESTR_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+
+  $('rAtiv').innerHTML = '<option value="">— nenhuma atividade específica —</option>'
+    + ATIV.map(function(a){
+        return '<option value="'+a.id+'">'
+          + esc((a.codigo ? a.codigo + ' · ' : '') + a.descricao).slice(0,110) + '</option>';
+      }).join('');
+
+  var resps = [];
+  DADOS.forEach(function(r){ if(r.responsavel && resps.indexOf(r.responsavel) < 0) resps.push(r.responsavel); });
+  resps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cur = $('fResp').value;
+  $('fResp').innerHTML = '<option value="">Todos os responsáveis</option>'
+    + resps.map(function(x){ return '<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
+  $('resps').innerHTML = resps.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('');
+  $('setores').innerHTML = SETORES.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('');
+
+  var emps = [];
+  CTRS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  $('empresas').innerHTML = emps.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('');
+}
+
+/* ================= CÁLCULOS ================= */
+function aberta(r){ return r.status === 'Aberta' || r.status === 'Em tratativa'; }
+
+function aging(r){
+  var fim = r.data_remocao || L.todayISO();
+  return L.diffDays(r.data_identificacao, fim);
+}
+
+function urgencia(r){
+  if(!aberta(r)) return 9999;
+  if(!r.data_necessidade) return 5000;
+  return L.diffDays(L.todayISO(), r.data_necessidade);
+}
+
+function ativDe(r){
+  return ATIV.filter(function(a){ return a.id === r.atividade_id; })[0] || null;
+}
+
+/* ================= FILTRO ================= */
+function visiveis(){
+  var q = L.deacc($('q').value), fa = $('fArea').value, fc = $('fCat').value,
+      fs = $('fStatus').value, fr = $('fResp').value, srt = $('fSort').value;
+  var out = DADOS.filter(function(r){
+    if(fs === '') { if(!aberta(r)) return false; }
+    else if(fs !== '__all' && r.status !== fs) return false;
+    if(fa && r.area !== fa) return false;
+    if(fc && r.categoria !== fc) return false;
+    if(fr && r.responsavel !== fr) return false;
+    if(!q) return true;
+    var a = ativDe(r);
+    return L.deacc([r.descricao,r.categoria,r.responsavel,r.setor,r.empresa,
+                    r.acao,r.impacto,r.obs,r.area, a?a.descricao:''].join(' ')).indexOf(q) > -1;
+  });
+  out.sort(function(x,y){
+    if(srt === 'num') return (x.num||0) - (y.num||0);
+    if(srt === 'cat') return String(x.categoria||'').localeCompare(String(y.categoria||''),'pt-BR');
+    if(srt === 'area') return String(x.area||'zzz').localeCompare(String(y.area||'zzz'),'pt-BR');
+    if(srt === 'aging') return (aging(y)||0) - (aging(x)||0);
+    return urgencia(x) - urgencia(y);
+  });
+  return out;
+}
+
+/* ================= RENDER ================= */
+function render(){ renderKpis(); renderLista(); renderPareto(); }
+
+function renderKpis(){
+  var ab = DADOS.filter(function(r){ return r.status === 'Aberta'; });
+  var tr = DADOS.filter(function(r){ return r.status === 'Em tratativa'; });
+  var rm = DADOS.filter(function(r){ return r.status === 'Removida'; });
+  var venc = DADOS.filter(function(r){
+    return aberta(r) && r.data_necessidade && r.data_necessidade < L.todayISO(); });
+  var sem7 = DADOS.filter(function(r){
+    var d = urgencia(r); return aberta(r) && d >= 0 && d <= 7; });
+  var abertas = ab.length + tr.length;
+  var taxa = DADOS.length ? Math.round(rm.length / DADOS.length * 100) : 0;
+
+  $('kpis').innerHTML =
+    kpi('b-blue', DADOS.length, 'Restrições', 'registradas no período') +
+    kpi('b-red', venc.length, 'Vencidas', 'prazo de necessidade estourado') +
+    kpi('b-gold', sem7.length, 'Críticas', 'vencem em até 7 dias') +
+    kpi('b-violet', abertas, 'Em aberto', tr.length + ' em tratativa') +
+    kpi('b-green', rm.length, 'Removidas', taxa + '% de remoção') +
+    kpi('b-gray', mediaAging(rm), 'Dias médios', 'para remover uma restrição');
+}
+function mediaAging(rm){
+  if(!rm.length) return '—';
+  var s = rm.reduce(function(a,r){ return a + (aging(r) || 0); }, 0);
+  return Math.round(s / rm.length);
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+function statusPill(r){
+  var c = r.status === 'Removida' ? 'g'
+        : (r.status === 'Cancelada' ? 'n'
+        : (r.data_necessidade && r.data_necessidade < L.todayISO() ? 'r' : 'y'));
+  var extra = '';
+  if(aberta(r) && r.data_necessidade){
+    var d = urgencia(r);
+    extra = d < 0 ? ' · ' + Math.abs(d) + 'd vencida'
+          : (d <= 7 ? ' · ' + d + 'd' : '');
+  }
+  return '<span class="pill '+c+'">'+esc(r.status)+esc(extra)+'</span>';
+}
+
+function renderLista(){
+  var vis = visiveis();
+  $('tb').innerHTML = vis.map(function(r){
+    var a = ativDe(r);
+    var ag = aging(r);
+    var agCls = ag == null ? '' : (ag <= 7 ? 'a0' : (ag <= 21 ? 'a1' : 'a2'));
+    var venc = aberta(r) && r.data_necessidade && r.data_necessidade < L.todayISO();
+    return '<tr><td class="ctr code">'+(r.num||'—')+'</td>'
+      + '<td><b>'+esc(r.descricao)+'</b>'
+        + (r.acao ? '<div class="small muted">▸ '+esc(r.acao)+'</div>' : '')
+        + (r.impacto ? '<div class="small" style="color:var(--terracota)">⚠ '+esc(r.impacto)+'</div>' : '')+'</td>'
+      + '<td class="small">'+esc(r.categoria||'—')+'</td>'
+      + '<td>'+(r.area ? '<span class="tag b">'+esc(r.area)+'</span>' : '<span class="muted">—</span>')+'</td>'
+      + '<td class="small">'+(a ? esc(a.descricao).slice(0,80) : '<span class="muted">—</span>')+'</td>'
+      + '<td class="small"><b>'+esc(r.responsavel||'—')+'</b>'
+        + (r.setor ? '<div class="muted">'+esc(r.setor)+'</div>' : '')+'</td>'
+      + '<td class="ctr'+(venc?'" style="color:var(--terracota);font-weight:700':'')+'">'
+        + L.fmtBrDash(r.data_necessidade)+'</td>'
+      + '<td class="ctr"><span class="aging '+agCls+'">'+(ag == null ? '—' : ag + 'd')+'</span></td>'
+      + '<td>'+statusPill(r)+'</td>'
+      + '<td class="ctr no-print">'+(EDIT ? '<button class="btn sm" data-ed="'+r.id+'">editar</button>' : '')+'</td></tr>';
+  }).join('') || '<tr><td colspan="10" class="empty"><div class="big">⚑</div>'
+      + 'Nenhuma restrição com esses filtros.'
+      + (EDIT ? '<br><span class="small">Use <b>+ Nova restrição</b> para registrar um impedimento.</span>' : '')
+      + '</td></tr>';
+
+  document.querySelectorAll('button[data-ed]').forEach(function(b){
+    b.addEventListener('click', function(){ abrir(+b.dataset.ed); });
+  });
+
+  $('foot').textContent = vis.length + ' de ' + DADOS.length + ' restrições';
+}
+
+/* ================= PARETO ================= */
+function pareto(campo, host, rotulo){
+  var g = {};
+  DADOS.forEach(function(r){
+    var k = r[campo] || '(não informado)';
+    if(campo === 'area' && r.area) k = r.area + ' · ' + L.areaNome(r.area);
+    var o = g[k] || (g[k] = { k:k, tot:0, ab:0, rm:0 });
+    o.tot++;
+    if(aberta(r)) o.ab++;
+    if(r.status === 'Removida') o.rm++;
+  });
+  var arr = Object.keys(g).map(function(k){ return g[k]; })
+    .sort(function(a,b){ return b.tot - a.tot || b.ab - a.ab; });
+  var max = arr.length ? arr[0].tot : 1;
+
+  $(host).innerHTML = arr.length ? arr.map(function(o){
+    var wAb = (o.ab / max) * 100, wRm = (o.rm / max) * 100;
+    return '<div class="pareto-row">'
+      + '<div class="pl">'+esc(o.k)+'</div>'
+      + '<div style="display:flex;gap:2px">'
+        + '<div class="pb" style="width:'+wAb+'%" title="'+o.ab+' em aberto"><i style="width:100%"></i></div>'
+        + '<div class="pb rem" style="width:'+wRm+'%" title="'+o.rm+' removidas"><i style="width:100%"></i></div>'
+      + '</div>'
+      + '<div class="pv">'+o.tot+'<span class="muted" style="font-weight:400"> ('+o.ab+')</span></div>'
+      + '</div>';
+  }).join('') + '<div class="small muted" style="margin-top:8px">'
+    + rotulo + ' · total (em aberto) · <span style="color:var(--terracota)">■</span> abertas '
+    + '<span style="color:var(--green)">■</span> removidas</div>'
+    : '<div class="empty small">Sem dados.</div>';
+}
+
+function renderPareto(){
+  pareto('categoria','parCat','Categorias');
+  pareto('area','parArea','Áreas');
+  pareto('responsavel','parResp','Responsáveis');
+}
+
+/* ================= MODAL ================= */
+function onAtivChange(){
+  var id = $('rAtiv').value ? parseInt($('rAtiv').value,10) : null;
+  var a = ATIV.filter(function(x){ return x.id === id; })[0];
+  if(!a) return;
+  if(!$('rArea').value && a.area) $('rArea').value = a.area;
+  if(!$('rEmp').value && a.empresa) $('rEmp').value = a.empresa;
+  if(!$('rNec').value && a.inicio) $('rNec').value = L.addDays(a.inicio, -7);
+}
+$('rAtiv').addEventListener('change', onAtivChange);
+
+function abrir(id){
+  editando = id ? DADOS.filter(function(r){ return r.id === id; })[0] : null;
+  $('mTitle').textContent = editando ? 'Restrição #' + (editando.num||'') : 'Nova restrição';
+  $('mDel').style.display = editando ? '' : 'none';
+  $('btnRemover').style.display = (editando && aberta(editando) && EDIT) ? '' : 'none';
+  var r = editando || {};
+  $('rDesc').value = r.descricao || '';
+  $('rCat').value = r.categoria || L.RESTR_CATEGORIAS[0];
+  $('rArea').value = r.area || '';
+  $('rStatus').value = r.status || 'Aberta';
+  $('rAtiv').value = r.atividade_id || '';
+  $('rResp').value = r.responsavel || '';
+  $('rSetor').value = r.setor || '';
+  $('rEmp').value = r.empresa || '';
+  $('rIdent').value = r.data_identificacao || L.todayISO();
+  $('rNec').value = r.data_necessidade || '';
+  $('rProm').value = r.data_prometida || '';
+  $('rRem').value = r.data_remocao || '';
+  $('rImp').value = r.impacto || '';
+  $('rAcao').value = r.acao || '';
+  $('rObs').value = r.obs || '';
+  L.openModal('mR');
+}
+
+function proximoNum(){
+  var m = 0;
+  DADOS.forEach(function(r){ if((r.num||0) > m) m = r.num; });
+  return m + 1;
+}
+
+function coletar(){
+  var d = $('rDesc').value.trim();
+  if(!d){ L.toast('Descreva a restrição.','warn'); return null; }
+  if(!$('rResp').value.trim()){ L.toast('Informe o responsável pela remoção.','warn'); return null; }
+  if(!$('rNec').value){ L.toast('Informe até quando a restrição precisa ser removida.','warn'); return null; }
+  var body = {
+    descricao: d,
+    categoria: $('rCat').value,
+    area: $('rArea').value || null,
+    status: $('rStatus').value,
+    atividade_id: $('rAtiv').value ? parseInt($('rAtiv').value,10) : null,
+    responsavel: $('rResp').value.trim(),
+    setor: $('rSetor').value.trim() || null,
+    empresa: $('rEmp').value.trim() || null,
+    data_identificacao: $('rIdent').value || L.todayISO(),
+    data_necessidade: $('rNec').value || null,
+    data_prometida: $('rProm').value || null,
+    data_remocao: $('rRem').value || null,
+    impacto: $('rImp').value.trim() || null,
+    acao: $('rAcao').value.trim() || null,
+    obs: $('rObs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+  if(body.data_remocao && body.status !== 'Cancelada') body.status = 'Removida';
+  if(!body.data_remocao && body.status === 'Removida') body.data_remocao = L.todayISO();
+  return body;
+}
+
+$('mSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var body = coletar();
+  if(!body) return;
+  var p = editando
+    ? L.sb('PATCH','lps_ei_restricoes?id=eq.'+editando.id, body)
+    : L.sb('POST','lps_ei_restricoes', L.comTag(Object.assign(body,
+        { num: proximoNum(), criado_por: L.userNome() })));
+  p.then(function(){ L.closeModal('mR'); L.toast('Restrição salva.','ok'); return load(); })
+   .catch(function(e){ L.toast('Erro ao salvar: '+e.message,'warn'); });
+});
+
+$('btnRemover').addEventListener('click', function(){
+  if(!editando || !EDIT) return;
+  L.sb('PATCH','lps_ei_restricoes?id=eq.'+editando.id, {
+    status:'Removida', data_remocao:L.todayISO(), atualizado_em:new Date().toISOString()
+  }).then(function(){
+    L.closeModal('mR'); L.toast('Restrição removida em ' + L.fmtBr(L.todayISO()) + '.','ok');
+    return load();
+  }).catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+$('mDel').addEventListener('click', function(){
+  if(!editando || !EDIT) return;
+  if(!confirm('Excluir a restrição #'+(editando.num||'')+'?')) return;
+  L.sb('PATCH','lps_ei_restricoes?id=eq.'+editando.id,{ativo:false})
+    .then(function(){ L.closeModal('mR'); L.toast('Restrição excluída.','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var aoa = [['#','Restrição','Categoria','Área','Nome da área','Atividade impactada',
+              'Responsável','Setor','Empresa','Identificada em','Necessária até',
+              'Prometida para','Removida em','Dias em aberto','Status','Impacto',
+              'Ação de remoção','Observações']];
+  visiveis().forEach(function(r){
+    var a = ativDe(r);
+    aoa.push([r.num, r.descricao, r.categoria, r.area, L.areaNome(r.area),
+      a ? a.descricao : '', r.responsavel, r.setor, r.empresa,
+      L.fmtBr(r.data_identificacao), L.fmtBr(r.data_necessidade),
+      L.fmtBr(r.data_prometida), L.fmtBr(r.data_remocao),
+      aging(r), r.status, r.impacto, r.acao, r.obs]);
+  });
+
+  var g = {};
+  DADOS.forEach(function(r){
+    var k = r.categoria || '(não informado)';
+    var o = g[k] || (g[k] = { ab:0, rm:0, tot:0 });
+    o.tot++; if(aberta(r)) o.ab++; if(r.status === 'Removida') o.rm++;
+  });
+  var aoa2 = [['Categoria','Total','Em aberto','Removidas','% removidas']];
+  Object.keys(g).sort(function(a,b){ return g[b].tot - g[a].tot; }).forEach(function(k){
+    var o = g[k];
+    aoa2.push([k, o.tot, o.ab, o.rm, o.tot ? Math.round(o.rm/o.tot*100) : 0]);
+  });
+
+  L.exportXlsx([
+    { nome:'Restrições', aoa:aoa, cols:[{wch:6},{wch:56},{wch:22},{wch:10},{wch:24},{wch:40},
+      {wch:20},{wch:18},{wch:20},{wch:13},{wch:13},{wch:13},{wch:12},{wch:13},{wch:14},{wch:30},{wch:40},{wch:34}] },
+    { nome:'Pareto por categoria', aoa:aoa2, cols:[{wch:28},{wch:9},{wch:11},{wch:11},{wch:13}] }
+  ], 'LPS_EI_restricoes_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+$('q').addEventListener('input', renderLista);
+['fArea','fCat','fStatus','fResp','fSort'].forEach(function(id){
+  $(id).addEventListener('change', renderLista);
+});
+$('btnNovo').addEventListener('click', function(){ abrir(null); });
+L.wireModal('mR');
+if(!EDIT) $('btnNovo').style.display = 'none';
+
+load();
+})();
+</script>
+</body>
+</html>

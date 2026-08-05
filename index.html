@@ -602,6 +602,54 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- LPS · ELÉTRICA E INSTRUMENTAÇÃO -->
+    <a class="card lpsei" href="lps_ei.html" id="card-lpsei" style="--lps:#B45309">
+      <div class="card-bar" style="background:linear-gradient(90deg,#B45309,#e0912f)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#fdf0dd">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#B45309">Last Planner System · E&amp;I</div>
+        <div class="card-title">LPS — Elétrica e Instrumentação</div>
+        <div class="card-desc">Controle por área das quatro frentes de liberação — atividades, contratação das empresas, chegada dos materiais e liberação dos projetos executivos. Inclui lookahead, controle de restrições e kanban da programação semanal.</div>
+      </div>
+
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="lps-areas">—</div>
+          <div class="card-kpi-label">Áreas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="lps-restr">—</div>
+          <div class="card-kpi-label">Restrições</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="lps-ppc">—</div>
+          <div class="card-kpi-label">PPC semana</div>
+        </div>
+      </div>
+
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Áreas liberadas para execução</span>
+          <span class="card-progress-pct" id="lps-pct-label" style="color:#B45309">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#B45309;height:100%;width:0%;transition:width .6s" id="lps-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="lps-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#B45309">Abrir módulo</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
     <div class="card orange soon">
       <div class="soon-badge">Em breve</div>
@@ -815,11 +863,58 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
+  /* ── LPS · ELÉTRICA E INSTRUMENTAÇÃO ── */
+  function mondayISO(){
+    const d = new Date();
+    const wd = d.getDay();
+    d.setDate(d.getDate() + (wd === 0 ? -6 : 1 - wd));
+    return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  }
+  async function loadLpsEi(){
+    try{
+      const [areas, ctrs, restr, prog] = await Promise.all([
+        sbGet('lps_ei_areas?select=codigo&ativo=eq.true'),
+        sbGet('lps_ei_contratos?select=areas,status&ativo=eq.true'),
+        sbGet('lps_ei_restricoes?select=id,status&ativo=eq.true'),
+        sbGet('lps_ei_programacao?select=semana,coluna&ativo=eq.true'),
+      ]);
+
+      const total = areas.data.length;
+      setEl('lps-areas', fmt(total));
+
+      // área é considerada "liberada" quando já tem contrato firmado
+      const OK = ['Contratado','Mobilizado','Em execução','Concluído'];
+      const cobertas = new Set();
+      ctrs.data.forEach(c=>{
+        if(OK.indexOf(c.status) < 0) return;
+        let ar = c.areas;
+        if(typeof ar === 'string'){ try{ ar = JSON.parse(ar) }catch(_){ ar = [] } }
+        (Array.isArray(ar) ? ar : []).forEach(a=>cobertas.add(a));
+      });
+      const lib = areas.data.filter(a=>cobertas.has(a.codigo)).length;
+      const lp  = pct(lib, total);
+      setEl('lps-pct-label', total ? (lp + '% · ' + lib + ' de ' + total) : 'sem áreas cadastradas');
+      const bar = document.getElementById('lps-bar');
+      if(bar) bar.style.width = lp + '%';
+
+      const abertas = restr.data.filter(r=>r.status==='Aberta'||r.status==='Em tratativa').length;
+      setEl('lps-restr', fmt(abertas));
+
+      const wk = mondayISO();
+      const sem = prog.data.filter(p=>String(p.semana).slice(0,10) === wk);
+      const done = sem.filter(p=>p.coluna==='concluida').length;
+      setEl('lps-ppc', sem.length ? pct(done, sem.length) + '%' : '—');
+
+      setEl('lps-updated', timeAgo());
+    } catch(_){}
+  }
+
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
     loadBasesCivis();
+    loadLpsEi();
     setTimeout(loadAdmin, 300);
   });
 })();
