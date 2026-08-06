@@ -67,6 +67,25 @@
 
   var IDX = { REF: 0, COD: 1, DESC: 2, UN: 3, QTD: 4, PESO: 5, LINE: 6, AREA: 7 };
 
+  /* Normaliza código de material.
+     Só vira número quando a célula é inteiramente numérica — códigos
+     alfanuméricos (CB.ATR.70, HT.SR.3/4.3000) precisam ser preservados
+     como texto, senão viram lixo e colidem entre si. */
+  function normCod(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return '';
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    if (/^\d+[.,]0+$/.test(s)) return parseInt(s, 10);   // 1234.0 vindo do Excel
+    return s.toUpperCase().replace(/\s+/g, ' ');
+  }
+
+  /* Códigos que a lista traz no lugar de um código real */
+  var COD_VAZIO = /^(TERCEIRO|TERCEIROS|A\s*DEFINIR|A\s*COTAR|A\s*ESPECIFICAR|SEM\s*CODIGO|OMISSO|OMISSOS|N\/?A|NA|VB|X|-+|\.+)$/;
+  function codIgnoravel(c) {
+    var s = deacc(c);
+    return !s || COD_VAZIO.test(s) || s.length > 60;
+  }
+
   function readSheet(file) {
     return L.ensureXLSX().then(function (X) {
       return new Promise(function (resolve, reject) {
@@ -75,13 +94,28 @@
         rd.onload = function (ev) {
           try {
             var wb = X.read(new Uint8Array(ev.target.result), { type: 'array', cellDates: true });
-            var aoa = X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
-            resolve(aoa);
+            var sheets = wb.SheetNames.map(function (n) {
+              return { name: n, aoa: X.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' }) };
+            });
+            resolve(sheets);
           } catch (e) { reject(new Error('planilha ilegível')); }
         };
         rd.readAsArrayBuffer(file);
       });
     });
+  }
+
+  /* Aba de trabalho: a de nome preferido, senão a com mais linhas */
+  function pickSheet(sheets, prefer) {
+    if (prefer) {
+      var alvo = sheets.filter(function (s) { return deacc(s.name) === prefer; })[0];
+      if (alvo) return alvo;
+    }
+    var best = null;
+    sheets.forEach(function (s) {
+      if (!best || (s.aoa || []).length > (best.aoa || []).length) best = s;
+    });
+    return best || { name: '', aoa: [] };
   }
 
   /* Acha a linha de cabeçalho pelo conjunto de colunas esperado */
@@ -112,11 +146,147 @@
     return meta;
   }
 
+  /* ----------------------------------------------------------------
+     Modelo ON7 — Aterramento / SPDA
+     Aba "LM", bloco de cabeçalho chave/valor (CLIENTE, OBRA, PRÉDIO,
+     DISCIPLINA) e tabela ITEM | CÓDIGO INPASA | DESCRIÇÃO | UNID. |
+     TOTAL PROJETO. A área vale para o arquivo inteiro — vem do campo
+     PRÉDIO (ou ÁREA), não de uma coluna.
+     Sem LINE NUMBER: o casamento com o tracker é por código.
+     ---------------------------------------------------------------- */
+
+  function on7Header(aoa) {
+    return findHeader(aoa, function (row) {
+      var temCod  = row.some(function (c) { return c.indexOf('CODIGO') > -1; });
+      var temDesc = row.some(function (c) { return c.indexOf('DESCRI') > -1; });
+      var temTot  = row.some(function (c) {
+        return c.indexOf('TOTAL PROJETO') > -1 || c.indexOf('QUANT') > -1 || c === 'TOTAL';
+      });
+      var temItem = row.some(function (c) { return c === 'ITEM'; });
+      return temCod && temDesc && temTot && temItem;
+    }, 40);
+  }
+
+  /* Área do arquivo: PRÉDIO / ÁREA no bloco acima da tabela */
+  function on7Area(sheets, aoa, hr) {
+    var rotulos = ['PREDIO', 'AREA', 'LOCAL DE APLICACAO', 'UNIDADE'];
+    function varrer(rows, lim) {
+      for (var i = 0; i < Math.min(rows.length, lim); i++) {
+        var r = rows[i] || [];
+        for (var j = 0; j < r.length; j++) {
+          var k = deacc(r[j]).replace(/:$/, '');
+          if (rotulos.indexOf(k) < 0) continue;
+          for (var j2 = j + 1; j2 < r.length; j2++) {
+            var v = String(r[j2]).trim();
+            if (v) return v;
+          }
+        }
+      }
+      return '';
+    }
+    var a = varrer(aoa, hr);
+    if (a) return a;
+    var capa = sheets.filter(function (s) { return deacc(s.name) === 'CAPA'; })[0];
+    return capa ? varrer(capa.aoa, 40) : '';
+  }
+
+  function parseON7(file, sheets, lm, hr) {
+    var aoa = lm.aoa;
+    var H = (aoa[hr] || []).map(deacc);
+    var colIn = function (sub) {
+      for (var j = 0; j < H.length; j++) if (H[j].indexOf(sub) > -1) return j;
+      return -1;
+    };
+    var iItem = H.indexOf('ITEM');
+    var iCod  = colIn('CODIGO');
+    var iDesc = colIn('DESCRI');
+    var iUn   = colIn('UNID');
+    var iQtd  = colIn('TOTAL PROJETO');
+    if (iQtd < 0) iQtd = colIn('QUANT');
+    if (iQtd < 0) iQtd = H.indexOf('TOTAL');
+
+    var areaTxt = on7Area(sheets, aoa, hr);
+    var disc = '';
+    for (var i0 = 0; i0 < hr; i0++) {
+      var r0 = aoa[i0] || [];
+      for (var j0 = 0; j0 < r0.length; j0++) {
+        if (deacc(r0[j0]).replace(/:$/, '') !== 'DISCIPLINA') continue;
+        for (var j1 = j0 + 1; j1 < r0.length; j1++) {
+          if (String(r0[j1]).trim()) { disc = String(r0[j1]).trim(); break; }
+        }
+      }
+    }
+
+    var items = [], ignorados = 0, grupo = '';
+    for (var i = hr + 1; i < aoa.length; i++) {
+      var r = aoa[i] || [];
+      var item = String(iItem >= 0 ? r[iItem] : '').trim();
+
+      /* fora da tabela (Notas:, assinaturas) → encerra a leitura */
+      if (item && !/^\d+(\.\d+)*\.?$/.test(item)) break;
+
+      var codRaw = String(iCod >= 0 ? r[iCod] : '').trim();
+      var desc   = String(iDesc >= 0 ? r[iDesc] : '').trim();
+
+      /* linha de grupo: item "1." sem código, descrição é o título */
+      if (!codRaw) {
+        if (item && /\.$/.test(item) && desc) grupo = desc;
+        else if (desc) ignorados++;
+        continue;
+      }
+      if (codIgnoravel(codRaw)) { ignorados++; continue; }
+
+      items.push([
+        '',                                   // ref
+        normCod(codRaw),                      // cod
+        desc.slice(0, 120),                   // desc
+        String(iUn >= 0 ? r[iUn] : '').trim(),// un
+        parseNum(iQtd >= 0 ? r[iQtd] : 0),    // qtd
+        0,                                    // peso
+        '',                                   // line number (não existe)
+        areaTxt                               // área do arquivo inteiro
+      ]);
+    }
+    if (!items.length) {
+      return { err: 'nenhum item com código mapeado na aba ' + lm.name, name: file.name };
+    }
+
+    var base = file.name.replace(/\.[^.]+$/, '');
+    var mrev = base.match(/[-_]R(?:EV)?[\s_-]*(\d+)/i);
+
+    return {
+      tag: base, rev: mrev ? mrev[1] : '', cat: 'Aterramento / SPDA',
+      nome: disc || 'Lista ON7 — Aterramento',
+      src: 'ON7',
+      area: areaTxt,
+      arquivo: file.name,
+      aba: lm.name,
+      ignorados: ignorados,
+      carregado: new Date().toISOString(),
+      items: items
+    };
+  }
+
   /* Parser genérico de lista de material.
-     Detecta automaticamente se é layout Aplus (CÓDIGO + LINE NUMBER)
-     ou VIA PACS (COD + REFERÊNCIA ENGENHARIA + LINE NUMBER). */
+     Detecta o layout: ON7 (aba LM, área no cabeçalho),
+     VIA PACS (COD + REFERÊNCIA + LINE NUMBER) ou
+     Aplus (CÓDIGO + LINE NUMBER). */
   function parseListaFile(file) {
-    return readSheet(file).then(function (aoa) {
+    return readSheet(file).then(function (sheets) {
+      /* ---- ON7: procura a aba LM, senão qualquer aba com o layout ---- */
+      var lm = pickSheet(sheets, 'LM');
+      var hrOn7 = on7Header(lm.aoa);
+      if (hrOn7 < 0) {
+        for (var s = 0; s < sheets.length; s++) {
+          var h = on7Header(sheets[s].aoa);
+          if (h > -1) { lm = sheets[s]; hrOn7 = h; break; }
+        }
+      }
+      if (hrOn7 > -1) return parseON7(file, sheets, lm, hrOn7);
+
+      /* ---- Aplus / VIA PACS ---- */
+      var alvo = pickSheet(sheets, null);
+      var aoa = alvo.aoa;
       var isPacs = false;
       var hr = findHeader(aoa, function (row) {
         var hasCod = row.indexOf('COD') > -1;
@@ -132,7 +302,7 @@
         });
       }
       if (hr < 0) {
-        return { err: 'cabeçalho não reconhecido (esperado CÓDIGO/COD + LINE NUMBER)', name: file.name };
+        return { err: 'cabeçalho não reconhecido (esperado CÓDIGO/COD + LINE NUMBER, ou aba LM no modelo ON7)', name: file.name };
       }
 
       var H = (aoa[hr] || []).map(deacc);
@@ -175,14 +345,13 @@
         var r = aoa[i] || [];
         var codRaw = String(iCod >= 0 ? r[iCod] : '').trim();
         if (!codRaw) continue;
-        var cod = parseInt(String(codRaw).replace(/\D/g, ''), 10);
-        if (isNaN(cod)) cod = 0;
+        var cod = normCod(codRaw);
         var ref = String(iRef >= 0 ? r[iRef] : '').trim();
         var qtd = iQtdI >= 0 ? parseNum(r[iQtdI]) : 0;
         if (!qtd) qtd = parseNum(iQtd >= 0 ? r[iQtd] : 0) || parseNum(iComp >= 0 ? r[iComp] : 0);
         items.push([
           ref,
-          cod || codRaw,
+          cod,
           String(iDesc >= 0 ? r[iDesc] : '').trim().slice(0, 120),
           String(iBit >= 0 ? r[iBit] : '').trim(),
           qtd,
@@ -265,7 +434,9 @@
 
   /* Lê o tracker e devolve {header, aoa, map, rows} */
   function parseTrackerFile(file, forcedMap) {
-    return readSheet(file).then(function (aoa) {
+    return readSheet(file).then(function (sheets) {
+      var alvo = pickSheet(sheets, null);
+      var aoa = alvo.aoa;
       /* cabeçalho = primeira linha com >=4 células preenchidas e algum
          termo típico; senão, a primeira linha "cheia" */
       var hr = findHeader(aoa, function (row) {
@@ -290,6 +461,7 @@
 
       return {
         arquivo: file.name,
+        aba: alvo.name,
         carregado: new Date().toISOString(),
         header: header,
         headerRow: hr,
@@ -319,9 +491,8 @@
     for (var i = hr + 1; i < aoa.length; i++) {
       var r = aoa[i] || [];
       var codRaw = String(g(r, 'cod') || '').trim();
-      if (!codRaw) continue;
-      var codNum = parseInt(codRaw.replace(/\D/g, ''), 10);
-      var cod = isNaN(codNum) ? codRaw : codNum;
+      if (!codRaw || codIgnoravel(codRaw)) continue;
+      var cod = normCod(codRaw);
       var stTxt = String(g(r, 'status') || '').trim();
       out.push({
         cod: cod,
@@ -548,6 +719,8 @@
     classifyStatus: classifyStatus,
     readSheet: readSheet,
     parseListaFile: parseListaFile,
+    normCod: normCod,
+    codIgnoravel: codIgnoravel,
     parseTrackerFile: parseTrackerFile,
     buildTrackerRows: buildTrackerRows,
     autoMap: autoMap,
