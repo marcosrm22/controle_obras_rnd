@@ -276,6 +276,20 @@ function matchArea(txt){
   if(!t) return null;
   var exato = ST.areas.filter(function(a){ return L.deacc(a.codigo) === t; })[0];
   if(exato) return exato.codigo;
+
+  /* "2300 - GERAL", "2300.A Pipe Rack", "2311. Moinho" → extrai o código
+     do início e tenta casamento exato com ele. */
+  var m = t.match(/^(\d{4})\s*\.?\s*([A-Z])?(?![A-Z0-9])/);
+  if(m){
+    var cod = m[1] + (m[2] ? '.' + m[2] : '');
+    var porCod = ST.areas.filter(function(a){ return L.deacc(a.codigo) === cod; })[0];
+    if(porCod) return porCod.codigo;
+    if(m[2]){  /* tinha sufixo e não achou → tenta o grupo (2300.Z → 2300) */
+      var grupo = ST.areas.filter(function(a){ return L.deacc(a.codigo) === m[1]; })[0];
+      if(grupo) return grupo.codigo;
+    }
+  }
+
   var porNome = ST.areas.filter(function(a){ return L.deacc(a.nome) === t; })[0];
   if(porNome) return porNome.codigo;
   var contido = ST.areas.filter(function(a){
