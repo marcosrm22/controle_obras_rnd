@@ -84,7 +84,21 @@
       <div class="frow" id="mapFields"></div>
       <div class="toolbar">
         <button class="btn" id="btnRemap">↻ Reprocessar com este mapeamento</button>
+        <button class="btn" id="btnDiag">🔎 Diagnosticar colunas</button>
         <span class="small muted" id="mapInfo"></span>
+      </div>
+      <div id="diagWrap" class="hide" style="margin-top:14px">
+        <div class="notice" id="diagResumo"></div>
+        <div class="tablewrap">
+          <table class="grid">
+            <thead><tr>
+              <th style="width:52px">COL</th><th>CABEÇALHO</th>
+              <th style="width:120px">PREENCHIDAS</th><th style="width:90px">APROVEIT.</th>
+              <th>PRIMEIROS VALORES</th>
+            </tr></thead>
+            <tbody id="diagBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -261,7 +275,7 @@ $('fileTrk').addEventListener('change', function(e){
       if(r.header){ TRK_RAW = { header:r.header, aoa:null, headerRow:0 }; renderMap(r.map || {}); }
       return;
     }
-    TRK_RAW = { aoa:r.aoa, headerRow:r.headerRow, header:r.header, arquivo:r.arquivo };
+    TRK_RAW = { aoa:r.aoa, headerRow:r.headerRow, header:r.header, arquivo:r.arquivo, aba:r.aba };
     DATA.tracker = {
       arquivo: r.arquivo, carregado: r.carregado,
       header: r.header, map: r.map, rows: r.rows
@@ -284,13 +298,84 @@ function renderMap(map){
         + esc((h || '(coluna ' + (j+1) + ')')) + '</option>';
     }).join('');
     return '<div class="field"><label>'+esc(f.label)+(f.req?' *':'')+'</label>'
-      + '<select class="mapf" data-k="'+f.k+'">'+opts+'</select></div>';
+      + '<select class="mapf" data-k="'+f.k+'">'+opts+'</select>'
+      + '<div class="small muted mapprev" data-k="'+f.k+'"></div></div>';
   }).join('');
+  document.querySelectorAll('.mapf').forEach(function(s){
+    s.addEventListener('change', atualizaPrevias);
+  });
+  atualizaPrevias();
   $('mapInfo').textContent = TRK_RAW && TRK_RAW.aoa
     ? 'Reprocessamento disponível nesta sessão.'
     : 'Para alterar o mapeamento é preciso reenviar o arquivo do Tracker.';
   $('btnRemap').disabled = !(TRK_RAW && TRK_RAW.aoa);
+  $('btnDiag').disabled  = !(TRK_RAW && TRK_RAW.aoa);
 }
+
+/* Estatística de uma coluna do arquivo cru do Tracker */
+function colStats(j){
+  var aoa = TRK_RAW.aoa, hr = TRK_RAW.headerRow;
+  var total = 0, cheias = 0, uteis = 0, ex = [];
+  for(var i = hr + 1; i < aoa.length; i++){
+    var r = aoa[i] || [];
+    if(!r.length || !r.some(function(c){ return String(c).trim(); })) continue;
+    total++;
+    var v = String(r[j] == null ? '' : r[j]).trim();
+    if(!v) continue;
+    cheias++;
+    if(!M.codIgnoravel(v)) uteis++;
+    if(ex.length < 4 && ex.indexOf(v) < 0) ex.push(v);
+  }
+  return { total: total, cheias: cheias, uteis: uteis, ex: ex };
+}
+
+/* Linha de prévia embaixo de cada seletor */
+function atualizaPrevias(){
+  var temAoa = !!(TRK_RAW && TRK_RAW.aoa);
+  document.querySelectorAll('.mapprev').forEach(function(d){
+    var s = document.querySelector('.mapf[data-k="'+d.dataset.k+'"]');
+    if(!temAoa || !s || s.value === ''){ d.textContent = ''; return; }
+    var st = colStats(parseInt(s.value, 10));
+    var pc = st.total ? Math.round(st.cheias / st.total * 100) : 0;
+    d.innerHTML = '<b'+(pc === 0 ? ' style="color:var(--red)"' : '')+'>'
+      + nf(st.cheias) + ' de ' + nf(st.total) + ' (' + pc + '%)</b>'
+      + (st.ex.length ? ' · ' + esc(st.ex.join(' | ')).slice(0, 90) : ' · coluna vazia');
+  });
+  var sc = document.querySelector('.mapf[data-k="cod"]');
+  if(temAoa && sc && sc.value !== ''){
+    var s2 = colStats(parseInt(sc.value, 10));
+    $('mapInfo').innerHTML = s2.uteis
+      ? '<b>' + nf(s2.uteis) + '</b> linhas seriam mantidas com esta coluna de código.'
+      : '<b style="color:var(--red)">Nenhuma linha seria mantida</b> — esta coluna está vazia '
+        + 'ou só tem marcadores (TERCEIRO, N/A, "-"). Use o diagnóstico ao lado.';
+  }
+}
+
+$('btnDiag').addEventListener('click', function(){
+  if(!TRK_RAW || !TRK_RAW.aoa) return;
+  var w = $('diagWrap');
+  if(!w.classList.contains('hide')){ w.classList.add('hide'); return; }
+  w.classList.remove('hide');
+  var header = TRK_RAW.header || [];
+  var linhas = header.map(function(h, j){ return { j: j, h: h, st: colStats(j) }; });
+  var tot = linhas.length ? linhas[0].st.total : 0;
+  var vazias = linhas.filter(function(x){ return x.st.cheias === 0; }).length;
+  $('diagResumo').innerHTML = 'Arquivo <b>' + esc(TRK_RAW.arquivo || '') + '</b> · aba <b>'
+    + esc(TRK_RAW.aba || '') + '</b> · cabeçalho na linha <b>' + (TRK_RAW.headerRow + 1)
+    + '</b> · <b>' + nf(tot) + '</b> linhas de dados · <b>' + linhas.length
+    + '</b> colunas, sendo <b>' + vazias + '</b> completamente vazias.<br>'
+    + 'Procure a coluna que realmente contém o código usado nas listas '
+    + '(CB.ATR.70, CB.CORD.2.50…) e selecione-a em <b>Código do material</b>.';
+  $('diagBody').innerHTML = linhas.map(function(x){
+    var pc = x.st.total ? Math.round(x.st.cheias / x.st.total * 100) : 0;
+    var cor = pc === 0 ? 'var(--red)' : (pc < 50 ? 'var(--gold)' : 'var(--green)');
+    return '<tr><td class="mono">' + (x.j + 1) + '</td>'
+      + '<td><b>' + esc(x.h || '(sem cabeçalho)') + '</b></td>'
+      + '<td class="mono">' + nf(x.st.cheias) + '</td>'
+      + '<td class="mono" style="color:' + cor + '">' + pc + '%</td>'
+      + '<td class="small mono">' + esc(x.st.ex.join('  |  ')).slice(0, 160) + '</td></tr>';
+  }).join('') || '<tr><td colspan="5" class="muted">sem colunas</td></tr>';
+});
 
 $('btnRemap').addEventListener('click', function(){
   if(!TRK_RAW || !TRK_RAW.aoa) return;
