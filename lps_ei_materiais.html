@@ -43,10 +43,12 @@
       <div>
         <div class="section-label" style="margin-top:0">1 · Listas de material</div>
         <div class="drop" id="dropListas">
-          <div class="dp-title">Listas de solicitação (Aplus / VIA PACS)</div>
+          <div class="dp-title">Listas de solicitação (Aplus / VIA PACS / ON7)</div>
           <div class="dp-sub">
             Aceita vários arquivos de uma vez. O layout é detectado automaticamente:
-            Aplus (CÓDIGO + LINE NUMBER) ou PACS (COD + REFERÊNCIA + LINE NUMBER).
+            <b>Aplus</b> (CÓDIGO + LINE NUMBER), <b>PACS</b> (COD + REFERÊNCIA + LINE NUMBER)
+            ou <b>ON7</b> (aba LM, área no campo PRÉDIO do cabeçalho, sem line number).
+            No modelo ON7 os itens sem código mapeado — TERCEIRO, omissos — são descartados.
             Reenviar um arquivo com a mesma TAG substitui a revisão anterior.
           </div>
           <label>⤒ Selecionar listas (.xlsx)
@@ -313,7 +315,10 @@ function renderFontes(){
         return '<div class="fileitem"><div>'
           + '<div class="fn">'+esc(l.nome || l.tag)+'</div>'
           + '<div class="fm">'+esc(l.tag)+(l.rev?' · rev '+esc(l.rev):'')
-          + ' · '+esc(l.src||'')+' · '+nf(l.items.length)+' itens</div></div>'
+          + ' · '+esc(l.src||'')+' · '+nf(l.items.length)+' itens'
+          + (l.area ? ' · área '+esc(l.area) : '')
+          + (l.ignorados ? ' · '+nf(l.ignorados)+' sem código' : '')
+          + '</div></div>'
           + (EDIT ? '<button class="btn sm danger" data-rm="'+i+'">remover</button>' : '')
           + '</div>';
       }).join('')
