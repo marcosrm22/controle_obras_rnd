@@ -578,6 +578,67 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- PLANO DE AÇÃO · RSO -->
+    <a class="card rso" href="plano_acao_rso.html" id="card-rso" style="--rso:#A6203C">
+      <div class="card-bar" style="background:linear-gradient(90deg,#A6203C,#d4708a)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#fbe8ec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#A6203C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"/>
+            <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>
+            <path d="M8.5 12.5l2 2 4.5-5"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#A6203C">Gestão · RSO</div>
+        <div class="card-title">Plano de Ação — RSO</div>
+        <div class="card-desc">Acompanhamento das ações da Reunião de Alinhamento Semanal — responsável, setor, prazo, status e histórico de tratativas. Inclui a aba de resumo das empresas por revisão de cronograma.</div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="rso-total">—</div>
+          <div class="card-kpi-label">Ações</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="rso-atraso">—</div>
+          <div class="card-kpi-label">Atrasadas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="rso-conc">—</div>
+          <div class="card-kpi-label">Concluídas</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Situação das ações</span>
+          <span class="card-progress-pct" id="rso-pct-label" style="color:#A6203C">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#1d5c1a;height:100%;width:0%;transition:width .6s" id="rso-bar-conc"></div>
+            <div style="background:var(--green);height:100%;width:0%;transition:width .6s" id="rso-bar-prazo"></div>
+            <div style="background:var(--gold);height:100%;width:0%;transition:width .6s" id="rso-bar-atencao"></div>
+            <div style="background:var(--red);height:100%;width:0%;transition:width .6s" id="rso-bar-atraso"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Ações em aberto</span>
+          <span class="card-progress-pct" id="rso-abertas" style="color:var(--text-mute)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="rso-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#A6203C">Abrir plano de ação</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- COMPARATIVO DE COMPRAS (por unidade) -->
     <a class="card steel" href="#" id="card-compras" style="--steel-accent:#1F4E6B">
       <div class="card-bar" style="background:linear-gradient(90deg,#1F4E6B,#4d7d9e)"></div>
@@ -909,12 +970,46 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
+  /* ── PLANO DE AÇÃO · RSO ── */
+  async function loadRso(){
+    try{
+      const { data } = await sbGet('rso_plano_acao?select=id,status&ativo=eq.true');
+      const total = data.length;
+      const c = st => data.filter(r=>r.status===st).length;
+      const conc    = c('Concluído');
+      const canc    = c('Cancelado');
+      const atraso  = c('Atrasado');
+      const atencao = c('Atenção');
+      const prazo   = c('No Prazo');
+      const abertas = total - conc - canc;
+
+      setEl('rso-total',  fmt(total));
+      setEl('rso-atraso', fmt(atraso));
+      setEl('rso-conc',   fmt(conc));
+      setEl('rso-pct-label', total ? (pct(conc,total) + '% concluídas') : 'sem ações cadastradas');
+      setEl('rso-abertas', total
+        ? abertas + ' em aberto' + (atraso > 0 ? ' · ' + atraso + ' atrasada' + (atraso>1?'s':'') : '')
+        : '—');
+      setEl('rso-updated', timeAgo());
+
+      const set = (id,v)=>{ const b=document.getElementById(id); if(b) b.style.width = v + '%'; };
+      set('rso-bar-conc',    pct(conc,    total));
+      set('rso-bar-prazo',   pct(prazo,   total));
+      set('rso-bar-atencao', pct(atencao, total));
+      set('rso-bar-atraso',  pct(atraso,  total));
+
+      const ab = document.getElementById('rso-abertas');
+      if(ab) ab.style.color = atraso > 0 ? 'var(--red)' : 'var(--text-mute)';
+    } catch(_){}
+  }
+
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
     loadBasesCivis();
     loadLpsEi();
+    loadRso();
     setTimeout(loadAdmin, 300);
   });
 })();
