@@ -214,7 +214,7 @@
 'use strict';
 var L = window.LPS;
 if(!L.requireAuth()) return;
-var $ = L.$, esc = L.esc;
+var $ = L.$, esc = L.esc, nf = L.nf;
 
 L.renderShell({
   page:'contratos',
@@ -260,10 +260,17 @@ document.querySelectorAll('.tab').forEach(function(b){
   b.addEventListener('click', function(){
     document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
     b.classList.add('active');
-    if(b.dataset.tab === 'pacotes') renderPacotes();
     ['lista','cobertura','pacotes'].forEach(function(t){
       $('tab-'+t).classList.toggle('hide', t !== b.dataset.tab);
     });
+    if(b.dataset.tab === 'pacotes'){
+      try { renderPacotes(); }
+      catch(e){
+        $('tbPac').innerHTML = '<tr><td class="empty"><div class="big">⚠️</div>'
+          + esc(e.message) + '</td></tr>';
+        L.toast('Erro ao montar a matriz: ' + e.message, 'warn');
+      }
+    }
   });
 });
 
@@ -446,8 +453,12 @@ function renderPacotes(){
           if(!ex){
             cel = '<span class="muted">·</span>';
           } else if(cs.length){
-            cel = '<span class="pill g" title="'+esc(cs.map(function(c){ return c.empresa; }).join(' | '))+'">'
-                + esc(cs.map(curto).join(', ')).slice(0,42) + '</span>';
+            var qn = cs.map(curto);
+            qn = qn.filter(function(v,i){ return qn.indexOf(v) === i; });
+            cel = '<span class="pill g" title="'
+                + esc(cs.map(function(c){ return c.empresa + ' — ' + c.escopo; }).join('\n')) + '">'
+                + esc(qn.slice(0,2).join(', '))
+                + (qn.length > 2 ? ' +' + (qn.length - 2) : '') + '</span>';
           } else {
             cel = '<span class="pill r">falta</span>';
           }
