@@ -23,6 +23,7 @@
 
   <div class="tabs no-print">
     <button class="tab" data-tab="fontes">Fontes de Dados</button>
+    <button class="tab" data-tab="listas">Listas</button>
     <button class="tab active" data-tab="status">Status por Área</button>
     <button class="tab" data-tab="itens">Itens</button>
   </div>
@@ -87,6 +88,16 @@
         <button class="btn" id="btnDiag">🔎 Diagnosticar colunas</button>
         <span class="small muted" id="mapInfo"></span>
       </div>
+      <label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;cursor:pointer">
+        <input type="checkbox" id="chkSoDoc" style="margin-top:3px">
+        <span><b>Considerar apenas linhas vinculadas ao documento da lista</b><br>
+        <span class="muted">Com a opção ligada, uma linha do Tracker só é aproveitada se o documento
+        dela (coluna <span class="mono">DESCRICAO PROJETO</span>) for uma das TAGs das listas carregadas.
+        Evita que uma compra de outra lista, que por acaso usa o mesmo código de material, entre no
+        avanço da sua área. Desligada, o casamento também aceita só o código — cobre mais, com menos
+        precisão.</span></span>
+      </label>
+      <div class="small muted" id="matchInfo" style="margin-top:10px"></div>
       <div id="diagWrap" class="hide" style="margin-top:14px">
         <div class="notice" id="diagResumo"></div>
         <div class="tablewrap">
@@ -109,6 +120,56 @@
       <span class="small muted" id="snapInfo"></span>
     </div>
     <div id="histWrap"></div>
+  </section>
+
+  <!-- ================= ABA · LISTAS ================= -->
+  <section id="tab-listas" class="hide">
+    <div class="notice">
+      O <b>Tracker é a fonte de verdade sobre quais listas existem</b> — cada requisição
+      carrega o documento de origem na coluna <span class="mono">DESCRICAO PROJETO</span> e
+      a revisão em <span class="mono">VERSAO LM</span>. Esta tela cruza esse inventário com
+      as listas que você já subiu, para mostrar o que falta mapear.
+    </div>
+
+    <div class="kpis" id="lstKpis"></div>
+
+    <div class="toolbar">
+      <input class="f" id="lstBusca" placeholder="Buscar documento, área ou descrição..." style="flex:1;min-width:220px">
+      <select class="f" id="lstDisc">
+        <option value="EI">Só Elétrica e Instrumentação</option>
+        <option value="">Todas as disciplinas</option>
+        <option value="ELE">Elétrica</option>
+        <option value="AUT">Instrumentação</option>
+        <option value="ATR">Aterramento / SPDA</option>
+      </select>
+      <select class="f" id="lstSit">
+        <option value="">Todas as situações</option>
+        <option value="pendente">Pendentes de mapeamento</option>
+        <option value="desatualizada">Desatualizadas</option>
+        <option value="carregada">Em dia</option>
+        <option value="avulsa">Sem correspondência no Tracker</option>
+      </select>
+      <button class="btn" id="lstXls">↓ Excel</button>
+    </div>
+
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr>
+          <th style="width:34px">SIT.</th>
+          <th>DOCUMENTO</th>
+          <th>DISCIPLINA</th>
+          <th style="width:70px">ÁREA</th>
+          <th class="num" style="width:80px">REV. TRACKER</th>
+          <th style="width:96px">DATA LM</th>
+          <th class="num" style="width:80px">LINHAS</th>
+          <th class="num" style="width:90px">REV. CARREG.</th>
+          <th class="num" style="width:80px">ITENS</th>
+          <th>SITUAÇÃO</th>
+        </tr></thead>
+        <tbody id="lstBody"></tbody>
+      </table>
+    </div>
+    <div class="small muted" id="lstRodape" style="margin-top:10px"></div>
   </section>
 
   <!-- ================= ABA · STATUS POR ÁREA ================= -->
@@ -199,7 +260,8 @@ document.querySelectorAll('.tab').forEach(function(b){
   b.addEventListener('click', function(){
     document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
     b.classList.add('active');
-    ['fontes','status','itens'].forEach(function(t){
+    if(b.dataset.tab === 'listas') renderListas();
+    ['fontes','listas','status','itens'].forEach(function(t){
       $('tab-'+t).classList.toggle('hide', t !== b.dataset.tab);
     });
   });
@@ -228,13 +290,15 @@ function load(){
 
 function recompute(){
   try {
-    RES = M.build(DATA);
+    RES = M.build(DATA, { somenteDoc: !!(DATA.opts && DATA.opts.somenteDoc) });
+    renderMatchInfo();
   } catch(e){
     RES = null;
     L.toast('Erro ao consolidar: '+e.message, 'warn');
   }
   renderStatus();
   renderItens();
+  if(!$('tab-listas').classList.contains('hide')) renderListas();
   fillItFilters();
 }
 
@@ -277,8 +341,9 @@ $('fileTrk').addEventListener('change', function(e){
     }
     TRK_RAW = { aoa:r.aoa, headerRow:r.headerRow, header:r.header, arquivo:r.arquivo, aba:r.aba };
     DATA.tracker = {
-      arquivo: r.arquivo, carregado: r.carregado,
-      header: r.header, map: r.map, rows: r.rows
+      arquivo: r.arquivo, carregado: r.carregado, aba: r.aba,
+      header: r.header, map: r.map, rows: r.rows, docs: r.docs || {},
+      amostra: amostraCrua(r.aoa, r.headerRow)
     };
     DIRTY = true;
     recompute(); renderFontes(); renderMap(r.map);
@@ -305,16 +370,37 @@ function renderMap(map){
     s.addEventListener('change', atualizaPrevias);
   });
   atualizaPrevias();
-  $('mapInfo').textContent = TRK_RAW && TRK_RAW.aoa
-    ? 'Reprocessamento disponível nesta sessão.'
-    : 'Para alterar o mapeamento é preciso reenviar o arquivo do Tracker.';
-  $('btnRemap').disabled = !(TRK_RAW && TRK_RAW.aoa);
-  $('btnDiag').disabled  = !(TRK_RAW && TRK_RAW.aoa);
+  var vivo = !!(TRK_RAW && TRK_RAW.aoa);
+  if(!vivo){
+    document.querySelectorAll('.mapf').forEach(function(x){
+      x.disabled = true; x.title = 'Reenvie o arquivo do Tracker para poder alterar';
+    });
+  }
+  $('btnRemap').disabled = !vivo;
+  $('btnDiag').disabled  = !fonteCrua();
+}
+
+/* Guarda as primeiras linhas cruas do Tracker junto do snapshot, para que
+   o diagnóstico funcione depois sem precisar reenviar o arquivo. */
+function amostraCrua(aoa, hr){
+  if(!aoa || !aoa.length) return null;
+  return { headerRow: 0, linhas: aoa.slice(hr, hr + 301) };
+}
+
+/* Fonte de dados crus disponível: arquivo da sessão (completo) ou
+   amostra gravada no snapshot (parcial). */
+function fonteCrua(){
+  if(TRK_RAW && TRK_RAW.aoa) return { aoa: TRK_RAW.aoa, hr: TRK_RAW.headerRow, parcial: false };
+  var am = DATA.tracker && DATA.tracker.amostra;
+  if(am && am.linhas && am.linhas.length) return { aoa: am.linhas, hr: am.headerRow, parcial: true };
+  return null;
 }
 
 /* Estatística de uma coluna do arquivo cru do Tracker */
-function colStats(j){
-  var aoa = TRK_RAW.aoa, hr = TRK_RAW.headerRow;
+function colStats(j, src){
+  src = src || fonteCrua();
+  if(!src) return { total:0, cheias:0, uteis:0, ex:[] };
+  var aoa = src.aoa, hr = src.hr;
   var total = 0, cheias = 0, uteis = 0, ex = [];
   for(var i = hr + 1; i < aoa.length; i++){
     var r = aoa[i] || [];
@@ -331,41 +417,211 @@ function colStats(j){
 
 /* Linha de prévia embaixo de cada seletor */
 function atualizaPrevias(){
-  var temAoa = !!(TRK_RAW && TRK_RAW.aoa);
+  var src = fonteCrua();
   document.querySelectorAll('.mapprev').forEach(function(d){
     var s = document.querySelector('.mapf[data-k="'+d.dataset.k+'"]');
-    if(!temAoa || !s || s.value === ''){ d.textContent = ''; return; }
-    var st = colStats(parseInt(s.value, 10));
+    if(!src || !s || s.value === ''){ d.textContent = ''; return; }
+    var st = colStats(parseInt(s.value, 10), src);
     var pc = st.total ? Math.round(st.cheias / st.total * 100) : 0;
     d.innerHTML = '<b'+(pc === 0 ? ' style="color:var(--red)"' : '')+'>'
       + nf(st.cheias) + ' de ' + nf(st.total) + ' (' + pc + '%)</b>'
+      + (src.parcial ? ' <i>amostra</i>' : '')
       + (st.ex.length ? ' · ' + esc(st.ex.join(' | ')).slice(0, 90) : ' · coluna vazia');
   });
+
+  var vivo = !!(TRK_RAW && TRK_RAW.aoa);
+  var linhas = (DATA.tracker && DATA.tracker.rows) ? DATA.tracker.rows.length : 0;
   var sc = document.querySelector('.mapf[data-k="cod"]');
-  if(temAoa && sc && sc.value !== ''){
-    var s2 = colStats(parseInt(sc.value, 10));
-    $('mapInfo').innerHTML = s2.uteis
+  var msg = '';
+
+  if(!vivo){
+    msg = '<b style="color:var(--gold)">Estes seletores estão apenas exibindo o mapeamento salvo.</b> '
+        + 'Mudá-los aqui não altera nada — para trocar de coluna é preciso reenviar o arquivo do Tracker '
+        + 'no passo 2. Snapshot atual: <b>' + nf(linhas) + '</b> linhas aproveitadas'
+        + (linhas ? '.' : ' — por isso todos os itens aparecem como não pedidos.');
+  } else if(sc && sc.value !== ''){
+    var s2 = colStats(parseInt(sc.value, 10), src);
+    msg = s2.uteis
       ? '<b>' + nf(s2.uteis) + '</b> linhas seriam mantidas com esta coluna de código.'
       : '<b style="color:var(--red)">Nenhuma linha seria mantida</b> — esta coluna está vazia '
         + 'ou só tem marcadores (TERCEIRO, N/A, "-"). Use o diagnóstico ao lado.';
   }
+  if(msg) $('mapInfo').innerHTML = msg;
 }
 
+/* ================= ABA · LISTAS ================= */
+var INV = null;
+
+var SIT_META = {
+  carregada:     { dot:'g', pill:'g', txt:'Em dia' },
+  desatualizada: { dot:'y', pill:'y', txt:'Desatualizada' },
+  pendente:      { dot:'r', pill:'r', txt:'Pendente de mapeamento' },
+  avulsa:        { dot:'n', pill:'n', txt:'Sem corresp. no Tracker' }
+};
+
+function renderListas(){
+  try { INV = M.inventarioListas(DATA); }
+  catch(e){ INV = null; L.toast('Erro ao montar o inventário: '+e.message,'warn'); }
+
+  var todos = INV || [];
+  if(!DATA.tracker){
+    $('lstKpis').innerHTML = '';
+    $('lstBody').innerHTML = '<tr><td colspan="10" class="empty">'
+      + '<b>Envie o Tracker primeiro.</b><br><span class="small">É dele que sai a relação '
+      + 'de documentos existentes e a revisão de cada um.</span></td></tr>';
+    $('lstRodape').textContent = '';
+    return;
+  }
+  if(DATA.tracker && !Object.keys(DATA.tracker.docs || {}).length){
+    $('lstKpis').innerHTML = '';
+    $('lstBody').innerHTML = '<tr><td colspan="10" class="empty">'
+      + '<b>A coluna do documento não está mapeada.</b><br><span class="small">Em '
+      + 'Fontes de Dados, aponte <b>Documento da lista (LM)</b> para a coluna '
+      + '<span class="mono">DESCRICAO PROJETO</span> e reprocesse.</span></td></tr>';
+    $('lstRodape').textContent = '';
+    return;
+  }
+
+  /* KPIs sempre sobre o universo E&I, que é o escopo do módulo */
+  var ei = todos.filter(function(x){ return x.ei; });
+  var k = { pend:0, desat:0, ok:0, avulsa:0, linhasPend:0, linhasTot:0 };
+  ei.forEach(function(x){
+    k.linhasTot += x.linhas;
+    if(x.sit === 'pendente'){ k.pend++; k.linhasPend += x.linhas; }
+    else if(x.sit === 'desatualizada') k.desat++;
+    else if(x.sit === 'avulsa') k.avulsa++;
+    else k.ok++;
+  });
+  var cob = k.linhasTot ? Math.round((k.linhasTot - k.linhasPend) / k.linhasTot * 100) : 0;
+  $('lstKpis').innerHTML = [
+    ['Documentos E&I', nf(ei.length), ''],
+    ['Em dia', nf(k.ok), 'g'],
+    ['Desatualizadas', nf(k.desat), 'y'],
+    ['Pendentes', nf(k.pend), 'r'],
+    ['Cobertura das linhas', cob + '%', cob >= 80 ? 'g' : (cob >= 40 ? 'y' : 'r')]
+  ].map(function(a){
+    return '<div class="kpi"><div class="kpi-val'+(a[2]?' '+a[2]:'')+'">'+a[1]+'</div>'
+      + '<div class="kpi-lab">'+a[0]+'</div></div>';
+  }).join('');
+
+  var q  = L.deacc($('lstBusca').value);
+  var fd = $('lstDisc').value;
+  var fs2 = $('lstSit').value;
+
+  var lin = todos.filter(function(x){
+    if(fd === 'EI'){ if(!x.ei) return false; }
+    else if(fd && x.disc !== fd) return false;
+    if(fs2 && x.sit !== fs2) return false;
+    if(q && L.deacc(x.tag + ' ' + x.desc + ' ' + x.area + ' ' + x.discNome).indexOf(q) < 0) return false;
+    return true;
+  });
+
+  $('lstBody').innerHTML = lin.length ? lin.map(function(x){
+    var meta = SIT_META[x.sit] || SIT_META.pendente;
+    var revT = x.revTracker == null ? '—' : x.revTracker;
+    var revC = x.revCarregada == null ? '—' : x.revCarregada;
+    var alerta = x.sit === 'desatualizada'
+      ? ' <span class="tag b">rev '+revC+' → '+revT+'</span>' : '';
+    var tipo = x.srcLista ? ' <span class="tag">'+esc(x.srcLista)+'</span>' : '';
+    var erro = x.malformado ? ' <span class="tag b" title="TAG fora do padrão EMPRESA-LM-DISCIPLINA-AREA-SEQ">tag irregular</span>' : '';
+    return '<tr>'
+      + '<td><span class="dot '+meta.dot+'"></span></td>'
+      + '<td><b class="mono">'+esc(x.tag)+'</b>'+erro+tipo
+      +   (x.desc ? '<div class="small muted">'+esc(x.desc)+'</div>' : '')+'</td>'
+      + '<td>'+esc(x.discNome || '—')+'</td>'
+      + '<td class="mono">'+esc(x.area || '—')+'</td>'
+      + '<td class="num mono">'+revT+'</td>'
+      + '<td class="mono">'+(x.dataTracker ? L.fmtBr(x.dataTracker) : '—')+'</td>'
+      + '<td class="num mono">'+nf(x.linhas)+'</td>'
+      + '<td class="num mono">'+revC+'</td>'
+      + '<td class="num mono">'+(x.itens ? nf(x.itens) : '—')+'</td>'
+      + '<td><span class="pill '+meta.pill+'">'+meta.txt+'</span>'+alerta+'</td>'
+      + '</tr>';
+  }).join('') : '<tr><td colspan="10" class="empty">nenhum documento com esses filtros</td></tr>';
+
+  var outros = todos.length - ei.length;
+  $('lstRodape').innerHTML = nf(lin.length) + ' de ' + nf(todos.length)
+    + ' documentos encontrados no Tracker'
+    + (outros ? ' · ' + nf(outros) + ' são de outras disciplinas (caldeiraria, processo, civil...) '
+      + 'e não entram nos indicadores acima' : '')
+    + (k.avulsa ? ' · ' + nf(k.avulsa) + ' lista(s) carregada(s) que o Tracker não reconhece — '
+      + 'confira se a TAG do documento está escrita igual' : '');
+}
+
+['lstBusca','lstDisc','lstSit'].forEach(function(id){
+  $(id).addEventListener('input', renderListas);
+  $(id).addEventListener('change', renderListas);
+});
+
+$('lstXls').addEventListener('click', function(){
+  if(!INV || !INV.length) return L.toast('Nada para exportar.','warn');
+  var aoa = [['Situação','Documento','Descrição','Empresa','Disciplina','Área',
+              'Rev. no Tracker','Data LM','Linhas no Tracker','Rev. carregada',
+              'Itens carregados','Arquivo','Modelo','Carregado em']];
+  INV.forEach(function(x){
+    aoa.push([
+      (SIT_META[x.sit] || {}).txt || x.sit, x.tag, x.desc, x.emp, x.discNome, x.area,
+      x.revTracker == null ? '' : x.revTracker,
+      x.dataTracker ? L.fmtBr(x.dataTracker) : '',
+      x.linhas, x.revCarregada == null ? '' : x.revCarregada,
+      x.itens || '', x.arquivo, x.srcLista,
+      x.carregadoEm ? L.fmtTS(x.carregadoEm) : ''
+    ]);
+  });
+  L.exportXlsx([{ nome:'Listas', aoa:aoa, cols:[{wch:30},{wch:30},{wch:42},{wch:12},{wch:18},
+    {wch:9},{wch:14},{wch:12},{wch:16},{wch:14},{wch:16},{wch:30},{wch:10},{wch:18}] }],
+    'lps_ei_listas_' + L.unidade() + '_' + L.stamp() + '.xlsx');
+});
+
+function renderMatchInfo(){
+  var el = $('matchInfo'); if(!el) return;
+  var t = RES && RES.tot; var c = t && t.match;
+  if(!c){ el.textContent = ''; return; }
+  el.innerHTML = 'Casamento das ' + nf(t.trackerRows) + ' linhas do Tracker: '
+    + '<b>' + nf(c.line) + '</b> por line number · '
+    + '<b>' + nf(c.doc) + '</b> por documento + código · '
+    + '<b>' + nf(c.cod) + '</b> só por código · '
+    + nf(c.orfa + c.ignoradas) + ' sem correspondência nas listas carregadas.<br>'
+    + 'Dos ' + nf(t.itens) + ' itens de demanda, <b>' + nf(t.semTracker)
+    + '</b> não foram encontrados no Tracker (aparecem como não pedidos).';
+}
+
+$('chkSoDoc').addEventListener('change', function(){
+  DATA.opts = DATA.opts || {};
+  DATA.opts.somenteDoc = this.checked;
+  DIRTY = true;
+  recompute(); renderFontes();
+});
+
 $('btnDiag').addEventListener('click', function(){
-  if(!TRK_RAW || !TRK_RAW.aoa) return;
+  var src = fonteCrua();
+  if(!src) return;
   var w = $('diagWrap');
   if(!w.classList.contains('hide')){ w.classList.add('hide'); return; }
   w.classList.remove('hide');
-  var header = TRK_RAW.header || [];
-  var linhas = header.map(function(h, j){ return { j: j, h: h, st: colStats(j) }; });
+  var T = DATA.tracker || {};
+  var header = (TRK_RAW && TRK_RAW.header) || T.header || [];
+  var linhas = header.map(function(h, j){ return { j: j, h: h, st: colStats(j, src) }; });
   var tot = linhas.length ? linhas[0].st.total : 0;
   var vazias = linhas.filter(function(x){ return x.st.cheias === 0; }).length;
-  $('diagResumo').innerHTML = 'Arquivo <b>' + esc(TRK_RAW.arquivo || '') + '</b> · aba <b>'
-    + esc(TRK_RAW.aba || '') + '</b> · cabeçalho na linha <b>' + (TRK_RAW.headerRow + 1)
-    + '</b> · <b>' + nf(tot) + '</b> linhas de dados · <b>' + linhas.length
-    + '</b> colunas, sendo <b>' + vazias + '</b> completamente vazias.<br>'
-    + 'Procure a coluna que realmente contém o código usado nas listas '
-    + '(CB.ATR.70, CB.CORD.2.50…) e selecione-a em <b>Código do material</b>.';
+  var codsLista = {};
+  (DATA.listas || []).forEach(function(l){
+    (l.items || []).slice(0, 400).forEach(function(it){
+      var c = String(it[M.IDX.COD] == null ? '' : it[M.IDX.COD]).trim();
+      if(c) codsLista[c] = 1;
+    });
+  });
+  var amostraCods = Object.keys(codsLista).slice(0, 6).join('  |  ');
+  $('diagResumo').innerHTML = 'Arquivo <b>' + esc((TRK_RAW && TRK_RAW.arquivo) || T.arquivo || '')
+    + '</b> · aba <b>' + esc((TRK_RAW && TRK_RAW.aba) || T.aba || '') + '</b>'
+    + ' · <b>' + nf(tot) + '</b> linhas analisadas' + (src.parcial ? ' <i>(amostra do snapshot)</i>' : '')
+    + ' · <b>' + linhas.length + '</b> colunas, sendo <b>' + vazias + '</b> vazias.<br>'
+    + (amostraCods
+        ? 'Códigos usados <b>nas suas listas</b>: <span class="mono">' + esc(amostraCods) + '</span><br>'
+        : '')
+    + 'Procure abaixo a coluna cujos valores tenham essa mesma cara e selecione-a em '
+    + '<b>Código do material</b>. Se nenhuma coluna bater, o Tracker não carrega esse código '
+    + 'e será preciso um de-para.';
   $('diagBody').innerHTML = linhas.map(function(x){
     var pc = x.st.total ? Math.round(x.st.cheias / x.st.total * 100) : 0;
     var cor = pc === 0 ? 'var(--red)' : (pc < 50 ? 'var(--gold)' : 'var(--green)');
@@ -386,8 +642,10 @@ $('btnRemap').addEventListener('click', function(){
   if(map.cod == null) return L.toast('Selecione a coluna do código do material.','warn');
   var rows = M.buildTrackerRows(TRK_RAW.aoa, TRK_RAW.headerRow, map);
   DATA.tracker = {
-    arquivo: TRK_RAW.arquivo, carregado: new Date().toISOString(),
-    header: TRK_RAW.header, map: map, rows: rows
+    arquivo: TRK_RAW.arquivo, carregado: new Date().toISOString(), aba: TRK_RAW.aba,
+    header: TRK_RAW.header, map: map, rows: rows,
+    docs: M.buildDocs(TRK_RAW.aoa, TRK_RAW.headerRow, map),
+    amostra: amostraCrua(TRK_RAW.aoa, TRK_RAW.headerRow)
   };
   DIRTY = true;
   recompute(); renderFontes();
@@ -428,6 +686,7 @@ function renderFontes(){
     recompute(); renderFontes(); $('mapWrap').classList.add('hide');
   });
 
+  $('chkSoDoc').checked = !!(DATA.opts && DATA.opts.somenteDoc);
   if(DATA.tracker && DATA.tracker.header && !$('mapFields').innerHTML) renderMap(DATA.tracker.map || {});
 
   $('snapInfo').innerHTML = SNAP
@@ -477,6 +736,14 @@ $('btnPub').addEventListener('click', function(){
 
   var payload = Object.assign({}, DATA);
   if(RES) payload.resumo = M.resumoParaSnapshot(RES);
+
+  if(DATA.tracker && (!DATA.tracker.rows || !DATA.tracker.rows.length)
+     && !confirm('O Tracker está carregado mas com ZERO linhas aproveitadas.\n\n'
+        + 'Publicar assim faz todos os itens aparecerem como "não pedido". '
+        + 'Reenvie o arquivo do Tracker e use "Diagnosticar colunas" antes.\n\n'
+        + 'Publicar mesmo assim?')){
+    return;
+  }
 
   var mb = JSON.stringify(payload).length / 1048576;
   if(mb > 25 && !confirm('Este snapshot tem cerca de ' + mb.toFixed(1) + ' MB.\n\n'

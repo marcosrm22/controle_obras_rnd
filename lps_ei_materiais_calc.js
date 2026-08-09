@@ -71,7 +71,20 @@
      Só vira número quando a célula é inteiramente numérica — códigos
      alfanuméricos (CB.ATR.70, HT.SR.3/4.3000) precisam ser preservados
      como texto, senão viram lixo e colidem entre si. */
+  /* O export do Tracker traz a coluna do código com formato de DATA aplicado.
+     Com cellDates o SheetJS devolve um Date e o código (64953) viraria
+     "Sat Oct 30 2077...". Aqui o número de série do Excel é recuperado. */
+  function serialDoExcel(d) {
+    var ms = d.getTime() - Date.UTC(1899, 11, 30);
+    var n = Math.round(ms / 86400000);
+    return (n > 0 && n < 400000) ? n : null;
+  }
+
   function normCod(v) {
+    if (v instanceof Date && !isNaN(v)) {
+      var n = serialDoExcel(v);
+      if (n != null) return n;
+    }
     var s = String(v == null ? '' : v).trim();
     if (!s) return '';
     if (/^\d+$/.test(s)) return parseInt(s, 10);
@@ -82,6 +95,7 @@
   /* Códigos que a lista traz no lugar de um código real */
   var COD_VAZIO = /^(TERCEIRO|TERCEIROS|A\s*DEFINIR|A\s*COTAR|A\s*ESPECIFICAR|SEM\s*CODIGO|OMISSO|OMISSOS|N\/?A|NA|VB|X|-+|\.+)$/;
   function codIgnoravel(c) {
+    if (c instanceof Date) return serialDoExcel(c) == null;
     var s = deacc(c);
     return !s || COD_VAZIO.test(s) || s.length > 60;
   }
@@ -225,7 +239,9 @@
       /* fora da tabela (Notas:, assinaturas) → encerra a leitura */
       if (item && !/^\d+(\.\d+)*\.?$/.test(item)) break;
 
-      var codRaw = String(iCod >= 0 ? r[iCod] : '').trim();
+      var codRaw = iCod >= 0 ? r[iCod] : '';
+      if (codRaw instanceof Date) codRaw = String(normCod(codRaw));
+      codRaw = String(codRaw == null ? '' : codRaw).trim();
       var desc   = String(iDesc >= 0 ? r[iDesc] : '').trim();
 
       /* linha de grupo: item "1." sem código, descrição é o título */
@@ -255,7 +271,7 @@
     var mrev = base.match(/[-_]R(?:EV)?[\s_-]*(\d+)/i);
 
     return {
-      tag: base, rev: mrev ? mrev[1] : '', cat: 'Aterramento / SPDA',
+      tag: base, tags: [base], rev: mrev ? mrev[1] : '', cat: 'Aterramento / SPDA',
       nome: disc || 'Lista ON7 — Aterramento',
       src: 'ON7',
       area: areaTxt,
@@ -339,14 +355,23 @@
       rev = String(rev).replace(/\.0+$/, '');
       if (!rev) { var m = file.name.match(/REV[\s_-]*(\d+)/i); if (m) rev = m[1]; }
       if (!tag) tag = file.name.replace(/\.[^.]+$/, '');
+      /* a lista pode declarar mais de uma TAG (ex.: TAG DOCUMENTO + TAG DOCUMENTO ON7);
+         todas valem para casar com o documento gravado no Tracker */
+      var tags = [tag];
+      Object.keys(meta).forEach(function (k) {
+        if (k.indexOf('TAG') !== 0) return;
+        var v = String(meta[k] || '').trim();
+        if (v && tags.indexOf(v) < 0) tags.push(v);
+      });
 
       var items = [];
       for (var i = hr + 1; i < aoa.length; i++) {
         var r = aoa[i] || [];
-        var codRaw = String(iCod >= 0 ? r[iCod] : '').trim();
-        if (!codRaw) continue;
+        var codRaw = iCod >= 0 ? r[iCod] : '';
+        if (codRaw == null || String(codRaw).trim() === '') continue;
         var cod = normCod(codRaw);
-        var ref = String(iRef >= 0 ? r[iRef] : '').trim();
+        var refRaw = iRef >= 0 ? r[iRef] : '';
+        var ref = (refRaw == null || refRaw === '') ? '' : String(normCod(refRaw));
         var qtd = iQtdI >= 0 ? parseNum(r[iQtdI]) : 0;
         if (!qtd) qtd = parseNum(iQtd >= 0 ? r[iQtd] : 0) || parseNum(iComp >= 0 ? r[iComp] : 0);
         items.push([
@@ -363,7 +388,7 @@
       if (!items.length) return { err: 'nenhum item encontrado abaixo do cabeçalho', name: file.name };
 
       return {
-        tag: tag, rev: rev, cat: cat,
+        tag: tag, tags: tags, rev: rev, cat: cat,
         nome: descDoc || cat || tag,
         src: isPacs ? 'PACS' : 'APLUS',
         arquivo: file.name,
@@ -382,22 +407,30 @@
      ================================================================ */
 
   var TRACKER_FIELDS = [
-    { k: 'cod',    label: 'Código do material', req: true,
+    { k: 'cod',    label: 'Código do material (sistema)', req: true,
       hints: ['COD MATERIAL', 'CODIGO MATERIAL', 'COD. MATERIAL', 'MATERIAL', 'COD SAP', 'CODIGO', 'COD', 'ITEM'] },
+    { k: 'cod2',   label: 'Código interno / ref. engenharia', req: false,
+      hints: ['CODIGO INTERNO', 'COD INTERNO', 'REFERENCIA ENGENHARIA', 'REF ENGENHARIA', 'CODIGO ENGENHARIA', 'TAG MATERIAL'] },
+    { k: 'doc',    label: 'Documento da lista (LM)', req: false,
+      hints: ['DESCRICAO PROJETO', 'DESC PROJETO', 'PROJETO', 'DOCUMENTO', 'LISTA DE MATERIAL', 'TAG DOCUMENTO', 'COD_PROJETO'] },
+    { k: 'docrev', label: 'Revisão do documento', req: false,
+      hints: ['VERSAO LM', 'VERSAO LISTA', 'REVISAO LM', 'REV LM', 'VERSAO DOCUMENTO'] },
+    { k: 'docdata',label: 'Data do documento', req: false,
+      hints: ['DATA LM', 'DATA LISTA', 'DATA DOCUMENTO', 'DATA REVISAO'] },
     { k: 'desc',   label: 'Descrição', req: false,
-      hints: ['DESCRICAO MATERIAL', 'DESCRICAO', 'DESCRIPTION', 'TEXTO BREVE'] },
+      hints: ['DESC MATERIAL', 'DESCRICAO MATERIAL', 'DESCRICAO DO MATERIAL', 'DESCRIPTION', 'TEXTO BREVE', 'DESCRICAO'] },
     { k: 'un',     label: 'Unidade', req: false,
-      hints: ['UNIDADE MEDIDA', 'UN MEDIDA', 'BITOLA', 'UNIDADE', 'UM', 'UN'] },
+      hints: ['COD UNIDADE', 'UNIDADE MEDIDA', 'UN MEDIDA', 'UNIDADE DE MEDIDA', 'BITOLA', 'UM'] },
     { k: 'area',   label: 'Área', req: false,
       hints: ['AREA DESTINO', 'AREA OBRA', 'AREA', 'SETOR', 'LOCAL'] },
-    { k: 'line',   label: 'Line Number', req: false,
-      hints: ['LINE NUMBER', 'LINENUMBER', 'LINHA', 'ITEM LISTA', 'TAG'] },
+    { k: 'line',   label: 'Line Number (da lista)', req: false,
+      hints: ['LINE NUMBER', 'LINENUMBER', 'LINE  NUMBER', 'ITEM LISTA', 'NUMERO DA LINHA'] },
     { k: 'q_sol',  label: 'Qtd. solicitada', req: false,
       hints: ['QTD SOLICITADA', 'QUANTIDADE SOLICITADA', 'QTD REQUISITADA', 'QTD LISTA', 'QTD PREVISTA', 'QTD'] },
     { k: 'q_ped',  label: 'Qtd. pedida (OC)', req: false,
       hints: ['QTD PEDIDA', 'QUANTIDADE PEDIDA', 'QTD COMPRADA', 'QTD OC', 'QTD PEDIDO'] },
     { k: 'q_rec',  label: 'Qtd. recebida', req: false,
-      hints: ['QTD RECEBIDA', 'QUANTIDADE RECEBIDA', 'QTD ENTREGUE', 'RECEBIDO', 'QTD RECEB'] },
+      hints: ['QTDE_TOTAL_FATURADA', 'QTD RECEBIDA', 'QUANTIDADE RECEBIDA', 'QTDE TOTAL FATURADA', 'QTD FATURADA', 'QTD ENTREGUE', 'QTD RECEB'] },
     { k: 'status', label: 'Status', req: false,
       hints: ['STATUS ITEM', 'STATUS MATERIAL', 'SITUACAO', 'STATUS'] },
     { k: 'pedido', label: 'Nº do pedido / OC', req: false,
@@ -425,7 +458,7 @@
     });
     /* evita que dois campos apontem para a mesma coluna por engano */
     var used = {};
-    ['cod', 'q_rec', 'q_ped', 'q_sol', 'status', 'line', 'area', 'desc'].forEach(function (k) {
+    ['cod', 'cod2', 'doc', 'q_rec', 'q_ped', 'q_sol', 'status', 'line', 'area', 'desc'].forEach(function (k) {
       if (map[k] == null) return;
       if (used[map[k]]) delete map[k]; else used[map[k]] = k;
     });
@@ -464,6 +497,7 @@
         aba: alvo.name,
         carregado: new Date().toISOString(),
         header: header,
+        docs: buildDocs(aoa, hr, map),
         headerRow: hr,
         map: map,
         rows: rows,
@@ -482,7 +516,25 @@
     if (m) return m[3] + '-' + m[2] + '-' + m[1];
     m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (m) return m[0];
+    /* número de série do Excel (a coluna veio como número, sem formato) */
+    if (/^\d{5}(\.\d+)?$/.test(s)) {
+      var n = parseFloat(s);
+      if (n > 20000 && n < 80000) {
+        return L.toISO(new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000));
+      }
+    }
     return null;
+  }
+
+  /* "APLUS-LM-CAL-2300-001 - LISTA DE MATERIAL DE TUBULACAO" -> "APLUS-LM-CAL-2300-001"
+     Isola a TAG do documento para casar com a TAG das listas carregadas. */
+  var RE_TAG = /([A-Z0-9]{2,12}-LM-[A-Z]{2,5}-[0-9][0-9.A-Z]*-\d+)/;
+  function normDoc(v) {
+    var s = deacc(v);
+    if (!s) return '';
+    var m = s.match(RE_TAG);
+    if (m) return m[1];
+    return s.split(' - ')[0].trim().slice(0, 60);
   }
 
   function buildTrackerRows(aoa, hr, map) {
@@ -490,12 +542,16 @@
     var out = [];
     for (var i = hr + 1; i < aoa.length; i++) {
       var r = aoa[i] || [];
-      var codRaw = String(g(r, 'cod') || '').trim();
-      if (!codRaw || codIgnoravel(codRaw)) continue;
+      var codRaw = g(r, 'cod');
+      if (codRaw == null || codRaw === '' || codIgnoravel(codRaw)) continue;
       var cod = normCod(codRaw);
+      var c2Raw = g(r, 'cod2');
       var stTxt = String(g(r, 'status') || '').trim();
       out.push({
         cod: cod,
+        cod2: (c2Raw == null || c2Raw === '' || codIgnoravel(c2Raw)) ? '' : normCod(c2Raw),
+        doc: normDoc(g(r, 'doc')),
+        docrev: String(g(r, 'docrev') || '').trim(),
         desc: String(g(r, 'desc') || '').trim().slice(0, 120),
         un: String(g(r, 'un') || '').trim(),
         area: String(g(r, 'area') || '').trim(),
@@ -524,6 +580,144 @@
      ================================================================ */
 
   function normLine(s) { return deacc(s).replace(/[^A-Z0-9]/g, ''); }
+
+  /* ----------------------------------------------------------------
+     Inventário de documentos (listas de material) a partir do Tracker.
+     O Tracker é a fonte de verdade sobre QUAIS listas existem e em que
+     revisão estão; as listas carregadas dizem quais já foram mapeadas.
+     ---------------------------------------------------------------- */
+
+  var DISC_LM = {
+    ELE: 'Elétrica', AUT: 'Instrumentação', ATR: 'Aterramento / SPDA',
+    INS: 'Instrumentação', CAL: 'Caldeiraria', PRO: 'Processo',
+    CIV: 'Civil', DRE: 'Drenagem', MEC: 'Mecânica', TUB: 'Tubulação'
+  };
+  var DISC_EI = ['ELE', 'AUT', 'ATR', 'INS'];
+
+  /* "APLUS-LM-CAL-2300-001" → { emp, disc, area, seq } */
+  function partesTag(tag) {
+    var m = String(tag || '').toUpperCase()
+      .match(/^([A-Z0-9]+)-LM-([A-Z]{2,5})-([0-9][0-9.A-Z]*)-(\d+)$/);
+    if (!m) return null;
+    return { emp: m[1], disc: m[2], area: m[3], seq: m[4] };
+  }
+
+  function revNum(v) {
+    if (v instanceof Date && !isNaN(v)) {
+      var sr = serialDoExcel(v);
+      return sr != null && sr < 500 ? sr : null;   // rev 1..n virou data no export
+    }
+    var n = parseInt(String(v == null ? '' : v).replace(/[^\d]/g, ''), 10);
+    if (isNaN(n) || n > 999) return null;
+    return n;
+  }
+
+  /* Varre o arquivo cru do Tracker e devolve um mapa de documentos.
+     Feito sobre o AOA (e não sobre rows) para preservar a descrição
+     completa, que não vale a pena repetir linha a linha. */
+  function buildDocs(aoa, hr, map) {
+    if (map.doc == null) return {};
+    var g = function (r, k) { return map[k] == null ? '' : r[map[k]]; };
+    var docs = {};
+    for (var i = hr + 1; i < aoa.length; i++) {
+      var r = aoa[i] || [];
+      var bruto = String(g(r, 'doc') || '').trim();
+      if (!bruto) continue;
+      var tag = normDoc(bruto);
+      if (!tag) continue;
+      var d = docs[tag];
+      if (!d) {
+        d = docs[tag] = { tag: tag, desc: '', revs: [], rev: null, data: '', n: 0 };
+        var resto = bruto.replace(/^[^-]*-LM-[^\s]*\s*-?\s*/i, '').trim();
+        d.desc = (resto || bruto).slice(0, 120);
+      }
+      d.n++;
+      var rv = revNum(g(r, 'docrev'));
+      if (rv != null && d.revs.indexOf(rv) < 0) d.revs.push(rv);
+      var dt = cellDate(g(r, 'docdata'));
+      if (dt && (!d.data || dt > d.data)) d.data = dt;
+    }
+    Object.keys(docs).forEach(function (k) {
+      var d = docs[k];
+      d.revs.sort(function (a, b) { return a - b; });
+      d.rev = d.revs.length ? d.revs[d.revs.length - 1] : null;
+      var p = partesTag(k);
+      d.emp = p ? p.emp : '';
+      d.disc = p ? p.disc : '';
+      d.discNome = p ? (DISC_LM[p.disc] || p.disc) : '';
+      d.area = p ? p.area : '';
+      d.ei = !!(p && DISC_EI.indexOf(p.disc) > -1);
+      d.malformado = !p;
+    });
+    return docs;
+  }
+
+  /* Cruza o inventário do Tracker com as listas efetivamente carregadas.
+     Situações:
+       carregada     — subida e na mesma revisão do Tracker
+       desatualizada — subida numa revisão anterior à do Tracker
+       pendente      — existe no Tracker e nunca foi subida
+       avulsa        — subida mas o Tracker não conhece o documento */
+  function inventarioListas(dados) {
+    var tracker = (dados && dados.tracker) || null;
+    var docs = (tracker && tracker.docs) || {};
+    var listas = (dados && dados.listas) || [];
+
+    /* índice das listas carregadas por cada TAG que elas declaram */
+    var porTag = {};
+    listas.forEach(function (l) {
+      (l.tags || [l.tag]).forEach(function (tg) {
+        var n = normDoc(tg);
+        if (n) porTag[n] = l;
+      });
+    });
+
+    var out = [], vistas = [];
+    Object.keys(docs).forEach(function (k) {
+      var d = docs[k];
+      var l = porTag[k] || null;
+      if (l && vistas.indexOf(l) < 0) vistas.push(l);
+      var revCarregada = l ? revNum(l.rev) : null;
+      var sit = !l ? 'pendente'
+        : (d.rev != null && revCarregada != null && revCarregada < d.rev) ? 'desatualizada'
+        : 'carregada';
+      out.push({
+        tag: d.tag, desc: d.desc, emp: d.emp, disc: d.disc, discNome: d.discNome,
+        area: d.area, ei: d.ei, malformado: d.malformado,
+        revTracker: d.rev, revs: d.revs, dataTracker: d.data, linhas: d.n,
+        carregada: !!l, revCarregada: revCarregada,
+        arquivo: l ? (l.arquivo || l.tag) : '', srcLista: l ? l.src : '',
+        itens: l ? (l.items || []).length : 0,
+        carregadoEm: l ? l.carregado : '',
+        sit: sit
+      });
+    });
+
+    /* listas carregadas que o Tracker não conhece */
+    listas.forEach(function (l) {
+      if (vistas.indexOf(l) > -1) return;
+      var p = partesTag(normDoc(l.tag));
+      out.push({
+        tag: l.tag, desc: l.nome || '', emp: p ? p.emp : '',
+        disc: p ? p.disc : '', discNome: p ? (DISC_LM[p.disc] || p.disc) : '',
+        area: p ? p.area : (l.area || ''), ei: !p || DISC_EI.indexOf(p.disc) > -1,
+        malformado: !p,
+        revTracker: null, revs: [], dataTracker: '', linhas: 0,
+        carregada: true, revCarregada: revNum(l.rev),
+        arquivo: l.arquivo || l.tag, srcLista: l.src,
+        itens: (l.items || []).length, carregadoEm: l.carregado,
+        sit: 'avulsa'
+      });
+    });
+
+    out.sort(function (a, b) {
+      if (a.ei !== b.ei) return a.ei ? -1 : 1;
+      var o = { pendente: 0, desatualizada: 1, avulsa: 2, carregada: 3 };
+      if (o[a.sit] !== o[b.sit]) return o[a.sit] - o[b.sit];
+      return b.linhas - a.linhas;
+    });
+    return out;
+  }
 
   function build(dados, opts) {
     var o = opts || {};
@@ -555,6 +749,11 @@
             pedidos: [], fornec: [], prev: null, matched: false
           };
         }
+        if (!d.docs) d.docs = [];
+        (L2.tags || [L2.tag]).forEach(function (tg) {
+          var n = normDoc(tg);
+          if (n && d.docs.indexOf(n) < 0) d.docs.push(n);
+        });
         d.qtd += parseNum(it[IDX.QTD]);
         d.peso += parseNum(it[IDX.PESO]);
         if (line && d.lines.indexOf(line) < 0) d.lines.push(line);
@@ -567,74 +766,109 @@
       });
     });
 
-    /* ---- 4.2 aplica o tracker -------------------------------- */
-    var semDemanda = [];       // itens do tracker sem correspondência
-    var porCod = {};           // cod → soma do tracker ainda não alocada
+    /* ---- 4.2 aplica o tracker -------------------------------
+       Cadeia de casamento, do mais específico para o mais frouxo:
+         1. LINE NUMBER              — item a item, exato
+         2. DOCUMENTO (LM) + CÓDIGO  — escopo da lista de origem
+         3. CÓDIGO                   — rateado entre as áreas que pedem
+       O código de cada lado pode ser o interno (ref. engenharia) ou o
+       do sistema; ambos entram no índice, então uma lista que só tenha
+       o código de engenharia casa igual.
+       ---------------------------------------------------------- */
+    var semDemanda = [];
+    var cnt = { line: 0, doc: 0, cod: 0, orfa: 0, ignoradas: 0 };
+    var soDoc = !!o.somenteDoc;
 
+    /* índices sobre as demandas ainda não casadas por line number */
+    function indexar() {
+      var porDocCod = {}, porCodigo = {};
+      Object.keys(demanda).forEach(function (k) {
+        var d = demanda[k];
+        if (d.matched) return;
+        codigosDe(d).forEach(function (c) {
+          (porCodigo[c] = porCodigo[c] || []).push(d);
+          (d.docs || []).forEach(function (doc) {
+            var kk = doc + '||' + c;
+            (porDocCod[kk] = porDocCod[kk] || []).push(d);
+          });
+        });
+      });
+      return { docCod: porDocCod, cod: porCodigo };
+    }
+    function codigosDe(x) {
+      var out = [];
+      [x.ref, x.cod, x.cod2].forEach(function (c) {
+        var s = c == null ? '' : String(c).trim().toUpperCase();
+        if (s && out.indexOf(s) < 0) out.push(s);
+      });
+      return out;
+    }
+
+    /* passo 1 — line number */
+    var restantes = [];
     trows.forEach(function (t) {
-      var alvo = null;
       var nl = normLine(t.line);
       if (nl && porLinha[nl] && porLinha[nl].length) {
-        alvo = porLinha[nl].filter(function (d) {
-          return String(d.cod) === String(t.cod);
+        var cods = codigosDe(t);
+        var alvo = porLinha[nl].filter(function (d) {
+          return codigosDe(d).some(function (c) { return cods.indexOf(c) > -1; });
         })[0] || porLinha[nl][0];
-      }
-      if (alvo) {
         aplica(alvo, t);
         alvo.matched = true;
-      } else {
-        var c = String(t.cod);
-        var acc = porCod[c] || (porCod[c] = {
-          rec: 0, ped: 0, sol: 0, st: null, statusTxt: '',
-          pedidos: [], fornec: [], prev: null, n: 0
-        });
-        acc.rec += t.q_rec; acc.ped += t.q_ped; acc.sol += t.q_sol; acc.n++;
-        if (t.st && (!acc.st || STATUS_META[t.st].ord < STATUS_META[acc.st].ord)) {
-          acc.st = t.st; acc.statusTxt = t.status;
-        }
-        if (t.pedido && acc.pedidos.indexOf(t.pedido) < 0) acc.pedidos.push(t.pedido);
-        if (t.fornec && acc.fornec.indexOf(t.fornec) < 0) acc.fornec.push(t.fornec);
-        if (t.prev && (!acc.prev || t.prev < acc.prev)) acc.prev = t.prev;
+        alvo.via = 'line';
+        cnt.line++;
+        return;
       }
+      restantes.push(t);
     });
 
-    function aplica(d, t) {
-      d.rec += t.q_rec; d.ped += t.q_ped; d.sol += t.q_sol;
+    /* passos 2 e 3 — documento+código, depois código */
+    var IX = indexar();
+    restantes.forEach(function (t) {
+      var cods = codigosDe(t);
+      var alvos = null, via = '';
+
+      if (t.doc) {
+        for (var i = 0; i < cods.length && !alvos; i++) {
+          var lst = IX.docCod[t.doc + '||' + cods[i]];
+          if (lst && lst.length) { alvos = lst; via = 'doc'; }
+        }
+      }
+      if (!alvos && !soDoc) {
+        for (var j = 0; j < cods.length && !alvos; j++) {
+          var l2 = IX.cod[cods[j]];
+          if (l2 && l2.length) { alvos = l2; via = 'cod'; }
+        }
+      }
+      if (!alvos) {
+        if (soDoc) cnt.ignoradas++;
+        else { cnt.orfa++; semDemanda.push({ cod: t.cod2 || t.cod, doc: t.doc, acc: t }); }
+        return;
+      }
+
+      /* rateio proporcional à demanda de cada área */
+      var tot = alvos.reduce(function (a, d) { return a + d.qtd; }, 0);
+      alvos.forEach(function (d) {
+        var f = tot > 0 ? (d.qtd / tot) : (1 / alvos.length);
+        aplica(d, t, f);
+        d.matched = true;
+        d.via = d.via || via;
+        if (alvos.length > 1) d.rateado = true;
+      });
+      if (via === 'doc') cnt.doc++; else cnt.cod++;
+    });
+
+    function aplica(d, t, f) {
+      f = f == null ? 1 : f;
+      d.rec += t.q_rec * f; d.ped += t.q_ped * f; d.sol += t.q_sol * f;
       if (t.st && (!d.st || STATUS_META[t.st].ord < STATUS_META[d.st].ord)) {
         d.st = t.st; d.statusTxt = t.status;
       }
       if (t.pedido && d.pedidos.indexOf(t.pedido) < 0) d.pedidos.push(t.pedido);
       if (t.fornec && d.fornec.indexOf(t.fornec) < 0) d.fornec.push(t.fornec);
+      if (t.doc && (d.docsTrk = d.docsTrk || []).indexOf(t.doc) < 0) d.docsTrk.push(t.doc);
       if (t.prev && (!d.prev || t.prev < d.prev)) d.prev = t.prev;
     }
-
-    /* rateio por código entre as áreas que demandam o mesmo material */
-    var porCodDemanda = {};
-    Object.keys(demanda).forEach(function (k) {
-      var d = demanda[k];
-      if (d.matched) return;
-      (porCodDemanda[String(d.cod)] = porCodDemanda[String(d.cod)] || []).push(d);
-    });
-    Object.keys(porCod).forEach(function (c) {
-      var acc = porCod[c];
-      var alvos = porCodDemanda[c];
-      if (!alvos || !alvos.length) { semDemanda.push({ cod: c, acc: acc }); return; }
-      var tot = alvos.reduce(function (a, d) { return a + d.qtd; }, 0);
-      alvos.forEach(function (d) {
-        var f = tot > 0 ? (d.qtd / tot) : (1 / alvos.length);
-        d.rec += acc.rec * f;
-        d.ped += acc.ped * f;
-        d.sol += acc.sol * f;
-        d.rateado = true;
-        if (acc.st && (!d.st || STATUS_META[acc.st].ord < STATUS_META[d.st].ord)) {
-          d.st = acc.st; d.statusTxt = acc.statusTxt;
-        }
-        acc.pedidos.forEach(function (p) { if (d.pedidos.indexOf(p) < 0) d.pedidos.push(p); });
-        acc.fornec.forEach(function (p) { if (d.fornec.indexOf(p) < 0) d.fornec.push(p); });
-        if (acc.prev && (!d.prev || acc.prev < d.prev)) d.prev = acc.prev;
-        d.matched = true;
-      });
-    });
 
     /* ---- 4.3 situação final de cada item --------------------- */
     var itens = Object.keys(demanda).map(function (k) {
@@ -686,7 +920,11 @@
       listas: listas.length,
       trackerRows: trows.length,
       semDemanda: semDemanda.length,
-      semTracker: itens.filter(function (d) { return !d.matched; }).length
+      semTracker: itens.filter(function (d) { return !d.matched; }).length,
+      match: cnt,
+      viaLine: itens.filter(function (d) { return d.via === 'line'; }).length,
+      viaDoc:  itens.filter(function (d) { return d.via === 'doc'; }).length,
+      viaCod:  itens.filter(function (d) { return d.via === 'cod'; }).length
     };
     tot.pendentes = tot.itens - tot.recebidos - tot.parciais - tot.naopedidos - tot.cancelados;
     tot.pct = (tot.itens - tot.cancelados) > 0
@@ -714,6 +952,10 @@
 
   global.LPS_MAT = {
     IDX: IDX,
+    buildDocs: buildDocs,
+    inventarioListas: inventarioListas,
+    partesTag: partesTag,
+    DISC_LM: DISC_LM,
     STATUS_META: STATUS_META,
     TRACKER_FIELDS: TRACKER_FIELDS,
     classifyStatus: classifyStatus,
