@@ -551,7 +551,7 @@
         cod: cod,
         cod2: (c2Raw == null || c2Raw === '' || codIgnoravel(c2Raw)) ? '' : normCod(c2Raw),
         doc: normDoc(g(r, 'doc')),
-        docrev: String(g(r, 'docrev') || '').trim(),
+        docrev: revNum(g(r, 'docrev')),
         desc: String(g(r, 'desc') || '').trim().slice(0, 120),
         un: String(g(r, 'un') || '').trim(),
         area: String(g(r, 'area') || '').trim(),
@@ -717,6 +717,140 @@
       return b.linhas - a.linhas;
     });
     return out;
+  }
+
+  /* ----------------------------------------------------------------
+     Codec do snapshot.
+     Guardar 10 mil linhas como objetos repete os nomes dos campos e
+     todos os textos (descrição, fornecedor, status) linha a linha —
+     o JSONB passa de 4 MB e o insert estoura o timeout do Postgres.
+     Aqui cada linha vira um array posicional e todo texto repetido
+     vai para um dicionário, referenciado por índice.
+     ---------------------------------------------------------------- */
+  var PACK_V = 1;
+  var PACK_CAMPOS = ['cod','cod2','doc','desc','un','area','line','status','st','pedido','fornec','prev'];
+
+  function packRows(rows) {
+    var dic = [], ix = {};
+    function s(v) {
+      if (v == null || v === '') return 0;
+      var k = String(v);
+      if (ix[k] == null) { dic.push(k); ix[k] = dic.length; }
+      return ix[k];
+    }
+    var out = (rows || []).map(function (r) {
+      return [
+        s(r.cod), s(r.cod2), s(r.doc), r.docrev == null ? 0 : r.docrev,
+        s(r.desc), s(r.un), s(r.area), s(r.line),
+        r.q_sol || 0, r.q_ped || 0, r.q_rec || 0,
+        s(r.status), s(r.st), s(r.pedido), s(r.fornec), s(r.prev)
+      ];
+    });
+    return { v: PACK_V, dic: dic, r: out };
+  }
+
+  function unpackRows(p) {
+    if (!p) return [];
+    if (Array.isArray(p)) return p;             // snapshot antigo, já em objetos
+    var dic = p.dic || [];
+    var g = function (i) { return i ? (dic[i - 1] || '') : ''; };
+    return (p.r || []).map(function (a) {
+      return {
+        cod: normCod(g(a[0])), cod2: a[1] ? normCod(g(a[1])) : '',
+        doc: g(a[2]), docrev: a[3] || null,
+        desc: g(a[4]), un: g(a[5]), area: g(a[6]), line: g(a[7]),
+        q_sol: a[8] || 0, q_ped: a[9] || 0, q_rec: a[10] || 0,
+        status: g(a[11]), st: g(a[12]) || null,
+        pedido: g(a[13]), fornec: g(a[14]), prev: g(a[15]) || null
+      };
+    });
+  }
+
+  /* Prepara o objeto que vai para o banco. */
+  function packSnapshot(dados) {
+    var out = { opts: dados.opts || {}, listas: dados.listas || [] };
+    if (dados.tracker) {
+      var t = dados.tracker;
+      out.tracker = {
+        arquivo: t.arquivo, aba: t.aba, carregado: t.carregado,
+        header: t.header, map: t.map, docs: t.docs || {},
+        amostra: t.amostra || null,
+        packed: packRows(t.rows || [])
+      };
+    }
+    return out;
+  }
+
+  /* Reidrata o que veio do banco, aceitando o formato antigo. */
+  function unpackSnapshot(d) {
+    var out = d || {};
+    if (out.tracker && out.tracker.packed) {
+      out.tracker.rows = unpackRows(out.tracker.packed);
+      delete out.tracker.packed;
+    }
+    return out;
+  }
+
+  /* ----------------------------------------------------------------
+     Compressão do snapshot.
+     Mesmo compactado, o JSON passa de 2 MB e o Postgres recusa a
+     gravação por tempo limite. Gzip no próprio navegador derruba isso
+     para menos de 500 KB. O `stats` fica FORA do bloco comprimido,
+     para o histórico continuar lendo `dados->stats` sem baixar o resto.
+     ---------------------------------------------------------------- */
+  function temCompressao() {
+    return typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
+  }
+
+  function bytesParaB64(buf) {
+    var bin = '', a = new Uint8Array(buf), CH = 0x8000;
+    for (var i = 0; i < a.length; i += CH) {
+      bin += String.fromCharCode.apply(null, a.subarray(i, i + CH));
+    }
+    return btoa(bin);
+  }
+  function b64ParaBytes(b64) {
+    var bin = atob(b64), a = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return a;
+  }
+
+  /* obj -> { stats, gz } ; sem suporte no navegador, devolve obj inteiro */
+  function comprimir(obj) {
+    if (!temCompressao()) return Promise.resolve(obj);
+    var stats = obj.stats || null;
+    var texto = JSON.stringify(obj);
+    var cs = new CompressionStream('gzip');
+    var w = cs.writable.getWriter();
+    w.write(new TextEncoder().encode(texto));
+    w.close();
+    return new Response(cs.readable).arrayBuffer().then(function (buf) {
+      var out = { fmt: 'gz1', gz: bytesParaB64(buf) };
+      if (stats) out.stats = stats;
+      /* se por algum motivo não compensou, grava sem comprimir */
+      return out.gz.length < texto.length ? out : obj;
+    }).catch(function () { return obj; });
+  }
+
+  function descomprimir(dados) {
+    if (!dados || dados.fmt !== 'gz1' || !dados.gz) return Promise.resolve(dados);
+    if (!temCompressao()) {
+      return Promise.reject(new Error(
+        'este snapshot está comprimido e o navegador não tem suporte a gzip — '
+        + 'use uma versão recente do Chrome, Edge ou Firefox'));
+    }
+    var ds = new DecompressionStream('gzip');
+    var w = ds.writable.getWriter();
+    w.write(b64ParaBytes(dados.gz));
+    w.close();
+    return new Response(ds.readable).arrayBuffer().then(function (buf) {
+      return JSON.parse(new TextDecoder().decode(buf));
+    });
+  }
+
+  /* Caminho completo de leitura: descomprime (se preciso) e reidrata. */
+  function lerSnapshot(dados) {
+    return descomprimir(dados).then(unpackSnapshot);
   }
 
   function build(dados, opts) {
@@ -953,6 +1087,12 @@
   global.LPS_MAT = {
     IDX: IDX,
     buildDocs: buildDocs,
+    packSnapshot: packSnapshot,
+    comprimir: comprimir,
+    descomprimir: descomprimir,
+    lerSnapshot: lerSnapshot,
+    temCompressao: temCompressao,
+    unpackSnapshot: unpackSnapshot,
     inventarioListas: inventarioListas,
     partesTag: partesTag,
     DISC_LM: DISC_LM,

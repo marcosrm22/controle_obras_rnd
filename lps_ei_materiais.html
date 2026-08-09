@@ -116,6 +116,9 @@
     <div class="section-label">4 · Publicação</div>
     <div class="toolbar">
       <button class="btn solid" id="btnPub">☁ Publicar snapshot</button>
+      <label class="small" id="wrapAuto" style="display:flex;gap:6px;align-items:center;cursor:pointer;margin-left:4px">
+        <input type="checkbox" id="chkAuto"> publicar automaticamente ao carregar arquivos
+      </label>
       <button class="btn" id="btnRecarregar">↻ Descartar alterações e recarregar</button>
       <span class="small muted" id="snapInfo"></span>
     </div>
@@ -269,15 +272,24 @@ document.querySelectorAll('.tab').forEach(function(b){
 
 /* ================= CARGA ================= */
 function load(){
+  /* o histórico vem SEM a coluna `dados` — baixar 8 snapshots inteiros
+     custava dezenas de MB e derrubava a abertura da página */
   return L.sbGetAll(L.comUnidade(
-    'lps_ei_materiais_snapshots?select=id,gerado,criado_em,criado_por,dados&order=id.desc&limit=8'
+    'lps_ei_materiais_snapshots?select=id,gerado,criado_em,criado_por,stats:dados->stats&order=id.desc&limit=12'
   )).then(function(rows){
     HIST = rows || [];
     $('setup').style.display = 'none';
-    if(HIST.length && HIST[0].dados){
-      SNAP = HIST[0];
-      DATA = Object.assign({ gerado:'', listas:[], tracker:null, areasExtra:{} }, HIST[0].dados);
-    }
+    if(!HIST.length) return null;
+    return L.sbGetAll(L.comUnidade(
+      'lps_ei_materiais_snapshots?select=id,gerado,dados&id=eq.' + HIST[0].id
+    )).then(function(r2){ return (r2 || [])[0] || null; });
+  }).then(function(atual){
+    if(!atual || !atual.dados) return null;
+    SNAP = atual;
+    return M.lerSnapshot(atual.dados).then(function(d){
+      DATA = Object.assign({ gerado:'', listas:[], tracker:null, areasExtra:{} }, d);
+    });
+  }).then(function(){
     DIRTY = false;
     recompute();
     renderFontes();
@@ -325,6 +337,7 @@ $('fileListas').addEventListener('change', function(e){
     if(erros.length) console.warn('Listas ignoradas:', erros);
     L.toast(ok + ' lista(s) carregada(s)' + (fail ? ', ' + fail + ' ignorada(s)' : '')
       + ' · ' + nf(tot) + ' itens', fail ? 'warn' : 'ok');
+    autoPublicar();
   });
   e.target.value = '';
 });
@@ -348,6 +361,7 @@ $('fileTrk').addEventListener('change', function(e){
     DIRTY = true;
     recompute(); renderFontes(); renderMap(r.map);
     L.toast('Tracker carregado · ' + nf(r.rows.length) + ' linhas', 'ok');
+    autoPublicar();
   });
   e.target.value = '';
 });
@@ -687,6 +701,8 @@ function renderFontes(){
   });
 
   $('chkSoDoc').checked = !!(DATA.opts && DATA.opts.somenteDoc);
+  try { $('chkAuto').checked = localStorage.getItem('lps_ei_autopub_' + L.unidade()) === '1'; } catch(_){}
+  $('wrapAuto').style.display = EDIT ? 'flex' : 'none';
   if(DATA.tracker && DATA.tracker.header && !$('mapFields').innerHTML) renderMap(DATA.tracker.map || {});
 
   $('snapInfo').innerHTML = SNAP
@@ -705,12 +721,12 @@ function renderHist(){
     + '<th class="ctr">#</th><th>Publicado em</th><th>Por</th><th class="num">Listas</th>'
     + '<th class="num">Linhas tracker</th><th class="ctr no-print"></th></tr></thead><tbody>'
     + HIST.map(function(h, i){
-        var d = h.dados || {};
+        var d = h.stats || {};
         return '<tr><td class="ctr code">'+h.id+'</td><td>'+L.fmtTS(h.criado_em)
           + (i===0?' <span class="pill b">atual</span>':'')+'</td>'
           + '<td class="small">'+esc(h.criado_por||'—')+'</td>'
-          + '<td class="num">'+((d.listas||[]).length)+'</td>'
-          + '<td class="num">'+nf(((d.tracker||{}).rows||[]).length)+'</td>'
+          + '<td class="num">'+(d.listas == null ? '—' : nf(d.listas))+'</td>'
+          + '<td class="num">'+(d.tracker == null ? '—' : nf(d.tracker))+'</td>'
           + '<td class="ctr no-print">'+(i>0?'<button class="btn sm" data-rest="'+h.id+'">restaurar</button>':'')+'</td></tr>';
       }).join('')
     + '</tbody></table></div>';
@@ -719,10 +735,20 @@ function renderHist(){
     b.addEventListener('click', function(){
       var h = HIST.filter(function(x){ return x.id === +b.dataset.rest; })[0];
       if(!h || !confirm('Carregar o snapshot #'+h.id+' na tela?\n\nEle só substitui o atual depois que você publicar.')) return;
-      DATA = Object.assign({ gerado:'', listas:[], tracker:null, areasExtra:{} }, h.dados);
-      TRK_RAW = null; DIRTY = true;
-      recompute(); renderFontes();
-      L.toast('Snapshot #'+h.id+' carregado na tela.','ok');
+      b.disabled = true; b.textContent = 'carregando…';
+      L.sbGetAll(L.comUnidade('lps_ei_materiais_snapshots?select=dados&id=eq.' + h.id))
+        .then(function(rows){
+          var d = (rows || [])[0];
+          if(!d) throw new Error('snapshot não encontrado');
+          return M.lerSnapshot(d.dados).then(function(dd){
+            DATA = Object.assign({ gerado:'', listas:[], tracker:null, areasExtra:{} }, dd);
+            TRK_RAW = null; DIRTY = true;
+            recompute(); renderFontes();
+            L.toast('Snapshot #'+h.id+' carregado na tela.','ok');
+          });
+        })
+        .catch(function(e){ L.toast('Não foi possível carregar: '+e.message,'warn'); })
+        .then(function(){ b.disabled = false; b.textContent = 'restaurar'; });
     });
   });
 }
@@ -734,8 +760,17 @@ $('btnPub').addEventListener('click', function(){
   var b = $('btnPub');
   b.disabled = true; b.innerHTML = '<span class="spin"></span> Publicando…';
 
-  var payload = Object.assign({}, DATA);
+  var payload = M.packSnapshot(DATA);
+  payload.gerado = DATA.gerado || '';
+  payload.areasExtra = DATA.areasExtra || {};
   if(RES) payload.resumo = M.resumoParaSnapshot(RES);
+  /* resumo leve, lido isoladamente pelo histórico sem baixar o payload */
+  payload.stats = {
+    listas: (DATA.listas || []).length,
+    tracker: ((DATA.tracker || {}).rows || []).length,
+    itens: RES ? RES.tot.itens : 0,
+    areas: RES ? RES.tot.areas : 0
+  };
 
   if(DATA.tracker && (!DATA.tracker.rows || !DATA.tracker.rows.length)
      && !confirm('O Tracker está carregado mas com ZERO linhas aproveitadas.\n\n'
@@ -746,27 +781,69 @@ $('btnPub').addEventListener('click', function(){
   }
 
   var mb = JSON.stringify(payload).length / 1048576;
-  if(mb > 25 && !confirm('Este snapshot tem cerca de ' + mb.toFixed(1) + ' MB.\n\n'
-      + 'Snapshots muito grandes deixam o carregamento da página lento. '
-      + 'Considere reduzir o Tracker às colunas realmente usadas.\n\nPublicar assim mesmo?')){
+  if(mb > 40 && !confirm('Este snapshot tem cerca de ' + mb.toFixed(1) + ' MB.\n\n'
+      + 'Acima de uns 10 MB o banco começa a recusar a gravação por tempo limite. '
+      + 'Vale reduzir o Tracker às colunas realmente usadas antes de exportar.\n\n'
+      + 'Tentar publicar assim mesmo?')){
     b.disabled = false; b.textContent = '☁ Publicar snapshot';
     return;
   }
 
-  L.sb('POST','lps_ei_materiais_snapshots', L.comTag({
+  b.innerHTML = '<span class="spin"></span> Compactando…';
+  M.comprimir(payload).then(function(fin){
+    var fmb = JSON.stringify(fin).length / 1048576;
+    publicar(fin, fmb, 1);
+  });
+});
+
+/* Publicação automática — agrupa uploads em sequência numa única
+   publicação, em vez de gerar um snapshot por arquivo. */
+var AUTO_T = null;
+function autoPublicar(){
+  if(!EDIT || !$('chkAuto').checked || !DATA.listas.length) return;
+  clearTimeout(AUTO_T);
+  L.toast('Publicando automaticamente em 4s — envie mais arquivos se quiser','ok');
+  AUTO_T = setTimeout(function(){ if(DIRTY) $('btnPub').click(); }, 4000);
+}
+
+$('chkAuto').addEventListener('change', function(){
+  try { localStorage.setItem('lps_ei_autopub_' + L.unidade(), this.checked ? '1' : '0'); } catch(_){}
+  if(!this.checked) clearTimeout(AUTO_T);
+});
+
+/* Publica com repetição automática: o erro 57014 do Postgres (tempo
+   limite da instrução) costuma passar na segunda tentativa. */
+function publicar(payload, mb, tentativa){
+  var b = $('btnPub');
+  b.disabled = true;
+  b.innerHTML = '<span class="spin"></span> Publicando'
+    + (tentativa > 1 ? ' (tentativa ' + tentativa + ' de 3)…' : '…');
+
+  return L.sb('POST','lps_ei_materiais_snapshots', L.comTag({
     gerado: DATA.gerado || new Date().toLocaleDateString('pt-BR'),
     criado_por: L.userNome(),
     dados: payload
   })).then(function(){
     DIRTY = false;
-    L.toast('Snapshot publicado para ' + L.unidadeNome() + '.','ok');
+    b.disabled = false; b.textContent = '☁ Publicar snapshot';
+    L.toast('Snapshot publicado para ' + L.unidadeNome()
+      + ' · ' + mb.toFixed(1) + ' MB','ok');
     return load();
   }).catch(function(e){
-    L.toast('Falha ao publicar: '+e.message,'warn');
-  }).then(function(){
+    var msg = String(e && e.message || '');
+    var timeout = /57014|statement timeout|timeout|504|502|Failed to fetch|NetworkError/i.test(msg);
+    if(timeout && tentativa < 3){
+      L.toast('Tempo limite do banco — tentando de novo em ' + (tentativa * 3) + 's…','warn');
+      return new Promise(function(ok){ setTimeout(ok, tentativa * 3000); })
+        .then(function(){ return publicar(payload, mb, tentativa + 1); });
+    }
     b.disabled = false; b.textContent = '☁ Publicar snapshot';
+    L.toast(timeout
+      ? 'O banco recusou a gravação três vezes por tempo limite (' + mb.toFixed(2)
+        + ' MB já comprimidos). Reduza as colunas do Tracker no export e tente de novo.'
+      : 'Falha ao publicar: ' + msg, 'warn');
   });
-});
+}
 
 $('btnRecarregar').addEventListener('click', function(){
   if(DIRTY && !confirm('Descartar as alterações não publicadas?')) return;
