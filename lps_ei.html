@@ -239,10 +239,13 @@ function loadAll(){
     L.sbGetAll(L.comUnidade('lps_ei_atividades?select=id,area,status,pct,peso,inicio,termino&ativo=eq.true')),
     L.sbGetAll(L.comUnidade('lps_ei_restricoes?select=id,area,status,data_necessidade&ativo=eq.true')),
     L.sbGetAll(L.comUnidade('lps_ei_programacao?select=id,area,semana,coluna&ativo=eq.true')),
-    loadMatSnapshot()
+    loadMatSnapshot(),
+    L.sbGetAll(L.comUnidade('lps_ei_pacotes?select=*&ativo=eq.true&order=ordem.asc')).catch(function(){ return []; }),
+    L.sbGetAll(L.comUnidade('lps_ei_area_pacotes?select=area,pacote')).catch(function(){ return []; })
   ]).then(function(r){
     ST.areas = r[0]; ST.contratos = r[1]; ST.projetos = r[2];
     ST.atividades = r[3]; ST.restricoes = r[4]; ST.prog = r[5];
+    ST.pacotes = r[7] || []; ST.exige = r[8] || [];
     $('setup').style.display = 'none';
     renderPainel(); renderProjetos(); renderAreas(); fillFilters();
   }).catch(function(err){
@@ -319,6 +322,31 @@ function matPorArea(){
 
 /* ================= SEMÁFOROS ================= */
 var CONTR_OK = ['Contratado','Mobilizado','Em execução','Concluído'];
+
+/* nome curto da empresa — a razão social não cabe na tabela */
+function curto(c){
+  return (c.empresa_fantasia||'').trim() || (c.empresa||'').trim() || c.escopo || '—';
+}
+function pacotesDe(c){
+  var a = c.pacotes;
+  if(typeof a === 'string'){ try{ a = JSON.parse(a); }catch(_){ a = []; } }
+  return Array.isArray(a) ? a : [];
+}
+function siglaPac(cod){
+  var p = (ST.pacotes||[]).filter(function(x){ return x.codigo === cod; })[0];
+  return p ? (p.sigla || p.codigo) : cod;
+}
+function nomePac(cod){
+  var p = (ST.pacotes||[]).filter(function(x){ return x.codigo === cod; })[0];
+  return p ? p.nome : cod;
+}
+/* pacotes exigidos numa área; sem registro, valem os marcados como padrão */
+function exigidos(area){
+  var reg = (ST.exige||[]).filter(function(e){ return e.area === area; });
+  if(reg.length) return reg.map(function(e){ return e.pacote; });
+  return (ST.pacotes||[]).filter(function(p){ return p.padrao && !p.exclusivo; })
+                         .map(function(p){ return p.codigo; });
+}
 var CONTR_ANDAMENTO = ['Em definição de escopo','Em cotação','Em negociação'];
 
 function gatePct(pct, temDado){
@@ -345,7 +373,25 @@ function calcArea(a){
   });
   var ctrOk = ctr.filter(function(c){ return CONTR_OK.indexOf(c.status) > -1; });
   var ctrAnd = ctr.filter(function(c){ return CONTR_ANDAMENTO.indexOf(c.status) > -1; });
-  var gCtr = ctrOk.length ? 'g' : (ctrAnd.length ? 'y' : (ctr.length ? 'n' : 'r'));
+
+  /* A frente de contratação só fica verde quando TODOS os pacotes de
+     escopo exigidos na área têm contrato firmado. Ter uma empresa na
+     área não basta: faltar torqueamento ou TAC trava igual. */
+  var pacEx = exigidos(cod), pacFalta = [], pacOk = [];
+  pacEx.forEach(function(pc){
+    var tem = ctrOk.some(function(c){ return pacotesDe(c).indexOf(pc) > -1; });
+    (tem ? pacOk : pacFalta).push(pc);
+  });
+  var gCtr;
+  if(!pacEx.length){
+    gCtr = ctrOk.length ? 'g' : (ctrAnd.length ? 'y' : (ctr.length ? 'n' : 'r'));
+  } else if(!pacFalta.length){
+    gCtr = 'g';
+  } else if(pacOk.length || ctrAnd.length){
+    gCtr = 'y';
+  } else {
+    gCtr = 'r';
+  }
 
   /* materiais */
   var mp = MAT_MAP[cod];
@@ -376,6 +422,7 @@ function calcArea(a){
   return {
     area:a, ativ:ativ, ativDone:ativDone, ativPct:ativPct,
     ctr:ctr, ctrOk:ctrOk, gCtr:gCtr,
+    pacEx:pacEx, pacOk:pacOk, pacFalta:pacFalta,
     mat:mp, gMat:gMat,
     prj:prj, prjLib:prjLib, prjPct:prjPct, gPrj:gPrj,
     rst:rst, gRst:gRst, prog:prog, geral:geral
@@ -417,9 +464,28 @@ function renderPainel(){
 
   $('tbPainel').innerHTML = vis.map(function(l){
     var a = l.area;
-    var ctrTxt = l.ctrOk.length
-      ? l.ctrOk.map(function(c){ return esc(c.empresa || c.escopo); }).join(', ')
-      : (l.ctr.length ? esc(l.ctr[0].status) : 'Sem contrato');
+    /* uma etiqueta por pacote exigido: verde com a fantasia de quem
+       responde, vermelha quando não há contrato. Nomes repetidos são
+       agrupados para a célula não virar uma parede de texto. */
+    var ctrTxt;
+    if(l.pacEx.length){
+      ctrTxt = l.pacEx.map(function(pc){
+        var quem = l.ctrOk.filter(function(c){ return pacotesDe(c).indexOf(pc) > -1; })
+                          .map(curto);
+        quem = quem.filter(function(v,i){ return quem.indexOf(v) === i; });
+        var sg = siglaPac(pc);
+        return quem.length
+          ? '<span class="pill g" title="'+esc(nomePac(pc))+' · '+esc(quem.join(' | '))+'">'
+            + esc(sg) + ' ' + esc(quem.slice(0,2).join('/'))
+            + (quem.length > 2 ? ' +'+(quem.length-2) : '') + '</span>'
+          : '<span class="pill r" title="'+esc(nomePac(pc))+' sem contrato">'+esc(sg)+'</span>';
+      }).join(' ');
+    } else {
+      var nomes = l.ctrOk.map(curto);
+      nomes = nomes.filter(function(v,i){ return nomes.indexOf(v) === i; });
+      ctrTxt = nomes.length ? esc(nomes.join(', '))
+        : (l.ctr.length ? esc(l.ctr[0].status) : 'Sem contrato');
+    }
     var matTxt = l.mat
       ? (l.mat.recebidos + '/' + (l.mat.itens - l.mat.cancelados) + ' itens')
       : 'sem dados';
@@ -491,11 +557,34 @@ function abrirDetalhe(cod){
 
   var h = '';
 
+  if(l.pacEx.length){
+    h += '<div class="section-label">Pacotes de escopo</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">'
+      + l.pacEx.map(function(pc){
+          var quem = l.ctrOk.filter(function(c){ return pacotesDe(c).indexOf(pc) > -1; }).map(curto);
+          quem = quem.filter(function(v,i){ return quem.indexOf(v) === i; });
+          return quem.length
+            ? '<span class="pill g">'+esc(nomePac(pc))+' — '+esc(quem.join(', '))+'</span>'
+            : '<span class="pill r">'+esc(nomePac(pc))+' — sem contrato</span>';
+        }).join('')
+      + '</div>'
+      + '<div class="small muted" style="margin-bottom:12px">'
+      + l.pacOk.length + ' de ' + l.pacEx.length + ' pacotes contratados'
+      + (l.pacFalta.length
+          ? ' · falta <b>' + esc(l.pacFalta.map(nomePac).join(', ')) + '</b>'
+          : ' · área liberada pela frente de contratação')
+      + ' · <a href="lps_ei_contratos.html">ajustar exigências →</a></div>';
+  }
+
   h += bloco('Contratação', l.ctr.length
     ? '<table class="grid"><thead><tr><th>Escopo</th><th>Empresa</th><th>Status</th>'
       + '<th class="ctr">Contrato</th><th class="ctr">Início prev.</th></tr></thead><tbody>'
       + l.ctr.map(function(c){
-          return '<tr><td>'+esc(c.escopo)+'</td><td><b>'+esc(c.empresa||'—')+'</b></td>'
+          return '<tr><td>'+esc(c.escopo)+'</td><td><b>'+esc(curto(c))+'</b>'
+            + (pacotesDe(c).length
+                ? '<div class="small muted">'+esc(pacotesDe(c).map(siglaPac).join(' · '))+'</div>'
+                : '')
+            + '</td>'
             + '<td>'+pillCtr(c.status)+'</td><td class="ctr">'+L.fmtBrDash(c.data_contrato)+'</td>'
             + '<td class="ctr">'+L.fmtBrDash(c.data_inicio_prev)+'</td></tr>';
         }).join('')
@@ -721,14 +810,15 @@ $('areaDel').addEventListener('click', function(){
 /* ================= EXPORTS ================= */
 $('btnXls').addEventListener('click', function(){
   var aoa = [['Área','Nome','Situação','Atividades','Concluídas','Avanço ativ. %',
-              'Contratação','Empresas','Materiais %','Itens','Recebidos',
+              'Contratação','Empresas','Pacotes faltando','Materiais %','Itens','Recebidos',
               'Projetos','Liberados','Restrições abertas']];
   var TXT = { g:'Liberado', y:'Atenção', r:'Bloqueado', n:'Sem dados' };
   LINHAS.forEach(function(l){
     aoa.push([
       l.area.codigo, l.area.nome, TXT[l.geral],
       l.ativ.length, l.ativDone, Math.round(l.ativPct),
-      TXT[l.gCtr], l.ctrOk.map(function(c){return c.empresa||c.escopo;}).join(' / '),
+      TXT[l.gCtr], l.ctrOk.map(curto).join(' / '),
+      l.pacFalta.map(nomePac).join(' / '),
       l.mat ? Math.round(l.mat.pct) : '', l.mat ? l.mat.itens : '', l.mat ? l.mat.recebidos : '',
       l.prj.length, l.prjLib, l.rst.length
     ]);

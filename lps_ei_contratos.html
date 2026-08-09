@@ -24,6 +24,7 @@
   <div class="tabs no-print">
     <button class="tab active" data-tab="lista">Contratos</button>
     <button class="tab" data-tab="cobertura">Cobertura por Área</button>
+    <button class="tab" data-tab="pacotes">Pacotes de Escopo</button>
   </div>
 
   <!-- ===== ABA 1 · LISTA ===== -->
@@ -95,6 +96,44 @@
       </table>
     </div>
   </section>
+
+  <!-- ===== ABA 3 · PACOTES DE ESCOPO ===== -->
+  <section id="tab-pacotes" class="hide">
+    <div class="notice">
+      Ter <b>algum</b> contrato numa área não significa que ela esteja liberada — o que
+      libera é ter <b>todos os pacotes de escopo exigidos</b> contratados. Aqui você define
+      quais pacotes cada área precisa e vê quais já estão cobertos. A conformidade calculada
+      nesta tela é o que alimenta a frente de <b>Contratação</b> no painel por área.
+    </div>
+
+    <div class="kpis" id="pacKpis"></div>
+
+    <div class="toolbar">
+      <div class="search"><input type="text" id="pq" placeholder="Buscar área…"></div>
+      <select class="f" id="pFiltro">
+        <option value="">Todas as áreas</option>
+        <option value="falta">Só áreas com pacote faltando</option>
+        <option value="ok">Só áreas completas</option>
+      </select>
+      <select class="f" id="pPac"><option value="">Todos os pacotes</option></select>
+      <button class="btn" id="btnPacEdit">✎ Editar exigências</button>
+      <button class="btn" id="btnPacXls">↓ Excel</button>
+    </div>
+
+    <div class="notice warn hide" id="pacAviso">
+      <b>Modo de edição.</b> Clique nas células para alternar se o pacote é exigido naquela área.
+      Célula marcada = exigida. As alterações são gravadas na hora.
+      <button class="btn sm" id="btnPacSair" style="margin-left:10px">Concluir</button>
+    </div>
+
+    <div class="tablewrap">
+      <table class="grid" id="tblPac">
+        <thead><tr id="pacHead"></tr></thead>
+        <tbody id="tbPac"></tbody>
+      </table>
+    </div>
+    <div class="small muted" id="pacRodape" style="margin-top:10px"></div>
+  </section>
 </div>
 
 <!-- ===== MODAL ===== -->
@@ -109,8 +148,12 @@
     <div class="section-label" style="margin-top:0">Identificação</div>
     <div class="frow">
       <div class="field"><label>Nº do contrato / pedido</label><input id="cCod" placeholder="CT-2026-014"></div>
-      <div class="field"><label>Empresa executante *</label><input id="cEmp" list="empresas" placeholder="Nome da contratada">
+      <div class="field"><label>Empresa executante *</label><input id="cEmp" list="empresas" placeholder="Razão social">
         <datalist id="empresas"></datalist></div>
+      <div class="field"><label>Nome fantasia</label><input id="cFant" list="fantasias" placeholder="Nome curto — usado no painel">
+        <datalist id="fantasias"></datalist></div>
+    </div>
+    <div class="frow">
       <div class="field"><label>Disciplina</label><select id="cDisc"></select></div>
     </div>
     <div class="frow"><div class="field" style="grid-column:1/-1">
@@ -122,6 +165,14 @@
     <div class="small muted" style="margin-top:6px">
       Marque todas as áreas onde a empresa vai atuar — é isso que alimenta o semáforo
       de contratação no painel por área.
+    </div>
+
+    <div class="section-label">Pacotes de escopo cobertos</div>
+    <div class="checkgrid" id="cPacotes"></div>
+    <div class="small muted" style="margin-top:6px">
+      Marque o que este contrato entrega. A cobertura vale para <b>todas</b> as áreas
+      marcadas acima — é assim que uma empresa pode levar vários pacotes de uma área,
+      ou o mesmo pacote em várias áreas.
     </div>
 
     <div class="section-label">Situação e datas</div>
@@ -172,7 +223,21 @@ L.renderShell({
 });
 
 var EDIT = L.canEdit();
-var DADOS = [], editando = null, VIEW = 'cards';
+var DADOS = [], PACOTES = [], EXIGE = [], editando = null, VIEW = 'cards';
+
+function pacotesDe(c){
+  var a = c.pacotes;
+  if(typeof a === 'string'){ try{ a = JSON.parse(a); }catch(_){ a = []; } }
+  return Array.isArray(a) ? a : [];
+}
+function nomePac(cod){
+  var p = PACOTES.filter(function(x){ return x.codigo === cod; })[0];
+  return p ? p.nome : cod;
+}
+/* nome curto da empresa para uso em tabela */
+function curto(c){
+  return (c.empresa_fantasia || '').trim() || (c.empresa || '').trim() || '—';
+}
 
 var CONTR_OK = ['Contratado','Mobilizado','Em execução','Concluído'];
 var CONTR_AND = ['Em definição de escopo','Em cotação','Em negociação'];
@@ -195,7 +260,8 @@ document.querySelectorAll('.tab').forEach(function(b){
   b.addEventListener('click', function(){
     document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
     b.classList.add('active');
-    ['lista','cobertura'].forEach(function(t){
+    if(b.dataset.tab === 'pacotes') renderPacotes();
+    ['lista','cobertura','pacotes'].forEach(function(t){
       $('tab-'+t).classList.toggle('hide', t !== b.dataset.tab);
     });
   });
@@ -205,9 +271,11 @@ document.querySelectorAll('.tab').forEach(function(b){
 function load(){
   return Promise.all([
     L.loadAreas(true),
-    L.sbGetAll(L.comUnidade('lps_ei_contratos?select=*&ativo=eq.true&order=empresa.asc,escopo.asc'))
+    L.sbGetAll(L.comUnidade('lps_ei_contratos?select=*&ativo=eq.true&order=empresa.asc,escopo.asc')),
+    L.sbGetAll(L.comUnidade('lps_ei_pacotes?select=*&ativo=eq.true&order=ordem.asc')).catch(function(){ return []; }),
+    L.sbGetAll(L.comUnidade('lps_ei_area_pacotes?select=*')).catch(function(){ return []; })
   ]).then(function(r){
-    DADOS = r[1];
+    DADOS = r[1]; PACOTES = r[2] || []; EXIGE = r[3] || [];
     $('setup').style.display = 'none';
     fillSelects(); render();
   }).catch(function(err){
@@ -233,6 +301,24 @@ function fillSelects(){
   $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
     + emps.map(function(e){ return '<option'+(e===cur?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   $('empresas').innerHTML = emps.map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
+
+  var fants = [];
+  DADOS.forEach(function(c){
+    var f = (c.empresa_fantasia||'').trim();
+    if(f && fants.indexOf(f) < 0) fants.push(f);
+  });
+  fants.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  $('fantasias').innerHTML = fants.map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
+
+  $('cPacotes').innerHTML = PACOTES.length
+    ? PACOTES.map(function(p){
+        return '<label><input type="checkbox" value="'+esc(p.codigo)+'"> '
+          + esc(p.nome) + (p.exclusivo ? ' <span class="tag b">exclusivo</span>' : '') + '</label>';
+      }).join('')
+    : '<span class="small muted">Nenhum pacote cadastrado — rode <b>supabase_lps_ei_pacotes.sql</b> no Supabase.</span>';
+
+  $('pPac').innerHTML = '<option value="">Todos os pacotes</option>'
+    + PACOTES.map(function(p){ return '<option value="'+esc(p.codigo)+'">'+esc(p.nome)+'</option>'; }).join('');
 
   $('cAreas').innerHTML = L.areasCache().map(function(a){
     return '<label><input type="checkbox" value="'+esc(a.codigo)+'"> '
@@ -267,6 +353,188 @@ function visiveis(){
 
 /* ================= RENDER ================= */
 function render(){ renderKpis(); renderLista(); renderCobertura(); }
+
+/* ================= PACOTES DE ESCOPO ================= */
+var PAC_EDIT = false;
+
+/* pacotes exigidos numa área: o que estiver em lps_ei_area_pacotes.
+   Sem nenhum registro para a área, valem os pacotes marcados como
+   padrão — assim uma área recém-cadastrada já nasce com as exigências. */
+function exigidos(area){
+  var reg = EXIGE.filter(function(e){ return e.area === area; });
+  if(reg.length) return reg.map(function(e){ return e.pacote; });
+  return PACOTES.filter(function(p){ return p.padrao && !p.exclusivo; })
+                .map(function(p){ return p.codigo; });
+}
+
+/* contratos que cobrem um pacote numa área */
+function cobrem(area, pac){
+  return DADOS.filter(function(c){
+    if(CONTR_OK.indexOf(c.status) < 0) return false;
+    return areasDe(c).indexOf(area) > -1 && pacotesDe(c).indexOf(pac) > -1;
+  });
+}
+
+/* conformidade de uma área: exigidos x cobertos */
+function conformidade(area){
+  var ex = exigidos(area);
+  var faltando = [], cobertos = [];
+  ex.forEach(function(p){
+    (cobrem(area, p).length ? cobertos : faltando).push(p);
+  });
+  return { exigidos: ex, cobertos: cobertos, faltando: faltando,
+           ok: ex.length > 0 && faltando.length === 0,
+           pct: ex.length ? (cobertos.length / ex.length) * 100 : 0 };
+}
+
+function renderPacotes(){
+  if(!PACOTES.length){
+    $('pacKpis').innerHTML = '';
+    $('pacHead').innerHTML = '<th>Pacotes</th>';
+    $('tbPac').innerHTML = '<tr><td class="empty"><b>Nenhum pacote cadastrado.</b><br>'
+      + '<span class="small">Rode <b>supabase_lps_ei_pacotes.sql</b> no SQL Editor do Supabase '
+      + 'para criar os pacotes padrão e a matriz de exigências.</span></td></tr>';
+    $('pacRodape').textContent = '';
+    return;
+  }
+
+  var areas = L.areasCache();
+  var linhas = areas.map(function(a){
+    return { a: a, c: conformidade(a.codigo) };
+  });
+
+  var okN = linhas.filter(function(l){ return l.c.ok; }).length;
+  var semEx = linhas.filter(function(l){ return !l.c.exigidos.length; }).length;
+  var lac = linhas.reduce(function(t,l){ return t + l.c.faltando.length; }, 0);
+  $('pacKpis').innerHTML = [
+    ['Áreas', nf(areas.length), ''],
+    ['Completas', nf(okN), okN ? 'g' : ''],
+    ['Com pendência', nf(areas.length - okN - semEx), (areas.length-okN-semEx) ? 'r' : ''],
+    ['Lacunas de pacote', nf(lac), lac ? 'y' : 'g']
+  ].map(function(x){
+    return '<div class="kpi"><div class="kpi-val'+(x[2]?' '+x[2]:'')+'">'+x[1]+'</div>'
+      + '<div class="kpi-lab">'+x[0]+'</div></div>';
+  }).join('');
+
+  $('pacHead').innerHTML = '<th class="ctr" style="width:44px">Sit.</th>'
+    + '<th style="min-width:210px">Área</th>'
+    + PACOTES.map(function(p){
+        return '<th class="ctr" style="min-width:86px" title="'+esc(p.nome)+'">'
+          + esc(p.sigla || p.codigo) + '</th>';
+      }).join('')
+    + '<th class="ctr" style="width:96px">Conformidade</th>';
+
+  var q = L.deacc($('pq').value), fl = $('pFiltro').value, fp = $('pPac').value;
+  var vis = linhas.filter(function(l){
+    if(q && L.deacc(l.a.codigo + ' ' + l.a.nome).indexOf(q) < 0) return false;
+    if(fl === 'falta' && l.c.faltando.length === 0) return false;
+    if(fl === 'ok' && !l.c.ok) return false;
+    if(fp && l.c.exigidos.indexOf(fp) < 0) return false;
+    return true;
+  });
+
+  $('tbPac').innerHTML = vis.length ? vis.map(function(l){
+    var dot = l.c.ok ? 'g' : (l.c.cobertos.length ? 'y' : 'r');
+    if(!l.c.exigidos.length) dot = 'n';
+    return '<tr data-area="'+esc(l.a.codigo)+'">'
+      + '<td class="ctr"><span class="dot '+dot+'"></span></td>'
+      + '<td><b class="mono">'+esc(l.a.codigo)+'</b><div class="small">'+esc(l.a.nome)+'</div></td>'
+      + PACOTES.map(function(p){
+          var ex = l.c.exigidos.indexOf(p.codigo) > -1;
+          var cs = cobrem(l.a.codigo, p.codigo);
+          var cel, cls = 'ctr pac-cel';
+          if(!ex){
+            cel = '<span class="muted">·</span>';
+          } else if(cs.length){
+            cel = '<span class="pill g" title="'+esc(cs.map(function(c){ return c.empresa; }).join(' | '))+'">'
+                + esc(cs.map(curto).join(', ')).slice(0,42) + '</span>';
+          } else {
+            cel = '<span class="pill r">falta</span>';
+          }
+          return '<td class="'+cls+'" data-pac="'+esc(p.codigo)+'"'
+            + (PAC_EDIT ? ' style="cursor:pointer"' : '') + '>' + cel + '</td>';
+        }).join('')
+      + '<td class="ctr mono">'
+      +   (l.c.exigidos.length
+            ? '<b>'+l.c.cobertos.length+'/'+l.c.exigidos.length+'</b>'
+            : '<span class="muted">—</span>')
+      + '</td></tr>';
+  }).join('') : '<tr><td colspan="'+(PACOTES.length+3)+'" class="empty">nenhuma área com esses filtros</td></tr>';
+
+  if(PAC_EDIT){
+    document.querySelectorAll('#tbPac .pac-cel').forEach(function(td){
+      td.addEventListener('click', function(){ alternarExigencia(td); });
+    });
+  }
+
+  $('pacRodape').innerHTML = nf(vis.length)+' de '+nf(areas.length)+' áreas'
+    + (semEx ? ' · '+nf(semEx)+' sem nenhum pacote exigido (aparecem cinza e não travam o painel)' : '')
+    + ' · o painel por área considera a contratação OK apenas quando todos os pacotes exigidos têm contrato firmado.';
+}
+
+function alternarExigencia(td){
+  var area = td.parentNode.dataset.area, pac = td.dataset.pac;
+  var atual = exigidos(area);
+  var tinha = atual.indexOf(pac) > -1;
+  var novo = tinha ? atual.filter(function(x){ return x !== pac; }) : atual.concat([pac]);
+
+  /* grava a lista inteira da área: apaga e reinsere, que é simples e
+     idempotente para uma matriz deste tamanho */
+  td.innerHTML = '<span class="spin"></span>';
+  L.sb('DELETE', L.comUnidade('lps_ei_area_pacotes?area=eq.' + encodeURIComponent(area)))
+    .then(function(){
+      if(!novo.length) return null;
+      return L.sb('POST','lps_ei_area_pacotes', novo.map(function(p){
+        return L.comTag({ area: area, pacote: p });
+      }));
+    })
+    .then(function(){
+      EXIGE = EXIGE.filter(function(e){ return e.area !== area; })
+        .concat(novo.map(function(p){ return { unidade: L.unidade(), area: area, pacote: p }; }));
+      renderPacotes();
+    })
+    .catch(function(e){
+      L.toast('Não foi possível gravar: '+e.message,'warn');
+      renderPacotes();
+    });
+}
+
+['pq','pFiltro','pPac'].forEach(function(id){
+  $(id).addEventListener('input', renderPacotes);
+  $(id).addEventListener('change', renderPacotes);
+});
+
+$('btnPacEdit').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  PAC_EDIT = true;
+  $('pacAviso').classList.remove('hide');
+  renderPacotes();
+});
+$('btnPacSair').addEventListener('click', function(){
+  PAC_EDIT = false;
+  $('pacAviso').classList.add('hide');
+  renderPacotes();
+});
+
+$('btnPacXls').addEventListener('click', function(){
+  if(!PACOTES.length) return L.toast('Nenhum pacote cadastrado.','warn');
+  var head = ['Área','Nome'].concat(PACOTES.map(function(p){ return p.nome; }))
+    .concat(['Exigidos','Cobertos','Faltando','Conforme']);
+  var aoa = [head];
+  L.areasCache().forEach(function(a){
+    var c = conformidade(a.codigo);
+    aoa.push([a.codigo, a.nome].concat(PACOTES.map(function(p){
+      if(c.exigidos.indexOf(p.codigo) < 0) return '—';
+      var cs = cobrem(a.codigo, p.codigo);
+      return cs.length ? cs.map(curto).join(', ') : 'FALTA';
+    })).concat([c.exigidos.length, c.cobertos.length,
+                c.faltando.map(nomePac).join(', '), c.ok ? 'Sim' : 'Não']));
+  });
+  L.exportXlsx([{ nome:'Pacotes por Área', aoa:aoa,
+    cols:[{wch:10},{wch:34}].concat(PACOTES.map(function(){ return {wch:18}; }))
+         .concat([{wch:10},{wch:10},{wch:30},{wch:10}]) }],
+    'lps_ei_pacotes_'+L.unidade()+'_'+L.stamp()+'.xlsx');
+});
 
 function renderKpis(){
   var firmados = DADOS.filter(function(c){ return CONTR_OK.indexOf(c.status) > -1; });
@@ -410,6 +678,7 @@ function abrir(id){
   $('mDel').style.display = editando ? '' : 'none';
   var c = editando || {};
   $('cCod').value = c.codigo || ''; $('cEmp').value = c.empresa || '';
+  $('cFant').value = c.empresa_fantasia || '';
   $('cDisc').value = c.disciplina || ''; $('cEsc').value = c.escopo || '';
   $('cStatus').value = c.status || 'Em definição de escopo';
   $('cRfq').value = c.data_rfq || ''; $('cContrato').value = c.data_contrato || '';
@@ -424,6 +693,10 @@ function abrir(id){
   document.querySelectorAll('#cAreas input').forEach(function(i){
     i.checked = sel.indexOf(i.value) > -1;
   });
+  var selP = pacotesDe(c);
+  document.querySelectorAll('#cPacotes input').forEach(function(i){
+    i.checked = selP.indexOf(i.value) > -1;
+  });
   L.openModal('mCtr');
 }
 
@@ -433,12 +706,15 @@ $('mSave').addEventListener('click', function(){
   if(!esc0) return L.toast('Descreva o escopo do contrato.','warn');
   if(!emp) return L.toast('Informe a empresa executante.','warn');
 
-  var ars = [];
+  var ars = [], pcs = [];
   document.querySelectorAll('#cAreas input:checked').forEach(function(i){ ars.push(i.value); });
+  document.querySelectorAll('#cPacotes input:checked').forEach(function(i){ pcs.push(i.value); });
 
   var body = {
     codigo: $('cCod').value.trim() || null,
     escopo: esc0, empresa: emp,
+    empresa_fantasia: $('cFant').value.trim() || null,
+    pacotes: pcs,
     disciplina: $('cDisc').value || null,
     areas: ars,
     status: $('cStatus').value,
