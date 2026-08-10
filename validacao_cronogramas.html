@@ -458,9 +458,18 @@ table.mapa td.col-acoes{white-space:nowrap}
           <label>Campo · % Concluído (realizado)</label>
           <select id="cf-concl"></select>
         </div>
+        <div class="fld">
+          <label>Campo · Custo Previsto Total</label>
+          <select id="cf-custo-prev"></select>
+        </div>
+        <div class="fld">
+          <label>Campo · Custo Realizado Total</label>
+          <select id="cf-custo-real"></select>
+        </div>
       </div>
       <div class="contract-note" id="contract-note"></div>
       <div class="detect-note" id="detect-note"></div>
+      <div class="detect-note" id="custo-note"></div>
       <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn" id="btn-analisar" onclick="runAnalysis()" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
@@ -824,6 +833,12 @@ function parseXML(text){
       wbs: dchildText(t,'WBS')||'',
       cost: num('Cost'),
       baselineCost: lbCost,
+      actualCost:    num('ActualCost'),
+      remainingCost: num('RemainingCost'),
+      fixedCost:     num('FixedCost'),
+      acwp:          num('ACWP'),
+      bcwp:          num('BCWP'),
+      bcws:          num('BCWS'),
       start: dOnly(dchildText(t,'Start')),
       finish: dOnly(dchildText(t,'Finish')),
       lbStart, lbFinish,
@@ -853,7 +868,90 @@ function parseXML(text){
     if(!guessPrev  && ((l.includes('prev')&&l.includes('fis')) || l.includes('previsto'))) guessPrev=f.id;
     if(!guessConcl && ((l.includes('concl')&&l.includes('fis')) || l.includes('realizado'))) guessConcl=f.id;
   }
-  return {statusDate, projName, fields, rawTasks, guessPrev, guessConcl};
+  /* ---- custos: inventário do que este XML realmente trouxe ---- */
+  const custoFontes = detectarFontesDeCusto(rawTasks, fields);
+  const {guessCustoPrev, guessCustoReal} = adivinharCampoCusto(custoFontes);
+
+  return {statusDate, projName, fields, rawTasks, guessPrev, guessConcl,
+          custoFontes, guessCustoPrev, guessCustoReal};
+}
+
+/* ================================================================
+   CUSTOS · de onde vem "Custo Previsto Total" / "Custo Realizado Total"
+   ================================================================
+   O MS Project pode trazer custo por dois caminhos, e qual deles a
+   terceira usa varia de contrato pra contrato:
+
+   1) campos NATIVOS do MSPDI  -> <Cost>, <ActualCost>, <Baseline><Cost>,
+      <ACWP>, <BCWP>, <BCWS>... (aparecem sozinhos, sem configuração)
+   2) campos PERSONALIZADOS    -> ExtendedAttribute (Custo1/Custo2, campo
+      empresarial etc.) — é o caso quando a empresa monta manualmente uma
+      coluna chamada literalmente "Custo Previsto Total".
+
+   Aqui varremos as duas frentes e contamos quantas tarefas trazem valor
+   de verdade. É isso que alimenta o diagnóstico na tela de Nova Análise:
+   se as duas linhas voltarem com 0 tarefas, o XML simplesmente não tem
+   custo e não adianta procurar em outro lugar.
+   Obs.: no MSPDI o valor é decimal na moeda do projeto — não é centavo,
+   não precisa dividir por 100. */
+const CUSTO_NATIVOS=[
+  {id:'__COST',           prop:'cost',          label:'Custo total (Cost)'},
+  {id:'__BASELINE_COST',  prop:'baselineCost',  label:'Custo da linha de base (Baseline/Cost)'},
+  {id:'__ACTUAL_COST',    prop:'actualCost',    label:'Custo real (ActualCost)'},
+  {id:'__REMAINING_COST', prop:'remainingCost', label:'Custo restante (RemainingCost)'},
+  {id:'__FIXED_COST',     prop:'fixedCost',     label:'Custo fixo (FixedCost)'},
+  {id:'__ACWP',           prop:'acwp',          label:'Custo real do trabalho realizado (ACWP)'},
+  {id:'__BCWP',           prop:'bcwp',          label:'Valor agregado / BCWP'},
+  {id:'__BCWS',           prop:'bcws',          label:'Valor planejado / BCWS'}
+];
+
+/* tarefas do nível mais alto = raiz do projeto; é nelas que o MS Project
+   já entrega o custo somado (rollup), então o "total" sai daí */
+function raizesDoProjeto(rawTasks){
+  const min=rawTasks.reduce((m,t)=>Math.min(m,(t.level==null?99:t.level)),99);
+  return rawTasks.filter(t=>t.level===min);
+}
+
+function detectarFontesDeCusto(rawTasks, fields){
+  const raizes=raizesDoProjeto(rawTasks);
+  const out=[];
+  CUSTO_NATIVOS.forEach(c=>{
+    let n=0;
+    rawTasks.forEach(t=>{ const v=t[c.prop]; if(v!=null && !isNaN(v) && v!==0) n++; });
+    const total=raizes.reduce((acc,t)=>{const v=t[c.prop]; return acc+((v!=null&&!isNaN(v))?v:0);},0);
+    out.push({id:c.id, label:c.label, nativo:true, comValor:n, total});
+  });
+  fields.forEach(f=>{
+    const l=norm(f.label);
+    if(!(l.includes('custo')||l.includes('cost')||l.includes('valor')||l.includes('r$'))) return;
+    let n=0;
+    rawTasks.forEach(t=>{ const v=parseNum(t.ext[f.id]); if(v!=null && v!==0) n++; });
+    const total=raizes.reduce((acc,t)=>{const v=parseNum(t.ext[f.id]); return acc+(v||0);},0);
+    out.push({id:f.id, label:f.label, nativo:false, comValor:n, total});
+  });
+  return out;
+}
+
+function adivinharCampoCusto(fontes){
+  const comDado=fontes.filter(f=>f.comValor>0);
+  const achaPers=(re)=>{ const c=comDado.find(f=>!f.nativo && re.test(norm(f.label))); return c?c.id:null; };
+  const nat=(id)=>{ const c=comDado.find(f=>f.id===id); return c?c.id:null; };
+  const guessCustoPrev =
+       achaPers(/(custo|valor).*(previst|orcad|planej|contrat|linha de base|baseline|total)/)
+    || nat('__BASELINE_COST') || nat('__COST') || '__NONE';
+  const guessCustoReal =
+       achaPers(/(custo|valor).*(realiz|incorrid|execut|medi|apropri|faturad|gast)/)
+    || nat('__ACTUAL_COST') || nat('__ACWP') || '__NONE';
+  return {guessCustoPrev, guessCustoReal};
+}
+
+/* resolve o custo de uma tarefa a partir do mapeamento escolhido na tela */
+function resolveCusto(task, mapId){
+  if(!mapId || mapId==='__NONE') return null;
+  const nat=CUSTO_NATIVOS.find(c=>c.id===mapId);
+  if(nat){ const v=task[nat.prop]; return (v==null||isNaN(v))?null:v; }
+  if(!task.ext) return null;
+  return parseNum(task.ext[mapId]);
 }
 
 /* resolve % a partir do mapeamento escolhido */
@@ -892,13 +990,20 @@ function resolvePct(task, mapId, cut){
 }
 
 /* normaliza tarefas: injeta E (realizado) e F (planejado) */
-function normalize(rawTasks, mapPrev, mapConcl, cut){
+/* normaliza tarefas: injeta E (realizado) e F (planejado) e, quando o XML
+   traz custo, CP (Custo Previsto Total) e CR (Custo Realizado Total) */
+function normalize(rawTasks, mapPrev, mapConcl, cut, mapCustoPrev, mapCustoReal){
+  const c2=v=>(v==null||isNaN(v))?null:Math.round(v*100)/100;
   return rawTasks.map(t=>{
-    if(t.E!=null && t.F!=null) return t;   // já normalizada (vinda do histórico)
-    return {...t,
-      F: Math.round(resolvePct(t,mapPrev,cut)*100)/100,
-      E: Math.round(resolvePct(t,mapConcl,cut)*100)/100
-    };
+    const o = (t.E!=null && t.F!=null)
+      ? {...t}                               // já normalizada (vinda do histórico)
+      : {...t,
+          F: Math.round(resolvePct(t,mapPrev,cut)*100)/100,
+          E: Math.round(resolvePct(t,mapConcl,cut)*100)/100
+        };
+    if(o.CP===undefined) o.CP=c2(resolveCusto(t,mapCustoPrev));
+    if(o.CR===undefined) o.CR=c2(resolveCusto(t,mapCustoReal));
+    return o;
   });
 }
 
@@ -1392,6 +1497,7 @@ function populateMapping(parsed){
   };
   fill($('cf-prev'), parsed.guessPrev || '__CALC', true);
   fill($('cf-concl'), parsed.guessConcl || '__PHYS', false);
+  populateCustoMapping(parsed);
   const note=$('detect-note');
   if(parsed.guessPrev && parsed.guessConcl){
     note.className='detect-note ok show';
@@ -1401,6 +1507,42 @@ function populateMapping(parsed){
     note.className='detect-note show';
     note.innerHTML='⚠ Não consegui identificar com certeza os campos de % previsto/concluído. Selecione-os manualmente acima.';
   }
+}
+
+/* Diagnóstico de custo: mostra na tela EXATAMENTE o que este XML trouxe,
+   pra saber se dá ou não pra alimentar as colunas de custo do Mapa Semanal. */
+function populateCustoMapping(parsed){
+  const fontes=parsed.custoFontes||[];
+  const nenhum={id:'__NONE', label:'— não usar —'};
+  const rotulo=f=>f.label+(f.nativo?'':' (campo personalizado)')
+      +(f.comValor?`  ·  ${f.comValor} tarefa(s) com valor`:'  ·  vazio neste XML');
+  const opts=[nenhum, ...fontes];
+  const fill=(sel,guess)=>{
+    sel.innerHTML=opts.map(f=>`<option value="${f.id}">${esc(f.id==='__NONE'?f.label:rotulo(f))}</option>`).join('');
+    sel.value=guess||'__NONE';
+    if(!sel.value) sel.value='__NONE';
+  };
+  fill($('cf-custo-prev'), parsed.guessCustoPrev);
+  fill($('cf-custo-real'), parsed.guessCustoReal);
+
+  const comDado=fontes.filter(f=>f.comValor>0);
+  const box=$('custo-note');
+  if(!comDado.length){
+    box.className='detect-note show';
+    box.innerHTML='💰 <b>Este XML não traz nenhum valor de custo.</b> Nem os campos nativos do MS Project '
+      +'(Cost, ActualCost, Baseline/Cost, ACWP…) nem campos personalizados com "custo" no nome vieram preenchidos. '
+      +'As colunas de custo do Mapa Semanal vão ficar em branco para este contrato — peça à terceira para exportar '
+      +'o XML com a coluna de custo preenchida (ou informar Custo Previsto/Realizado em um campo personalizado).';
+    return;
+  }
+  box.className='detect-note ok show';
+  const lista=comDado.map(f=>`<li><b>${esc(f.label)}</b>${f.nativo?'':' <i>(personalizado)</i>'} — `
+      +`${f.comValor} tarefa(s) com valor · total na raiz: ${esc(fmtMoney(f.total))}</li>`).join('');
+  const nomeDe=id=>{const f=fontes.find(x=>x.id===id); return f?f.label:'—';};
+  box.innerHTML='💰 <b>Custos encontrados neste XML:</b><ul style="margin:6px 0 6px 18px">'+lista+'</ul>'
+    + 'Usando <b>'+esc($('cf-custo-prev').value==='__NONE'?'nenhum':nomeDe($('cf-custo-prev').value))+'</b> como Custo Previsto Total e '
+    + '<b>'+esc($('cf-custo-real').value==='__NONE'?'nenhum':nomeDe($('cf-custo-real').value))+'</b> como Custo Realizado Total. '
+    + 'Ajuste acima se a terceira usar outra coluna.';
 }
 let busy=false;
 async function runAnalysis(){
@@ -1413,11 +1555,12 @@ async function runAnalysis(){
   if(!emp){ toast('Preencha a Empresa','err'); $('cf-empresa').focus(); return; }
   const cut=$('cf-corte').value || new Date().toISOString().slice(0,10);
   const mp=$('cf-prev').value, mc=$('cf-concl').value;
+  const mcp=($('cf-custo-prev')||{}).value||'__NONE', mcr=($('cf-custo-real')||{}).value||'__NONE';
   const fm=state.fileMeta||{};
   const btn=$('btn-analisar'); const old=btn.innerHTML; busy=true; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Processando…';
   $('save-status').textContent=''; $('save-status').style.color='var(--green)';
   try{
-    const atualN=normalize(state.atualParsed.rawTasks, mp, mc, cut);
+    const atualN=normalize(state.atualParsed.rawTasks, mp, mc, cut, mcp, mcr);
     currentAtualNorm=atualN;
 
     // localizar cronograma (Empresa + Escopo) + revisão anterior no banco
@@ -1453,7 +1596,7 @@ async function runAnalysis(){
     // gravar XML + análise no banco
     if(dbReady){
       try{
-        const savedCronoId = await saveRevision({emp,escopo,area,disc,cronoId,revisao:curRev,revLabel,cut,mp,mc});
+        const savedCronoId = await saveRevision({emp,escopo,area,disc,cronoId,revisao:curRev,revLabel,cut,mp,mc,mcp,mcr});
         await pruneOldRevisions(savedCronoId);   // mantém tarefas completas só nas últimas 3
         $('save-status').textContent='✓ '+revLabel+' gravada no banco';
         toast('Analisado e salvo — '+revLabel+(firstRev?' (1ª revisão)':'')+' ✓','ok');
@@ -1520,7 +1663,7 @@ async function sbGetAll(path,pageSize){
   return all;
 }
 
-async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,mp,mc}){
+async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,mp,mc,mcp,mcr}){
   if(!cronoId){
     const ins=await sb('POST','val_cronogramas',pcoComTag({empresa:emp,escopo:escopo||null,area:area||null,disciplina:disc||null,descricao:null}));
     cronoId=ins[0].id;
@@ -1531,7 +1674,11 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
   }
   // se esta revisão já existe (reenvio), sobrescreve
   await sb('DELETE',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&revisao=eq.${revisao}`));
-  const compact=currentAtualNorm.map(t=>{const {ext,...rest}=t; return rest;});  // descarta ext bruto, mantém E/F
+  // descarta o ext bruto e os custos intermediários que só serviram pra detecção;
+  // mantém E/F (percentuais) e CP/CR (Custo Previsto/Realizado Total)
+  const compact=currentAtualNorm.map(t=>{
+    const {ext,remainingCost,fixedCost,acwp,bcwp,bcws,...rest}=t; return rest;
+  });
   // O XML do MS Project costuma ser enorme (dados diários por tarefa). Só guardamos
   // o XML bruto se for pequeno; o tarefas_json normalizado já tem o necessário p/ o lookahead.
   const LIMITE_XML = 3_000_000; // ~3 MB
@@ -1548,7 +1695,7 @@ async function saveRevision({emp,escopo,area,disc,cronoId,revisao,revLabel,cut,m
     realizado:currentResult.painel.desempenho.concl,
     resumo_json:{painel:currentResult.painel, mudancas:currentResult.mudancas, firstRev:currentResult.firstRev},
     tarefas_json:compact,
-    mapeamento:{prev:mp, concl:mc, corte:cut},
+    mapeamento:{prev:mp, concl:mc, corte:cut, custoPrev:mcp||null, custoReal:mcr||null},
     xml_raw: xml
   }));
   if(xmlNota) log('Aviso'+xmlNota);
@@ -2343,6 +2490,7 @@ function resolveLinha(l){
   if(l.is_manual){
     return {fonte:'manual', previsto:l.manual_previsto, realizado:l.manual_realizado,
       desempSemana:l.manual_desemp_semana, realizadoSemana:l.manual_realizado_semana,
+      custoPrev:l.manual_custo_previsto, custoReal:l.manual_custo_realizado,
       periodo:{display:l.periodo_manual||'', semanaAno:l.periodo_manual||''}, linkLabel:'Manual'};
   }
   if(!l.cronograma_id || !l.terceira_uid) return {fonte:'pendente'};
@@ -2368,7 +2516,12 @@ function resolveLinha(l){
       periodo=periodoLabel(anterior.data_corte, atual.data_corte);
     }
   }
-  return {fonte:'auto', previsto:tA.F, realizado:tA.E, desempSemana, realizadoSemana, periodo, linkLabel:(l.terceira_nome||tA.name)};
+  /* CP/CR só existem nas revisões gravadas depois que o mapeamento de custo
+     entrou em produção; revisões antigas voltam undefined -> vira null e a
+     célula mostra "—" em vez de quebrar. */
+  const custoPrev=(tA.CP==null?null:tA.CP), custoReal=(tA.CR==null?null:tA.CR);
+  return {fonte:'auto', previsto:tA.F, realizado:tA.E, desempSemana, realizadoSemana,
+          custoPrev, custoReal, periodo, linkLabel:(l.terceira_nome||tA.name)};
 }
 
 function buildMapaFilters(){
@@ -2407,19 +2560,25 @@ function renderMapa(){
   const manual=MAPA_LINHAS.filter(l=>l.is_manual).length;
   const pend=MAPA_LINHAS.filter(l=>{const f=(MAPA_RESOLVED[l.id]||{}).fonte; return f==='pendente'||f==='orfa';}).length;
   const cf=contarCandidatosPorFase();
+  const somaCusto=k=>rows.reduce((acc,l)=>{const v=(MAPA_RESOLVED[l.id]||{})[k]; return acc+((v==null||isNaN(v))?0:v);},0);
+  const totCP=somaCusto('custoPrev'), totCR=somaCusto('custoReal');
+  const kpiCusto = (totCP||totCR) ? `
+    <div class="mapa-kpi"><div class="v" style="font-size:16px">${esc(fmtMoney(totCP))}</div><div class="l">Custo previsto · filtro atual</div></div>
+    <div class="mapa-kpi"><div class="v" style="font-size:16px">${esc(fmtMoney(totCR))}</div><div class="l">Custo realizado · filtro atual</div></div>` : '';
   $('mapa-kpis').innerHTML=`
     <div class="mapa-kpi"><div class="v">${total}</div><div class="l">Linhas no mapa</div></div>
     <div class="mapa-kpi"><div class="v" style="color:var(--green)">${auto}</div><div class="l">Vinculadas ao vivo</div></div>
     <div class="mapa-kpi"><div class="v" style="color:var(--blue)">${manual}</div><div class="l">Preenchimento manual</div></div>
     <div class="mapa-kpi warn"><div class="v" style="color:#7c4a00">${pend}</div><div class="l">Pendentes / a revisar</div></div>
     <div class="mapa-kpi"><div class="v">${Object.keys(MAPA_METADADOS).length}</div><div class="l">Metadados UID importados</div></div>
-    <div class="mapa-kpi"><div class="v">${cf.f1} / ${cf.f2}</div><div class="l">Candidatos Fase 1 / Fase 2</div></div>`;
+    <div class="mapa-kpi"><div class="v">${cf.f1} / ${cf.f2}</div><div class="l">Candidatos Fase 1 / Fase 2</div></div>`+kpiCusto;
 
   if(!rows.length){ box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhuma linha corresponde ao filtro.</div>'; return; }
 
   box.innerHTML=`<div class="mapa-wrap"><table class="mapa"><thead><tr>
       <th>Período</th><th>Executante</th><th>Disciplina</th><th>Ilha de Produção (CWA)</th><th>Fase</th>
       <th class="num">Previsto %</th><th class="num">Realizado %</th><th class="num">Desemp. Semana %</th><th class="num">Realizado Semana %</th>
+      <th class="num">Custo Previsto Total</th><th class="num">Custo Realizado Total</th>
       <th>Vínculo</th><th></th>
     </tr></thead><tbody id="mapa-tbody"></tbody></table></div>`;
   const tb=$('mapa-tbody');
@@ -2429,7 +2588,7 @@ function renderMapa(){
 function buildMapaRow(l){
   const r=MAPA_RESOLVED[l.id]||{fonte:'pendente'};
   const tr=document.createElement('tr');
-  let vinculoHtml,prevHtml,realHtml,dsHtml,rsHtml,periodoHtml;
+  let vinculoHtml,prevHtml,realHtml,dsHtml,rsHtml,periodoHtml,cpHtml,crHtml;
 
   if(l.is_manual){
     vinculoHtml=`<button class="mapa-link-btn" onclick="openLinkModal('${l.id}')">✍ Manual — vincular</button>`;
@@ -2438,17 +2597,20 @@ function buildMapaRow(l){
     realHtml=`<input class="mapa-manual-input" data-role="realizado" type="number" step="0.01" value="${l.manual_realizado??''}">`;
     dsHtml=`<input class="mapa-manual-input" data-role="desemp" type="number" step="0.01" value="${l.manual_desemp_semana??''}">`;
     rsHtml=`<input class="mapa-manual-input" data-role="realsemana" type="number" step="0.01" value="${l.manual_realizado_semana??''}">`;
+    cpHtml=`<input class="mapa-manual-input" style="width:110px" data-role="custoprev" type="number" step="0.01" value="${l.manual_custo_previsto??''}">`;
+    crHtml=`<input class="mapa-manual-input" style="width:110px" data-role="custoreal" type="number" step="0.01" value="${l.manual_custo_realizado??''}">`;
   }else if(r.fonte==='auto'){
     vinculoHtml=`<button class="mapa-link-btn linked" onclick="openLinkModal('${l.id}')" title="${esc(r.linkLabel||'')}">🔗 ${esc(r.linkLabel||'vinculado')}</button>`;
     periodoHtml=`<span class="small">${esc(r.periodo?.display||'—')}</span>`;
     prevHtml=fmtNum(r.previsto,1); realHtml=fmtNum(r.realizado,1);
     dsHtml=r.desempSemana==null?'—':fmtNum(r.desempSemana,1); rsHtml=r.realizadoSemana==null?'—':fmtNum(r.realizadoSemana,1);
+    cpHtml=fmtMoney(r.custoPrev); crHtml=fmtMoney(r.custoReal);
   }else if(r.fonte==='orfa'){
     vinculoHtml=`<button class="mapa-link-btn warn" onclick="openLinkModal('${l.id}')" title="${esc(r.motivo||'')}">⚠ Revisar vínculo</button>`;
-    periodoHtml='<span class="small">—</span>'; prevHtml='—'; realHtml='—'; dsHtml='—'; rsHtml='—';
+    periodoHtml='<span class="small">—</span>'; prevHtml='—'; realHtml='—'; dsHtml='—'; rsHtml='—'; cpHtml='—'; crHtml='—';
   }else{
     vinculoHtml=`<button class="mapa-link-btn" onclick="openLinkModal('${l.id}')">Vincular…</button>`;
-    periodoHtml='<span class="small">—</span>'; prevHtml='—'; realHtml='—'; dsHtml='—'; rsHtml='—';
+    periodoHtml='<span class="small">—</span>'; prevHtml='—'; realHtml='—'; dsHtml='—'; rsHtml='—'; cpHtml='—'; crHtml='—';
   }
 
   tr.innerHTML=`
@@ -2461,6 +2623,8 @@ function buildMapaRow(l){
     <td class="num">${realHtml}</td>
     <td class="num">${dsHtml}</td>
     <td class="num">${rsHtml}</td>
+    <td class="num">${cpHtml}</td>
+    <td class="num">${crHtml}</td>
     <td class="col-vinculo">${vinculoHtml}</td>
     <td class="col-acoes">${CAN_UPLOAD?`<button class="mapa-mini-btn" title="Editar CWA/Empresa/Disciplina/Fase" onclick="openEditRow('${l.id}')">✏️</button> <button class="mapa-mini-btn" title="Excluir linha" onclick="deleteMapaLinha('${l.id}')">🗑️</button>`:''}</td>`;
 
@@ -2480,13 +2644,19 @@ async function saveManualMapaFields(id,tr){
     periodo_manual:g('periodo')||null,
     manual_previsto:num(g('previsto')), manual_realizado:num(g('realizado')),
     manual_desemp_semana:num(g('desemp')), manual_realizado_semana:num(g('realsemana')),
+    manual_custo_previsto:num(g('custoprev')), manual_custo_realizado:num(g('custoreal')),
     atualizado_em:new Date().toISOString()
   };
   try{
     await sb('PATCH',pcoComUnidade(`mapa_semanal_linhas?id=eq.${id}`),body);
     const l=MAPA_LINHAS.find(x=>x.id===id); if(l) Object.assign(l,body);
+    MAPA_RESOLVED[id]=resolveLinha(MAPA_LINHAS.find(x=>x.id===id)||{});
     toast('Salvo ✓','ok');
-  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
+  }catch(e){
+    if(/PGRST204|could not find|column .* does not exist|42703/i.test(e.message||'')){
+      toast('Faltam as colunas manual_custo_previsto / manual_custo_realizado em mapa_semanal_linhas — rode o ALTER TABLE do supabase_mapa_semanal.sql','err');
+    }else toast('Erro ao salvar: '+e.message,'err');
+  }
 }
 
 async function deleteMapaLinha(id){
@@ -2618,7 +2788,7 @@ function renderLinkTaskList(){
     const indent=Math.max(0,(t.level||1)-1)*14;
     row.innerHTML=`<span style="padding-left:${indent}px;flex:1;overflow:hidden">
         <div class="ltn">${esc(t.name)}${String(t.uid)===String(LINK_CTX.chosenUid)?' ✓':''}</div>
-        <div class="ltw">WBS ${esc(t.wbs||'—')} · %Prev ${fmtNum(t.F,1)} · %Concl ${fmtNum(t.E,1)}</div>
+        <div class="ltw">WBS ${esc(t.wbs||'—')} · %Prev ${fmtNum(t.F,1)} · %Concl ${fmtNum(t.E,1)}${(t.CP!=null||t.CR!=null)?` · Custo prev ${esc(fmtMoney(t.CP))} / real ${esc(fmtMoney(t.CR))}`:''}</div>
       </span>`;
     row.addEventListener('click',()=>chooseLinkTask(t));
     box.appendChild(row);
@@ -2672,12 +2842,14 @@ function exportMapaExcel(){
       'Previsto (%)': num(r.previsto),
       'Realizado (%)': num(r.realizado),
       'Desempenho da Semana (%)': num(r.desempSemana),
-      'Realizado da Semana (%)': num(r.realizadoSemana)
+      'Realizado da Semana (%)': num(r.realizadoSemana),
+      'Custo Previsto Total (R$)': num(r.custoPrev),
+      'Custo Realizado Total (R$)': num(r.custoReal)
     };
   });
   const wb=XLSX.utils.book_new();
-  const wsDados=XLSX.utils.json_to_sheet(rows,{header:['Período','Executante','Disciplina','Ilha de Produção','Fase','Previsto (%)','Realizado (%)','Desempenho da Semana (%)','Realizado da Semana (%)']});
-  wsDados['!cols']=[{wch:14},{wch:20},{wch:16},{wch:46},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16}];
+  const wsDados=XLSX.utils.json_to_sheet(rows,{header:['Período','Executante','Disciplina','Ilha de Produção','Fase','Previsto (%)','Realizado (%)','Desempenho da Semana (%)','Realizado da Semana (%)','Custo Previsto Total (R$)','Custo Realizado Total (R$)']});
+  wsDados['!cols']=[{wch:14},{wch:20},{wch:16},{wch:46},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16},{wch:20},{wch:20}];
   XLSX.utils.book_append_sheet(wb,wsDados,'Dados');
   const wsCwa=XLSX.utils.aoa_to_sheet([['CWA'],...CWA_LIST.map(c=>[c])]);
   wsCwa['!cols']=[{wch:70}];
