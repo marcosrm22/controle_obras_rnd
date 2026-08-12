@@ -136,7 +136,8 @@ body.fs-on.unlocked #btn-lock-fs{ background:var(--green); border-color:var(--gr
 /* The actual large SVG canvas inside the viewport */
 #drain-svg{
   position:absolute;top:0;left:0;
-  /* world size = 8000×10000 px; viewport will be scaled/translated via transform */
+  overflow:visible;            /* canvas infinito: nada é recortado fora da caixa */
+  /* world de referência = 8000×10000 px; o grid é redesenhado dinamicamente p/ cobrir a área visível */
 }
 
 /* Grid lines via SVG pattern — drawn inside SVG */
@@ -424,7 +425,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
             <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#d4d8e0" stroke-width="1"/>
           </pattern>
         </defs>
-        <rect width="8000" height="10000" fill="url(#grid)"/>
+        <rect id="grid-bg" x="-2000" y="-2000" width="12000" height="14000" fill="url(#grid)"/>
         <g id="elements-layer"></g>
         <g id="preview-layer"></g>
       </svg>
@@ -794,6 +795,33 @@ function applyTransform(){
   svg.style.transform = `translate(${vpTx}px,${vpTy}px) scale(${vpScale})`;
   svg.style.transformOrigin = '0 0';
   document.getElementById('zoom-label').textContent = Math.round(vpScale*100)+'%';
+  updateGridRect();
+}
+
+/* Grid infinito: reposiciona/redimensiona o <rect> do quadriculado para
+   sempre cobrir a área visível do viewport (em qualquer direção). O padrão
+   'url(#grid)' é userSpaceOnUse, ancorado na origem (0,0) do SVG, então as
+   linhas permanecem alinhadas mesmo com x/y negativos. */
+function updateGridRect(){
+  const grid = document.getElementById('grid-bg');
+  if(!grid) return;
+  const vp   = document.getElementById('canvas-viewport');
+  if(!vp) return;
+  const rect = vp.getBoundingClientRect();
+  const vw = rect.width  || window.innerWidth;
+  const vh = rect.height || window.innerHeight;
+  const tl = vpToWorld(0, 0);      // canto superior-esquerdo em coords do mundo
+  const br = vpToWorld(vw, vh);    // canto inferior-direito
+  const G = 100;                   // passo da grade (mantém alinhamento ao snap)
+  const margin = 600;              // folga em px de mundo p/ pan/scroll suave
+  const x1 = Math.floor((tl.x - margin) / G) * G;
+  const y1 = Math.floor((tl.y - margin) / G) * G;
+  const x2 = Math.ceil ((br.x + margin) / G) * G;
+  const y2 = Math.ceil ((br.y + margin) / G) * G;
+  grid.setAttribute('x', x1);
+  grid.setAttribute('y', y1);
+  grid.setAttribute('width',  Math.max(G, x2 - x1));
+  grid.setAttribute('height', Math.max(G, y2 - y1));
 }
 
 function zoom(factor, cx, cy){
