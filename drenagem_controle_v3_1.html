@@ -114,10 +114,30 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 .canvas-viewport.mode-pipe{cursor:crosshair}
 .canvas-viewport.mode-box{cursor:cell}
 
+/* ── TELA CHEIA (map-stage = ferramentas + canvas + painel de edição) ── */
+#map-stage:fullscreen,
+#map-stage:-webkit-full-screen{
+  background:var(--bg); padding:12px;
+  display:flex; flex-direction:column; gap:10px; overflow:auto;
+}
+#map-stage:fullscreen .layout,
+#map-stage:-webkit-full-screen .layout{ flex:1 1 auto; min-height:0; align-items:stretch; }
+#map-stage:fullscreen .map-wrap,
+#map-stage:-webkit-full-screen .map-wrap{ height:100%; }
+#map-stage:fullscreen .canvas-viewport,
+#map-stage:-webkit-full-screen .canvas-viewport{ min-height:0; }
+#map-stage:fullscreen .side,
+#map-stage:-webkit-full-screen .side{ overflow:auto; }
+body.fs-on #btn-fullscreen{ background:var(--inpasa-blue); color:#fff; border-color:var(--inpasa-blue); }
+#btn-lock-fs{ display:none; }
+body.fs-on #btn-lock-fs{ display:inline-flex; }
+body.fs-on.unlocked #btn-lock-fs{ background:var(--green); border-color:var(--green); color:#fff; }
+
 /* The actual large SVG canvas inside the viewport */
 #drain-svg{
   position:absolute;top:0;left:0;
-  /* world size = 8000×5000 px; viewport will be scaled/translated via transform */
+  overflow:visible;            /* canvas infinito: nada é recortado fora da caixa */
+  /* world de referência = 8000×10000 px; o grid é redesenhado dinamicamente p/ cobrir a área visível */
 }
 
 /* Grid lines via SVG pattern — drawn inside SVG */
@@ -144,6 +164,22 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 
 .handle{fill:var(--inpasa-gold);stroke:#fff;stroke-width:1.5;cursor:grab}
 .draw-preview{stroke:var(--inpasa-blue);stroke-linecap:round;stroke-dasharray:12 8;opacity:.6;pointer-events:none}
+.draw-preview.locked{stroke:var(--inpasa-gold);stroke-dasharray:none;opacity:.85}
+.draw-ghost-box{fill:none;stroke:var(--inpasa-gold);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+.draw-tip{font-family:'JetBrains Mono',monospace;font-weight:700;fill:var(--inpasa-blue);paint-order:stroke;stroke:#fff;stroke-width:3;stroke-linejoin:round;pointer-events:none}
+
+/* ── LENGTH INPUT (estilo CAD) ── */
+#len-input-wrap{position:absolute;display:none;z-index:40;background:var(--inpasa-blue);color:#fff;
+  border:1px solid var(--inpasa-blue-dark);box-shadow:var(--shadow-lg);padding:8px 10px;min-width:172px}
+#len-input-wrap.visible{display:block}
+.len-input-title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;opacity:.85;margin-bottom:5px}
+.len-input-row{display:flex;align-items:center;gap:6px}
+#len-input{flex:1;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
+  border:none;outline:2px solid var(--inpasa-gold);background:#fff;color:var(--text);padding:5px 8px;width:90px}
+#len-input::-webkit-outer-spin-button,#len-input::-webkit-inner-spin-button{opacity:1}
+.len-input-unit{font-size:12px;font-weight:700;opacity:.9}
+.len-input-hint{font-size:8px;margin-top:5px;opacity:.75;letter-spacing:.5px}
+.len-input-hint kbd{background:rgba(255,255,255,.2);padding:1px 4px;border-radius:2px;font-family:'JetBrains Mono',monospace}
 
 /* ── SIDE PANEL ── */
 .side{background:var(--panel);border:1px solid var(--border);padding:14px;height:fit-content;position:sticky;top:14px;box-shadow:var(--shadow)}
@@ -238,7 +274,6 @@ body.locked #btn-delete-el{pointer-events:none;opacity:.4}
 body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
 </style>
 <script src="config.js"></script>
-<script src="unidade.js"></script>
 </head>
 <body>
 <div class="app">
@@ -252,7 +287,6 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     </div>
   </div>
   <div class="header-right">
-    <span id="unidade-switcher" style="margin-right:4px"></span>
     <button class="tool-btn" id="btn-lock" onclick="toggleLock()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
       <span id="lock-label">Bloqueado · Liberar</span>
@@ -272,7 +306,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     <div class="kpi-sub" id="kpi-pipes-m">0 m lineares</div>
   </div>
   <div class="kpi" data-color="green">
-    <div class="kpi-label">Caixas PV</div>
+    <div class="kpi-label">Caixas</div>
     <div class="kpi-value" id="kpi-boxes">0</div>
     <div class="kpi-sub">Poços de visita</div>
   </div>
@@ -299,16 +333,18 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-pipes"></div></div>
 </div>
 <div class="macro-progress" style="margin-top:-6px">
-  <div class="macro-head"><span>Avanço — Caixas PV</span><strong id="macro-text-boxes">0 / 0</strong></div>
+  <div class="macro-head"><span>Avanço — Caixas</span><strong id="macro-text-boxes">0 / 0</strong></div>
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-boxes"></div></div>
 </div>
 
 <!-- LEGEND -->
 <div class="legend-wrap">
-  <div class="legend-title">Legenda — Diâmetros e Status</div>
+  <div class="legend-title">Legenda — Status e Tipos de Caixa</div>
   <div class="legend-grid" id="legend-grid"></div>
 </div>
 
+<!-- MAP STAGE (área que vai para tela cheia: ferramentas + canvas + painel) -->
+<div id="map-stage">
 <!-- TOOLBAR -->
 <div class="toolbar">
   <div class="toolbar-section">
@@ -323,7 +359,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 8h12" stroke-linecap="round"/></svg>Traçar Tubo
     </button>
     <button class="tool-btn" id="btn-box" onclick="setTool('box')">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa PV
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa
+    </button>
+    <button class="tool-btn" id="btn-selectall" onclick="selectAll()" title="Selecionar tudo para mover em conjunto (Ctrl+A)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="2.5 1.8"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/></svg>Selecionar Tudo
     </button>
   </div>
   <div class="toolbar-section">
@@ -336,15 +375,25 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <option value="1200" selected>Ø 1200 mm</option>
       <option value="1500">Ø 1500 mm</option>
     </select>
+    <span class="toolbar-label">Tipo de Caixa</span>
+    <select class="diam-select" id="box-type-default" title="Tipo da caixa a inserir (também usado na caixa de fim do trecho)">
+      <option value="PV" selected>PV · Poço de Visita</option>
+      <option value="BL">BL · Boca de Lobo</option>
+      <option value="CP">CP · Caixa de Passagem</option>
+    </select>
     <div class="toolbar-sep"></div>
     <button class="tool-btn danger" onclick="clearAll()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>Limpar Tudo
+    </button>
+    <button class="tool-btn" id="btn-lock-fs" onclick="toggleLock()" title="Liberar / Trancar edição">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+      <span id="lock-label-fs">Liberar</span>
     </button>
   </div>
 </div>
 
 <!-- HINTS -->
-<div class="map-hint" id="hint-pipe">✏ Clique e arraste para traçar um trecho · <kbd>Esc</kbd> cancela</div>
+<div class="map-hint" id="hint-pipe">✏ <b>1)</b> Clique numa caixa PV · <b>2)</b> aponte a direção com o mouse (<kbd>Shift</kbd> trava em 45°) · <b>3)</b> clique p/ travar · <b>4)</b> digite o comprimento + <kbd>Enter</kbd> → caixa PV de fim é criada · <kbd>Esc</kbd> cancela</div>
 <div class="map-hint" id="hint-box">✏ Clique para posicionar uma caixa PV · <kbd>Esc</kbd> cancela</div>
 <div class="map-hint" id="hint-pan" style="background:#f0fbf0;border-color:var(--green);color:var(--green)">🖐 Clique e arraste para mover o canvas · Scroll do mouse = zoom</div>
 
@@ -361,11 +410,12 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
           <button class="zoom-btn" onclick="zoom(0.8)" title="Zoom out">−</button>
           <button class="zoom-btn" onclick="zoomFit()" title="Encaixar tudo" style="font-size:11px;font-weight:800;width:auto;padding:0 6px">⊞</button>
           <button class="zoom-btn" onclick="zoomReset()" title="100%%" style="font-size:10px;width:auto;padding:0 6px">1:1</button>
+          <button class="zoom-btn" id="btn-fullscreen" onclick="toggleFullscreen()" title="Tela cheia" style="width:auto;padding:0 7px;font-size:14px">⛶</button>
         </div>
       </div>
     </div>
     <div class="canvas-viewport" id="canvas-viewport">
-      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="5000">
+      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="10000">
         <defs>
           <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e4e7ec" stroke-width="0.5"/>
@@ -375,10 +425,18 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
             <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#d4d8e0" stroke-width="1"/>
           </pattern>
         </defs>
-        <rect width="8000" height="5000" fill="url(#grid)"/>
+        <rect id="grid-bg" x="-2000" y="-2000" width="12000" height="14000" fill="url(#grid)"/>
         <g id="elements-layer"></g>
         <g id="preview-layer"></g>
       </svg>
+      <div id="len-input-wrap">
+        <div class="len-input-title">Comprimento do trecho</div>
+        <div class="len-input-row">
+          <input id="len-input" type="text" inputmode="decimal" placeholder="metros" autocomplete="off"/>
+          <span class="len-input-unit">m</span>
+        </div>
+        <div class="len-input-hint"><kbd>Enter</kbd> confirma · <kbd>Esc</kbd> cancela</div>
+      </div>
     </div>
   </div>
 
@@ -416,8 +474,16 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         <span class="field-label">Comprimento (m)</span>
         <input type="number" class="input" id="op-len" min="0" step="0.5" placeholder="ex.: 50"/>
       </div>
+      <div class="field" id="field-boxtype" style="display:none">
+        <span class="field-label">Tipo de Caixa</span>
+        <select class="input" id="op-boxtype" onchange="setBoxType(this.value)">
+          <option value="PV">PV · Poço de Visita</option>
+          <option value="BL">BL · Boca de Lobo</option>
+          <option value="CP">CP · Caixa de Passagem</option>
+        </select>
+      </div>
       <div class="field" id="field-pvnum" style="display:none">
-        <span class="field-label">Número PV (1–500)</span>
+        <span class="field-label">Número (1–500)</span>
         <input type="number" class="input" id="op-pvnum" min="1" max="500" step="1" placeholder="1–500"/>
       </div>
       <div class="field">
@@ -437,6 +503,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     </div>
   </div>
 </div>
+</div><!-- /map-stage -->
 
 <!-- TABLE SECTION -->
 <div class="table-section">
@@ -529,10 +596,18 @@ const SB_KEY = (window.PCO_CONFIG||{supabase:{}}).supabase.key || '';           
 const TABLE  = 'drain_elements';
 const SVG_NS        = 'http://www.w3.org/2000/svg';
 const WORLD_W       = 8000;
-const WORLD_H       = 5000;
+const WORLD_H       = 10000;
 const SNAP          = 20;
 const PV_SIZE       = 40;
 const MIN_PIPE      = 30;
+
+/* ── ESCALA REAL (estilo CAD) ──
+   Quantos pixels-do-mundo equivalem a 1 metro. Configurável via config.js
+   (PCO_CONFIG.system.pxPorMetro). Padrão = 10 px/m  →  grade de 20px = 2 m. */
+const PX_PER_M = Number((window.PCO_CONFIG||{system:{}}).system.pxPorMetro) || 10;
+/* Se o fim do trecho cair a até este raio (px) do centro de uma caixa
+   já existente, conecta nela (vira nó) em vez de criar caixa nova. */
+const BOX_JUNCTION_SNAP = PV_SIZE; // 40 px
 
 /* Espessura visual da linha por diâmetro (em SVG units) */
 const PIPE_TH = {400:10,600:14,800:18,1000:22,1200:26,1500:32};
@@ -548,11 +623,37 @@ const DIAM_C = {
 };
 const DIAMS = [400,600,800,1000,1200,1500];
 
+/* ── COR DO TUBO POR STATUS (sem código por diâmetro) ──
+   O diâmetro continua existindo (controle + espessura do traço),
+   só a COR passa a ser: cinza = pendente · verde = concluído. */
+const PIPE_DONE        = '#609346';  // verde concluído
+const PIPE_PEND        = '#aab2bd';  // cinza pendente
+const PIPE_DONE_STROKE = '#4c7637';
+const PIPE_PEND_STROKE = '#7c8694';
+
+/* Translucidez dos PENDENTES (cinza) — quanto menor, mais "apagado" fica o
+   pendente, fazendo o concluído (verde/azul) se destacar ao tirar o zoom. */
+const PEND_PIPE_OPACITY = 0.4;
+const PEND_BOX_OPACITY  = 0.55;
+
+/* ── TIPOS DE CAIXA ──
+   Todos com a MESMA função: ponto de partida e de interligação de ramais.
+   No indicador do topo todos contam como "Caixas". */
+const BOX_TYPES = {
+  PV: { label:'PV', name:'Poço de Visita' },
+  BL: { label:'BL', name:'Boca de Lobo' },
+  CP: { label:'CP', name:'Caixa de Passagem' },
+};
+const BOX_TYPE_KEYS = ['PV','BL','CP'];
+function boxLabel(el){ const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return t.label + (el.pvNum||'?'); }
+function boxName(el){  const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return t.name + ' ' + (el.pvNum||'?'); }
+
 /* ================================================================
    STATE
    ================================================================ */
 let elements   = [];
 let selectedId = null;
+let selectedIds = new Set();   // seleção múltipla (para mover em conjunto)
 let tool       = 'select';
 let isUnlocked = false;
 let modalCb    = null;
@@ -574,24 +675,14 @@ function snapV(v){ return Math.round(v/SNAP)*SNAP }
    ================================================================ */
 function buildLegend(){
   const g = document.getElementById('legend-grid');
-  g.innerHTML = '';
-  DIAMS.forEach(d => {
-    const c = DIAM_C[d];
-    g.innerHTML += `
-      <div class="legend-item">
-        <span class="legend-swatch" style="background:${c.done}"></span>Ø${d} concluído
-      </div>
-      <div class="legend-item">
-        <span class="legend-swatch pend" style="background:${c.pend};border-color:${c.done}"></span>Ø${d} pendente
-      </div>`;
-  });
-  g.innerHTML += `
-    <div class="legend-item">
-      <div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente
-    </div>
-    <div class="legend-item">
-      <div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída
-    </div>`;
+  g.innerHTML = `
+    <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_PEND}"></span>Tubo pendente</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_DONE}"></span>Tubo concluído</div>
+    <div class="legend-item"><div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente</div>
+    <div class="legend-item"><div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída</div>
+    <div class="legend-item" style="opacity:.8;font-weight:500">PV · Poço de Visita</div>
+    <div class="legend-item" style="opacity:.8;font-weight:500">BL · Boca de Lobo</div>
+    <div class="legend-item" style="opacity:.8;font-weight:500">CP · Caixa de Passagem</div>`;
 }
 
 /* ================================================================
@@ -627,13 +718,17 @@ async function sbFetch(path, opts={}){
 
 /* Objeto interno → linha do banco */
 function toRow(el){
-  const base = { id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'', unidade: pcoUnidadeAtual() };
+  const base = { id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'' };
   if(el.kind === 'pipe')
     return { ...base, diam: el.diam, length_m: el.lengthM||0,
              x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2,
+             from_box: el.fromBox||null, to_box: el.toBox||null,
+             box_type: null,
              pv_num: null, pv_x: null, pv_y: null };
   else
     return { ...base, pv_num: el.pvNum, pv_x: el.x, pv_y: el.y,
+             box_type: el.boxType||'PV',
+             from_box: null, to_box: null,
              diam: null, length_m: null, x1: null, y1: null, x2: null, y2: null };
 }
 
@@ -642,10 +737,12 @@ function fromRow(r){
   if(r.kind === 'pipe')
     return { id:r.id, kind:'pipe', status:r.status, note:r.note||'',
              diam:r.diam, lengthM:Number(r.length_m)||0,
-             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2) };
+             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2),
+             fromBox:r.from_box||null, toBox:r.to_box||null };
   else
     return { id:r.id, kind:'box', status:r.status, note:r.note||'',
-             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y) };
+             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y),
+             boxType:r.box_type||'PV' };
 }
 
 /* ================================================================
@@ -669,13 +766,13 @@ async function save(){
 }
 
 async function deleteFromDB(id){
-  await sbFetch(pcoComUnidade(TABLE + '?id=eq.' + encodeURIComponent(id)), { method: 'DELETE' });
+  await sbFetch(TABLE + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
 }
 
 async function loadData(){
   setSyncStatus('Conectando...', 'saving');
   try {
-    const rows = await sbFetch(pcoComUnidade(TABLE + '?order=created_at.asc'));
+    const rows = await sbFetch(TABLE + '?order=created_at.asc');
     elements = (rows||[]).map(fromRow);
     setSyncStatus('Online ✓', 'ok');
     // atualiza cache local
@@ -698,6 +795,33 @@ function applyTransform(){
   svg.style.transform = `translate(${vpTx}px,${vpTy}px) scale(${vpScale})`;
   svg.style.transformOrigin = '0 0';
   document.getElementById('zoom-label').textContent = Math.round(vpScale*100)+'%';
+  updateGridRect();
+}
+
+/* Grid infinito: reposiciona/redimensiona o <rect> do quadriculado para
+   sempre cobrir a área visível do viewport (em qualquer direção). O padrão
+   'url(#grid)' é userSpaceOnUse, ancorado na origem (0,0) do SVG, então as
+   linhas permanecem alinhadas mesmo com x/y negativos. */
+function updateGridRect(){
+  const grid = document.getElementById('grid-bg');
+  if(!grid) return;
+  const vp   = document.getElementById('canvas-viewport');
+  if(!vp) return;
+  const rect = vp.getBoundingClientRect();
+  const vw = rect.width  || window.innerWidth;
+  const vh = rect.height || window.innerHeight;
+  const tl = vpToWorld(0, 0);      // canto superior-esquerdo em coords do mundo
+  const br = vpToWorld(vw, vh);    // canto inferior-direito
+  const G = 100;                   // passo da grade (mantém alinhamento ao snap)
+  const margin = 600;              // folga em px de mundo p/ pan/scroll suave
+  const x1 = Math.floor((tl.x - margin) / G) * G;
+  const y1 = Math.floor((tl.y - margin) / G) * G;
+  const x2 = Math.ceil ((br.x + margin) / G) * G;
+  const y2 = Math.ceil ((br.y + margin) / G) * G;
+  grid.setAttribute('x', x1);
+  grid.setAttribute('y', y1);
+  grid.setAttribute('width',  Math.max(G, x2 - x1));
+  grid.setAttribute('height', Math.max(G, y2 - y1));
 }
 
 function zoom(factor, cx, cy){
@@ -745,6 +869,42 @@ function zoomReset(){
   applyTransform();
 }
 
+/* ================================================================
+   TELA CHEIA (visualização + edição do mapa)
+   ================================================================ */
+function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function toggleFullscreen(){
+  const stage = document.getElementById('map-stage');
+  if(!fsElement()){
+    const req = stage.requestFullscreen || stage.webkitRequestFullscreen || stage.msRequestFullscreen;
+    if(req) req.call(stage);
+    else toast('Tela cheia não suportada neste navegador', true);
+  } else {
+    const ex = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if(ex) ex.call(document);
+  }
+}
+function onFullscreenChange(){
+  const on = !!fsElement();
+  document.body.classList.toggle('fs-on', on);
+  const stage = document.getElementById('map-stage');
+  // modais/toast precisam estar DENTRO do elemento em tela cheia para aparecerem
+  ['modal-confirm','modal-pwd','modal-import','toast'].forEach(id=>{
+    const elx = document.getElementById(id);
+    if(!elx) return;
+    if(on) stage.appendChild(elx); else document.body.appendChild(elx);
+  });
+  const btn = document.getElementById('btn-fullscreen');
+  if(btn){
+    btn.textContent = on ? '🗗' : '⛶';
+    btn.title = on ? 'Sair da tela cheia (Esc)' : 'Tela cheia';
+  }
+  // o viewport mudou de tamanho → reaplica a transformação (preserva a vista atual)
+  setTimeout(applyTransform, 60);
+}
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
 /* Convert viewport pixel → world SVG coordinates */
 function vpToWorld(px, py){
   return { x:(px-vpTx)/vpScale, y:(py-vpTy)/vpScale };
@@ -755,6 +915,32 @@ function evToWorld(ev){
   const vp   = document.getElementById('canvas-viewport');
   const rect = vp.getBoundingClientRect();
   return vpToWorld(ev.clientX - rect.left, ev.clientY - rect.top);
+}
+
+/* Convert world SVG coords → viewport pixel (relativo ao .canvas-viewport) */
+function worldToVp(wx, wy){
+  return { x: wx*vpScale + vpTx, y: wy*vpScale + vpTy };
+}
+
+/* Centro de uma caixa (PV) em coordenadas do mundo */
+function boxCenter(b){ return { x: b.x + PV_SIZE/2, y: b.y + PV_SIZE/2 }; }
+
+/* Caixa sob o ponto (wx,wy) — usado p/ iniciar trecho clicando na caixa */
+function findBoxUnder(wx, wy){
+  return elements.find(e => e.kind==='box'
+    && wx >= e.x && wx <= e.x+PV_SIZE
+    && wy >= e.y && wy <= e.y+PV_SIZE);
+}
+
+/* Caixa cujo CENTRO está a até `thresh` px do ponto — usado p/ junção no fim */
+function findBoxNear(wx, wy, thresh, exceptId){
+  let best=null, bestD=Infinity;
+  elements.forEach(e=>{
+    if(e.kind!=='box' || e.id===exceptId) return;
+    const c=boxCenter(e); const d=Math.hypot(c.x-wx, c.y-wy);
+    if(d<=thresh && d<bestD){ best=e; bestD=d; }
+  });
+  return best;
 }
 
 /* ================================================================
@@ -786,12 +972,14 @@ function updateLockUI(){
   document.body.classList.toggle('locked',!isUnlocked);
   document.body.classList.toggle('unlocked',isUnlocked);
   document.getElementById('lock-label').textContent=isUnlocked?'Edição liberada · Trancar':'Bloqueado · Liberar';
+  const l2=document.getElementById('lock-label-fs'); if(l2) l2.textContent=isUnlocked?'Trancar':'Liberar';
 }
 
 /* ================================================================
    TOOLS
    ================================================================ */
 function setTool(t){
+  if(typeof cancelLine==='function') cancelLine();   // encerra desenho em andamento
   tool=t;
   ['select','pan','pipe','box'].forEach(k=>{
     document.getElementById('btn-'+k)?.classList.toggle('active',t===k);
@@ -804,51 +992,157 @@ function setTool(t){
 }
 
 /* ================================================================
-   DRAW — PIPE
-   ================================================================ */
-let pipeStart = null;
+   DRAW — TRECHO  (estilo CAD: caixa → direção → comprimento → caixa)
+   ================================================================
+   Máquina de estados do desenho (variável `line`):
+     null         → ocioso, aguardando 1º clique numa caixa PV (origem)
+     'direction'  → origem definida; o mouse define a direção; 2º clique trava
+     'length'     → direção travada; aguardando o comprimento digitado (Enter) */
+let line = null;   // { state, fromBoxId, ox, oy, dirX, dirY, angle }
 
-function startPipe(ev){
+function drawLayer(){ return document.getElementById('preview-layer'); }
+function clearLinePreview(){
+  ['pipe-prev','line-tip','line-ghost'].forEach(id=>document.getElementById(id)?.remove());
+}
+
+/* 1º clique — inicia o trecho a partir de uma caixa existente */
+function startLineFromBox(box){
   if(!isUnlocked) return;
-  const w = evToWorld(ev);
-  pipeStart = {x:snapV(w.x), y:snapV(w.y)};
-  // preview line
-  const layer = document.getElementById('preview-layer');
-  const line  = document.createElementNS(SVG_NS,'line');
-  line.id='pipe-prev';
-  line.setAttribute('class','draw-preview');
-  line.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
-  line.setAttribute('x1',pipeStart.x); line.setAttribute('y1',pipeStart.y);
-  line.setAttribute('x2',pipeStart.x); line.setAttribute('y2',pipeStart.y);
-  layer.appendChild(line);
-  ev.preventDefault();
+  const c = boxCenter(box);
+  line = { state:'direction', fromBoxId:box.id, ox:c.x, oy:c.y, dirX:1, dirY:0, angle:0 };
+  const ln = document.createElementNS(SVG_NS,'line');
+  ln.id='pipe-prev'; ln.setAttribute('class','draw-preview');
+  ln.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
+  ln.setAttribute('x1',c.x); ln.setAttribute('y1',c.y);
+  ln.setAttribute('x2',c.x); ln.setAttribute('y2',c.y);
+  drawLayer().appendChild(ln);
 }
 
-function movePipe(ev){
-  if(!pipeStart) return;
+/* ângulo origem→cursor (snap de 45° com Shift) */
+function aimFromEvent(ev){
   const w = evToWorld(ev);
+  let ang = Math.atan2(w.y-line.oy, w.x-line.ox);
+  if(ev.shiftKey){ const step=Math.PI/4; ang = Math.round(ang/step)*step; }
+  return { angle:ang, dirX:Math.cos(ang), dirY:Math.sin(ang),
+           dist:Math.hypot(w.x-line.ox, w.y-line.oy) };
+}
+
+/* fase de direção — estica o preview até o cursor */
+function moveLineDir(ev){
+  if(!line || line.state!=='direction') return;
+  const a = aimFromEvent(ev);
   const prev = document.getElementById('pipe-prev');
-  if(prev){ prev.setAttribute('x2',snapV(w.x)); prev.setAttribute('y2',snapV(w.y)); }
+  if(prev){ prev.setAttribute('x2', line.ox + a.dirX*a.dist);
+            prev.setAttribute('y2', line.oy + a.dirY*a.dist); }
+  line.dirX=a.dirX; line.dirY=a.dirY; line.angle=a.angle;
 }
 
-function endPipe(ev){
-  if(!pipeStart) return;
-  const w  = evToWorld(ev);
-  const x2 = snapV(w.x), y2 = snapV(w.y);
-  document.getElementById('pipe-prev')?.remove();
-  const dx=x2-pipeStart.x, dy=y2-pipeStart.y;
-  const dist=Math.sqrt(dx*dx+dy*dy);
-  if(dist<MIN_PIPE){ toast('Trecho muito curto · descartado'); pipeStart=null; return; }
-  const el={
-    id:uid(), kind:'pipe',
-    x1:pipeStart.x, y1:pipeStart.y, x2, y2,
-    diam:getDiam(), lengthM:0, status:'pend', note:''
-  };
-  elements.push(el);
-  selectedId=el.id;
-  pipeStart=null;
-  save(); render();
+/* 2º clique — trava a direção e abre o campo de comprimento */
+function lockLineDirection(ev){
+  const a = aimFromEvent(ev);
+  if(a.dist < 4){ toast('Afaste o cursor para definir a direção'); return; }
+  line.dirX=a.dirX; line.dirY=a.dirY; line.angle=a.angle; line.state='length';
+  document.getElementById('pipe-prev')?.classList.add('locked');
+  openLengthInput();
+  updateLineLengthPreview();
 }
+
+/* campo flutuante de comprimento */
+function openLengthInput(){
+  const wrap = document.getElementById('len-input-wrap');
+  const inp  = document.getElementById('len-input');
+  const p = worldToVp(line.ox, line.oy);
+  const vp = document.getElementById('canvas-viewport');
+  const maxL = vp.clientWidth - 185, maxT = vp.clientHeight - 80;
+  wrap.style.left = Math.min(maxL, Math.max(6, p.x + 14)) + 'px';
+  wrap.style.top  = Math.min(maxT, Math.max(6, p.y + 14)) + 'px';
+  wrap.classList.add('visible');
+  inp.value=''; setTimeout(()=>inp.focus(),30);
+}
+function closeLengthInput(){ document.getElementById('len-input-wrap')?.classList.remove('visible'); }
+
+function currentLengthM(){
+  const raw = String(document.getElementById('len-input').value).replace(',', '.').trim();
+  const v = parseFloat(raw);
+  return (!isNaN(v) && v>0) ? v : 0;
+}
+function lineEndpoint(){
+  const len = currentLengthM();
+  return { x: Math.round(line.ox + line.dirX*len*PX_PER_M),
+           y: Math.round(line.oy + line.dirY*len*PX_PER_M) };
+}
+
+/* atualiza preview do tubo + caixa-fantasma + rótulo enquanto digita */
+function updateLineLengthPreview(){
+  if(!line || line.state!=='length') return;
+  const len = currentLengthM();
+  const e   = lineEndpoint();
+  const layer = drawLayer();
+  const prev = document.getElementById('pipe-prev');
+  if(prev){ prev.setAttribute('x2',e.x); prev.setAttribute('y2',e.y); }
+
+  let ghost = document.getElementById('line-ghost');
+  if(!ghost){
+    ghost=document.createElementNS(SVG_NS,'rect'); ghost.id='line-ghost';
+    ghost.setAttribute('class','draw-ghost-box');
+    ghost.setAttribute('width',PV_SIZE); ghost.setAttribute('height',PV_SIZE);
+    layer.appendChild(ghost);
+  }
+  ghost.setAttribute('x', e.x-PV_SIZE/2); ghost.setAttribute('y', e.y-PV_SIZE/2);
+  ghost.style.display = len>0 ? '' : 'none';
+
+  let tip = document.getElementById('line-tip');
+  if(!tip){
+    tip=document.createElementNS(SVG_NS,'text'); tip.id='line-tip';
+    tip.setAttribute('class','draw-tip'); tip.setAttribute('font-size','13');
+    tip.setAttribute('text-anchor','middle'); layer.appendChild(tip);
+  }
+  tip.setAttribute('x',(line.ox+e.x)/2); tip.setAttribute('y',(line.oy+e.y)/2 - 10);
+  tip.textContent = len>0 ? (len.toLocaleString('pt-BR')+' m') : '';
+}
+
+/* confirma — cria o tubo + caixa de fim (ou conecta numa caixa existente = nó) */
+function commitLine(){
+  if(!line || line.state!=='length') return;
+  const len = currentLengthM();
+  if(len<=0){ toast('Informe um comprimento maior que zero', true); return; }
+  const e = lineEndpoint();
+
+  let endBox = findBoxNear(e.x, e.y, BOX_JUNCTION_SNAP, line.fromBoxId);
+  let endX, endY, toBoxId, novaCaixa=false;
+  if(endBox){
+    const c = boxCenter(endBox); endX=c.x; endY=c.y; toBoxId=endBox.id;
+  } else {
+    const bt = getBoxType();
+    endBox = { id:uid(), kind:'box', boxType:bt, x:e.x-PV_SIZE/2, y:e.y-PV_SIZE/2,
+               pvNum:nextBoxNum(bt), status:'pend', note:'' };
+    elements.push(endBox); endX=e.x; endY=e.y; toBoxId=endBox.id; novaCaixa=true;
+  }
+
+  const pipe = {
+    id:uid(), kind:'pipe',
+    x1:line.ox, y1:line.oy, x2:endX, y2:endY,
+    diam:getDiam(), lengthM:len, status:'pend', note:'',
+    fromBox:line.fromBoxId, toBox:toBoxId
+  };
+  elements.push(pipe);
+  selectedId = pipe.id; selectedIds = new Set([pipe.id]);
+
+  cancelLine();
+  save(); render();
+  toast(novaCaixa ? `Trecho de ${len.toLocaleString('pt-BR')} m criado · nova caixa ${boxLabel(endBox)}`
+                  : `Trecho de ${len.toLocaleString('pt-BR')} m · conectado à caixa ${boxLabel(endBox)}`);
+}
+
+/* cancela / encerra o desenho em andamento */
+function cancelLine(){ line=null; clearLinePreview(); closeLengthInput(); }
+
+/* eventos do campo de comprimento */
+document.getElementById('len-input').addEventListener('input', updateLineLengthPreview);
+document.getElementById('len-input').addEventListener('keydown', ev=>{
+  if(ev.key==='Enter'){ ev.preventDefault(); ev.stopPropagation(); commitLine(); }
+  else if(ev.key==='Escape'){ ev.preventDefault(); ev.stopPropagation(); cancelLine(); }
+});
 
 /* ================================================================
    PLACE BOX (PV)
@@ -857,16 +1151,19 @@ function placeBox(ev){
   if(!isUnlocked) return;
   const w = evToWorld(ev);
   const x = snapV(w.x)-PV_SIZE/2, y = snapV(w.y)-PV_SIZE/2;
-  const el={id:uid(), kind:'box', x, y, pvNum:nextPvNum(), status:'pend', note:''};
+  const bt = getBoxType();
+  const el={id:uid(), kind:'box', boxType:bt, x, y, pvNum:nextBoxNum(bt), status:'pend', note:''};
   elements.push(el);
-  selectedId=el.id;
+  selectedId=el.id; selectedIds = new Set([el.id]);
   save(); render();
 }
 
 function getDiam(){ return Number(document.getElementById('diam-default').value)||1200 }
+function getBoxType(){ const v=document.getElementById('box-type-default')?.value; return BOX_TYPES[v]?v:'PV'; }
 
-function nextPvNum(){
-  const used=elements.filter(e=>e.kind==='box').map(e=>e.pvNum||0);
+/* próximo número livre POR TIPO (PV, BL e CP numerados de forma independente) */
+function nextBoxNum(type){
+  const used=elements.filter(e=>e.kind==='box' && (e.boxType||'PV')===type).map(e=>e.pvNum||0);
   let n=1; while(used.includes(n)) n++; return Math.min(n,500);
 }
 
@@ -897,11 +1194,35 @@ let dragging = null;
 function startDrag(ev,id){
   if(!isUnlocked) return;
   ev.stopPropagation();
-  selectEl(id);
   const w = evToWorld(ev);
-  const el = elements.find(e=>e.id===id);
-  dragging={id, startW:{x:w.x,y:w.y}, snap0:JSON.parse(JSON.stringify(el))};
+  // se o item clicado já faz parte de uma seleção múltipla, move o GRUPO
+  const groupMove = selectedIds.has(id) && selectedIds.size>1;
+  if(!groupMove) selectEl(id);          // clique simples → seleciona só ele
+  const ids  = groupMove ? [...selectedIds] : [id];
+  const orig = ids.map(i=>{ const el=elements.find(e=>e.id===i); return el?{id:i, snap:JSON.parse(JSON.stringify(el))}:null; }).filter(Boolean);
+  dragging = { group:groupMove, startW:{x:w.x,y:w.y}, orig };
   ev.preventDefault();
+}
+
+/* clique em um elemento (caixa ou tubo) na ferramenta Selecionar */
+function elementMouseDown(ev, el){
+  if(tool==='pipe') return;                       // ferramenta de trecho é tratada no viewport
+  if(tool!=='select'){ selectEl(el.id); return; }
+
+  const additive = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+  if(additive){ ev.stopPropagation(); toggleInSelection(el.id); return; }
+
+  // já é parte de uma seleção múltipla → inicia arraste do grupo
+  if(selectedIds.has(el.id) && selectedIds.size>1){
+    if(isUnlocked) startDrag(ev, el.id);
+    else ev.stopPropagation();
+    return;
+  }
+
+  // seleção simples
+  const connectedPipe = el.kind==='pipe' && (el.fromBox||el.toBox);
+  if(connectedPipe || !isUnlocked){ ev.stopPropagation(); selectEl(el.id); }  // tubo conectado: seleciona, não arrasta sozinho
+  else { startDrag(ev, el.id); }                                              // caixa ou tubo livre: seleciona e arrasta
 }
 
 /* ================================================================
@@ -915,7 +1236,16 @@ vp.addEventListener('mousedown', ev=>{
   if(tool==='pan'){ startPan(ev); return }
 
   if(tool==='pipe'){
-    if(isUnlocked && !onEl) startPipe(ev);
+    if(!isUnlocked){ toast('Libere a edição primeiro', true); return; }
+    const w = evToWorld(ev);
+    if(!line){
+      const b = findBoxUnder(w.x, w.y);
+      if(b) startLineFromBox(b);
+      else  toast('Clique numa caixa PV para iniciar o trecho');
+    } else if(line.state==='direction'){
+      lockLineDirection(ev);
+    }
+    // se já está em 'length', o canvas é ignorado — use o campo de comprimento
     return;
   }
   if(tool==='box'){
@@ -923,24 +1253,47 @@ vp.addEventListener('mousedown', ev=>{
     return;
   }
   // select tool
-  if(!onEl) deselect();
+  if(!onEl && !(ev.shiftKey||ev.ctrlKey||ev.metaKey)) deselect();
 });
 
 window.addEventListener('mousemove', ev=>{
   if(panStart){ movePan(ev); return }
-  if(pipeStart){ movePipe(ev); return }
+  if(line && line.state==='direction'){ moveLineDir(ev); return }
   if(dragging){
-    const w  = evToWorld(ev);
-    const dx = w.x - dragging.startW.x;
-    const dy = w.y - dragging.startW.y;
-    const el = elements.find(e=>e.id===dragging.id);
-    const s  = dragging.snap0;
-    if(!el) return;
-    if(el.kind==='pipe'){
-      el.x1=snapV(s.x1+dx); el.y1=snapV(s.y1+dy);
-      el.x2=snapV(s.x2+dx); el.y2=snapV(s.y2+dy);
+    const w   = evToWorld(ev);
+    const rdx = w.x - dragging.startW.x;
+    const rdy = w.y - dragging.startW.y;
+
+    if(dragging.group){
+      // translação rígida do grupo — delta arredondado ao passo da grade
+      const sdx = Math.round(rdx/SNAP)*SNAP, sdy = Math.round(rdy/SNAP)*SNAP;
+      dragging.orig.forEach(o=>{
+        const el=elements.find(e=>e.id===o.id); if(!el) return;
+        const s=o.snap;
+        if(el.kind==='box'){ el.x=s.x+sdx; el.y=s.y+sdy; }
+        else if(!s.fromBox && !s.toBox){            // tubo livre (sem caixas)
+          el.x1=s.x1+sdx; el.y1=s.y1+sdy; el.x2=s.x2+sdx; el.y2=s.y2+sdy;
+        }
+        // tubos conectados: geometria vem das caixas → resync abaixo
+      });
+      resyncConnectedPipes();
     } else {
-      el.x=snapV(s.x+dx); el.y=snapV(s.y+dy);
+      // arraste individual (comportamento original)
+      const o=dragging.orig[0]; const el=o&&elements.find(e=>e.id===o.id); const s=o&&o.snap;
+      if(el){
+        if(el.kind==='pipe'){
+          el.x1=snapV(s.x1+rdx); el.y1=snapV(s.y1+rdy);
+          el.x2=snapV(s.x2+rdx); el.y2=snapV(s.y2+rdy);
+        } else {
+          el.x=snapV(s.x+rdx); el.y=snapV(s.y+rdy);
+          const c = boxCenter(el);
+          elements.forEach(p=>{
+            if(p.kind!=='pipe') return;
+            if(p.fromBox===el.id){ p.x1=c.x; p.y1=c.y; }
+            if(p.toBox===el.id){ p.x2=c.x; p.y2=c.y; }
+          });
+        }
+      }
     }
     renderSVG();
   }
@@ -948,7 +1301,6 @@ window.addEventListener('mousemove', ev=>{
 
 window.addEventListener('mouseup', ev=>{
   if(panStart){ endPan(); return }
-  if(pipeStart){ endPipe(ev); return }
   if(dragging){ dragging=null; save(); render() }
 });
 
@@ -965,31 +1317,60 @@ vp.addEventListener('wheel', ev=>{
 /* ================================================================
    SELECT
    ================================================================ */
-function selectEl(id){ selectedId=id; render() }
-function deselect(){ selectedId=null; render() }
+function selectEl(id){ selectedId=id; selectedIds = new Set(id!=null?[id]:[]); render() }
+function deselect(){ selectedId=null; selectedIds.clear(); render() }
+
+/* adiciona/remove um elemento da seleção (Shift/Ctrl+clique) */
+function toggleInSelection(id){
+  if(selectedIds.has(id)){
+    selectedIds.delete(id);
+    if(selectedId===id) selectedId = selectedIds.size ? [...selectedIds][selectedIds.size-1] : null;
+  } else {
+    selectedIds.add(id);
+    selectedId = id;
+  }
+  render();
+}
+
+/* seleciona TODOS os elementos (para mover o desenho inteiro) */
+function selectAll(){
+  if(!elements.length){ toast('Nada para selecionar'); return; }
+  if(tool!=='select') setTool('select');
+  selectedIds = new Set(elements.map(e=>e.id));
+  selectedId = elements[elements.length-1].id;
+  render();
+  toast(`${selectedIds.size} elementos selecionados · arraste qualquer um para mover em conjunto`);
+}
+
+/* realinha as pontas dos tubos conectados ao centro de suas caixas */
+function resyncConnectedPipes(){
+  elements.forEach(p=>{
+    if(p.kind!=='pipe') return;
+    if(p.fromBox){ const b=elements.find(e=>e.id===p.fromBox); if(b){ const c=boxCenter(b); p.x1=c.x; p.y1=c.y; } }
+    if(p.toBox){  const b=elements.find(e=>e.id===p.toBox);  if(b){ const c=boxCenter(b); p.x2=c.x; p.y2=c.y; } }
+  });
+}
 
 /* ================================================================
    DELETE
    ================================================================ */
 function deleteSelected(){
   if(!isUnlocked){ toast('Libere a edição primeiro',true); return }
-  if(selectedId==null){ toast('Selecione um elemento primeiro'); return }
-  const el=elements.find(e=>e.id===selectedId);
-  if(!el){ toast('Elemento não encontrado',true); return }
-  const idToDelete = selectedId; // captura AGORA antes de qualquer render
-  const name=el.kind==='pipe'?`Trecho Ø${el.diam} mm`:`Caixa PV Nº ${el.pvNum||'?'}`;
-  openModal('Excluir elemento','Confirmar exclusão: '+name+'?', async ()=>{
-    elements = elements.filter(e => e.id !== idToDelete);
-    selectedId = null;
+  const ids = selectedIds.size ? [...selectedIds] : (selectedId!=null?[selectedId]:[]);
+  if(!ids.length){ toast('Selecione um elemento primeiro'); return }
+  const label = ids.length===1
+    ? (()=>{ const el=elements.find(e=>e.id===ids[0]); return el?(el.kind==='pipe'?`Trecho Ø${el.diam} mm`:boxName(el)):'elemento'; })()
+    : `${ids.length} elementos`;
+  openModal('Excluir', 'Confirmar exclusão: '+label+'?', async ()=>{
+    elements = elements.filter(e => !ids.includes(e.id));
+    selectedId = null; selectedIds.clear();
     render();
-    // remove no banco primeiro, depois salva o estado restante
-    try {
-      await deleteFromDB(idToDelete);
-      toast('Elemento excluído ✓');
-    } catch(e){
-      toast('Removido localmente · erro no banco: ' + e.message, true);
+    let errCount=0;
+    for(const id of ids){
+      try { await deleteFromDB(id); } catch(e){ errCount++; }
     }
-    // salva o array atualizado (upsert dos restantes)
+    if(errCount) toast(`Removidos localmente · ${errCount} erro(s) no banco`, true);
+    else toast(ids.length===1?'Elemento excluído ✓':`${ids.length} elementos excluídos ✓`);
     if(elements.length > 0) await save();
     else setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
   });
@@ -1000,10 +1381,10 @@ function clearAll(){
   if(elements.length===0) return;
   openModal('Limpar tudo',`Remover todos os ${elements.length} elementos? Não pode ser desfeito.`, async ()=>{
     const ids = elements.map(e => e.id);
-    elements=[]; selectedId=null; render();
+    elements=[]; selectedId=null; selectedIds.clear(); render();
     try {
       // deleta todos pelo array de IDs
-      await sbFetch(pcoComUnidade(TABLE + '?id=in.(' + ids.map(i=>`"${i}"`).join(',') + ')'), { method:'DELETE' });
+      await sbFetch(TABLE + '?id=in.(' + ids.map(i=>`"${i}"`).join(',') + ')', { method:'DELETE' });
       setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
       toast('Canvas limpo ✓');
     } catch(e){
@@ -1028,11 +1409,11 @@ function renderSVG(){
   document.getElementById('map-count').textContent=`${elements.length} elemento${elements.length!==1?'s':''}`;
 }
 
-function colorOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.done:c.pend }
-function strokeOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.stroke:'#9ca3af' }
+function colorOf(diam,status){ return status==='done'?PIPE_DONE:PIPE_PEND }
+function strokeOf(diam,status){ return status==='done'?PIPE_DONE_STROKE:PIPE_PEND_STROKE }
 
 function renderPipe(layer,el){
-  const sel = el.id===selectedId;
+  const sel = selectedIds.has(el.id);
   const th  = PIPE_TH[el.diam]||18;
   const fill= colorOf(el.diam,el.status);
   const strk= strokeOf(el.diam,el.status);
@@ -1040,6 +1421,7 @@ function renderPipe(layer,el){
   const g = document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pipe-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
+  if(el.status!=='done' && !sel) g.setAttribute('opacity', PEND_PIPE_OPACITY);
 
   // hit area
   const hit=document.createElementNS(SVG_NS,'line');
@@ -1085,7 +1467,7 @@ function renderPipe(layer,el){
   g.appendChild(lbl);
 
   // handles
-  if(sel && isUnlocked){
+  if(sel && isUnlocked && selectedIds.size===1){
     [{x:el.x1,y:el.y1},{x:el.x2,y:el.y2}].forEach(pt=>{
       const c=document.createElementNS(SVG_NS,'circle');
       c.setAttribute('class','handle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r',9);
@@ -1093,20 +1475,21 @@ function renderPipe(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else { selectEl(el.id); } });
+  g.addEventListener('mousedown',ev=>elementMouseDown(ev,el));
   layer.appendChild(g);
 }
 
 function renderBox(layer,el){
-  const sel  = el.id===selectedId;
+  const sel  = selectedIds.has(el.id);
   const fill = el.status==='done'?'#304F7E':'#e5e7eb';
   const tc   = el.status==='done'?'#fff':'#374151';
-  const lbl  = String(el.pvNum||'?');
+  const lbl  = boxLabel(el);
 
   const g=document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pv-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
   g.setAttribute('transform',`translate(${el.x},${el.y})`);
+  if(el.status!=='done' && !sel) g.setAttribute('opacity', PEND_BOX_OPACITY);
 
   const rect=document.createElementNS(SVG_NS,'rect');
   rect.setAttribute('class','pv-rect');
@@ -1121,11 +1504,11 @@ function renderBox(layer,el){
   txt.setAttribute('class','pv-label');
   txt.setAttribute('x',PV_SIZE/2); txt.setAttribute('y',PV_SIZE/2);
   txt.setAttribute('fill',tc);
-  txt.setAttribute('font-size',lbl.length>2?'10':'13');
+  txt.setAttribute('font-size',lbl.length<=2?'13':lbl.length<=3?'11':'9');
   txt.textContent=lbl;
   g.appendChild(txt);
 
-  if(sel && isUnlocked){
+  if(sel && isUnlocked && selectedIds.size===1){
     [[0,0],[PV_SIZE,0],[PV_SIZE,PV_SIZE],[0,PV_SIZE]].forEach(([cx,cy])=>{
       const c=document.createElementNS(SVG_NS,'circle');
       c.setAttribute('class','handle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',7);
@@ -1133,7 +1516,7 @@ function renderBox(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else selectEl(el.id); });
+  g.addEventListener('mousedown',ev=>elementMouseDown(ev,el));
   layer.appendChild(g);
 }
 
@@ -1181,17 +1564,16 @@ function renderTable(){
   elements.forEach(el=>{
     const isPipe=el.kind==='pipe';
     const st=el.status||'pend';
-    const c=DIAM_C[el.diam]||DIAM_C[1200];
     const diamCell=isPipe
-      ?`<span class="diam-chip" style="background:${c.done};color:#fff">Ø${el.diam} mm</span>`
-      :`<strong>Nº ${String(el.pvNum||'?').padStart(3,'0')}</strong>`;
+      ?`<span class="diam-chip" style="background:#eef2f8;color:#304F7E;border:1px solid #cdd6e4">Ø${el.diam} mm</span>`
+      :`<strong>${boxLabel(el)}</strong>`;
     const lenCell=isPipe?(el.lengthM?el.lengthM+' m':'—'):'—';
     const tr=document.createElement('tr');
     tr.dataset.id=el.id;
-    if(el.id===selectedId) tr.classList.add('selected');
+    if(selectedIds.has(el.id)) tr.classList.add('selected');
     tr.innerHTML=`
       <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute)">${el.id}</td>
-      <td style="font-weight:700">${isPipe?'Tubulação':'Caixa PV'}</td>
+      <td style="font-weight:700">${isPipe?'Tubulação':BOX_TYPES[el.boxType||'PV'].name}</td>
       <td>${diamCell}</td>
       <td class="num">${lenCell}</td>
       <td><span class="inline-badge ${st}">${st==='done'?'✔ Concluído':'⏳ Pendente'}</span></td>
@@ -1207,19 +1589,32 @@ function renderTable(){
 function renderDetail(){
   const empty  = document.getElementById('side-empty');
   const detail = document.getElementById('detail-panel');
+  const emsg   = document.getElementById('empty-msg');
+  // 2+ selecionados → painel de grupo
+  if(selectedIds.size>1){
+    detail.classList.remove('active'); empty.style.display='block';
+    emsg.innerHTML =
+      `<strong>${selectedIds.size} elementos selecionados</strong><br>`+
+      `Arraste qualquer um deles para mover todos juntos.<br>`+
+      `<span style="font-size:11px;color:var(--text-mute)">Shift+clique adiciona/remove · Del exclui todos · Esc limpa</span>`;
+    return;
+  }
   if(selectedId==null){
-    empty.style.display='block'; detail.classList.remove('active'); return;
+    empty.style.display='block'; detail.classList.remove('active');
+    if(elements.length>0)
+      emsg.innerHTML='<strong>Nenhum elemento selecionado</strong><br>Clique para selecionar · Shift+clique para vários · "Selecionar Tudo" move o desenho inteiro.';
+    return;
   }
   const el=elements.find(e=>e.id===selectedId);
   if(!el){ deselect(); return; }
   empty.style.display='none'; detail.classList.add('active');
 
   const isPipe=el.kind==='pipe';
-  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA PV';
-  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:`Caixa PV · Nº ${el.pvNum||'?'}`;
+  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA';
+  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:boxLabel(el);
   document.getElementById('detail-sub').textContent=isPipe
     ?(el.lengthM?el.lengthM+' metros':'Comprimento não informado')
-    :'Poço de Visita';
+    :(BOX_TYPES[el.boxType||'PV'].name+' · Nº '+(el.pvNum||'?'));
 
   const st=el.status||'pend';
   const badge=document.getElementById('detail-badge');
@@ -1230,12 +1625,14 @@ function renderDetail(){
 
   document.getElementById('field-diam').style.display=isPipe?'block':'none';
   document.getElementById('field-len').style.display=isPipe?'block':'none';
+  document.getElementById('field-boxtype').style.display=!isPipe?'block':'none';
   document.getElementById('field-pvnum').style.display=!isPipe?'block':'none';
 
   if(isPipe){
     document.getElementById('op-diam').value=el.diam;
     document.getElementById('op-len').value=el.lengthM||'';
   } else {
+    document.getElementById('op-boxtype').value=el.boxType||'PV';
     document.getElementById('op-pvnum').value=el.pvNum||'';
   }
   document.getElementById('op-note').value=el.note||'';
@@ -1248,6 +1645,17 @@ function setStatus(s){
 function setDiam(d){
   const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='pipe') return;
   el.diam=Number(d); renderSVG(); renderDetail();
+}
+function setBoxType(v){
+  const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='box') return;
+  if(!BOX_TYPES[v]) return;
+  if((el.boxType||'PV')!==v){
+    el.boxType=v;
+    // renumera para o próximo número livre do novo tipo (evita duplicar)
+    const used=elements.filter(e=>e.kind==='box'&&e.id!==el.id&&(e.boxType||'PV')===v).map(e=>e.pvNum||0);
+    let n=1; while(used.includes(n)) n++; el.pvNum=Math.min(500,n);
+  }
+  renderSVG(); renderDetail();
 }
 function saveSelected(){
   const el=elements.find(e=>e.id===selectedId); if(!el) return;
@@ -1263,7 +1671,7 @@ function updateEmptyMsg(){
   const msg=document.getElementById('empty-msg');
   if(elements.length===0){
     msg.innerHTML=isUnlocked
-      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa PV" para começar a desenhar a rede.'
+      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa" para começar a desenhar a rede.'
       :'<strong>Planta vazia</strong><br>Libere a edição com a senha para cadastrar elementos.';
   }
 }
@@ -1281,18 +1689,18 @@ function csvEsc(v){
 
 function exportCSV(){
   const SEP = ';'; // ponto-e-vírgula para Excel brasileiro
-  const cols = ['id','tipo','diametro_mm','pv_numero','comprimento_m','status','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
+  const cols = ['id','tipo','tipo_caixa','diametro_mm','pv_numero','comprimento_m','status','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
   const header = cols.join(SEP);
   const rows = elements.map(el => {
     let vals;
     if(el.kind==='pipe'){
       vals = [
-        el.id, 'tubulacao', el.diam, '', el.lengthM||0, el.status, el.note||'',
+        el.id, 'tubulacao', '', el.diam, '', el.lengthM||0, el.status, el.note||'',
         el.x1, el.y1, el.x2, el.y2, '', ''
       ];
     } else {
       vals = [
-        el.id, 'caixa_pv', '', el.pvNum||'', 0, el.status, el.note||'',
+        el.id, 'caixa', el.boxType||'PV', '', el.pvNum||'', 0, el.status, el.note||'',
         '', '', '', '', el.x, el.y
       ];
     }
@@ -1400,6 +1808,8 @@ function confirmImport(){
     } else {
       const pv=parseInt(row['pv_numero']);
       if(!isNaN(pv)&&pv>=1&&pv<=500) el.pvNum=pv;
+      const bt=(row['tipo_caixa']||'').trim().toUpperCase();
+      if(BOX_TYPES[bt]) el.boxType=bt;
     }
     updated++;
   });
@@ -1447,9 +1857,16 @@ function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
 window.addEventListener('keydown',ev=>{
   const active=document.activeElement;
   const typing=active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT');
-  if(ev.key==='Escape'){ setTool('select'); deselect(); pipeStart=null; document.getElementById('pipe-prev')?.remove() }
+  if(ev.key==='Escape'){
+    if(line){ cancelLine(); }            // cancela só o desenho em andamento, mantém ferramenta
+    else { setTool('select'); deselect(); }
+    document.getElementById('pipe-prev')?.remove();
+  }
+  if((ev.ctrlKey||ev.metaKey) && (ev.key==='a'||ev.key==='A') && !typing){
+    ev.preventDefault(); selectAll(); return;
+  }
   if(!typing){
-    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedId) deleteSelected() }
+    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedIds.size) deleteSelected() }
     if(ev.key==='p'||ev.key==='P') setTool('pipe');
     if(ev.key==='b'||ev.key==='B') setTool('box');
     if(ev.key==='v'||ev.key==='V') setTool('select');
@@ -1471,7 +1888,6 @@ document.head.appendChild(_style);
 buildLegend();
 updateLockUI();
 zoomReset();
-pcoRenderSwitcher('unidade-switcher');
 // carrega do Supabase de forma assíncrona, renderiza ao terminar
 (async ()=>{
   await loadData();
