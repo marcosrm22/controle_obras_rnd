@@ -272,6 +272,40 @@ body.locked .textarea{pointer-events:none;opacity:.4}
 body.locked .handle{display:none!important}
 body.locked #btn-delete-el{pointer-events:none;opacity:.4}
 body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
+
+/* ── ÁREA / EMPRESA · controles do mapa ── */
+.mapbar{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin-bottom:8px;padding:7px 10px;
+  background:var(--accent-soft);border:1px solid var(--border);}
+.mapbar-group{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.chip-btn{background:var(--bg-2);color:var(--text-dim);border:1px solid var(--border-2);padding:5px 11px;
+  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;cursor:pointer;border-radius:14px;transition:.15s}
+.chip-btn:hover{border-color:var(--inpasa-blue);color:var(--inpasa-blue)}
+.chip-btn.active{background:var(--inpasa-blue);border-color:var(--inpasa-blue);color:#fff}
+/* ── Painéis de indicadores ── */
+.ind-panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:1100px){.ind-panels{grid-template-columns:1fr}}
+.ind-card{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.ind-head{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:800;color:var(--text)}
+.ind-count{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--text-mute)}
+.ind-table-wrap{overflow-x:auto;max-height:230px;overflow-y:auto}
+.ind-table{width:100%;border-collapse:collapse;font-size:11px}
+.ind-table th{position:sticky;top:0;background:var(--bg);text-align:left;padding:6px 10px;font-size:8px;
+  letter-spacing:.6px;text-transform:uppercase;color:var(--text-mute);font-weight:700;border-bottom:1px solid var(--border);z-index:1}
+.ind-table th.num,.ind-table td.num{text-align:right}
+.ind-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);white-space:nowrap}
+.ind-row{cursor:pointer;transition:background .12s}
+.ind-row:hover{background:var(--accent-soft)}
+.ind-row.active{background:#fbf0d9;box-shadow:inset 3px 0 0 var(--inpasa-gold)}
+.ind-name{font-weight:700;color:var(--text)}
+.ind-name .none{font-weight:500;color:var(--text-mute);font-style:italic}
+.ind-empty{text-align:center;color:var(--text-mute);padding:16px;font-style:italic}
+.emp-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;
+  border:1px solid rgba(0,0,0,.15)}
+.mini-bar{display:inline-block;width:46px;height:7px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:5px}
+.mini-bar>span{display:block;height:100%;background:var(--green)}
+.mini-pct{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--text-dim)}
 </style>
 <script src="config.js"></script>
 </head>
@@ -343,6 +377,28 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="legend-grid" id="legend-grid"></div>
 </div>
 
+<!-- INDICADORES POR ÁREA / EMPRESA -->
+<div class="ind-panels">
+  <div class="ind-card">
+    <div class="ind-head"><span>📍 Avanço por Área</span><span class="ind-count" id="ind-area-count">—</span></div>
+    <div class="ind-table-wrap">
+      <table class="ind-table">
+        <thead><tr><th>Área</th><th class="num">Trechos</th><th class="num">Tubulação</th><th class="num">Metros</th><th class="num">Caixas</th><th class="num">Instaladas</th></tr></thead>
+        <tbody id="ind-area-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="ind-card">
+    <div class="ind-head"><span>🏢 Avanço por Empresa</span><span class="ind-count" id="ind-emp-count">—</span></div>
+    <div class="ind-table-wrap">
+      <table class="ind-table">
+        <thead><tr><th>Empresa</th><th class="num">Elem.</th><th class="num">Trechos</th><th class="num">Caixas</th><th class="num">Avanço</th></tr></thead>
+        <tbody id="ind-emp-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- MAP STAGE (área que vai para tela cheia: ferramentas + canvas + painel) -->
 <div id="map-stage">
 <!-- TOOLBAR -->
@@ -381,6 +437,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <option value="BL">BL · Boca de Lobo</option>
       <option value="CP">CP · Caixa de Passagem</option>
     </select>
+    <span class="toolbar-label">Área</span>
+    <input class="diam-select" id="area-default" list="areas-list" placeholder="Pátio do Posto" style="width:145px" title="Área padrão aplicada aos próximos elementos desenhados"/>
+    <span class="toolbar-label">Empresa</span>
+    <input class="diam-select" id="empresa-default" list="empresas-list" placeholder="Executora" style="width:130px" title="Empresa padrão aplicada aos próximos elementos desenhados"/>
     <div class="toolbar-sep"></div>
     <button class="tool-btn danger" onclick="clearAll()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>Limpar Tudo
@@ -414,6 +474,21 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         </div>
       </div>
     </div>
+    <div class="mapbar">
+      <div class="mapbar-group">
+        <span class="toolbar-label">Colorir por</span>
+        <button class="chip-btn active" id="cb-status" onclick="setColorMode('status')">Status</button>
+        <button class="chip-btn" id="cb-empresa" onclick="setColorMode('empresa')">Empresa</button>
+      </div>
+      <div class="mapbar-group">
+        <span class="toolbar-label">Filtrar</span>
+        <select class="diam-select" id="filtro-area" onchange="setFiltroArea(this.value)"><option value="">Área: todas</option></select>
+        <select class="diam-select" id="filtro-empresa" onchange="setFiltroEmpresa(this.value)"><option value="">Empresa: todas</option></select>
+        <button class="tool-btn" id="btn-limpar-filtro" style="display:none" onclick="limparFiltros()">✕ Limpar filtro</button>
+      </div>
+    </div>
+    <datalist id="areas-list"></datalist>
+    <datalist id="empresas-list"></datalist>
     <div class="canvas-viewport" id="canvas-viewport">
       <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="10000">
         <defs>
@@ -486,6 +561,14 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         <span class="field-label">Número (1–500)</span>
         <input type="number" class="input" id="op-pvnum" min="1" max="500" step="1" placeholder="1–500"/>
       </div>
+      <div class="field" id="field-area">
+        <span class="field-label">Área</span>
+        <input class="input" id="op-area" list="areas-list" placeholder="ex.: Pátio do Posto" onchange="setArea(this.value)"/>
+      </div>
+      <div class="field" id="field-empresa">
+        <span class="field-label">Empresa executora</span>
+        <input class="input" id="op-empresa" list="empresas-list" placeholder="ex.: Construtora X" onchange="setEmpresa(this.value)"/>
+      </div>
       <div class="field">
         <span class="field-label">Observações / Impedimentos</span>
         <textarea class="textarea" id="op-note" placeholder="Informe pendências, datas, observações..."></textarea>
@@ -525,7 +608,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <thead>
         <tr>
           <th>ID</th><th>Tipo</th><th>Ø / PV Nº</th>
-          <th class="num">Compr. (m)</th><th>Status</th><th>Observações</th>
+          <th class="num">Compr. (m)</th><th>Status</th><th>Área</th><th>Empresa</th><th>Observações</th>
         </tr>
       </thead>
       <tbody id="table-body">
@@ -658,6 +741,9 @@ let tool       = 'select';
 let isUnlocked = false;
 let modalCb    = null;
 let pendingCsv = null;   // rows parsed from CSV before confirm
+let colorMode     = 'status';   // 'status' | 'empresa'
+let filtroArea    = null;       // área filtrada (null = todas)
+let filtroEmpresa = null;       // empresa filtrada (null = todas)
 
 /* Viewport / pan-zoom */
 let vpScale = 1;
@@ -675,6 +761,17 @@ function snapV(v){ return Math.round(v/SNAP)*SNAP }
    ================================================================ */
 function buildLegend(){
   const g = document.getElementById('legend-grid');
+  const titEl = document.querySelector('.legend-title');
+  if(colorMode==='empresa'){
+    if(titEl) titEl.textContent='Legenda — Empresa executora';
+    const emps=empresasList();
+    let html=`<div class="legend-item"><span class="legend-swatch" style="background:#c1c9d3"></span>Sem empresa</div>`;
+    html+=emps.map(e=>`<div class="legend-item"><span class="legend-swatch" style="background:${empresaColor(e)}"></span>${escHtml(e)}</div>`).join('');
+    html+=`<div class="legend-item" style="opacity:.75;font-weight:500">Tracejado / apagado = pendente</div>`;
+    g.innerHTML=html;
+    return;
+  }
+  if(titEl) titEl.textContent='Legenda — Status e Tipos de Caixa';
   g.innerHTML = `
     <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_PEND}"></span>Tubo pendente</div>
     <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_DONE}"></span>Tubo concluído</div>
@@ -718,7 +815,8 @@ async function sbFetch(path, opts={}){
 
 /* Objeto interno → linha do banco */
 function toRow(el){
-  const base = { id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'' };
+  const base = { id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'',
+                 area: normStr(el.area)||null, empresa: normStr(el.empresa)||null };
   if(el.kind === 'pipe')
     return { ...base, diam: el.diam, length_m: el.lengthM||0,
              x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2,
@@ -736,11 +834,13 @@ function toRow(el){
 function fromRow(r){
   if(r.kind === 'pipe')
     return { id:r.id, kind:'pipe', status:r.status, note:r.note||'',
+             area:r.area||'', empresa:r.empresa||'',
              diam:r.diam, lengthM:Number(r.length_m)||0,
              x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2),
              fromBox:r.from_box||null, toBox:r.to_box||null };
   else
     return { id:r.id, kind:'box', status:r.status, note:r.note||'',
+             area:r.area||'', empresa:r.empresa||'',
              pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y),
              boxType:r.box_type||'PV' };
 }
@@ -1115,7 +1215,8 @@ function commitLine(){
   } else {
     const bt = getBoxType();
     endBox = { id:uid(), kind:'box', boxType:bt, x:e.x-PV_SIZE/2, y:e.y-PV_SIZE/2,
-               pvNum:nextBoxNum(bt), status:'pend', note:'' };
+               pvNum:nextBoxNum(bt), status:'pend', note:'',
+               area:getDefArea(), empresa:getDefEmpresa() };
     elements.push(endBox); endX=e.x; endY=e.y; toBoxId=endBox.id; novaCaixa=true;
   }
 
@@ -1123,6 +1224,7 @@ function commitLine(){
     id:uid(), kind:'pipe',
     x1:line.ox, y1:line.oy, x2:endX, y2:endY,
     diam:getDiam(), lengthM:len, status:'pend', note:'',
+    area:getDefArea(), empresa:getDefEmpresa(),
     fromBox:line.fromBoxId, toBox:toBoxId
   };
   elements.push(pipe);
@@ -1152,7 +1254,8 @@ function placeBox(ev){
   const w = evToWorld(ev);
   const x = snapV(w.x)-PV_SIZE/2, y = snapV(w.y)-PV_SIZE/2;
   const bt = getBoxType();
-  const el={id:uid(), kind:'box', boxType:bt, x, y, pvNum:nextBoxNum(bt), status:'pend', note:''};
+  const el={id:uid(), kind:'box', boxType:bt, x, y, pvNum:nextBoxNum(bt), status:'pend', note:'',
+            area:getDefArea(), empresa:getDefEmpresa()};
   elements.push(el);
   selectedId=el.id; selectedIds = new Set([el.id]);
   save(); render();
@@ -1397,7 +1500,7 @@ function clearAll(){
 /* ================================================================
    RENDER
    ================================================================ */
-function render(){ renderSVG(); renderKPIs(); renderTable(); renderDetail(); updateEmptyMsg() }
+function render(){ refreshDatalists(); renderSVG(); renderKPIs(); renderIndicators(); renderTable(); renderDetail(); updateEmptyMsg() }
 
 function renderSVG(){
   const layer = document.getElementById('elements-layer');
@@ -1415,13 +1518,17 @@ function strokeOf(diam,status){ return status==='done'?PIPE_DONE_STROKE:PIPE_PEN
 function renderPipe(layer,el){
   const sel = selectedIds.has(el.id);
   const th  = PIPE_TH[el.diam]||18;
-  const fill= colorOf(el.diam,el.status);
-  const strk= strokeOf(el.diam,el.status);
+  const emp = colorMode==='empresa';
+  const eCol= normStr(el.empresa)?empresaColor(el.empresa):'#c1c9d3';
+  const fill= emp ? eCol : colorOf(el.diam,el.status);
+  const strk= emp ? eCol : strokeOf(el.diam,el.status);
 
   const g = document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pipe-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
-  if(el.status!=='done' && !sel) g.setAttribute('opacity', PEND_PIPE_OPACITY);
+  let _op = (el.status!=='done') ? PEND_PIPE_OPACITY : 1;
+  if((filtroArea||filtroEmpresa) && !elMatchesFiltro(el)) _op = Math.min(_op, 0.10);
+  if(!sel && _op<1) g.setAttribute('opacity', _op);
 
   // hit area
   const hit=document.createElementNS(SVG_NS,'line');
@@ -1481,15 +1588,19 @@ function renderPipe(layer,el){
 
 function renderBox(layer,el){
   const sel  = selectedIds.has(el.id);
-  const fill = el.status==='done'?'#304F7E':'#e5e7eb';
-  const tc   = el.status==='done'?'#fff':'#374151';
+  const emp  = colorMode==='empresa';
+  const eCol = normStr(el.empresa)?empresaColor(el.empresa):'#c1c9d3';
+  const fill = emp ? eCol : (el.status==='done'?'#304F7E':'#e5e7eb');
+  const tc   = emp ? (normStr(el.empresa)?'#fff':'#374151') : (el.status==='done'?'#fff':'#374151');
   const lbl  = boxLabel(el);
 
   const g=document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pv-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
   g.setAttribute('transform',`translate(${el.x},${el.y})`);
-  if(el.status!=='done' && !sel) g.setAttribute('opacity', PEND_BOX_OPACITY);
+  let _op = (el.status!=='done') ? PEND_BOX_OPACITY : 1;
+  if((filtroArea||filtroEmpresa) && !elMatchesFiltro(el)) _op = Math.min(_op, 0.10);
+  if(!sel && _op<1) g.setAttribute('opacity', _op);
 
   const rect=document.createElementNS(SVG_NS,'rect');
   rect.setAttribute('class','pv-rect');
@@ -1557,7 +1668,7 @@ function renderTable(){
   const tbody=document.getElementById('table-body');
   document.getElementById('table-count').textContent=`${elements.length} registros`;
   if(!elements.length){
-    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">Nenhum elemento cadastrado</td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">Nenhum elemento cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML='';
@@ -1577,6 +1688,8 @@ function renderTable(){
       <td>${diamCell}</td>
       <td class="num">${lenCell}</td>
       <td><span class="inline-badge ${st}">${st==='done'?'✔ Concluído':'⏳ Pendente'}</span></td>
+      <td style="font-size:10px;color:var(--text-dim)">${el.area?escHtml(el.area):'—'}</td>
+      <td style="font-size:10px;color:var(--text-dim)">${el.empresa?`<span class="emp-dot" style="background:${empresaColor(el.empresa)}"></span>${escHtml(el.empresa)}`:'—'}</td>
       <td style="font-size:10px;max-width:200px;color:var(--text-dim)">${el.note?escHtml(el.note):'—'}</td>`;
     tr.addEventListener('click',()=>selectEl(el.id));
     tbody.appendChild(tr);
@@ -1594,9 +1707,20 @@ function renderDetail(){
   if(selectedIds.size>1){
     detail.classList.remove('active'); empty.style.display='block';
     emsg.innerHTML =
-      `<strong>${selectedIds.size} elementos selecionados</strong><br>`+
-      `Arraste qualquer um deles para mover todos juntos.<br>`+
-      `<span style="font-size:11px;color:var(--text-mute)">Shift+clique adiciona/remove · Del exclui todos · Esc limpa</span>`;
+      `<strong>${selectedIds.size} elementos selecionados</strong>`+
+      `<div style="margin:12px 0;text-align:left">`+
+        `<span class="field-label">Aplicar Área a todos</span>`+
+        `<div style="display:flex;gap:6px;margin-bottom:9px">`+
+          `<input class="input" id="bulk-area" list="areas-list" placeholder="ex.: Pátio do Posto" style="flex:1"/>`+
+          `<button class="tool-btn" onclick="applyBulkArea()">Aplicar</button>`+
+        `</div>`+
+        `<span class="field-label">Aplicar Empresa a todos</span>`+
+        `<div style="display:flex;gap:6px">`+
+          `<input class="input" id="bulk-empresa" list="empresas-list" placeholder="Executora" style="flex:1"/>`+
+          `<button class="tool-btn" onclick="applyBulkEmpresa()">Aplicar</button>`+
+        `</div>`+
+      `</div>`+
+      `<span style="font-size:11px;color:var(--text-mute)">Arraste qualquer um p/ mover todos juntos · Shift+clique adiciona/remove · Del exclui</span>`;
     return;
   }
   if(selectedId==null){
@@ -1636,6 +1760,8 @@ function renderDetail(){
     document.getElementById('op-pvnum').value=el.pvNum||'';
   }
   document.getElementById('op-note').value=el.note||'';
+  document.getElementById('op-area').value=el.area||'';
+  document.getElementById('op-empresa').value=el.empresa||'';
 }
 
 function setStatus(s){
@@ -1665,6 +1791,8 @@ function saveSelected(){
     el.pvNum=Math.min(500,Math.max(1,Number(document.getElementById('op-pvnum').value)||1));
   }
   el.note=document.getElementById('op-note').value;
+  el.area=normStr(document.getElementById('op-area')?.value);
+  el.empresa=normStr(document.getElementById('op-empresa')?.value);
   save(); render(); toast('Salvo ✓');
 }
 function updateEmptyMsg(){
@@ -1689,18 +1817,18 @@ function csvEsc(v){
 
 function exportCSV(){
   const SEP = ';'; // ponto-e-vírgula para Excel brasileiro
-  const cols = ['id','tipo','tipo_caixa','diametro_mm','pv_numero','comprimento_m','status','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
+  const cols = ['id','tipo','tipo_caixa','diametro_mm','pv_numero','comprimento_m','status','area','empresa','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
   const header = cols.join(SEP);
   const rows = elements.map(el => {
     let vals;
     if(el.kind==='pipe'){
       vals = [
-        el.id, 'tubulacao', '', el.diam, '', el.lengthM||0, el.status, el.note||'',
+        el.id, 'tubulacao', '', el.diam, '', el.lengthM||0, el.status, el.area||'', el.empresa||'', el.note||'',
         el.x1, el.y1, el.x2, el.y2, '', ''
       ];
     } else {
       vals = [
-        el.id, 'caixa', el.boxType||'PV', '', el.pvNum||'', 0, el.status, el.note||'',
+        el.id, 'caixa', el.boxType||'PV', '', el.pvNum||'', 0, el.status, el.area||'', el.empresa||'', el.note||'',
         '', '', '', '', el.x, el.y
       ];
     }
@@ -1800,6 +1928,8 @@ function confirmImport(){
     if(row['status']==='done'||row['status']==='pend') el.status=row['status'];
     const obs=row['observacoes']||row['observações']||'';
     el.note=obs;
+    if(row['area']!==undefined) el.area=normStr(row['area']);
+    if(row['empresa']!==undefined) el.empresa=normStr(row['empresa']);
     if(el.kind==='pipe'){
       const d=Number(row['diametro_mm']);
       if(DIAMS.includes(d)) el.diam=d;
@@ -1850,6 +1980,214 @@ function toast(msg,err=false){
    HTML ESCAPE
    ================================================================ */
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+/* ================================================================
+   ÁREA / EMPRESA — helpers, indicadores, filtros e coloração
+   ================================================================ */
+const SEM_AREA    = '— sem área —';
+const SEM_EMPRESA = '— sem empresa —';
+
+/* Paleta estável (verde e roxo primeiro, conforme padrão pedido) */
+const EMPRESA_PALETTE = ['#2E9E4F','#7C3AED','#0369A1','#B45309','#0F766E',
+  '#BE185D','#4D7C0F','#B91C1C','#5B21B6','#155E75','#9D174D','#065F46',
+  '#92400E','#3730A3','#A16207','#1E3A8A'];
+
+function normStr(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
+function keyStr(v){ return normStr(v).toUpperCase(); }
+function pct(a,b){ return b?Math.round(a/b*100):0; }
+function fmtN(n){ return n>0?Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1}):'0'; }
+
+/* Cor estável por hash do nome (não muda ao surgir novas empresas) */
+function empresaColor(nome){
+  const n=keyStr(nome); if(!n) return '#c1c9d3';
+  let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0;
+  return EMPRESA_PALETTE[h%EMPRESA_PALETTE.length];
+}
+
+/* Listas únicas derivadas dos elementos */
+function areasList(){
+  const m=new Map();
+  elements.forEach(el=>{ const n=normStr(el.area); if(n) m.set(keyStr(n),n); });
+  return [...m.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function empresasList(){
+  const m=new Map();
+  elements.forEach(el=>{ const n=normStr(el.empresa); if(n) m.set(keyStr(n),n); });
+  return [...m.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+
+function refreshDatalists(){
+  const da=document.getElementById('areas-list');
+  const de=document.getElementById('empresas-list');
+  if(da) da.innerHTML=areasList().map(a=>`<option value="${escHtml(a)}">`).join('');
+  if(de) de.innerHTML=empresasList().map(e=>`<option value="${escHtml(e)}">`).join('');
+}
+
+/* Defaults da toolbar aplicados aos próximos elementos desenhados */
+function getDefArea(){ return normStr(document.getElementById('area-default')?.value); }
+function getDefEmpresa(){ return normStr(document.getElementById('empresa-default')?.value); }
+
+/* ── FILTROS ── */
+function matchArea(el){
+  if(!filtroArea) return true;
+  const k=keyStr(el.area);
+  return filtroArea===SEM_AREA ? !k : k===keyStr(filtroArea);
+}
+function matchEmpresa(el){
+  if(!filtroEmpresa) return true;
+  const k=keyStr(el.empresa);
+  return filtroEmpresa===SEM_EMPRESA ? !k : k===keyStr(filtroEmpresa);
+}
+function elMatchesFiltro(el){ return matchArea(el)&&matchEmpresa(el); }
+
+function setFiltroArea(v){
+  v=normStr(v);
+  filtroArea = v ? v : null;
+  updateFiltroUI(); renderSVG(); renderIndicators();
+}
+function setFiltroEmpresa(v){
+  v=normStr(v);
+  filtroEmpresa = v ? v : null;
+  updateFiltroUI(); renderSVG(); renderIndicators();
+}
+function limparFiltros(){ filtroArea=null; filtroEmpresa=null; updateFiltroUI(); renderSVG(); renderIndicators(); }
+
+function updateFiltroUI(){
+  const any=!!(filtroArea||filtroEmpresa);
+  const btn=document.getElementById('btn-limpar-filtro'); if(btn) btn.style.display=any?'inline-flex':'none';
+  syncFiltroSelects();
+}
+function syncFiltroSelects(){
+  const fa=document.getElementById('filtro-area');
+  const fe=document.getElementById('filtro-empresa');
+  if(fa){
+    const opts=['<option value="">Área: todas</option>']
+      .concat(areasList().map(a=>`<option value="${escHtml(a)}">${escHtml(a)}</option>`));
+    if(elements.some(el=>!normStr(el.area))) opts.push(`<option value="${SEM_AREA}">${SEM_AREA}</option>`);
+    fa.innerHTML=opts.join(''); fa.value=filtroArea||'';
+  }
+  if(fe){
+    const opts=['<option value="">Empresa: todas</option>']
+      .concat(empresasList().map(e=>`<option value="${escHtml(e)}">${escHtml(e)}</option>`));
+    if(elements.some(el=>!normStr(el.empresa))) opts.push(`<option value="${SEM_EMPRESA}">${SEM_EMPRESA}</option>`);
+    fe.innerHTML=opts.join(''); fe.value=filtroEmpresa||'';
+  }
+}
+
+/* ── MODO DE COR ── */
+function setColorMode(m){
+  colorMode = (m==='empresa')?'empresa':'status';
+  document.getElementById('cb-status')?.classList.toggle('active',colorMode==='status');
+  document.getElementById('cb-empresa')?.classList.toggle('active',colorMode==='empresa');
+  renderSVG(); buildLegend();
+}
+
+/* ── APLICAÇÃO EM MASSA (grupo selecionado) ── */
+function applyBulkArea(){
+  const v=normStr(document.getElementById('bulk-area')?.value);
+  let n=0; elements.forEach(el=>{ if(selectedIds.has(el.id)){ el.area=v; n++; } });
+  save(); render(); toast(`Área aplicada a ${n} elemento(s) ✓`);
+}
+function applyBulkEmpresa(){
+  const v=normStr(document.getElementById('bulk-empresa')?.value);
+  let n=0; elements.forEach(el=>{ if(selectedIds.has(el.id)){ el.empresa=v; n++; } });
+  save(); render(); toast(`Empresa aplicada a ${n} elemento(s) ✓`);
+}
+
+/* ── EDIÇÃO IMEDIATA (elemento único) ── */
+function setArea(v){
+  const el=elements.find(e=>e.id===selectedId); if(!el) return;
+  el.area=normStr(v); renderSVG(); refreshDatalists(); syncFiltroSelects(); renderIndicators();
+}
+function setEmpresa(v){
+  const el=elements.find(e=>e.id===selectedId); if(!el) return;
+  el.empresa=normStr(v); renderSVG(); refreshDatalists(); syncFiltroSelects(); renderIndicators(); buildLegend();
+}
+
+/* ── ESTATÍSTICAS ── */
+function statsPorArea(){
+  const map=new Map();
+  const get=k=>{ if(!map.has(k)) map.set(k,{nome:k,pipes:0,pipesDone:0,m:0,mDone:0,boxes:0,boxesDone:0}); return map.get(k); };
+  elements.forEach(el=>{
+    const s=get(normStr(el.area)||SEM_AREA);
+    if(el.kind==='pipe'){ s.pipes++; s.m+=el.lengthM||0; if(el.status==='done'){ s.pipesDone++; s.mDone+=el.lengthM||0; } }
+    else { s.boxes++; if(el.status==='done') s.boxesDone++; }
+  });
+  return [...map.values()].sort((a,b)=> (a.nome===SEM_AREA)-(b.nome===SEM_AREA) || a.nome.localeCompare(b.nome,'pt-BR'));
+}
+function statsPorEmpresa(){
+  const map=new Map();
+  const get=k=>{ if(!map.has(k)) map.set(k,{nome:k,total:0,done:0,pipes:0,pipesDone:0,boxes:0,boxesDone:0}); return map.get(k); };
+  elements.forEach(el=>{
+    const s=get(normStr(el.empresa)||SEM_EMPRESA);
+    s.total++; if(el.status==='done') s.done++;
+    if(el.kind==='pipe'){ s.pipes++; if(el.status==='done') s.pipesDone++; }
+    else { s.boxes++; if(el.status==='done') s.boxesDone++; }
+  });
+  return [...map.values()].sort((a,b)=> (a.nome===SEM_EMPRESA)-(b.nome===SEM_EMPRESA) || a.nome.localeCompare(b.nome,'pt-BR'));
+}
+
+function barCell(p){
+  return `<span class="mini-bar"><span style="width:${p}%"></span></span><span class="mini-pct">${p}%</span>`;
+}
+
+/* ── INDICADORES ── */
+function renderIndicators(){
+  const areas=statsPorArea();
+  const emps=statsPorEmpresa();
+
+  const nA=areas.filter(s=>s.nome!==SEM_AREA).length;
+  const acEl=document.getElementById('ind-area-count');
+  if(acEl) acEl.textContent=nA+' área'+(nA!==1?'s':'');
+  const ab=document.getElementById('ind-area-body');
+  if(ab){
+    if(!areas.length){ ab.innerHTML='<tr><td colspan="6" class="ind-empty">Nenhum elemento</td></tr>'; }
+    else ab.innerHTML=areas.map(sm=>{
+      const isNone=sm.nome===SEM_AREA;
+      const tubP=pct(sm.pipesDone,sm.pipes), cxP=pct(sm.boxesDone,sm.boxes);
+      const active=filtroArea&&keyStr(filtroArea)===keyStr(sm.nome);
+      const nomeHTML=isNone?`<span class="none">${escHtml(sm.nome)}</span>`:escHtml(sm.nome);
+      return `<tr class="ind-row${active?' active':''}" data-nome="${escHtml(sm.nome)}">
+        <td class="ind-name">${nomeHTML}</td>
+        <td class="num">${sm.pipesDone}/${sm.pipes}</td>
+        <td class="num">${barCell(tubP)}</td>
+        <td class="num">${fmtN(sm.mDone)}/${fmtN(sm.m)}</td>
+        <td class="num">${sm.boxesDone}/${sm.boxes}</td>
+        <td class="num">${barCell(cxP)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const nE=emps.filter(s=>s.nome!==SEM_EMPRESA).length;
+  const ecEl=document.getElementById('ind-emp-count');
+  if(ecEl) ecEl.textContent=nE+' empresa'+(nE!==1?'s':'');
+  const eb=document.getElementById('ind-emp-body');
+  if(eb){
+    if(!emps.length){ eb.innerHTML='<tr><td colspan="5" class="ind-empty">Nenhum elemento</td></tr>'; }
+    else eb.innerHTML=emps.map(sm=>{
+      const isNone=sm.nome===SEM_EMPRESA;
+      const cor=isNone?'#c1c9d3':empresaColor(sm.nome);
+      const av=pct(sm.done,sm.total);
+      const active=filtroEmpresa&&keyStr(filtroEmpresa)===keyStr(sm.nome);
+      const nomeHTML=isNone?`<span class="none">${escHtml(sm.nome)}</span>`:escHtml(sm.nome);
+      return `<tr class="ind-row${active?' active':''}" data-nome="${escHtml(sm.nome)}">
+        <td class="ind-name"><span class="emp-dot" style="background:${cor}"></span>${nomeHTML}</td>
+        <td class="num">${sm.total}</td>
+        <td class="num">${sm.pipesDone}/${sm.pipes}</td>
+        <td class="num">${sm.boxesDone}/${sm.boxes}</td>
+        <td class="num">${barCell(av)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.querySelectorAll('#ind-area-body .ind-row').forEach(tr=>{
+    tr.onclick=()=>{ const n=tr.dataset.nome; setFiltroArea(filtroArea&&keyStr(filtroArea)===keyStr(n)?'':n); };
+  });
+  document.querySelectorAll('#ind-emp-body .ind-row').forEach(tr=>{
+    tr.onclick=()=>{ const n=tr.dataset.nome; setFiltroEmpresa(filtroEmpresa&&keyStr(filtroEmpresa)===keyStr(n)?'':n); };
+  });
+  syncFiltroSelects();
+}
 
 /* ================================================================
    KEYBOARD
