@@ -169,6 +169,19 @@
   .otag{display:inline-block;font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:middle}
   .otag.xl{background:#e3f0e8;color:#1f8a4c}
   .otag.wd{background:#e2ecf5;color:#12557a}
+  /* filtros por coluna */
+  table.ct.flt .frow th{background:#fff;padding:2px 4px;border-top:1px solid var(--line)}
+  table.ct .fin{width:100%;border:1px solid var(--line);background:#fff;padding:2px 5px;font-family:inherit;font-size:10px;border-radius:5px;color:var(--ink-2)}
+  table.ct .fin:focus{outline:none;border-color:var(--brand-2)}
+  table.ct select.alc{width:100%;border:1px solid transparent;background:transparent;padding:2px 3px;font-family:inherit;font-size:10.5px;border-radius:5px;color:var(--ink)}
+  table.ct select.alc:hover{border-color:var(--line)} table.ct select.alc:focus{outline:none;border-color:var(--brand-2);background:#fff}
+  td.lnkcell{position:relative} td.lnkcell input{padding-right:16px}
+  td.lnkcell .lnk{position:absolute;right:4px;top:50%;transform:translateY(-50%);text-decoration:none;font-size:12px;color:var(--brand-2)}
+  /* seções colapsáveis */
+  section.q .q-head{cursor:pointer}
+  .q-toggle{flex:none;width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;display:grid;place-items:center;font-size:11px;color:var(--ink-2);transition:transform .15s}
+  section.q.collapsed .q-toggle{transform:rotate(-90deg)}
+  section.q.collapsed .q-body{display:none}
 
   /* galeria de evidências */
   .gallery{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
@@ -187,6 +200,7 @@
     body{background:#fff;font-size:9px}
     .wrap{max-width:none;padding:0}
     .toolbar,.no-print{display:none!important}
+    section.q.collapsed .q-body{display:block!important}
     header.rep{border-radius:0;box-shadow:none;color:#000;background:#fff;border-bottom:2px solid var(--brand);padding:5px 0}
     header.rep::after{display:none}
     .rep-title{color:var(--brand)} .rep-sub{color:var(--brand)}
@@ -227,6 +241,8 @@
     <span id="unidade-switcher" style="display:inline-flex;align-items:center;padding:0 6px"></span>
     <button class="btn" onclick="sbSalvarNuvem(this)">☁ Salvar na nuvem</button>
     <button class="btn" onclick="sbCarregarNuvem()">⤵ Carregar da nuvem</button>
+    <button class="btn" onclick="secAll(false)">⊞ Expandir tudo</button>
+    <button class="btn" onclick="secAll(true)">⊟ Minimizar tudo</button>
     <button class="btn primary" onclick="exportExcel()">⤓ Exportar para Excel</button>
     <button class="btn" onclick="window.print()">🖨 Imprimir / PDF</button>
     <button class="btn" onclick="exportJSON()">💾 Salvar backup (JSON)</button>
@@ -381,14 +397,30 @@
   <section class="q" id="q8">
     <div class="q-head">
       <div class="q-num">08</div>
-      <div class="q-title">Contratações pendentes?<small>Restrições de mão de obra por LPS · data-limite de mobilização</small></div>
+      <div class="q-title">Contratações pendentes?<small>Escopo · disciplina · alçada · status · link do Supria · tipo de fechamento</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v8">—</span></div>
     </div>
     <div class="q-body">
-      <p class="hint">A <b>data-limite de mobilização</b> é comparada com hoje: <span class="urg late">vencida</span> / <span class="urg soon">≤ 14 dias</span> / <span class="urg ok">no prazo</span>.</p>
+      <p class="hint">Cada coluna é <b>filtrável</b> — use os campos no cabeçalho para localizar itens.</p>
       <div id="contratacoesList"></div>
     </div>
   </section>
+
+  <!-- 08B Outros Impactos -->
+  <section class="q" id="qimp">
+    <div class="q-head">
+      <div class="q-num" style="width:auto;padding:0 9px;font-size:11px">8B</div>
+      <div class="q-title">Outros Impactos<small>Mesmas categorias · itens que impactam prazo/escopo fora das contratações</small></div>
+      <div class="q-verdict"><span class="verdict neu" id="v8b">—</span></div>
+    </div>
+    <div class="q-body">
+      <p class="hint">Cada coluna é <b>filtrável</b> — use os campos no cabeçalho para localizar itens.</p>
+      <div id="impactosList"></div>
+    </div>
+  </section>
+
+  <datalist id="discList"><option>Civil</option><option>Mecânica</option><option>Elétrica</option><option>Instrumentação</option><option>Automação</option><option>Tubulação</option><option>Caldeiraria</option><option>Isolamento</option><option>Pintura</option></datalist>
+  <datalist id="fechList"><option>Contrato</option><option>Aditivo</option><option>Ordem de compra</option><option>E-mail de fechamento</option><option>Recontratação</option><option>Chamado</option></datalist>
 
   <footer class="rep">
     INPASA Agroindustrial · Planejamento de Obras · Rondonópolis/MT — gerado em <span id="genstamp"></span>
@@ -497,12 +529,42 @@ function load(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):nul
 /* migração: garante campos novos em estados salvos anteriormente */
 if(!S.outros){S.outros=seedOutros();save();}
 if(!S.fotos){S.fotos=[];save();}
+/* migração: Contratações Pendentes + Outros Impactos (modelo de 6 colunas) */
+(function(){
+  function parseAlcada(sit){
+    const s=(sit||'').toLowerCase();
+    if(s.includes('suprimento')||s.includes('supria')) return 'Suprimentos';
+    if(s.includes('abaixo')) return '<1MM';
+    if(s.includes('acima'))  return '>1MM';
+    if(s.includes('<1m'))    return '<1MM';
+    if(s.includes('>1m')||s.includes('1mm')) return '>1MM';
+    return '';
+  }
+  if(!Array.isArray(S.contr2)){
+    const arr=[];
+    (S.outros||[]).forEach(r=>arr.push({
+      escopo:(r.desc||'')+(r.emp?(' — '+r.emp):''),
+      disciplina:'', alcada:parseAlcada(r.sit), status:r.sit||'', link:'', fechamento:''
+    }));
+    Object.keys(S.contr||{}).forEach(k=>{
+      (S.contr[k]||[]).forEach(r=>{
+        if(!(r.func||r.emp||r.qtd||r.marco||r.status)) return;
+        arr.push({
+          escopo:[r.func,r.emp].filter(Boolean).join(' — ')+(r.qtd?(' ('+r.qtd+')'):'')+(k?(' · '+k):''),
+          disciplina:'', alcada:'', status:r.status||'', link:'', fechamento:''
+        });
+      });
+    });
+    S.contr2=arr; save();
+  }
+  if(!Array.isArray(S.impactos)){ S.impactos=[]; save(); }
+})();
 
 /* ============ RENDER ============ */
 function renderAll(){
   m_periodo.value=S.meta.periodo; m_resp.value=S.meta.resp; m_data.value=S.meta.data;
   a1.value=S.a1; a3.value=S.a3; a4.value=S.a4;
-  renderDDS(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderFotos();
+  renderDDS(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
   document.getElementById('genstamp').textContent=new Date().toLocaleString('pt-BR');
 }
 
@@ -695,57 +757,98 @@ function delMarco(i){if(confirm('Excluir marco "'+S.marcos[i].nome+'"?')){S.marc
 function daysTo(dstr){if(!dstr)return null;const d=new Date(dstr+'T00:00:00');const t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/86400000);}
 function urgCls(n){if(n===null)return'';return n<0?'urg late':n<=14?'urg soon':'urg ok';}
 function urgTxt(n){if(n===null)return'';return n<0?`venc. ${-n}d`:n===0?'hoje':`${n}d`;}
-function renderContr(){
-  const box=document.getElementById('contratacoesList');let h="";let totalPend=0;
-  S.marcos.forEach(m=>{
-    const key=m.nome;const rows=S.contr[key]||[];totalPend+=rows.length;
-    h+=`<div class="ct-block"><div class="ct-head"><span>${esc(key)}</span>
-      <button class="btn mini no-print" onclick="addContr('${escq(key)}')">＋ pendência</button></div>`;
-    if(rows.length){
-      h+=`<table class="ct"><thead><tr><th>Função</th><th>Empresa</th><th>Qtd</th><th>Data-lim.</th><th>Prazo</th><th>Marco impact.</th><th>Status</th><th></th></tr></thead><tbody>`;
-      rows.forEach((r,ri)=>{const n=daysTo(r.data);
-        h+=`<tr>
-          <td><input value="${esc(r.func)}" onchange="updContr('${escq(key)}',${ri},'func',this.value)"></td>
-          <td><input value="${esc(r.emp)}" onchange="updContr('${escq(key)}',${ri},'emp',this.value)"></td>
-          <td><input value="${esc(r.qtd)}" onchange="updContr('${escq(key)}',${ri},'qtd',this.value)"></td>
-          <td><input type="date" value="${r.data||''}" onchange="updContr('${escq(key)}',${ri},'data',this.value)"></td>
-          <td class="${urgCls(n)}">${urgTxt(n)}</td>
-          <td><input value="${esc(r.marco)}" onchange="updContr('${escq(key)}',${ri},'marco',this.value)"></td>
-          <td><input value="${esc(r.status)}" onchange="updContr('${escq(key)}',${ri},'status',this.value)"></td>
-          <td><button class="del no-print" onclick="delContr('${escq(key)}',${ri})">×</button></td>
-        </tr>`;});
-      h+=`</tbody></table>`;
-    } else {
-      h+=`<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem pendências de contratação.</div>`;
-    }
-    h+=`</div>`;
+/* ============ Contratações Pendentes / Outros Impactos (6 colunas, filtráveis) ============ */
+const ALCADAS = ['>1MM','<1MM','Suprimentos'];
+function ctData(t){ return t==='I' ? S.impactos : S.contr2; }
+function ctListId(t){ return t==='I' ? 'impactosList' : 'contratacoesList'; }
+function ctBodyId(t){ return t==='I' ? 'ctBodyI' : 'ctBodyC'; }
+
+function ctRowHtml(t,r,i){
+  const alcOpts = ['<option value="">—</option>']
+    .concat(ALCADAS.map(a=>`<option${r.alcada===a?' selected':''}>${a}</option>`)).join('');
+  const link = esc(r.link||'');
+  const linkBtn = link ? `<a class="lnk no-print" href="${link}" target="_blank" rel="noopener" title="abrir">↗</a>` : '';
+  return `<tr>
+    <td><input value="${esc(r.escopo)}" onchange="updRow('${t}',${i},'escopo',this.value)"></td>
+    <td><input list="discList" value="${esc(r.disciplina)}" onchange="updRow('${t}',${i},'disciplina',this.value)"></td>
+    <td><select class="alc" onchange="updRow('${t}',${i},'alcada',this.value)">${alcOpts}</select></td>
+    <td><input value="${esc(r.status)}" onchange="updRow('${t}',${i},'status',this.value)"></td>
+    <td class="lnkcell"><input type="url" placeholder="https://…" value="${link}" onchange="updRow('${t}',${i},'link',this.value)">${linkBtn}</td>
+    <td><input list="fechList" value="${esc(r.fechamento)}" onchange="updRow('${t}',${i},'fechamento',this.value)"></td>
+    <td><button class="del no-print" onclick="delRow('${t}',${i})">×</button></td>
+  </tr>`;
+}
+
+function renderTbl(t){
+  const data = ctData(t); const listEl = document.getElementById(ctListId(t)); if(!listEl) return;
+  const alcFilter = ['<option value="">Alçada (todas)</option>'].concat(ALCADAS.map(a=>`<option>${a}</option>`)).join('');
+  const rotulo = t==='I' ? 'Impactos' : 'Pendências';
+  const addLbl = t==='I' ? 'impacto' : 'pendência';
+  let h = `<div class="ct-block full">
+    <div class="ct-head"><span>${rotulo} <span style="font-weight:500;color:var(--muted);font-size:10.5px">(${data.length})</span></span>
+      <button class="btn mini no-print" onclick="addRow('${t}')">＋ ${addLbl}</button></div>
+    <table class="ct flt">
+      <thead>
+        <tr>
+          <th style="width:29%">Escopo</th><th style="width:12%">Disciplina</th>
+          <th style="width:11%">Alçada</th><th style="width:19%">Status</th>
+          <th style="width:15%">Link do Supria</th><th style="width:12%">Tipo de Fechamento</th><th style="width:22px"></th>
+        </tr>
+        <tr class="frow no-print">
+          <th><input class="fin" data-c="escopo" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><input class="fin" data-c="disciplina" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><select class="fin" data-c="alcada" onchange="filterTbl('${t}')">${alcFilter}</select></th>
+          <th><input class="fin" data-c="status" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><input class="fin" data-c="link" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><input class="fin" data-c="fechamento" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="${ctBodyId(t)}">`;
+  data.forEach((r,i)=>h+=ctRowHtml(t,r,i));
+  h += `</tbody></table>`;
+  if(!data.length) h += `<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem itens. Use “＋” para adicionar.</div>`;
+  h += `</div>`;
+  listEl.innerHTML = h;
+  if(t==='I') setVerdict('v8b', data.length>0?'nao':'sim', data.length>0?`Sim · ${data.length} impacto(s)`:'Não · nenhum');
+  else        setVerdict('v8',  data.length>0?'nao':'sim', data.length>0?`Sim · ${data.length} pendência(s)`:'Não · nenhuma');
+}
+
+function filterTbl(t){
+  const listEl = document.getElementById(ctListId(t)); if(!listEl) return;
+  const filt = {};
+  listEl.querySelectorAll('.frow .fin').forEach(f=>{ filt[f.dataset.c] = (f.value||'').trim().toLowerCase(); });
+  const body = document.getElementById(ctBodyId(t)); if(!body) return;
+  [...body.rows].forEach(tr=>{
+    const val = idx => { const el = tr.cells[idx] && tr.cells[idx].querySelector('input,select'); return el ? (el.value||'').toLowerCase() : ''; };
+    let show = true;
+    if(filt.escopo     && !val(0).includes(filt.escopo))     show=false;
+    if(show && filt.disciplina && !val(1).includes(filt.disciplina)) show=false;
+    if(show && filt.alcada     && val(2)!==filt.alcada)      show=false;
+    if(show && filt.status     && !val(3).includes(filt.status))     show=false;
+    if(show && filt.link       && !val(4).includes(filt.link))       show=false;
+    if(show && filt.fechamento && !val(5).includes(filt.fechamento)) show=false;
+    tr.style.display = show ? '' : 'none';
   });
-  box.innerHTML=h+renderOutros();
-  const totalOutros=(S.outros||[]).length;
-  const tot=totalPend+totalOutros;
-  setVerdict('v8', tot>0?'nao':'sim', tot>0?`Sim · ${tot} pendência(s)`:'Não · nenhuma');
 }
-function renderOutros(){
-  const rows=S.outros||[];
-  let h=`<div class="ct-block full"><div class="ct-head"><span>Outros — fechamentos / contratações pendentes <span style="font-weight:500;color:var(--muted);font-size:10.5px">(importado de Excel + Word)</span></span>
-    <button class="btn mini no-print" onclick="addOutros()">＋ pendência</button></div>`;
-  if(rows.length){
-    h+=`<table class="ct"><thead><tr><th style="width:40%">Descrição</th><th style="width:15%">Empresa</th><th style="width:22%">Situação</th><th style="width:11%">Data-lim. mob.</th><th style="width:7%">Prazo</th><th></th></tr></thead><tbody>`;
-    rows.forEach((r,i)=>{const n=daysTo(r.data);const tag=r.org==='xl'?'<span class="otag xl">Excel</span>':r.org==='wd'?'<span class="otag wd">Word</span>':'';
-      h+=`<tr>
-        <td><input value="${esc(r.desc)}" onchange="updOutros(${i},'desc',this.value)">${tag}</td>
-        <td><input value="${esc(r.emp)}" onchange="updOutros(${i},'emp',this.value)"></td>
-        <td><input value="${esc(r.sit)}" onchange="updOutros(${i},'sit',this.value)"></td>
-        <td><input type="date" value="${r.data||''}" onchange="updOutros(${i},'data',this.value)"></td>
-        <td class="${urgCls(n)}">${urgTxt(n)}</td>
-        <td><button class="del no-print" onclick="delOutros(${i})">×</button></td></tr>`;});
-    h+=`</tbody></table>`;
-  } else h+=`<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem itens.</div>`;
-  return h+`</div>`;
+
+function renderContr(){ renderTbl('C'); }
+function renderImpactos(){ renderTbl('I'); }
+function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',status:'',link:'',fechamento:''}); save(); renderTbl(t); }
+function updRow(t,i,k,v){ ctData(t)[i][k]=v; save(); if(k==='link') renderTbl(t); }
+function delRow(t,i){ ctData(t).splice(i,1); save(); renderTbl(t); }
+
+/* ---- seções colapsáveis ---- */
+function initCollapse(){
+  document.querySelectorAll('section.q').forEach(sec=>{
+    const head = sec.querySelector('.q-head'); if(!head || head.dataset.cl) return;
+    head.dataset.cl = '1';
+    const tg = document.createElement('div'); tg.className='q-toggle no-print'; tg.textContent='▾';
+    head.appendChild(tg);
+    head.addEventListener('click', e=>{ if(e.target.closest('input,select,textarea,button,a')) return; sec.classList.toggle('collapsed'); });
+  });
 }
-function addOutros(){S.outros.push({desc:'',emp:'',sit:'',data:'',org:''});save();renderContr();}
-function updOutros(i,k,v){S.outros[i][k]=v;save();if(k==='data')renderContr();}
-function delOutros(i){S.outros.splice(i,1);save();renderContr();}
+function secAll(collapse){ document.querySelectorAll('section.q').forEach(sec=>sec.classList.toggle('collapsed', collapse)); }
 
 /* ---- fotos de evidência ---- */
 function renderFotos(){
@@ -845,14 +948,15 @@ function exportExcel(){
     h+=`<tr><td ${td}>Real. %</td>${m.weeks.map(w=>`<td ${td}>${esc(w.r)}</td>`).join('')}</tr>`;});
   h+=`</table><br>`;
 
-  h+=`<table><tr><td colspan="6" ${th}>08 · Contratações pendentes</td></tr>`;
-  S.marcos.forEach(m=>{const rows=S.contr[m.nome]||[];h+=`<tr><td ${td} colspan="6"><b>${esc(m.nome)}</b></td></tr>`;
-    if(rows.length){h+=`<tr><th ${th}>Função</th><th ${th}>Empresa</th><th ${th}>Qtde</th><th ${th}>Data-limite mob.</th><th ${th}>Marco impactado</th><th ${th}>Status</th></tr>`;
-      rows.forEach(r=>h+=`<tr><td ${td}>${esc(r.func)}</td><td ${td}>${esc(r.emp)}</td><td ${td}>${esc(r.qtd)}</td><td ${td}>${esc(r.data)}</td><td ${td}>${esc(r.marco)}</td><td ${td}>${esc(r.status)}</td></tr>`);}
-    else h+=`<tr><td ${td} colspan="6">Sem pendências.</td></tr>`;});
-  h+=`<tr><td ${td} colspan="6"><b>Outros — fechamentos / contratações pendentes (Excel + Word)</b></td></tr>`;
-  h+=`<tr><th ${th}>Descrição</th><th ${th}>Empresa</th><th ${th}>Situação</th><th ${th}>Data-limite mob.</th><th ${th}>Origem</th><th ${th}></th></tr>`;
-  (S.outros||[]).forEach(r=>h+=`<tr><td ${td}>${esc(r.desc)}</td><td ${td}>${esc(r.emp)}</td><td ${td}>${esc(r.sit)}</td><td ${td}>${esc(r.data)}</td><td ${td}>${r.org==='xl'?'Excel':r.org==='wd'?'Word':''}</td><td ${td}></td></tr>`);
+  const colsCI=`<tr><th ${th}>Escopo</th><th ${th}>Disciplina</th><th ${th}>Alçada</th><th ${th}>Status</th><th ${th}>Link do Supria</th><th ${th}>Tipo de Fechamento</th></tr>`;
+  const rowCI=r=>`<tr><td ${td}>${esc(r.escopo)}</td><td ${td}>${esc(r.disciplina)}</td><td ${td}>${esc(r.alcada)}</td><td ${td}>${esc(r.status)}</td><td ${td}>${esc(r.link)}</td><td ${td}>${esc(r.fechamento)}</td></tr>`;
+  h+=`<table><tr><td colspan="6" ${th}>08 · Contratações pendentes</td></tr>`+colsCI;
+  if(!(S.contr2||[]).length)h+=`<tr><td ${td} colspan="6">Sem pendências.</td></tr>`;
+  (S.contr2||[]).forEach(r=>h+=rowCI(r));
+  h+=`</table><br>`;
+  h+=`<table><tr><td colspan="6" ${th}>Outros Impactos</td></tr>`+colsCI;
+  if(!(S.impactos||[]).length)h+=`<tr><td ${td} colspan="6">Sem itens.</td></tr>`;
+  (S.impactos||[]).forEach(r=>h+=rowCI(r));
   h+=`</table><br>`;
 
   if((S.fotos||[]).length){
@@ -974,6 +1078,7 @@ async function sbCarregarNuvem(){
 renderAll();
 if(typeof pcoRenderSwitcher==='function') pcoRenderSwitcher('unidade-switcher');
 sbRefreshStatus();
+initCollapse();
 </script>
 </body>
 </html>
