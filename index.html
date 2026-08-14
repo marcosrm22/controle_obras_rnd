@@ -282,7 +282,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
 
 </style>
 <script src="config.js"></script>
-<script src="unidade.js"></script>
 </head>
 <body>
 <div class="page">
@@ -295,7 +294,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       <p class="subtitle">Ferramentas visuais de controle de execução · integradas ao Supabase</p>
     </div>
     <div class="user-bar" id="user-bar">
-      <span id="unidade-switcher"></span>
       <div class="user-chip">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
@@ -484,6 +482,32 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- RELATÓRIO GERENCIAL -->
+    <a class="card" href="relatorio_gerencial.html" id="card-relatorio" style="--rep:#0f3a54">
+      <div class="card-bar" style="background:linear-gradient(90deg,#0f3a54,#c9922b)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#fbf1dc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f3a54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M8 13h8M8 17h8M8 9h2"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#0f3a54">Gestão · Relatório Semanal</div>
+        <div class="card-title">Relatório Gerencial</div>
+        <div class="card-desc">Relatório gerencial semanal da obra — DDS/5S, frentes de serviço, segurança, RNCs, PPC e marcos LPS. Salva versões no Supabase por unidade, com exportação para Excel e PDF.</div>
+        <div class="card-chips">
+          <span class="chip" style="background:#fbf1dc;border-color:#e6cf9a;color:#8a6d1f">Semanal</span>
+          <span class="chip chip-blue">Excel / PDF</span>
+          <span class="chip chip-green">Supabase</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#0f3a54">Abrir relatório</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- ADMIN: USUÁRIOS (only shown for admins) -->
     <a class="card blue" href="admin_usuarios.html" id="card-admin" style="display:none">
       <div class="card-bar"></div>
@@ -528,186 +552,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       <div class="card-footer">
         <span class="card-cta">Gerenciar usuários</span>
         <span class="card-arrow" id="admin-notif">→</span>
-      </div>
-    </a>
-
-    <!-- ANÁLISE DE CRONOGRAMAS -->
-    <a class="card gold" href="analise_cronograma.html" style="--gold-accent:#EAA239">
-      <div class="card-bar" style="background:linear-gradient(90deg,#EAA239,#f0c26b)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#fdf1de">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#b5791f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>
-            <path d="M7 13l3 3 6-6"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#b5791f">Planejamento · Cronograma</div>
-        <div class="card-title">Análise de Cronogramas</div>
-        <div class="card-desc">Compara versões do cronograma-base (linha de base × revisão atual), aponta atrasos, adiantamentos e indícios de avanço fictício por tarefa e por categoria.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Comparação de versões</span>
-          <span class="chip chip-gray">Regressões</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta" style="color:#b5791f">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- VALIDAÇÃO DE CRONOGRAMAS -->
-    <a class="card violet" href="validacao_cronogramas.html" style="--violet-accent:#6B4FA0">
-      <div class="card-bar" style="background:linear-gradient(90deg,#6B4FA0,#9678c4)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#efe9f7">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#6B4FA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#6B4FA0">Planejamento · Contratadas</div>
-        <div class="card-title">Validação de Cronogramas</div>
-        <div class="card-desc">Valida os cronogramas enviados pelas empresas contratadas contra o cronograma-mestre — status, datas de início/término e gera o relatório em PDF por revisão.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Por empresa</span>
-          <span class="chip chip-gray">Relatório PDF</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta" style="color:#6B4FA0">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- PLANO DE AÇÃO · RSO -->
-    <a class="card rso" href="plano_acao_rso.html" id="card-rso" style="--rso:#A6203C">
-      <div class="card-bar" style="background:linear-gradient(90deg,#A6203C,#d4708a)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#fbe8ec">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#A6203C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"/>
-            <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>
-            <path d="M8.5 12.5l2 2 4.5-5"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#A6203C">Gestão · RSO</div>
-        <div class="card-title">Plano de Ação — RSO</div>
-        <div class="card-desc">Acompanhamento das ações da Reunião de Alinhamento Semanal — responsável, setor, prazo, status e histórico de tratativas. Inclui a aba de resumo das empresas por revisão de cronograma.</div>
-      </div>
-
-      <!-- KPI strip -->
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="rso-total">—</div>
-          <div class="card-kpi-label">Ações</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="rso-atraso">—</div>
-          <div class="card-kpi-label">Atrasadas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="rso-conc">—</div>
-          <div class="card-kpi-label">Concluídas</div>
-        </div>
-      </div>
-
-      <!-- Progress bar -->
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Situação das ações</span>
-          <span class="card-progress-pct" id="rso-pct-label" style="color:#A6203C">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div style="background:#1d5c1a;height:100%;width:0%;transition:width .6s" id="rso-bar-conc"></div>
-            <div style="background:var(--green);height:100%;width:0%;transition:width .6s" id="rso-bar-prazo"></div>
-            <div style="background:var(--gold);height:100%;width:0%;transition:width .6s" id="rso-bar-atencao"></div>
-            <div style="background:var(--red);height:100%;width:0%;transition:width .6s" id="rso-bar-atraso"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-progress" style="padding-top:0">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Ações em aberto</span>
-          <span class="card-progress-pct" id="rso-abertas" style="color:var(--text-mute)">—</span>
-        </div>
-      </div>
-      <div class="card-updated" id="rso-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#A6203C">Abrir plano de ação</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- COMPARATIVO DE COMPRAS (por unidade) -->
-    <a class="card steel" href="#" id="card-compras" style="--steel-accent:#1F4E6B">
-      <div class="card-bar" style="background:linear-gradient(90deg,#1F4E6B,#4d7d9e)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#e7f0f5">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#1F4E6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/>
-            <path d="M2.5 3h3l2.6 12.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 8H6.1"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#1F4E6B">Suprimentos · Compras</div>
-        <div class="card-title">Comparativo de Compras</div>
-        <div class="card-desc" id="compras-desc">Compara as listas de material e quantidades compradas entre unidades de referência, com rastreamento por categoria, projeto e disciplina.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Listas de material</span>
-          <span class="chip chip-gray">Gaps de compra</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta" style="color:#1F4E6B" id="compras-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- LPS · ELÉTRICA E INSTRUMENTAÇÃO -->
-    <a class="card lpsei" href="lps_ei.html" id="card-lpsei" style="--lps:#B45309">
-      <div class="card-bar" style="background:linear-gradient(90deg,#B45309,#e0912f)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#fdf0dd">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#B45309">Last Planner System · E&amp;I</div>
-        <div class="card-title">LPS — Elétrica e Instrumentação</div>
-        <div class="card-desc">Controle por área das quatro frentes de liberação — atividades, contratação das empresas, chegada dos materiais e liberação dos projetos executivos. Inclui lookahead, controle de restrições e kanban da programação semanal.</div>
-      </div>
-
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="lps-areas">—</div>
-          <div class="card-kpi-label">Áreas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="lps-restr">—</div>
-          <div class="card-kpi-label">Restrições</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="lps-ppc">—</div>
-          <div class="card-kpi-label">PPC semana</div>
-        </div>
-      </div>
-
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Áreas liberadas para execução</span>
-          <span class="card-progress-pct" id="lps-pct-label" style="color:#B45309">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div style="background:#B45309;height:100%;width:0%;transition:width .6s" id="lps-bar"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-updated" id="lps-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#B45309">Abrir módulo</span>
-        <span class="card-arrow">→</span>
       </div>
     </a>
 
@@ -771,24 +615,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   }
 
   async function sbGet(path){
-    const res = await fetch(SB_URL + '/rest/v1/' + pcoComUnidade(path), {
-      headers:{
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + TOKEN,
-        'Prefer': 'count=exact',
-      }
-    });
-    const text = await res.text();
-    const count = res.headers.get('content-range')
-      ? parseInt(res.headers.get('content-range').split('/')[1]) : null;
-    let data;
-    try{ data = JSON.parse(text) } catch(_){ data = [] }
-    return { data: Array.isArray(data) ? data : [], count };
-  }
-
-  // pco_usuarios é uma tabela global (não tem coluna "unidade"; um
-  // usuário pode ter acesso a várias unidades), então não filtramos.
-  async function sbGetGlobal(path){
     const res = await fetch(SB_URL + '/rest/v1/' + path, {
       headers:{
         'apikey': SB_KEY,
@@ -876,7 +702,7 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     const adminCard = document.getElementById('card-admin');
     if(!adminCard || adminCard.style.display === 'none') return;
     try{
-      const { data } = await sbGetGlobal('pco_usuarios?select=id,status');
+      const { data } = await sbGet('pco_usuarios?select=id,status');
       const total  = data.length;
       const ativos = data.filter(u=>u.status==='ativo').length;
       const pend   = data.filter(u=>u.status==='pendente').length;
@@ -924,92 +750,11 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
-  /* ── LPS · ELÉTRICA E INSTRUMENTAÇÃO ── */
-  function mondayISO(){
-    const d = new Date();
-    const wd = d.getDay();
-    d.setDate(d.getDate() + (wd === 0 ? -6 : 1 - wd));
-    return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
-  }
-  async function loadLpsEi(){
-    try{
-      const [areas, ctrs, restr, prog] = await Promise.all([
-        sbGet('lps_ei_areas?select=codigo&ativo=eq.true'),
-        sbGet('lps_ei_contratos?select=areas,status&ativo=eq.true'),
-        sbGet('lps_ei_restricoes?select=id,status&ativo=eq.true'),
-        sbGet('lps_ei_programacao?select=semana,coluna&ativo=eq.true'),
-      ]);
-
-      const total = areas.data.length;
-      setEl('lps-areas', fmt(total));
-
-      // área é considerada "liberada" quando já tem contrato firmado
-      const OK = ['Contratado','Mobilizado','Em execução','Concluído'];
-      const cobertas = new Set();
-      ctrs.data.forEach(c=>{
-        if(OK.indexOf(c.status) < 0) return;
-        let ar = c.areas;
-        if(typeof ar === 'string'){ try{ ar = JSON.parse(ar) }catch(_){ ar = [] } }
-        (Array.isArray(ar) ? ar : []).forEach(a=>cobertas.add(a));
-      });
-      const lib = areas.data.filter(a=>cobertas.has(a.codigo)).length;
-      const lp  = pct(lib, total);
-      setEl('lps-pct-label', total ? (lp + '% · ' + lib + ' de ' + total) : 'sem áreas cadastradas');
-      const bar = document.getElementById('lps-bar');
-      if(bar) bar.style.width = lp + '%';
-
-      const abertas = restr.data.filter(r=>r.status==='Aberta'||r.status==='Em tratativa').length;
-      setEl('lps-restr', fmt(abertas));
-
-      const wk = mondayISO();
-      const sem = prog.data.filter(p=>String(p.semana).slice(0,10) === wk);
-      const done = sem.filter(p=>p.coluna==='concluida').length;
-      setEl('lps-ppc', sem.length ? pct(done, sem.length) + '%' : '—');
-
-      setEl('lps-updated', timeAgo());
-    } catch(_){}
-  }
-
-  /* ── PLANO DE AÇÃO · RSO ── */
-  async function loadRso(){
-    try{
-      const { data } = await sbGet('rso_plano_acao?select=id,status&ativo=eq.true');
-      const total = data.length;
-      const c = st => data.filter(r=>r.status===st).length;
-      const conc    = c('Concluído');
-      const canc    = c('Cancelado');
-      const atraso  = c('Atrasado');
-      const atencao = c('Atenção');
-      const prazo   = c('No Prazo');
-      const abertas = total - conc - canc;
-
-      setEl('rso-total',  fmt(total));
-      setEl('rso-atraso', fmt(atraso));
-      setEl('rso-conc',   fmt(conc));
-      setEl('rso-pct-label', total ? (pct(conc,total) + '% concluídas') : 'sem ações cadastradas');
-      setEl('rso-abertas', total
-        ? abertas + ' em aberto' + (atraso > 0 ? ' · ' + atraso + ' atrasada' + (atraso>1?'s':'') : '')
-        : '—');
-      setEl('rso-updated', timeAgo());
-
-      const set = (id,v)=>{ const b=document.getElementById(id); if(b) b.style.width = v + '%'; };
-      set('rso-bar-conc',    pct(conc,    total));
-      set('rso-bar-prazo',   pct(prazo,   total));
-      set('rso-bar-atencao', pct(atencao, total));
-      set('rso-bar-atraso',  pct(atraso,  total));
-
-      const ab = document.getElementById('rso-abertas');
-      if(ab) ab.style.color = atraso > 0 ? 'var(--red)' : 'var(--text-mute)';
-    } catch(_){}
-  }
-
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
     loadTerra();
     loadBasesCivis();
-    loadLpsEi();
-    loadRso();
     setTimeout(loadAdmin, 300);
   });
 })();
@@ -1020,16 +765,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
    SESSION GUARD — index.html
    ================================================================ */
 (function(){
-  // Rede de segurança: se o Supabase mandar o link de recuperação de senha
-  // para a raiz do site (em vez de redefinir_senha.html — por exemplo, se o
-  // "Site URL" configurado no Supabase ainda for a raiz), encaminha para a
-  // página certa preservando o token, em vez de deixar o guard de sessão
-  // abaixo jogar o usuário pro login e descartar o link.
-  if(window.location.hash.includes('type=recovery') && window.location.hash.includes('access_token')){
-    window.location.replace('redefinir_senha.html' + window.location.hash);
-    return;
-  }
-
   const token  = sessionStorage.getItem('pco_token');
   const nome   = sessionStorage.getItem('pco_nome')   || '';
   const email  = sessionStorage.getItem('pco_email')  || '';
@@ -1041,37 +776,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     window.location.href = 'login.html';
     return;
   }
-
-  // Sessões antigas (criadas antes do multi-unidade) não têm pco_unidade
-  // salvo ainda: assume Rondonópolis como padrão.
-  if(!sessionStorage.getItem('pco_unidade')){
-    sessionStorage.setItem('pco_unidade', 'RDN');
-  }
-  if(!sessionStorage.getItem('pco_unidades_acesso')){
-    sessionStorage.setItem('pco_unidades_acesso', JSON.stringify(['RDN']));
-  }
-  pcoRenderSwitcher('unidade-switcher');
-
-  // ---- Comparativo de Compras: página específica por unidade ----
-  // Ao criar a versão de outra unidade, basta adicionar aqui:
-  //   RVD: 'comparativo_compras_rvd.html', NMT: 'comparativo_compras_nmt.html'
-  const COMPRAS_PAGES = {
-    RDN: 'comparativo_compras_rdn.html',
-  };
-  (function(){
-    const card = document.getElementById('card-compras');
-    if(!card) return;
-    const un   = sessionStorage.getItem('pco_unidade') || 'RDN';
-    const page = COMPRAS_PAGES[un];
-    if(page){
-      card.setAttribute('href', page);
-    }else{
-      card.removeAttribute('href');
-      card.classList.add('soon');
-      const cta = document.getElementById('compras-cta');
-      if(cta) cta.textContent = 'Em breve para esta unidade';
-    }
-  })();
 
   // Populate user bar
   const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';

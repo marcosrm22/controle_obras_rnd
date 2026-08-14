@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório Gerencial Semanal — INPASA Rondonópolis</title>
+<style>
+  :root{
+    --ink:#12212e; --ink-2:#3a4b59; --muted:#6b7c8a;
+    --line:#dfe5ea; --line-2:#eef2f5; --paper:#ffffff; --bg:#eef1f4;
+    --brand:#0f3a54; --brand-2:#12557a; --accent:#c9922b; --accent-bg:#fbf1dc;
+    --ok:#1f8a4c; --ok-bg:#e3f4ea; --nc:#c0392b; --nc-bg:#fbe6e3;
+    --neu:#9aa8b3; --neu-bg:#f1f4f6; --amber:#b45309;
+    --shadow:0 1px 2px rgba(16,33,46,.06),0 8px 24px rgba(16,33,46,.06);
+    --r:10px;
+    --sans:"Segoe UI",Roboto,-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);font-size:13px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 80px}
+
+  header.rep{background:linear-gradient(120deg,var(--brand) 0%,var(--brand-2) 100%);color:#fff;border-radius:14px;padding:18px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  header.rep::after{content:"";position:absolute;right:-40px;top:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(201,146,43,.28),transparent 70%);}
+  .rep-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .rep-title{font-size:20px;font-weight:700;letter-spacing:.2px;margin:0}
+  .rep-sub{font-size:12px;opacity:.85;margin-top:2px;text-transform:uppercase;letter-spacing:1.5px}
+  .rep-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .rep-meta label{display:flex;flex-direction:column;font-size:10px;text-transform:uppercase;letter-spacing:.8px;opacity:.85;gap:3px}
+  .rep-meta input{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:inherit;min-width:150px}
+  .rep-meta input::placeholder{color:rgba(255,255,255,.6)}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0}
+  .btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:8px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--shadow)}
+  .btn:hover{border-color:var(--brand-2);color:var(--brand-2)}
+  .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.primary:hover{background:var(--brand-2)}
+  .btn.mini{padding:4px 9px;font-size:11px;box-shadow:none}
+  .btn.ghost{box-shadow:none;background:transparent}
+
+  section.q{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);margin-top:16px;box-shadow:var(--shadow);overflow:hidden;break-inside:avoid}
+  .q-head{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line-2);background:linear-gradient(#fff,#fbfcfd)}
+  .q-num{flex:none;width:32px;height:32px;border-radius:8px;background:var(--brand);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;letter-spacing:.5px}
+  .q-title{font-size:14.5px;font-weight:700;margin:0;flex:1}
+  .q-title small{display:block;font-weight:500;font-size:11px;color:var(--muted);margin-top:1px}
+  .q-verdict{flex:none}
+  .verdict{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;border:1px solid transparent}
+  .verdict.sim{background:var(--ok-bg);color:var(--ok);border-color:#bfe6cd}
+  .verdict.nao{background:var(--nc-bg);color:var(--nc);border-color:#f2c6c0}
+  .verdict.neu{background:var(--neu-bg);color:var(--ink-2);border-color:var(--line)}
+  .q-body{padding:14px 16px}
+  .hint{font-size:11.5px;color:var(--muted);margin:0 0 10px}
+
+  .counts{display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);margin-bottom:10px;flex-wrap:wrap}
+  .counts b{font-weight:700}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .dot.ok{background:var(--ok)} .dot.nc{background:var(--nc)} .dot.neu{background:var(--neu)}
+
+  /* combined top block (DDS / 5S / Frentes) */
+  .topgrid{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
+  .topright h4{margin:0 0 6px;font-size:12.5px;color:var(--brand-2)}
+  .topright .acts{margin-top:12px}
+  .vgroup{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .vitem{display:inline-flex;align-items:center;gap:5px}
+  .vitem b{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-2)}
+  @media (max-width:860px){.topgrid{grid-template-columns:1fr}}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);margin-top:8px}
+  .legchip{display:inline-flex;align-items:center;gap:5px}
+  .legbox{width:14px;height:14px;border-radius:4px;border:1px solid var(--line)}
+  .legbox.ok{background:var(--ok-bg);border-color:#bfe6cd} .legbox.nc{background:var(--nc-bg);border-color:#f2c6c0} .legbox.neu{background:var(--neu-bg)}
+
+  /* ---------- DDS + Canteiro matrix (compact) ---------- */
+  .matrix-scroll{display:inline-block;max-width:100%;overflow-x:auto;border:1px solid var(--line-2);border-radius:8px;vertical-align:top}
+  table.mtx{border-collapse:collapse;table-layout:fixed;font-size:10px}
+  table.mtx col.c-emp{width:158px} table.mtx col.c-day{width:26px} table.mtx col.c-cant{width:66px} table.mtx col.c-del{width:26px}
+  table.mtx th,table.mtx td{border:1px solid var(--line-2);padding:0;text-align:center}
+  table.mtx thead th{background:var(--brand);color:#fff;font-weight:600;padding:4px 2px;position:sticky;top:0;font-size:9.5px;letter-spacing:.2px}
+  table.mtx thead th.day{cursor:pointer}
+  table.mtx thead th.cant{background:var(--accent);color:#3b2b06;cursor:pointer}
+  table.mtx td.emp,table.mtx th.emp{text-align:left;padding:3px 7px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fbfcfd;font-size:10px}
+  table.mtx td.emp .disc{font-weight:500;color:var(--muted);font-size:8.5px}
+  table.mtx tbody tr:nth-child(even) td.emp{background:#f6f8f9}
+  .cell{width:100%;height:100%;min-height:14px;cursor:pointer;display:grid;place-items:center;font-weight:700;font-size:9.5px;user-select:none}
+  .cell.s0{background:var(--neu-bg);color:#c3ccd2}
+  .cell.s1{background:var(--ok-bg);color:var(--ok)}
+  .cell.s2{background:var(--nc-bg);color:var(--nc)}
+  .cell:hover{filter:brightness(.96)}
+  td.cantcell{border-left:2px solid var(--accent)}
+  th.cant{border-left:2px solid var(--accent)}
+  /* edit mode */
+  table.mtx.edit input{width:100%;border:1px solid var(--line);border-radius:5px;padding:3px 5px;font-family:inherit;font-size:10px;color:var(--ink)}
+  table.mtx.edit input:focus{outline:none;border-color:var(--brand-2)}
+  table.mtx.edit td{padding:3px 4px}
+  .delrow{color:var(--nc);cursor:pointer;font-weight:700;border:none;background:none;font-size:15px;line-height:1}
+
+  textarea.acoes{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;resize:vertical;min-height:40px;margin-top:8px;color:var(--ink);background:#fff}
+  textarea.acoes:focus{outline:none;border-color:var(--brand-2)}
+  .acoes-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;margin-top:10px;display:block}
+
+  /* ---------- chips grid (frentes) ---------- */
+  .chipgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px}
+  .chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:7px;padding:5px 7px;cursor:pointer;background:var(--neu-bg);user-select:none;font-size:10.5px}
+  .chip .ico{flex:none;width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-weight:800;font-size:10px;background:#fff;border:1px solid var(--line)}
+  .chip .lab{font-weight:600;color:var(--ink);line-height:1.1}
+  .chip.s0{background:var(--neu-bg)} .chip.s0 .ico{color:#c3ccd2}
+  .chip.s1{background:var(--ok-bg);border-color:#bfe6cd} .chip.s1 .ico{color:var(--ok);border-color:#bfe6cd}
+  .chip.s2{background:var(--nc-bg);border-color:#f2c6c0} .chip.s2 .ico{color:var(--nc);border-color:#f2c6c0}
+  .chip:hover{filter:brightness(.98)}
+
+  /* ---------- banners + occ cards (3-up) ---------- */
+  .banner{display:flex;align-items:center;gap:12px;border-radius:9px;padding:12px 15px;font-size:13px}
+  .banner.clear{background:var(--ok-bg);border:1px solid #bfe6cd;color:#155e35}
+  .banner .bico{font-size:20px}
+  .occgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:10px;margin-top:2px}
+  .occ{border:1px solid var(--line);border-left:4px solid var(--nc);border-radius:9px;padding:10px;background:#fffdfd}
+  .fld{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}
+  .fld label{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+  .fld input,.fld select,.fld textarea{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:inherit;font-size:11.5px;color:var(--ink);width:100%}
+  .fld textarea{resize:vertical;min-height:34px}
+  .fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--brand-2)}
+  .occ2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  /* ---------- PPC table ---------- */
+  table.grid{border-collapse:collapse;width:100%;font-size:12px}
+  table.grid th,table.grid td{border:1px solid var(--line-2);padding:7px 10px;text-align:left;vertical-align:top}
+  table.grid thead th{background:#f4f7f9;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-2)}
+  .stbtn{border:none;border-radius:20px;padding:5px 12px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .stbtn.s1{background:var(--ok-bg);color:var(--ok)}
+  .stbtn.s2{background:var(--nc-bg);color:var(--nc)}
+  .stbtn.s0{background:var(--neu-bg);color:var(--ink-2)}
+  input.inline{width:100%;border:1px solid transparent;border-radius:6px;padding:5px 7px;font-family:inherit;font-size:12px;background:transparent;color:var(--ink)}
+  input.inline:hover{border-color:var(--line)}
+  input.inline:focus{outline:none;border-color:var(--brand-2);background:#fff}
+
+  /* ---------- Marcos / curvas (2-up) ---------- */
+  #marcosList{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px;margin-top:4px}
+  .lps-card{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .lps-head{display:flex;align-items:center;gap:8px;padding:8px 11px;background:#f7f9fb;border-bottom:1px solid var(--line-2)}
+  .lps-head input.name{font-weight:700;font-size:12.5px;border:1px solid transparent;background:transparent;border-radius:6px;padding:4px 6px;flex:1;font-family:inherit;color:var(--ink)}
+  .lps-head input.name:hover{border-color:var(--line)} .lps-head input.name:focus{outline:none;border-color:var(--brand-2);background:#fff}
+  .lps-body{display:grid;grid-template-columns:1fr 215px;gap:10px;padding:10px}
+  .wk-table{width:100%;border-collapse:collapse;font-size:10.5px}
+  .wk-table th,.wk-table td{border:1px solid var(--line-2);padding:2px 4px;text-align:center}
+  .wk-table th{background:#f4f7f9;font-size:9.5px;color:var(--ink-2)}
+  .wk-table input{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:10.5px;padding:2px}
+  .wk-table input:focus{outline:1px solid var(--brand-2);border-radius:3px}
+  .chartbox{border:1px solid var(--line-2);border-radius:8px;padding:5px;background:#fff}
+  .adh{font-size:10.5px;color:var(--ink-2);margin-top:5px;text-align:center}
+  .adh b{font-size:13px}
+
+  .tips{background:#f7fbfd;border:1px solid #cfe6f0;border-radius:9px;padding:12px 14px;margin-bottom:12px}
+  .tips summary{cursor:pointer;font-weight:700;color:var(--brand-2);font-size:12.5px}
+  .tips ul{margin:8px 0 0;padding-left:18px} .tips li{margin:4px 0;font-size:12px}
+  .tips code{background:#eaf3f7;padding:1px 5px;border-radius:4px;font-size:11px}
+
+  /* ---------- contratações (2-up) ---------- */
+  #contratacoesList{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:11px}
+  .ct-block{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .ct-head{padding:7px 11px;background:#f7f9fb;border-bottom:1px solid var(--line-2);font-weight:700;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  table.ct{width:100%;border-collapse:collapse;font-size:10.5px}
+  table.ct th,table.ct td{border:1px solid var(--line-2);padding:3px 5px;text-align:left}
+  table.ct th{background:#fafbfc;font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink-2)}
+  table.ct input{width:100%;border:1px solid transparent;background:transparent;padding:3px 4px;font-family:inherit;font-size:10.5px;border-radius:5px;color:var(--ink)}
+  table.ct input:hover{border-color:var(--line)} table.ct input:focus{outline:none;border-color:var(--brand-2);background:#fff}
+  .urg{font-weight:700;white-space:nowrap}.urg.late{color:var(--nc)}.urg.soon{color:var(--amber)}.urg.ok{color:var(--ok)}
+  .del{color:var(--nc);cursor:pointer;font-weight:700;border:none;background:none;font-size:14px;line-height:1}
+  .ct-block.full{grid-column:1/-1}
+  .otag{display:inline-block;font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:middle}
+  .otag.xl{background:#e3f0e8;color:#1f8a4c}
+  .otag.wd{background:#e2ecf5;color:#12557a}
+
+  /* galeria de evidências */
+  .gallery{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+  .gallery h4{margin:0;font-size:12.5px;color:var(--brand-2)}
+  .photogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+  .photo{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+  .photo img{width:100%;height:120px;object-fit:cover;display:block;background:#f1f4f6}
+  .photo .cap{border:none;border-top:1px solid var(--line-2);padding:5px 7px;font-family:inherit;font-size:10.5px;color:var(--ink);width:100%}
+  .photo .cap:focus{outline:none;background:#fbfcfd}
+  .photo .pdel{position:absolute;top:5px;right:5px;background:rgba(192,57,43,.92);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;display:grid;place-items:center}
+
+  footer.rep{margin-top:26px;text-align:center;color:var(--muted);font-size:11px}
+
+  @media print{
+    @page{size:A4 portrait;margin:7mm}
+    body{background:#fff;font-size:9px}
+    .wrap{max-width:none;padding:0}
+    .toolbar,.no-print{display:none!important}
+    header.rep{border-radius:0;box-shadow:none;color:#000;background:#fff;border-bottom:2px solid var(--brand);padding:5px 0}
+    header.rep::after{display:none}
+    .rep-title{color:var(--brand)} .rep-sub{color:var(--brand)}
+    .rep-meta input{color:#000;border-color:#ccc;background:#fff}
+    section.q{box-shadow:none;margin-top:7px;border-color:#bcc7cf}
+    .q-head{padding:4px 8px} .q-body{padding:6px 8px}
+    .topgrid{grid-template-columns:auto 1fr;gap:8px}
+    .chipgrid{grid-template-columns:repeat(3,1fr);gap:3px}
+    .chip{padding:2px 4px;font-size:8px}
+    #marcosList,#contratacoesList{grid-template-columns:1fr 1fr}
+    .pgbreak{break-before:page}
+    textarea.acoes{min-height:22px}
+    .btn{display:none}
+  }
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="rep">
+    <div class="rep-top">
+      <div>
+        <div class="rep-sub">INPASA Agroindustrial · Rondonópolis / MT</div>
+        <h1 class="rep-title">Relatório Gerencial Semanal de Obra</h1>
+      </div>
+      <div class="rep-meta">
+        <label>Período / Semana<input id="m_periodo" placeholder="ex.: Semana 33 · 04–10/ago"></label>
+        <label>Responsável<input id="m_resp" placeholder="Marcos R. Marcílio"></label>
+        <label>Data<input id="m_data" type="date"></label>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar no-print">
+    <a class="btn ghost" href="index.html" style="text-decoration:none">← Painel PCO</a>
+    <span id="unidade-switcher" style="display:inline-flex;align-items:center;padding:0 6px"></span>
+    <button class="btn" onclick="sbSalvarNuvem(this)">☁ Salvar na nuvem</button>
+    <button class="btn" onclick="sbCarregarNuvem()">⤵ Carregar da nuvem</button>
+    <button class="btn primary" onclick="exportExcel()">⤓ Exportar para Excel</button>
+    <button class="btn" onclick="window.print()">🖨 Imprimir / PDF</button>
+    <button class="btn" onclick="exportJSON()">💾 Salvar backup (JSON)</button>
+    <label class="btn ghost" style="cursor:pointer">📂 Carregar backup<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+    <button class="btn" onclick="resetAll()">↺ Limpar tudo</button>
+    <span id="sbStatus" style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">☁ Nuvem: verificando…</span>
+    <span style="font-size:11px;color:var(--muted);align-self:center;opacity:.65">· salvo neste navegador</span>
+  </div>
+
+  <!-- 01 · 03 · 04 — DDS / Canteiro (5S) / Frentes de Serviço -->
+  <section class="q" id="qtop">
+    <div class="q-head">
+      <div class="q-num" style="width:auto;padding:0 9px;font-size:11px">01·03·04</div>
+      <div class="q-title">Segurança &amp; Organização<small>DDS por dia · Canteiro (5S) por empresa · Frentes de serviço (5S) por área</small></div>
+      <div class="q-verdict vgroup">
+        <span class="vitem"><b>DDS</b><span class="verdict neu" id="v1">—</span></span>
+        <span class="vitem"><b>Canteiro</b><span class="verdict neu" id="v3">—</span></span>
+        <span class="vitem"><b>Frentes</b><span class="verdict neu" id="v4">—</span></span>
+      </div>
+    </div>
+    <div class="q-body">
+      <div class="topgrid">
+
+        <!-- LEFT: matriz empresas (DDS + Canteiro) -->
+        <div class="topleft">
+          <div class="counts" id="c1"></div>
+          <div class="counts" id="c3" style="margin-top:-2px;margin-bottom:8px"></div>
+          <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
+            <button class="btn mini" onclick="fillMatrix(1)">DDS: tudo ✓</button>
+            <button class="btn mini" onclick="fillMatrix(0)">DDS: limpar</button>
+            <button class="btn mini" id="editBtn" onclick="toggleEdit()">✎ Editar empresas</button>
+            <button class="btn mini" onclick="addComp()">＋ empresa</button>
+          </div>
+          <div class="matrix-scroll">
+            <table class="mtx" id="ddsTable"></table>
+          </div>
+          <div class="legend">
+            <span class="legchip"><span class="legbox neu"></span> Não avaliado</span>
+            <span class="legchip"><span class="legbox ok"></span> Conforme (✓)</span>
+            <span class="legchip"><span class="legbox nc"></span> Não conforme (✗)</span>
+            <span class="legchip" style="font-size:10px">Clique no cabeçalho da coluna p/ marcar tudo</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: frentes de serviço + ações -->
+        <div class="topright">
+          <h4>04 · Frentes de serviço (5S) — por área</h4>
+          <div class="counts" id="c4"></div>
+          <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
+            <button class="btn mini" onclick="fillFrentes(1)">Marcar tudo ✓</button>
+            <button class="btn mini" onclick="fillFrentes(0)">Limpar</button>
+          </div>
+          <div class="chipgrid" id="frentesGrid"></div>
+
+          <div class="acts">
+            <span class="acoes-lbl">Ações — DDS não realizado (item 01)</span>
+            <textarea class="acoes" id="a1" placeholder="Ação corretiva, responsável e prazo para os DDS em vermelho…"></textarea>
+            <span class="acoes-lbl">Ações — Canteiro não conforme (item 03)</span>
+            <textarea class="acoes" id="a3" placeholder="Ex.: EMPRESA X — segregar sobras no pátio Y até DD/MM (resp.: encarregado)…"></textarea>
+            <span class="acoes-lbl">Ações — Frentes não conformes (item 04)</span>
+            <textarea class="acoes" id="a4" placeholder="Ex.: Destilaria Fase II — retirar andaimes desmontados e organizar cabos até DD/MM…"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="gallery">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h4>📷 Evidências fotográficas — segurança &amp; organização</h4>
+          <label class="btn mini no-print" style="cursor:pointer">＋ Adicionar fotos<input type="file" accept="image/*" multiple style="display:none" onchange="addFotos(event)"></label>
+        </div>
+        <div class="photogrid" id="fotoGrid"></div>
+        <p class="hint no-print" style="margin:8px 0 0">As imagens são reduzidas automaticamente e salvas neste navegador. Para muitos registros, use o backup JSON.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 02 Acidente -->
+  <section class="q" id="q2">
+    <div class="q-head">
+      <div class="q-num">02</div>
+      <div class="q-title">Acidente / incidente (com ou sem perda)?<small>Registro de ocorrências de segurança no período</small></div>
+      <div class="q-verdict"><span class="verdict neu" id="v2">—</span></div>
+    </div>
+    <div class="q-body">
+      <div id="acidBanner"></div>
+      <div class="occgrid" id="acidList"></div>
+      <button class="btn mini no-print" style="margin-top:10px" onclick="addAcid()">＋ Registrar acidente / incidente</button>
+    </div>
+  </section>
+
+  <!-- 05 RNC -->
+  <section class="q" id="q5">
+    <div class="q-head">
+      <div class="q-num">05</div>
+      <div class="q-title">Não conformidade executiva?<small>RNC de execução no período</small></div>
+      <div class="q-verdict"><span class="verdict neu" id="v5">—</span></div>
+    </div>
+    <div class="q-body">
+      <div id="rncBanner"></div>
+      <div class="occgrid" id="rncList"></div>
+      <button class="btn mini no-print" style="margin-top:10px" onclick="addRnc()">＋ Registrar RNC</button>
+    </div>
+  </section>
+
+  <div class="pgbreak"></div>
+
+  <!-- 06 PPC -->
+  <section class="q" id="q6">
+    <div class="q-head">
+      <div class="q-num">06</div>
+      <div class="q-title">PPC atendido?<small>Resumo dos PPCs acompanhados</small></div>
+      <div class="q-verdict"><span class="verdict neu" id="v6">—</span></div>
+    </div>
+    <div class="q-body">
+      <p class="hint">Clique no status para alternar: <b>Atendido</b> → <b>Não atendido</b> → <b>Pendente</b>. Preencha a ação quando não atendido.</p>
+      <table class="grid" id="ppcTable">
+        <thead><tr><th style="width:34%">Item de PPC</th><th style="width:14%">Status</th><th>Ação (se não atendido)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn mini no-print" style="margin-top:10px" onclick="addPpc()">＋ Adicionar item de PPC</button>
+    </div>
+  </section>
+
+  <!-- 07 Marcos -->
+  <section class="q" id="q7">
+    <div class="q-head">
+      <div class="q-num">07</div>
+      <div class="q-title">Aderência aos MARCOS?<small>Curva de aderência por LPS / marco</small></div>
+      <div class="q-verdict"><span class="verdict neu" id="v7">—</span></div>
+    </div>
+    <div class="q-body">
+      <details class="tips no-print">
+        <summary>💡 Como montar a curva de aderência de cada LPS (dicas)</summary>
+        <ul>
+          <li><b>O que a curva mostra:</b> por marco/LPS, duas linhas ao longo das semanas — <b>% Previsto</b> (baseline) e <b>% Realizado</b>. A distância entre elas é o desvio de aderência.</li>
+          <li><b>Dado mínimo por semana (3 números):</b> semana, % acumulado previsto e % acumulado realizado. Já basta para desenhar a curva ao lado.</li>
+          <li><b>De onde tirar:</b> previsto = acumulado da baseline no MS Project filtrando as tarefas do marco; realizado = seu apontamento (RDO/RSO). Desvio: <code>Realizado − Previsto</code> (negativo = atrasado).</li>
+          <li><b>Aderência (%) da semana:</b> <code>Realizado ÷ Previsto</code>. Meta usual ≥ 85–90%. O card calcula e pinta verde/âmbar/vermelho.</li>
+          <li><b>Escopo do "LPS":</b> comece com 1 curva por marco (os 5 do PPC já entram). Se faz pull planning por pacote, use 1 curva/pacote e o marco = agregação.</li>
+          <li><b>Complemento:</b> registre a <b>causa raiz de não cumprimento</b> por semana (material · mão de obra → item 08 · projeto · clima · interface) e monte um Pareto.</li>
+          <li><b>Automação:</b> como você já parseia o XML timephased, dá para extrair o previsto acumulado por marco direto da baseline e alimentar as semanas sem digitar.</li>
+        </ul>
+      </details>
+      <div id="marcosList"></div>
+      <button class="btn mini no-print" style="margin-top:12px" onclick="addMarco()">＋ Adicionar marco / LPS</button>
+    </div>
+  </section>
+
+  <!-- 08 Contratações -->
+  <section class="q" id="q8">
+    <div class="q-head">
+      <div class="q-num">08</div>
+      <div class="q-title">Contratações pendentes?<small>Restrições de mão de obra por LPS · data-limite de mobilização</small></div>
+      <div class="q-verdict"><span class="verdict neu" id="v8">—</span></div>
+    </div>
+    <div class="q-body">
+      <p class="hint">A <b>data-limite de mobilização</b> é comparada com hoje: <span class="urg late">vencida</span> / <span class="urg soon">≤ 14 dias</span> / <span class="urg ok">no prazo</span>.</p>
+      <div id="contratacoesList"></div>
+    </div>
+  </section>
+
+  <footer class="rep">
+    INPASA Agroindustrial · Planejamento de Obras · Rondonópolis/MT — gerado em <span id="genstamp"></span>
+  </footer>
+
+</div>
+
+<script>
+/* ============ SEED ============ */
+const SEED_COMPANIES = [
+  ["ABR Controle Tecnológico","Civil"],["ACX Construções","Civil"],["Apolinário Engenharia","Mecânica"],
+  ["Bastos Instalações Industriais","Mecânica"],["Caldervol Engenharia","Mecânica"],["Construtora JPG","Civil"],
+  ["Coran","Mecânica"],["Decorfios Eletrotécnica","Elétrica"],["Delta Montagem","Civil"],
+  ["Doutor Energia","Elétrica"],["DS Engenharia e Locações","Civil"],["Engedelta Engenharia","Civil"],
+  ["Fockink Indústrias Elétricas","Mecânica"],["Fortys Montagens Industriais","Mecânica"],["Guimarães Engenharia","Mecânica"],
+  ["HFC Construtora","Civil"],["Hidropel","Civil"],["LC Locadora de Máquinas","Mecânica"],
+  ["LCM Montagem Industrial","Mecânica"],["LIF Máq. p/ Frigoríficos","Mecânica"],["M.P. Brito & S.M. Pontes","Civil"],
+  ["Metalpar Metalúrgica","Mecânica"],["MTCON Engenharia","Civil"],["Oeste Montagens Industriais","Mecânica"],
+  ["Plus Elétrica e Automação","Elétrica"],["Prisma Construtora","Civil"],["RS Locações e Topografia","Civil"],
+  ["Servbras Caldeiraria","Mecânica"],["VERC","Civil"],["Zortéa Construções","Civil"],
+  ["A P Rodrigues Redes","Elétrica"],["Luan Carlos Lima de Castro","Mecânica"],["Tecnofour Inspeções","Mecânica"],
+  ["DSEM Engenharia","Mecânica"],["Unimonta Montagens","Mecânica"],["LGL Soluções Industriais","Mecânica"],
+  ["Rangel Montagens Industriais","Mecânica"],["Construtora Central do Brasil","Civil"],["VSM Engenharia","Civil"],
+  ["LOGG","Civil"],["Greenfield Construção e Montagens","Civil"],["Eletrolis Instalações","Elétrica"],
+  ["RGE Equipamentos Industriais","Mecânica"],["Inox Fenix","Mecânica"],["Bruno Cordeiro Usinagem","Civil"],
+  ["Rodrigo de Melo Silva","Mecânica"],["SMV Serviços p/ Construção","Civil"],["Precisamec Reparação","Instrumentação"],
+  ["AGS Montagem e Manutenção","Rotativo"]
+];
+const AREAS = ["Pátio e Recebimento","Ruas","Destilaria Fase I","Destilaria Fase II","Torres de Resfriamento",
+  "Tanques de Água e Chillers","Dornas Fase I","Dornas Fase II","Cozimento Fase I","Cozimento Fase II",
+  "Almoxarifado","Pipe Rack","Secadores","Caldeiras","Armazéns de Grãos","Armazém de DDGS","Casa de Força",
+  "Manutenção","Prédios Administrativos","Biomassa e Stacker Reclaimer","ETE e Resíduos",
+  "Tanques de Etanol e Óleo","Expedição de Etanol","Expedição de Óleo"];
+const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+const PPC_SEED = ["Recebimento de Milho","Pavimentação","Vistoria dos Bombeiros","Sopragem da Caldeira","Vistoria da SEMA"];
+const SYM = ["–","✓","✗"];
+
+/* ============ ESTADO ============ */
+const UNI = (typeof pcoUnidadeAtual==="function") ? pcoUnidadeAtual() : "RDN";
+const KEY = "inpasa_rep_v2_" + UNI;
+/* migração: adota o dado local antigo (RDN) na primeira abertura */
+(function(){ try{
+  if(UNI==="RDN" && !localStorage.getItem(KEY)){
+    const antigo = localStorage.getItem("inpasa_rep_rnd_v2");
+    if(antigo) localStorage.setItem(KEY, antigo);
+  }
+}catch(_){} })();
+let editMode=false;
+let S = load() || defaultState();
+
+function defaultState(){
+  const st={meta:{periodo:"",resp:"",data:""},companies:[],frentes:{},a1:"",a3:"",a4:"",
+    acid:[],rnc:[],ppc:[],marcos:[],contr:{},outros:[],fotos:[]};
+  SEED_COMPANIES.forEach(c=>st.companies.push({name:c[0],disc:c[1],dds:[0,0,0,0,0,0,0],cant:0}));
+  AREAS.forEach((_,i)=>st.frentes[i]=0);
+  PPC_SEED.forEach(n=>st.ppc.push({nome:n,status:0,acao:""}));
+  PPC_SEED.forEach(n=>{st.marcos.push({nome:n,weeks:[{s:"S1",p:"",r:""},{s:"S2",p:"",r:""},{s:"S3",p:"",r:""},{s:"S4",p:"",r:""}]});st.contr[n]=[];});
+  st.outros=seedOutros();
+  return st;
+}
+/* pendentes importados: Excel (Planilha1, só não-concluídos) + Word (Visão de fechamentos) */
+function seedOutros(){
+  const XL=[
+    ["6.618 · F1/F2-SE08/18 Infraestrutura EIA Destilaria, Evaporação, Fábrica de Óleo","ELETROLIS Instalações","Em escrituração"],
+    ["6.614 · F1/F2 Infraestrutura EIA Fermentação / Dornas Volante, Vinhaça fina","PROELT","Em chamado jurídico"],
+    ["8.368 · Iluminação Armazém 1, 2, Silos e Torres de Elevadores (milho úmido/seco)","LIDDA","Em chamado jurídico"],
+    ["8.423 · Montagem e instalação de 17 geradores diesel F1/F2 (SE01/02/04/05 · SE11/12/14/15)","LIDDA","Em chamado jurídico"],
+    ["6.928 · F1/F2 Infraestrutura de instrumentação Secadores / DDGS","ASSISTEC","Em chamado jurídico"],
+    ["6.609 · SE03 e Infraestrutura EIA Moinhos, Mash Milling, Químicos/Enzimas","LIDDA","Em aprovação (e-mail Vitor)"],
+    ["6.711 · Fase 02 · Montagem, ajustes e alinhamento de conjuntos rotativos","5S Nova","Em cotação (finalizar 08/08)"],
+    ["8.723 · Montagem elétrica, iluminação e instrumentação Depósito de Agrotóxicos RND","Plus Elétrica e Automação","Em cotação (finalizar 05/08)"],
+    ["6.620 · F1-SK01 Infraestrutura EIA Estação de Tratamento de Efluentes (ETE)","","Em aprovação SUPRIA (Everton)"],
+    ["6.831 · F1/F2 Infraestrutura EIA Armazém / DDGS e redes subterrâneas","","Em aprovação SUPRIA (Vitor)"],
+    ["7.200 · Montagem de isolamento da planta","","Em aprovação (e-mail Itiel)"],
+    ["7.422 · Montagem de isolamento da caldeira","","Em aprovação (e-mail Itiel)"],
+    ["3.582 · PCT-ELE-13 Infraestrutura iluminação perimetral posto Rodobras e trevo de acesso","","In hold"]
+  ];
+  const WD=[
+    ["Muro perimetral","","Com Vitor · acima de R$ 1MM"],
+    ["Pacote 04 · Civil","","Com Vitor · abaixo de R$ 1MM"],
+    ["Recontratação · Montagem de tanques","","Com Vitor · resolvido, regularizar Supria"],
+    ["Locação de banheiro químico (obras)","","Com Vitor · abaixo de R$ 1M"],
+    ["Contratação base civil · Dorna volante, fase 01","","Com Vitor · abaixo de R$ 1M"],
+    ["Pacote de locação","","Com VP · acima de R$ 1M"],
+    ["Fabricação e montagem de suportes para cable-racks (50.494,34 kg)","SERVBRAS","Metal · e-mail de fechamento com Vitor · abaixo de R$ 1M"],
+    ["Clarificação","","Com Vitor · acima de R$ 1M"],
+    ["Serviços da portaria provisória (Gesso MT)","Gesso MT","Condicionado ao término do prédio · regularizar · executado"],
+    ["Rede de esgoto · Almoxarifado e manutenção","","Com Geilson · abaixo de R$ 1M"],
+    ["Bases dos silos · Reinjeção de cinzas","","Com Geilson · abaixo de R$ 1M"],
+    ["Controle de umectação","","Com Geilson · abaixo de R$ 1M"],
+    ["Coran · remoção de saldo e recontratação","Coran","Fazer chamado"],
+    ["Ar-condicionado Prédio ADM","ARKOM","Com Vitor · acima de R$ 1M"],
+    ["Aditivo da PRISMA (1ª versão R$ 383.844,37)","PRISMA","Com Vitor · abaixo de R$ 1M"],
+    ["Destilaria fase 02 (SB END)","SB","Suprimentos · aprovado, aguardando de acordo Vitor"],
+    ["Interligações · Expedição de óleo","","Suprimentos · em equalização"],
+    ["Interligação · Parque de tanques","","Suprimentos · em equalização"],
+    ["Civil · ETE","","Suprimentos"]
+  ];
+  const out=[];
+  XL.forEach(r=>out.push({desc:r[0],emp:r[1],sit:r[2],data:"",org:"xl"}));
+  WD.forEach(r=>out.push({desc:r[0],emp:r[1],sit:r[2],data:"",org:"wd"}));
+  return out;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true;}catch(e){return false;}}
+function load(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):null;}catch(e){return null;}}
+/* migração: garante campos novos em estados salvos anteriormente */
+if(!S.outros){S.outros=seedOutros();save();}
+if(!S.fotos){S.fotos=[];save();}
+
+/* ============ RENDER ============ */
+function renderAll(){
+  m_periodo.value=S.meta.periodo; m_resp.value=S.meta.resp; m_data.value=S.meta.data;
+  a1.value=S.a1; a3.value=S.a3; a4.value=S.a4;
+  renderDDS(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderFotos();
+  document.getElementById('genstamp').textContent=new Date().toLocaleString('pt-BR');
+}
+
+/* ---- DDS + Canteiro matrix ---- */
+function renderDDS(){
+  const t=document.getElementById('ddsTable');
+  document.getElementById('editBtn').textContent=editMode?'✓ Concluir edição':'✎ Editar empresas';
+  if(editMode){
+    t.className='mtx edit';
+    let h=`<colgroup><col class="c-emp"><col class="c-emp"><col class="c-del"></colgroup>
+      <thead><tr><th class="emp">Empresa</th><th class="emp">Disciplina</th><th></th></tr></thead><tbody>`;
+    S.companies.forEach((c,i)=>{
+      h+=`<tr><td class="emp"><input value="${esc(c.name)}" onchange="updComp(${i},'name',this.value)"></td>
+        <td class="emp"><input value="${esc(c.disc)}" onchange="updComp(${i},'disc',this.value)"></td>
+        <td><button class="delrow" title="excluir" onclick="delComp(${i})">×</button></td></tr>`;
+    });
+    h+=`</tbody>`;
+    t.innerHTML=h;
+    return;
+  }
+  t.className='mtx';
+  let cols=`<colgroup><col class="c-emp">`+DAYS.map(()=>`<col class="c-day">`).join('')+`<col class="c-cant"></colgroup>`;
+  let h=cols+"<thead><tr><th class='emp'>Empresa</th>";
+  DAYS.forEach((d,di)=>h+=`<th class="day" onclick="toggleCol(${di})" title="marca a coluna">${d}</th>`);
+  h+=`<th class="cant" onclick="toggleCantCol()" title="marca a coluna">Canteiro<br><span style="font-weight:500;font-size:8px;opacity:.85">(5S)</span></th></tr></thead><tbody>`;
+  S.companies.forEach((c,i)=>{
+    h+=`<tr><td class='emp' title="${esc(c.name)}">${esc(c.name)}<span class='disc'> · ${esc(c.disc)}</span></td>`;
+    for(let d=0;d<7;d++){const s=c.dds[d];h+=`<td><div class="cell s${s}" onclick="cycMtx(${i},${d})">${SYM[s]}</div></td>`;}
+    h+=`<td class="cantcell"><div class="cell s${c.cant}" onclick="cycCant(${i})">${SYM[c.cant]}</div></td></tr>`;
+  });
+  h+="</tbody>";
+  t.innerHTML=h;
+  updDDSsummary(); updCantSummary();
+}
+function toggleEdit(){editMode=!editMode;renderDDS();}
+function updComp(i,k,v){S.companies[i][k]=v;save();}
+function delComp(i){if(confirm('Excluir "'+S.companies[i].name+'"?')){S.companies.splice(i,1);save();renderDDS();}}
+function addComp(){S.companies.push({name:'Nova empresa',disc:'',dds:[0,0,0,0,0,0,0],cant:0});save();editMode=true;renderDDS();}
+function cycMtx(i,d){S.companies[i].dds[d]=(S.companies[i].dds[d]+1)%3;save();renderDDS();}
+function cycCant(i){S.companies[i].cant=(S.companies[i].cant+1)%3;save();renderDDS();}
+function toggleCol(d){const anyNeu=S.companies.some(c=>c.dds[d]===0);S.companies.forEach(c=>c.dds[d]=anyNeu?1:0);save();renderDDS();}
+function toggleCantCol(){const anyNeu=S.companies.some(c=>c.cant===0);S.companies.forEach(c=>c.cant=anyNeu?1:0);save();renderDDS();}
+function fillMatrix(v){S.companies.forEach(c=>{for(let d=0;d<7;d++)c.dds[d]=v;});save();renderDDS();}
+function updDDSsummary(){
+  let ok=0,nc=0,neu=0;
+  S.companies.forEach(c=>c.dds.forEach(v=>{v===1?ok++:v===2?nc++:neu++;}));
+  document.getElementById('c1').innerHTML=
+    `<span style="font-weight:700;color:var(--brand)">DDS ·</span>`+
+    `<span><span class="dot ok"></span><b>${ok}</b> realizados</span>`+
+    `<span><span class="dot nc"></span><b>${nc}</b> não realizados</span>`+
+    `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
+  setVerdict('v1', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} falha(s)`:(ok>0?'Sim':'—'));
+}
+function updCantSummary(){
+  let ok=0,nc=0,neu=0;S.companies.forEach(c=>{c.cant===1?ok++:c.cant===2?nc++:neu++;});
+  document.getElementById('c3').innerHTML=
+    `<span style="font-weight:700;color:var(--accent)">Canteiro ·</span>`+
+    `<span><span class="dot ok"></span><b>${ok}</b> conformes</span>`+
+    `<span><span class="dot nc"></span><b>${nc}</b> não conformes</span>`+
+    `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
+  setVerdict('v3', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} NC`:(ok>0?'Sim':'—'));
+}
+
+/* ---- Frentes ---- */
+function renderFrentes(){
+  let h="";
+  AREAS.forEach((a,i)=>{const s=S.frentes[i];
+    h+=`<div class="chip s${s}" onclick="cycFrente(${i})"><span class="ico">${SYM[s]}</span><span class="lab">${a}</span></div>`;});
+  document.getElementById('frentesGrid').innerHTML=h;
+  let ok=0,nc=0,neu=0;AREAS.forEach((_,i)=>{const v=S.frentes[i];v===1?ok++:v===2?nc++:neu++;});
+  document.getElementById('c4').innerHTML=
+    `<span style="font-weight:700;color:var(--brand-2)">Frentes ·</span>`+
+    `<span><span class="dot ok"></span><b>${ok}</b> conformes</span>`+
+    `<span><span class="dot nc"></span><b>${nc}</b> não conformes</span>`+
+    `<span><span class="dot neu"></span><b>${neu}</b> não avaliadas</span>`;
+  setVerdict('v4', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} NC`:(ok>0?'Sim':'—'));
+}
+function cycFrente(i){S.frentes[i]=(S.frentes[i]+1)%3;save();renderFrentes();}
+function fillFrentes(v){AREAS.forEach((_,i)=>S.frentes[i]=v);save();renderFrentes();}
+
+/* ---- acidente / rnc ---- */
+function renderAcid(){
+  const b=document.getElementById('acidBanner'),l=document.getElementById('acidList');
+  if(S.acid.length===0){b.innerHTML=`<div class="banner clear"><span class="bico">🛡️</span><div><b>Sem acidentes ou incidentes registrados no período.</b><br><span style="font-size:11.5px">Nenhuma perda com ou sem afastamento reportada.</span></div></div>`;l.innerHTML="";setVerdict('v2','sim','Sim · sem ocorrência');}
+  else{b.innerHTML="";let h="";S.acid.forEach((o,i)=>{
+    h+=`<div class="occ">
+      <div class="occ2">
+        <div class="fld"><label>Tipo</label><select onchange="updAcid(${i},'tipo',this.value)">
+          ${['Acidente com perda','Acidente sem perda','Incidente','Quase-acidente'].map(t=>`<option ${o.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div class="fld"><label>Data</label><input type="date" value="${o.data||''}" onchange="updAcid(${i},'data',this.value)"></div>
+      </div>
+      <div class="fld"><label>Local / empresa</label><input value="${esc(o.local)}" onchange="updAcid(${i},'local',this.value)"></div>
+      <div class="fld"><label>Descrição</label><textarea onchange="updAcid(${i},'desc',this.value)">${esc(o.desc)}</textarea></div>
+      <div class="fld"><label>Ações / tratativa</label><textarea onchange="updAcid(${i},'acoes',this.value)">${esc(o.acoes)}</textarea></div>
+      <button class="btn mini no-print" onclick="delAcid(${i})">Remover</button></div>`;});
+    l.innerHTML=h;setVerdict('v2','nao',`Sim · ${S.acid.length} ocorrência(s)`);}
+}
+function addAcid(){S.acid.push({tipo:'Incidente',data:'',local:'',desc:'',acoes:''});save();renderAcid();}
+function updAcid(i,k,v){S.acid[i][k]=v;save();}
+function delAcid(i){S.acid.splice(i,1);save();renderAcid();}
+
+function renderRnc(){
+  const b=document.getElementById('rncBanner'),l=document.getElementById('rncList');
+  if(S.rnc.length===0){b.innerHTML=`<div class="banner clear"><span class="bico">✅</span><div><b>Sem não conformidades executivas no período.</b><br><span style="font-size:11.5px">Nenhuma RNC de execução aberta.</span></div></div>`;l.innerHTML="";setVerdict('v5','sim','Sim · sem RNC');}
+  else{b.innerHTML="";let h="";S.rnc.forEach((o,i)=>{
+    h+=`<div class="occ">
+      <div class="occ2">
+        <div class="fld"><label>Nº RNC</label><input value="${esc(o.num)}" onchange="updRnc(${i},'num',this.value)"></div>
+        <div class="fld"><label>Área / disciplina</label><input value="${esc(o.area)}" onchange="updRnc(${i},'area',this.value)"></div>
+      </div>
+      <div class="fld"><label>Descrição da NC</label><textarea onchange="updRnc(${i},'desc',this.value)">${esc(o.desc)}</textarea></div>
+      <div class="fld"><label>Ações / disposição</label><textarea onchange="updRnc(${i},'acoes',this.value)">${esc(o.acoes)}</textarea></div>
+      <button class="btn mini no-print" onclick="delRnc(${i})">Remover</button></div>`;});
+    l.innerHTML=h;setVerdict('v5','nao',`Sim · ${S.rnc.length} RNC`);}
+}
+function addRnc(){S.rnc.push({num:'',area:'',desc:'',acoes:''});save();renderRnc();}
+function updRnc(i,k,v){S.rnc[i][k]=v;save();}
+function delRnc(i){S.rnc.splice(i,1);save();renderRnc();}
+
+/* ---- PPC ---- */
+function renderPpc(){
+  const tb=document.querySelector('#ppcTable tbody');let h="";
+  S.ppc.forEach((p,i)=>{
+    const lbl=['Pendente','Atendido','Não atendido'][p.status];
+    h+=`<tr>
+      <td><input class="inline" value="${esc(p.nome)}" onchange="updPpc(${i},'nome',this.value)"></td>
+      <td><button class="stbtn s${p.status}" onclick="cycPpc(${i})">${lbl}</button></td>
+      <td><input class="inline" placeholder="${p.status===2?'ação, resp. e prazo…':'—'}" value="${esc(p.acao)}" onchange="updPpc(${i},'acao',this.value)"></td>
+    </tr>`;});
+  tb.innerHTML=h;
+  const nc=S.ppc.filter(p=>p.status===2).length, ok=S.ppc.filter(p=>p.status===1).length;
+  setVerdict('v6', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} pendência(s)`:(ok>0?'Sim':'—'));
+}
+function cycPpc(i){S.ppc[i].status=(S.ppc[i].status+1)%3;save();renderPpc();}
+function updPpc(i,k,v){S.ppc[i][k]=v;save();if(k!=='acao')renderPpc();}
+function addPpc(){S.ppc.push({nome:'',status:0,acao:''});save();renderPpc();}
+
+/* ---- MARCOS ---- */
+function renderMarcos(){
+  const box=document.getElementById('marcosList');let h="";
+  S.marcos.forEach((m,mi)=>{
+    const last=m.weeks[m.weeks.length-1]||{};
+    let adh=null;const p=parseFloat(last.p),r=parseFloat(last.r);
+    if(!isNaN(p)&&p>0&&!isNaN(r))adh=Math.round(r/p*100);
+    const cls=adh===null?'':(adh>=90?'urg ok':adh>=75?'urg soon':'urg late');
+    h+=`<div class="lps-card"><div class="lps-head">
+      <input class="name" value="${esc(m.nome)}" onchange="updMarcoName(${mi},this.value)">
+      <button class="btn mini no-print" onclick="addWeek(${mi})">＋ sem.</button>
+      <button class="btn mini no-print" onclick="delMarco(${mi})">×</button>
+    </div><div class="lps-body">
+      <div><table class="wk-table"><thead><tr><th>Sem.</th>${m.weeks.map(w=>`<th>${esc(w.s)}</th>`).join('')}</tr></thead>
+      <tbody>
+        <tr><th style="text-align:left">Sem.</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.s)}" onchange="updWeek(${mi},${wi},'s',this.value)"></td>`).join('')}</tr>
+        <tr><th style="text-align:left">Prev.%</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.p)}" onchange="updWeek(${mi},${wi},'p',this.value)"></td>`).join('')}</tr>
+        <tr><th style="text-align:left">Real.%</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.r)}" onchange="updWeek(${mi},${wi},'r',this.value)"></td>`).join('')}</tr>
+      </tbody></table>
+      <div class="adh">Aderência atual: <b class="${cls}">${adh===null?'—':adh+'%'}</b></div></div>
+      <div class="chartbox">${curveSVG(m.weeks)}</div>
+    </div></div>`;
+  });
+  box.innerHTML=h;
+  let bad=false,has=false;
+  S.marcos.forEach(m=>{const l=m.weeks[m.weeks.length-1]||{};const p=parseFloat(l.p),r=parseFloat(l.r);if(!isNaN(p)&&p>0&&!isNaN(r)){has=true;if(r/p*100<90)bad=true;}});
+  setVerdict('v7', bad?'nao':(has?'sim':'neu'), bad?'Não · desvio':(has?'Sim':'—'));
+}
+function curveSVG(weeks){
+  const W=210,H=130,pad=22;
+  const xs=weeks.map((_,i)=>weeks.length>1?pad+i*(W-pad-8)/(weeks.length-1):W/2);
+  const yy=v=>H-pad-(Math.max(0,Math.min(100,v))/100)*(H-2*pad);
+  const line=(key,color)=>{
+    let pts=[];weeks.forEach((w,i)=>{const v=parseFloat(w[key]);if(!isNaN(v))pts.push([xs[i],yy(v)]);});
+    if(pts.length===0)return"";
+    const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="${color}"/>`).join('');
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>${dots}`;
+  };
+  let grid="";[0,50,100].forEach(g=>{const y=yy(g);grid+=`<line x1="${pad}" y1="${y}" x2="${W-6}" y2="${y}" stroke="#eef2f5"/><text x="2" y="${y+3}" font-size="7.5" fill="#9aa8b3">${g}</text>`;});
+  const xl=weeks.map((w,i)=>`<text x="${xs[i]}" y="${H-7}" font-size="7.5" fill="#9aa8b3" text-anchor="middle">${esc(w.s)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${xl}${line('p','#12557a')}${line('r','#1f8a4c')}
+    <g font-size="7.5"><rect x="${W-84}" y="4" width="9" height="3" fill="#12557a"/><text x="${W-72}" y="8" fill="#3a4b59">Previsto</text>
+    <rect x="${W-84}" y="13" width="9" height="3" fill="#1f8a4c"/><text x="${W-72}" y="17" fill="#3a4b59">Realizado</text></g></svg>`;
+}
+function updMarcoName(i,v){S.marcos[i].nome=v;save();syncContrKeys();}
+function updWeek(mi,wi,k,v){S.marcos[mi].weeks[wi][k]=v;save();renderMarcos();}
+function addWeek(mi){const n=S.marcos[mi].weeks.length+1;S.marcos[mi].weeks.push({s:'S'+n,p:'',r:''});save();renderMarcos();}
+function addMarco(){const nm='Novo marco '+(S.marcos.length+1);S.marcos.push({nome:nm,weeks:[{s:'S1',p:'',r:''},{s:'S2',p:'',r:''}]});if(!S.contr[nm])S.contr[nm]=[];save();renderMarcos();renderContr();}
+function delMarco(i){if(confirm('Excluir marco "'+S.marcos[i].nome+'"?')){S.marcos.splice(i,1);save();renderMarcos();syncContrKeys();}}
+
+/* ---- CONTRATAÇÕES ---- */
+function daysTo(dstr){if(!dstr)return null;const d=new Date(dstr+'T00:00:00');const t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/86400000);}
+function urgCls(n){if(n===null)return'';return n<0?'urg late':n<=14?'urg soon':'urg ok';}
+function urgTxt(n){if(n===null)return'';return n<0?`venc. ${-n}d`:n===0?'hoje':`${n}d`;}
+function renderContr(){
+  const box=document.getElementById('contratacoesList');let h="";let totalPend=0;
+  S.marcos.forEach(m=>{
+    const key=m.nome;const rows=S.contr[key]||[];totalPend+=rows.length;
+    h+=`<div class="ct-block"><div class="ct-head"><span>${esc(key)}</span>
+      <button class="btn mini no-print" onclick="addContr('${escq(key)}')">＋ pendência</button></div>`;
+    if(rows.length){
+      h+=`<table class="ct"><thead><tr><th>Função</th><th>Empresa</th><th>Qtd</th><th>Data-lim.</th><th>Prazo</th><th>Marco impact.</th><th>Status</th><th></th></tr></thead><tbody>`;
+      rows.forEach((r,ri)=>{const n=daysTo(r.data);
+        h+=`<tr>
+          <td><input value="${esc(r.func)}" onchange="updContr('${escq(key)}',${ri},'func',this.value)"></td>
+          <td><input value="${esc(r.emp)}" onchange="updContr('${escq(key)}',${ri},'emp',this.value)"></td>
+          <td><input value="${esc(r.qtd)}" onchange="updContr('${escq(key)}',${ri},'qtd',this.value)"></td>
+          <td><input type="date" value="${r.data||''}" onchange="updContr('${escq(key)}',${ri},'data',this.value)"></td>
+          <td class="${urgCls(n)}">${urgTxt(n)}</td>
+          <td><input value="${esc(r.marco)}" onchange="updContr('${escq(key)}',${ri},'marco',this.value)"></td>
+          <td><input value="${esc(r.status)}" onchange="updContr('${escq(key)}',${ri},'status',this.value)"></td>
+          <td><button class="del no-print" onclick="delContr('${escq(key)}',${ri})">×</button></td>
+        </tr>`;});
+      h+=`</tbody></table>`;
+    } else {
+      h+=`<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem pendências de contratação.</div>`;
+    }
+    h+=`</div>`;
+  });
+  box.innerHTML=h+renderOutros();
+  const totalOutros=(S.outros||[]).length;
+  const tot=totalPend+totalOutros;
+  setVerdict('v8', tot>0?'nao':'sim', tot>0?`Sim · ${tot} pendência(s)`:'Não · nenhuma');
+}
+function renderOutros(){
+  const rows=S.outros||[];
+  let h=`<div class="ct-block full"><div class="ct-head"><span>Outros — fechamentos / contratações pendentes <span style="font-weight:500;color:var(--muted);font-size:10.5px">(importado de Excel + Word)</span></span>
+    <button class="btn mini no-print" onclick="addOutros()">＋ pendência</button></div>`;
+  if(rows.length){
+    h+=`<table class="ct"><thead><tr><th style="width:40%">Descrição</th><th style="width:15%">Empresa</th><th style="width:22%">Situação</th><th style="width:11%">Data-lim. mob.</th><th style="width:7%">Prazo</th><th></th></tr></thead><tbody>`;
+    rows.forEach((r,i)=>{const n=daysTo(r.data);const tag=r.org==='xl'?'<span class="otag xl">Excel</span>':r.org==='wd'?'<span class="otag wd">Word</span>':'';
+      h+=`<tr>
+        <td><input value="${esc(r.desc)}" onchange="updOutros(${i},'desc',this.value)">${tag}</td>
+        <td><input value="${esc(r.emp)}" onchange="updOutros(${i},'emp',this.value)"></td>
+        <td><input value="${esc(r.sit)}" onchange="updOutros(${i},'sit',this.value)"></td>
+        <td><input type="date" value="${r.data||''}" onchange="updOutros(${i},'data',this.value)"></td>
+        <td class="${urgCls(n)}">${urgTxt(n)}</td>
+        <td><button class="del no-print" onclick="delOutros(${i})">×</button></td></tr>`;});
+    h+=`</tbody></table>`;
+  } else h+=`<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem itens.</div>`;
+  return h+`</div>`;
+}
+function addOutros(){S.outros.push({desc:'',emp:'',sit:'',data:'',org:''});save();renderContr();}
+function updOutros(i,k,v){S.outros[i][k]=v;save();if(k==='data')renderContr();}
+function delOutros(i){S.outros.splice(i,1);save();renderContr();}
+
+/* ---- fotos de evidência ---- */
+function renderFotos(){
+  const g=document.getElementById('fotoGrid');let h='';
+  (S.fotos||[]).forEach((f,i)=>{
+    h+=`<div class="photo"><button class="pdel no-print" onclick="delFoto(${i})" title="excluir">×</button>
+      <img src="${f.src}" alt="evidência ${i+1}">
+      <input class="cap" value="${esc(f.cap)}" placeholder="Legenda da evidência…" onchange="updCap(${i},this.value)"></div>`;
+  });
+  g.innerHTML=h||'<div style="font-size:11px;color:var(--muted);padding:6px 0">Nenhuma foto adicionada.</div>';
+}
+function addFotos(ev){
+  const files=[...ev.target.files]; ev.target.value='';
+  files.forEach(f=>{
+    const rd=new FileReader();
+    rd.onload=()=>{const img=new Image();
+      img.onload=()=>{
+        const max=1000;let w=img.width,h=img.height;
+        if(w>max||h>max){const s=Math.min(max/w,max/h);w=Math.round(w*s);h=Math.round(h*s);}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        S.fotos.push({src:cv.toDataURL('image/jpeg',0.72),cap:''});
+        if(!save()){S.fotos.pop();alert('Limite de armazenamento do navegador atingido. Não foi possível salvar esta foto — reduza a quantidade ou exporte um backup JSON.');}
+        renderFotos();
+      };
+      img.onerror=()=>alert('Arquivo de imagem inválido.');
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(f);
+  });
+}
+function delFoto(i){S.fotos.splice(i,1);save();renderFotos();}
+function updCap(i,v){S.fotos[i].cap=v;save();}
+function addContr(key){if(!S.contr[key])S.contr[key]=[];S.contr[key].push({func:'',emp:'',qtd:'',data:'',marco:'',status:'Em processo'});save();renderContr();}
+function updContr(key,i,k,v){S.contr[key][i][k]=v;save();if(k==='data')renderContr();}
+function delContr(key,i){S.contr[key].splice(i,1);save();renderContr();}
+function syncContrKeys(){const keys=S.marcos.map(m=>m.nome);const nc={};keys.forEach(k=>nc[k]=S.contr[k]||[]);S.contr=nc;save();renderContr();}
+
+/* ---- helpers ---- */
+function setVerdict(id,cls,txt){const e=document.getElementById(id);e.className='verdict '+cls;e.textContent=txt;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escq(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+/* ---- meta + textareas ---- */
+['m_periodo','m_resp','m_data'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{
+  S.meta[id==='m_periodo'?'periodo':id==='m_resp'?'resp':'data']=e.target.value;save();}));
+['a1','a3','a4'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{S[id]=e.target.value;save();}));
+
+/* ============ EXPORT ============ */
+function exportJSON(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  dl(blob,`relatorio_semanal_${(S.meta.periodo||'RND').replace(/[^\w]+/g,'_')}.json`);}
+function importJSON(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{S=JSON.parse(r.result);save();renderAll();alert('Backup carregado.');}catch(e){alert('Arquivo inválido.');}};r.readAsText(f);}
+function resetAll(){if(confirm('Limpar todos os dados deste relatório?')){S=defaultState();editMode=false;save();renderAll();}}
+function dl(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+
+function exportExcel(){
+  const fill=s=>s===1?'background:#e3f4ea;color:#1f8a4c;':s===2?'background:#fbe6e3;color:#c0392b;':'background:#f1f4f6;color:#9aa8b3;';
+  const th='style="background:#0f3a54;color:#fff;font-weight:bold;border:1px solid #999;padding:4px;font-size:10px"';
+  const tc='style="background:#c9922b;color:#3b2b06;font-weight:bold;border:1px solid #999;padding:4px;font-size:10px"';
+  const td='style="border:1px solid #ccc;padding:4px;font-size:10px"';
+  let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">
+  <style>table{border-collapse:collapse}td,th{mso-number-format:'\\@'}</style></head><body>`;
+  h+=`<table><tr><td colspan="9" style="font-size:15px;font-weight:bold;color:#0f3a54">INPASA · Relatório Gerencial Semanal — Rondonópolis/MT</td></tr>`;
+  h+=`<tr><td>Período:</td><td>${esc(S.meta.periodo)}</td><td>Responsável:</td><td>${esc(S.meta.resp)}</td><td>Data:</td><td>${esc(S.meta.data)}</td></tr></table><br>`;
+
+  h+=`<table><tr><td colspan="9" ${th}>01 · DDS realizado + 03 · Canteiro (5S)</td></tr><tr><th ${th}>Empresa</th>${DAYS.map(d=>`<th ${th}>${d}</th>`).join('')}<th ${tc}>Cant. 5S</th></tr>`;
+  S.companies.forEach(c=>{h+=`<tr><td ${td}>${esc(c.name)}</td>${c.dds.map(s=>`<td ${td} style="text-align:center;border:1px solid #ccc;${fill(s)}">${SYM[s]}</td>`).join('')}<td ${td} style="text-align:center;border:1px solid #ccc;${fill(c.cant)}">${SYM[c.cant]}</td></tr>`;});
+  h+=`<tr><td ${td}><b>Ação DDS</b></td><td ${td} colspan="8">${esc(S.a1)}</td></tr>`;
+  h+=`<tr><td ${td}><b>Ação Canteiro</b></td><td ${td} colspan="8">${esc(S.a3)}</td></tr></table><br>`;
+
+  h+=`<table><tr><td colspan="5" ${th}>02 · Acidente / incidente?</td></tr>`;
+  if(S.acid.length===0)h+=`<tr><td ${td} colspan="5">Sem acidentes/incidentes no período.</td></tr>`;
+  else{h+=`<tr><th ${th}>Tipo</th><th ${th}>Data</th><th ${th}>Local</th><th ${th}>Descrição</th><th ${th}>Ações</th></tr>`;
+    S.acid.forEach(o=>h+=`<tr><td ${td}>${esc(o.tipo)}</td><td ${td}>${esc(o.data)}</td><td ${td}>${esc(o.local)}</td><td ${td}>${esc(o.desc)}</td><td ${td}>${esc(o.acoes)}</td></tr>`);}
+  h+=`</table><br>`;
+
+  h+=`<table><tr><td colspan="3" ${th}>04 · Frente de serviço (5S)?</td></tr>`;
+  AREAS.forEach((a,i)=>{if(i%3===0)h+='<tr>';h+=`<td ${td} style="${fill(S.frentes[i])};border:1px solid #ccc">${SYM[S.frentes[i]]} ${esc(a)}</td>`;if(i%3===2)h+='</tr>';});
+  if(AREAS.length%3!==0)h+='</tr>';
+  h+=`<tr><td ${td}><b>Ações</b></td><td ${td} colspan="2">${esc(S.a4)}</td></tr></table><br>`;
+
+  h+=`<table><tr><td colspan="4" ${th}>05 · Não conformidade executiva?</td></tr>`;
+  if(S.rnc.length===0)h+=`<tr><td ${td} colspan="4">Sem RNC executiva no período.</td></tr>`;
+  else{h+=`<tr><th ${th}>Nº</th><th ${th}>Área</th><th ${th}>Descrição</th><th ${th}>Ações</th></tr>`;
+    S.rnc.forEach(o=>h+=`<tr><td ${td}>${esc(o.num)}</td><td ${td}>${esc(o.area)}</td><td ${td}>${esc(o.desc)}</td><td ${td}>${esc(o.acoes)}</td></tr>`);}
+  h+=`</table><br>`;
+
+  h+=`<table><tr><td colspan="3" ${th}>06 · PPC atendido?</td></tr><tr><th ${th}>Item</th><th ${th}>Status</th><th ${th}>Ação</th></tr>`;
+  S.ppc.forEach(p=>{const st=['Pendente','Atendido','Não atendido'][p.status];h+=`<tr><td ${td}>${esc(p.nome)}</td><td ${td} style="${fill(p.status)};border:1px solid #ccc">${st}</td><td ${td}>${esc(p.acao)}</td></tr>`;});
+  h+=`</table><br>`;
+
+  h+=`<table><tr><td colspan="6" ${th}>07 · Aderência aos MARCOS</td></tr>`;
+  S.marcos.forEach(m=>{h+=`<tr><td ${td} colspan="6"><b>${esc(m.nome)}</b></td></tr>`;
+    h+=`<tr><td ${td}>Semana</td>${m.weeks.map(w=>`<td ${td}>${esc(w.s)}</td>`).join('')}</tr>`;
+    h+=`<tr><td ${td}>Prev. %</td>${m.weeks.map(w=>`<td ${td}>${esc(w.p)}</td>`).join('')}</tr>`;
+    h+=`<tr><td ${td}>Real. %</td>${m.weeks.map(w=>`<td ${td}>${esc(w.r)}</td>`).join('')}</tr>`;});
+  h+=`</table><br>`;
+
+  h+=`<table><tr><td colspan="6" ${th}>08 · Contratações pendentes</td></tr>`;
+  S.marcos.forEach(m=>{const rows=S.contr[m.nome]||[];h+=`<tr><td ${td} colspan="6"><b>${esc(m.nome)}</b></td></tr>`;
+    if(rows.length){h+=`<tr><th ${th}>Função</th><th ${th}>Empresa</th><th ${th}>Qtde</th><th ${th}>Data-limite mob.</th><th ${th}>Marco impactado</th><th ${th}>Status</th></tr>`;
+      rows.forEach(r=>h+=`<tr><td ${td}>${esc(r.func)}</td><td ${td}>${esc(r.emp)}</td><td ${td}>${esc(r.qtd)}</td><td ${td}>${esc(r.data)}</td><td ${td}>${esc(r.marco)}</td><td ${td}>${esc(r.status)}</td></tr>`);}
+    else h+=`<tr><td ${td} colspan="6">Sem pendências.</td></tr>`;});
+  h+=`<tr><td ${td} colspan="6"><b>Outros — fechamentos / contratações pendentes (Excel + Word)</b></td></tr>`;
+  h+=`<tr><th ${th}>Descrição</th><th ${th}>Empresa</th><th ${th}>Situação</th><th ${th}>Data-limite mob.</th><th ${th}>Origem</th><th ${th}></th></tr>`;
+  (S.outros||[]).forEach(r=>h+=`<tr><td ${td}>${esc(r.desc)}</td><td ${td}>${esc(r.emp)}</td><td ${td}>${esc(r.sit)}</td><td ${td}>${esc(r.data)}</td><td ${td}>${r.org==='xl'?'Excel':r.org==='wd'?'Word':''}</td><td ${td}></td></tr>`);
+  h+=`</table><br>`;
+
+  if((S.fotos||[]).length){
+    h+=`<table><tr><td colspan="3" ${th}>Evidências fotográficas — segurança &amp; organização</td></tr><tr>`;
+    S.fotos.forEach((f,i)=>{if(i&&i%3===0)h+='</tr><tr>';
+      h+=`<td ${td} style="text-align:center"><img src="${f.src}" width="200"><br>${esc(f.cap)}</td>`;});
+    h+=`</tr></table>`;
+  }
+  h+=`</body></html>`;
+
+  const blob=new Blob(['\ufeff'+h],{type:'application/vnd.ms-excel'});
+  dl(blob,`Relatorio_Gerencial_Semanal_${(S.meta.periodo||'RND').replace(/[^\w]+/g,'_')}.xls`);
+}
+
+/* ============ SUPABASE — snapshot versionado por unidade ============ */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+const SB_TAB = 'relatorio_gerencial_snapshots';
+
+function sbUnidade(){ return (typeof pcoUnidadeAtual==='function') ? pcoUnidadeAtual() : 'RDN'; }
+function sbUnidadeNome(){ return (typeof pcoUnidadeInfo==='function') ? pcoUnidadeInfo(sbUnidade()).nome : sbUnidade(); }
+function sbHeaders(extra){
+  /* sempre SB_KEY como Bearer — pco_token expira e gera PGRST303 */
+  return Object.assign({ 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }, extra||{});
+}
+function sbComUnidade(path){
+  if(typeof pcoComUnidade==='function') return pcoComUnidade(path);
+  return path + (path.includes('?')?'&':'?') + 'unidade=eq.' + encodeURIComponent(sbUnidade());
+}
+function sbComTag(obj){
+  if(typeof pcoComTag==='function') return pcoComTag(obj);
+  return Object.assign({ unidade: sbUnidade() }, obj);
+}
+
+/* gzip <-> base64 (mesma abordagem do módulo LPS; fallback p/ navegadores sem CompressionStream) */
+async function gzB64(str){
+  if(!('CompressionStream' in window)) return 'RAW:' + str;
+  const cs = new CompressionStream('gzip');
+  const buf = await new Response(new Blob([str]).stream().pipeThrough(cs)).arrayBuffer();
+  const bytes = new Uint8Array(buf); let bin=''; const CH=0x8000;
+  for(let i=0;i<bytes.length;i+=CH) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+CH));
+  return btoa(bin);
+}
+async function ungzB64(b64){
+  if(b64.startsWith('RAW:')) return b64.slice(4);
+  const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+
+function sbSetStatus(txt, cor){
+  const el = document.getElementById('sbStatus');
+  if(el){ el.textContent = txt; el.style.color = cor || 'var(--muted)'; }
+}
+
+async function sbRefreshStatus(){
+  if(!SB_URL || !SB_KEY){ sbSetStatus('\u2601 Nuvem: config.js ausente', 'var(--amber)'); return; }
+  try{
+    const path = sbComUnidade(SB_TAB + '?select=periodo,criado_por,criado_em&order=criado_em.desc&limit=1');
+    const res  = await fetch(SB_URL + '/rest/v1/' + path, { headers: sbHeaders() });
+    const rows = await res.json().catch(()=>[]);
+    if(Array.isArray(rows) && rows.length){
+      const r = rows[0];
+      const dt = r.criado_em ? new Date(r.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      sbSetStatus('\u2601 ' + sbUnidadeNome() + ' \u00b7 nuvem: ' + dt + (r.criado_por ? (' \u00b7 ' + r.criado_por) : ''), 'var(--brand-2)');
+    } else {
+      sbSetStatus('\u2601 ' + sbUnidadeNome() + ' \u00b7 nenhuma versão na nuvem', 'var(--muted)');
+    }
+  }catch(e){ sbSetStatus('\u2601 Nuvem: falha ao consultar', 'var(--nc)'); }
+}
+
+async function sbSalvarNuvem(btn){
+  if(!SB_URL || !SB_KEY){ alert('config.js não carregado (SB_URL / SB_KEY ausentes).'); return; }
+  if(btn){ btn.disabled = true; btn.dataset.o = btn.textContent; btn.textContent = 'Salvando\u2026'; }
+  try{
+    const dados = await gzB64(JSON.stringify(S));
+    const criado_por = sessionStorage.getItem('pco_nome') || sessionStorage.getItem('pco_email') || '';
+    const body = [ sbComTag({ periodo: S.meta.periodo || '', dados: dados, criado_por: criado_por }) ];
+    const res = await fetch(SB_URL + '/rest/v1/' + SB_TAB, {
+      method: 'POST',
+      headers: sbHeaders({ 'Content-Type':'application/json', 'Prefer':'return=minimal' }),
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error(res.status + ' ' + t.slice(0,200)); }
+    sbSetStatus('\u2601 salvo na nuvem agora', 'var(--ok)');
+    await sbRefreshStatus();
+  }catch(e){
+    alert('Falha ao salvar na nuvem:\n' + e.message);
+    await sbRefreshStatus();
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = btn.dataset.o || '\u2601 Salvar na nuvem'; }
+  }
+}
+
+async function sbCarregarNuvem(){
+  if(!SB_URL || !SB_KEY){ alert('config.js não carregado (SB_URL / SB_KEY ausentes).'); return; }
+  try{
+    const path = sbComUnidade(SB_TAB + '?select=dados,periodo,criado_em&order=criado_em.desc&limit=1');
+    const res  = await fetch(SB_URL + '/rest/v1/' + path, { headers: sbHeaders() });
+    const rows = await res.json().catch(()=>[]);
+    if(!Array.isArray(rows) || !rows.length){ alert('Não há versão salva na nuvem para ' + sbUnidadeNome() + '.'); return; }
+    const rotulo = rows[0].periodo ? (' (' + rows[0].periodo + ')') : '';
+    if(!confirm('Isto substituirá os dados desta tela pela última versão da nuvem' + rotulo + '.\nOs dados atuais não salvos serão perdidos. Continuar?')) return;
+    const json = await ungzB64(rows[0].dados);
+    const novo = JSON.parse(json);
+    S = novo;
+    if(!S.outros) S.outros = seedOutros();
+    if(!S.fotos)  S.fotos  = [];
+    save();
+    renderAll();
+    sbSetStatus('\u2601 carregado da nuvem', 'var(--ok)');
+    await sbRefreshStatus();
+  }catch(e){
+    alert('Falha ao carregar da nuvem:\n' + e.message);
+  }
+}
+
+
+renderAll();
+if(typeof pcoRenderSwitcher==='function') pcoRenderSwitcher('unidade-switcher');
+sbRefreshStatus();
+</script>
+</body>
+</html>
