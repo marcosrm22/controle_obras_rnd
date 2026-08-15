@@ -639,6 +639,61 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- PLANO DE AÇÃO · DESVIO SEMANAL -->
+    <a class="card desvio" href="plano_acao_desvio_semanal.html" id="card-desvio" style="--desvio:#5B3E8E">
+      <div class="card-bar" style="background:linear-gradient(90deg,#5B3E8E,#9b7bd0)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#efe9f6">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5B3E8E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M7 14l3-4 3 3 5-7"/>
+            <path d="M18 4h3v3"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#5B3E8E">Gestão · Desvio Semanal</div>
+        <div class="card-title">Plano de Ação — Desvio Semanal</div>
+        <div class="card-desc">Justificativa do desvio da semana pelos supervisores e acompanhamento da efetividade das ações — por empresa, área e responsável. Exporta para Excel no mesmo formato do plano atual.</div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dsv-total">—</div>
+          <div class="card-kpi-label">Ações (semana)</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dsv-atraso">—</div>
+          <div class="card-kpi-label">Atrasadas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dsv-conc">—</div>
+          <div class="card-kpi-label">Concluídas</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Situação das ações</span>
+          <span class="card-progress-pct" id="dsv-pct-label" style="color:#5B3E8E">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#1d5c1a;height:100%;width:0%;transition:width .6s" id="dsv-bar-conc"></div>
+            <div style="background:var(--green);height:100%;width:0%;transition:width .6s" id="dsv-bar-prazo"></div>
+            <div style="background:var(--gold);height:100%;width:0%;transition:width .6s" id="dsv-bar-naoini"></div>
+            <div style="background:var(--red);height:100%;width:0%;transition:width .6s" id="dsv-bar-atraso"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="dsv-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#5B3E8E">Abrir plano de ação</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- COMPARATIVO DE COMPRAS (por unidade) -->
     <a class="card steel" href="#" id="card-compras" style="--steel-accent:#1F4E6B">
       <div class="card-bar" style="background:linear-gradient(90deg,#1F4E6B,#4d7d9e)"></div>
@@ -1029,6 +1084,39 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
+  /* ── PLANO DE AÇÃO · DESVIO SEMANAL ── */
+  async function loadDesvio(){
+    try{
+      const { data } = await sbGet('desvio_plano_acao?select=id,status,semana&ativo=eq.true');
+      if(!data.length){
+        setEl('dsv-total','0'); setEl('dsv-atraso','0'); setEl('dsv-conc','0');
+        setEl('dsv-pct-label','sem ações cadastradas');
+        return;
+      }
+      // considera apenas a semana mais recente
+      const ultima = data.map(r=>r.semana).filter(Boolean).sort().slice(-1)[0];
+      const wk = data.filter(r=>r.semana === ultima);
+      const total = wk.length;
+      const c = st => wk.filter(r=>r.status===st).length;
+      const conc    = c('Concluído');
+      const prazo   = c('No Prazo');
+      const naoini  = c('Não iniciado');
+      const atraso  = c('Atrasado');
+
+      setEl('dsv-total',  fmt(total));
+      setEl('dsv-atraso', fmt(atraso));
+      setEl('dsv-conc',   fmt(conc));
+      setEl('dsv-pct-label', total ? (pct(conc,total) + '% concluídas') : '—');
+      setEl('dsv-updated', timeAgo());
+
+      const set = (id,v)=>{ const b=document.getElementById(id); if(b) b.style.width = v + '%'; };
+      set('dsv-bar-conc',   pct(conc,   total));
+      set('dsv-bar-prazo',  pct(prazo,  total));
+      set('dsv-bar-naoini', pct(naoini, total));
+      set('dsv-bar-atraso', pct(atraso, total));
+    } catch(_){}
+  }
+
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
@@ -1036,6 +1124,7 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     loadBasesCivis();
     loadLpsEi();
     loadRso();
+    loadDesvio();
     setTimeout(loadAdmin, 300);
   });
 })();
