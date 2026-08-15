@@ -18,7 +18,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{font-family:var(--sans);color:var(--ink);background:var(--bg);font-size:13px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 80px}
+  .wrap{max-width:1600px;margin:0 auto;padding:20px 16px 80px}
 
   header.rep{background:linear-gradient(120deg,var(--brand) 0%,var(--brand-2) 100%);color:#fff;border-radius:14px;padding:18px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
   header.rep::after{content:"";position:absolute;right:-40px;top:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(201,146,43,.28),transparent 70%);}
@@ -173,10 +173,16 @@
   table.ct.flt .frow th{background:#fff;padding:2px 4px;border-top:1px solid var(--line)}
   table.ct .fin{width:100%;border:1px solid var(--line);background:#fff;padding:2px 5px;font-family:inherit;font-size:10px;border-radius:5px;color:var(--ink-2)}
   table.ct .fin:focus{outline:none;border-color:var(--brand-2)}
-  table.ct select.alc{width:100%;border:1px solid transparent;background:transparent;padding:2px 3px;font-family:inherit;font-size:10.5px;border-radius:5px;color:var(--ink)}
-  table.ct select.alc:hover{border-color:var(--line)} table.ct select.alc:focus{outline:none;border-color:var(--brand-2);background:#fff}
-  td.lnkcell{position:relative} td.lnkcell input{padding-right:16px}
-  td.lnkcell .lnk{position:absolute;right:4px;top:50%;transform:translateY(-50%);text-decoration:none;font-size:12px;color:var(--brand-2)}
+  table.ct select.sel{width:100%;border:1px solid transparent;background:transparent;padding:2px 3px;font-family:inherit;font-size:10.5px;border-radius:5px;color:var(--ink)}
+  table.ct select.sel:hover{border-color:var(--line)} table.ct select.sel:focus{outline:none;border-color:var(--brand-2);background:#fff}
+  td.lnkcell{text-align:center;white-space:nowrap}
+  td.lnkcell.edit{display:flex;gap:3px;align-items:center;white-space:normal}
+  .lbtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:12px;line-height:1;cursor:pointer;color:var(--ink-2);text-decoration:none;vertical-align:middle;margin:0 1px}
+  .lbtn:hover{border-color:var(--brand-2);color:var(--brand-2)}
+  .lbtn.open{color:var(--brand-2)}
+  .lbtn.open.dis{color:var(--line-2);border-color:var(--line-2);cursor:default;pointer-events:none}
+  .lbtn.ok{color:var(--ok);border-color:var(--ok)} .lbtn.cancel{color:var(--nc)}
+  table.ct .linkin{flex:1;min-width:90px;border:1px solid var(--brand-2);background:#fff;padding:2px 5px;font-family:inherit;font-size:10px;border-radius:5px;color:var(--ink)}
   /* seções colapsáveis */
   section.q .q-head{cursor:pointer}
   .q-toggle{flex:none;width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;display:grid;place-items:center;font-size:11px;color:var(--ink-2);transition:transform .15s}
@@ -201,6 +207,7 @@
     .wrap{max-width:none;padding:0}
     .toolbar,.no-print{display:none!important}
     section.q.collapsed .q-body{display:block!important}
+    .lbtn.open{border:none} .lbtn.open.dis{display:none}
     header.rep{border-radius:0;box-shadow:none;color:#000;background:#fff;border-bottom:2px solid var(--brand);padding:5px 0}
     header.rep::after{display:none}
     .rep-title{color:var(--brand)} .rep-sub{color:var(--brand)}
@@ -419,8 +426,6 @@
     </div>
   </section>
 
-  <datalist id="discList"><option>Civil</option><option>Mecânica</option><option>Elétrica</option><option>Instrumentação</option><option>Automação</option><option>Tubulação</option><option>Caldeiraria</option><option>Isolamento</option><option>Pintura</option></datalist>
-  <datalist id="fechList"><option>Contrato</option><option>Aditivo</option><option>Ordem de compra</option><option>E-mail de fechamento</option><option>Recontratação</option><option>Chamado</option></datalist>
 
   <footer class="rep">
     INPASA Agroindustrial · Planejamento de Obras · Rondonópolis/MT — gerado em <span id="genstamp"></span>
@@ -759,22 +764,59 @@ function urgCls(n){if(n===null)return'';return n<0?'urg late':n<=14?'urg soon':'
 function urgTxt(n){if(n===null)return'';return n<0?`venc. ${-n}d`:n===0?'hoje':`${n}d`;}
 /* ============ Contratações Pendentes / Outros Impactos (6 colunas, filtráveis) ============ */
 const ALCADAS = ['>1MM','<1MM','Suprimentos'];
+const DISCS = ['Civil','Montagem','Elétrica','Instrumentação','EIA','Automação','Rotativos','Isolamento','Válvulas'];
+const FECHOPTS = ['Suprimentos','E-mail de Fechamento'];
+let editLinkKey = null;
+function optList(value, list, ph){
+  const v = value==null ? '' : String(value);
+  let opts = `<option value="">${ph||'—'}</option>`;
+  let matched = false;
+  list.forEach(o=>{ const sel = v && v.toLowerCase()===o.toLowerCase(); if(sel) matched=true; opts += `<option${sel?' selected':''}>${o}</option>`; });
+  if(v && !matched) opts += `<option selected>${esc(v)}</option>`;   /* preserva valor fora da lista */
+  return opts;
+}
+function startEditLink(t,i){ editLinkKey = t+':'+i; renderTbl(t); }
+function commitLink(t,i,v){ ctData(t)[i].link = (v||'').trim(); editLinkKey = null; save(); renderTbl(t); }
+function cancelEditLink(t){ editLinkKey = null; renderTbl(t); }
+/* normaliza caixa de disciplina/fechamento para os valores canônicos */
+(function(){
+  function canon(v,list){ if(!v) return v; const m=list.find(o=>o.toLowerCase()===String(v).toLowerCase()); return m||v; }
+  let changed=false;
+  [S.contr2,S.impactos].forEach(arr=>{ (arr||[]).forEach(r=>{
+    const d=canon(r.disciplina,DISCS); if(d!==r.disciplina){ r.disciplina=d; changed=true; }
+    const f=canon(r.fechamento,FECHOPTS); if(f!==r.fechamento){ r.fechamento=f; changed=true; }
+  }); });
+  if(changed) save();
+})();
 function ctData(t){ return t==='I' ? S.impactos : S.contr2; }
 function ctListId(t){ return t==='I' ? 'impactosList' : 'contratacoesList'; }
 function ctBodyId(t){ return t==='I' ? 'ctBodyI' : 'ctBodyC'; }
 
 function ctRowHtml(t,r,i){
-  const alcOpts = ['<option value="">—</option>']
-    .concat(ALCADAS.map(a=>`<option${r.alcada===a?' selected':''}>${a}</option>`)).join('');
+  const discOpts = optList(r.disciplina, DISCS);
+  const alcOpts  = optList(r.alcada, ALCADAS);
+  const fechOpts = optList(r.fechamento, FECHOPTS);
   const link = esc(r.link||'');
-  const linkBtn = link ? `<a class="lnk no-print" href="${link}" target="_blank" rel="noopener" title="abrir">↗</a>` : '';
+  let linkCell;
+  if(editLinkKey === t+':'+i){
+    linkCell = `<td class="lnkcell edit">
+      <input class="linkin" type="url" value="${link}" placeholder="colar link do Supria…"
+        onkeydown="if(event.key==='Enter'){commitLink('${t}',${i},this.value)}else if(event.key==='Escape'){cancelEditLink('${t}')}">
+      <button class="lbtn ok no-print" title="salvar" onclick="commitLink('${t}',${i},this.previousElementSibling.value)">✓</button>
+      <button class="lbtn cancel no-print" title="cancelar" onclick="cancelEditLink('${t}')">✕</button></td>`;
+  } else {
+    const openBtn = link
+      ? `<a class="lbtn open" href="${link}" target="_blank" rel="noopener" title="abrir link">↗</a>`
+      : `<span class="lbtn open dis" title="sem link">↗</span>`;
+    linkCell = `<td class="lnkcell"><button class="lbtn edit no-print" title="editar / colar link" onclick="startEditLink('${t}',${i})">✎</button>${openBtn}</td>`;
+  }
   return `<tr>
-    <td><input value="${esc(r.escopo)}" onchange="updRow('${t}',${i},'escopo',this.value)"></td>
-    <td><input list="discList" value="${esc(r.disciplina)}" onchange="updRow('${t}',${i},'disciplina',this.value)"></td>
-    <td><select class="alc" onchange="updRow('${t}',${i},'alcada',this.value)">${alcOpts}</select></td>
+    <td><input value="${esc(r.escopo)}" title="${esc(r.escopo)}" onchange="updRow('${t}',${i},'escopo',this.value)"></td>
+    <td><select class="sel" onchange="updRow('${t}',${i},'disciplina',this.value)">${discOpts}</select></td>
+    <td><select class="sel" onchange="updRow('${t}',${i},'alcada',this.value)">${alcOpts}</select></td>
     <td><input value="${esc(r.status)}" onchange="updRow('${t}',${i},'status',this.value)"></td>
-    <td class="lnkcell"><input type="url" placeholder="https://…" value="${link}" onchange="updRow('${t}',${i},'link',this.value)">${linkBtn}</td>
-    <td><input list="fechList" value="${esc(r.fechamento)}" onchange="updRow('${t}',${i},'fechamento',this.value)"></td>
+    ${linkCell}
+    <td><select class="sel" onchange="updRow('${t}',${i},'fechamento',this.value)">${fechOpts}</select></td>
     <td><button class="del no-print" onclick="delRow('${t}',${i})">×</button></td>
   </tr>`;
 }
@@ -782,6 +824,9 @@ function ctRowHtml(t,r,i){
 function renderTbl(t){
   const data = ctData(t); const listEl = document.getElementById(ctListId(t)); if(!listEl) return;
   const alcFilter = ['<option value="">Alçada (todas)</option>'].concat(ALCADAS.map(a=>`<option>${a}</option>`)).join('');
+  const uniq = (key,base) => { const pres=[...new Set(data.map(r=>r[key]).filter(Boolean))]; return base.concat(pres.filter(v=>!base.some(b=>b.toLowerCase()===v.toLowerCase()))); };
+  const discFilter = ['<option value="">Disciplina (todas)</option>'].concat(uniq('disciplina',DISCS).map(d=>`<option>${esc(d)}</option>`)).join('');
+  const fechFilter = ['<option value="">Fechamento (todos)</option>'].concat(uniq('fechamento',FECHOPTS).map(d=>`<option>${esc(d)}</option>`)).join('');
   const rotulo = t==='I' ? 'Impactos' : 'Pendências';
   const addLbl = t==='I' ? 'impacto' : 'pendência';
   let h = `<div class="ct-block full">
@@ -790,17 +835,17 @@ function renderTbl(t){
     <table class="ct flt">
       <thead>
         <tr>
-          <th style="width:29%">Escopo</th><th style="width:12%">Disciplina</th>
-          <th style="width:11%">Alçada</th><th style="width:19%">Status</th>
-          <th style="width:15%">Link do Supria</th><th style="width:12%">Tipo de Fechamento</th><th style="width:22px"></th>
+          <th style="width:38%">Escopo</th><th style="width:12%">Disciplina</th>
+          <th style="width:10%">Alçada</th><th style="width:18%">Status</th>
+          <th style="width:64px">Link do Supria</th><th style="width:13%">Tipo de Fechamento</th><th style="width:22px"></th>
         </tr>
         <tr class="frow no-print">
           <th><input class="fin" data-c="escopo" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
-          <th><input class="fin" data-c="disciplina" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><select class="fin" data-c="disciplina" onchange="filterTbl('${t}')">${discFilter}</select></th>
           <th><select class="fin" data-c="alcada" onchange="filterTbl('${t}')">${alcFilter}</select></th>
           <th><input class="fin" data-c="status" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
-          <th><input class="fin" data-c="link" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
-          <th><input class="fin" data-c="fechamento" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th></th>
+          <th><select class="fin" data-c="fechamento" onchange="filterTbl('${t}')">${fechFilter}</select></th>
           <th></th>
         </tr>
       </thead>
@@ -810,6 +855,7 @@ function renderTbl(t){
   if(!data.length) h += `<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem itens. Use “＋” para adicionar.</div>`;
   h += `</div>`;
   listEl.innerHTML = h;
+  if(editLinkKey && editLinkKey.indexOf(t+':')===0){ const inp=listEl.querySelector('.linkin'); if(inp){ inp.focus(); inp.select(); } }
   if(t==='I') setVerdict('v8b', data.length>0?'nao':'sim', data.length>0?`Sim · ${data.length} impacto(s)`:'Não · nenhum');
   else        setVerdict('v8',  data.length>0?'nao':'sim', data.length>0?`Sim · ${data.length} pendência(s)`:'Não · nenhuma');
 }
@@ -823,11 +869,10 @@ function filterTbl(t){
     const val = idx => { const el = tr.cells[idx] && tr.cells[idx].querySelector('input,select'); return el ? (el.value||'').toLowerCase() : ''; };
     let show = true;
     if(filt.escopo     && !val(0).includes(filt.escopo))     show=false;
-    if(show && filt.disciplina && !val(1).includes(filt.disciplina)) show=false;
+    if(show && filt.disciplina && val(1)!==filt.disciplina)  show=false;
     if(show && filt.alcada     && val(2)!==filt.alcada)      show=false;
     if(show && filt.status     && !val(3).includes(filt.status))     show=false;
-    if(show && filt.link       && !val(4).includes(filt.link))       show=false;
-    if(show && filt.fechamento && !val(5).includes(filt.fechamento)) show=false;
+    if(show && filt.fechamento && val(5)!==filt.fechamento)  show=false;
     tr.style.display = show ? '' : 'none';
   });
 }
