@@ -482,6 +482,25 @@ async function handleXmlUpload(input){
 /* ════════════════════════
    XML PARSE
 ════════════════════════ */
+/* Decide, por ARQUIVO, de qual coluna o "Realizado" será lido.
+   O MS Project quase sempre exporta <PhysicalPercentComplete>0</...> em toda
+   tarefa (não vazio), o que impedia o fallback antigo de cair para % Concluída.
+   Regra: se o % Físico não tem nenhum valor > 0 mas o % Concluída tem, o arquivo
+   inteiro passa a usar % Concluída (PercentComplete). Caso o físico tenha dado,
+   ele é mantido (unidades que apontam físico continuam funcionando). */
+function detectRealizedField(doc){
+  let physNonZero=0, pctNonZero=0;
+  doc.querySelectorAll('Task').forEach(t=>{
+    if(t.querySelector('Summary')?.textContent==='1') return;
+    if(!((t.querySelector('Name')?.textContent)||'').trim()) return;
+    const ph=parseFloat(t.querySelector('PhysicalPercentComplete')?.textContent||'');
+    const pc=parseFloat(t.querySelector('PercentComplete')?.textContent||'');
+    if(!isNaN(ph)&&ph>0) physNonZero++;
+    if(!isNaN(pc)&&pc>0) pctNonZero++;
+  });
+  return (physNonZero===0 && pctNonZero>0) ? 'PercentComplete' : 'PhysicalPercentComplete';
+}
+
 function parseXmlToAnalysis(xmlText){
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlText,'application/xml');
@@ -494,6 +513,7 @@ function parseXmlToAnalysis(xmlText){
   const statusDate = statusDateRaw.substring(0,10); // YYYY-MM-DD
   const fmtDate = s=>{ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
   const label = doc.querySelector('Title')?.textContent?.trim() || statusDate;
+  const pctField = detectRealizedField(doc); // '% Físico' ou '% Concluída'
 
   // Extract tasks
   const tasks = [];
@@ -504,8 +524,8 @@ function parseXmlToAnalysis(xmlText){
     const name = t.querySelector('Name')?.textContent?.trim() || '';
     if(!name) return;
 
-    // Physical % (try PhysicalPercentComplete first, fall back to PercentComplete)
-    let concl = parseFloat(t.querySelector('PhysicalPercentComplete')?.textContent||'');
+    // Realizado: coluna escolhida por deteccao no arquivo (% Fisico ou % Concluida)
+    let concl = parseFloat(t.querySelector(pctField)?.textContent||'');
     if(isNaN(concl)) concl = parseFloat(t.querySelector('PercentComplete')?.textContent||'0');
 
     // % previsto: baseline preferido, com fallback p/ Início/Fim programados
@@ -531,11 +551,12 @@ function parseXmlToAnalysis(xmlText){
   const D = buildAnalysis(tasks, statusDate, fmtDate(statusDate), label);
   D.meta.data_status = statusDate;
   D.meta.label = label;
+  D.meta.campoRealizado = pctField;
 
   /* ── Extração completa (sem filtro), para o módulo "Avanço Semanal" ──
      Captura UID, código da atividade e empresa (campos personalizados do
      MS Project), independente do recorte 1.3.4./1.4.4. usado na análise CPA. */
-  const full = parseFullTasksForAvanco(doc, statusDate);
+  const full = parseFullTasksForAvanco(doc, statusDate, pctField);
   D.tarefasGerais = full.tarefas;
   D.meta.camposDetectados = { empresaField: full.empresaFieldLabel, codigoField: full.codigoFieldLabel, cwaField: full.cwaFieldLabel, discField: full.discFieldLabel };
   D.meta.camposDisponiveis = full.camposDisponiveis;
@@ -563,7 +584,8 @@ function detectFieldByAlias(fieldDefs, keywords){
    resumos) para alimentar a tela de Configuração/Avanço Semanal. Se o campo
    "Empresa" ou o "código da atividade" não forem detectados automaticamente,
    ficam em branco — o preenchimento manual é feito na tela de configuração. */
-function parseFullTasksForAvanco(doc, statusDate){
+function parseFullTasksForAvanco(doc, statusDate, pctField){
+  pctField = pctField || 'PhysicalPercentComplete';
   /* Campos personalizados do MS Project vêm de duas formas bem diferentes:
      1) "Custom Fields" de texto simples  → <ExtendedAttributes><ExtendedAttribute>
      2) "Outline Codes" (códigos hierárquicos, ex.: CWA, código de atividade)
@@ -633,7 +655,7 @@ function parseFullTasksForAvanco(doc, statusDate){
     const disciplina = discCampo || inferDisc(name);
     const durationHoras = parseMsDuration(childText(t,'Duration'));
 
-    let concl = parseFloat(childText(t,'PhysicalPercentComplete')||'');
+    let concl = parseFloat(childText(t,pctField)||'');
     if(isNaN(concl)) concl = parseFloat(childText(t,'PercentComplete')||'0');
     const bStart  = childText(t,'BaselineStart')?.substring(0,10)||null;
     const bFinish = childText(t,'BaselineFinish')?.substring(0,10)||null;
@@ -1103,6 +1125,7 @@ function buildView(atualRow, baseRow){
       atualStatus:A.status, atualLabel:atualRow.label||'',
       baseStatus: cmp?B.status:null, baseLabel: cmp?(baseRow.label||''):null,
       data_status:A.status, label:atualRow.label||'',
+      campoRealizado: (parseStored(atualRow)&&parseStored(atualRow).meta&&parseStored(atualRow).meta.campoRealizado)||null,
       v1: cmp?fmtBR(B.status):fmtBR(A.status), v2:fmtBR(A.status)
     },
     warn: (!A.hasPrev
@@ -1181,6 +1204,11 @@ function renderBanner(D){
     parts.push('<span class="cb-mode">Análise da revisão</span>');
     parts.push('<span class="cb-rev cb-atual">'+esc(D.meta.atualStatus)+(D.meta.atualLabel?(' · '+esc(D.meta.atualLabel)):'')+'</span>');
     parts.push('<span class="cb-hint">Escolha uma <b>revisão base</b> no topo para ver o avanço entre duas revisões.</span>');
+  }
+  const _cr = D.meta.campoRealizado;
+  if(_cr){
+    const _lbl = _cr==='PercentComplete' ? '% Concluída' : (_cr==='PhysicalPercentComplete' ? '% Físico Concluído' : _cr);
+    parts.push('<span class="cb-hint">Realizado lido de <b>'+_lbl+'</b></span>');
   }
   let html='<div class="cb-line">'+parts.join('')+'</div>';
   if(D.warn) html+='<div class="cb-warn">⚠ '+esc(D.warn)+'</div>';
