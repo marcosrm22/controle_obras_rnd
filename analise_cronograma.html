@@ -18,6 +18,7 @@
   --disp:'Barlow Semi Condensed','Arial Narrow',sans-serif;
   --body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'JetBrains Mono','Roboto Mono',ui-monospace,monospace;
+  --wrap:1680px;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -66,7 +67,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);f
 .progress-msg{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:7px;text-align:center}
 
 /* PHASE GAUGES */
-.rail{max-width:1320px;margin:0 auto;padding:18px 24px 4px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rail{max-width:var(--wrap);margin:0 auto;padding:18px 24px 4px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .gauge{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px 18px;box-shadow:0 1px 2px rgba(20,40,70,.05)}
 .gauge .gh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
 .gauge .gh .n{font-family:var(--disp);font-weight:600;font-size:17px;color:var(--azul-d);letter-spacing:.3px}
@@ -83,7 +84,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);f
 
 /* TABS */
 .tabwrap{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(20,40,70,.04)}
-.tabs{max-width:1320px;margin:0 auto;padding:0 22px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
+.tabs{max-width:var(--wrap);margin:0 auto;padding:0 22px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
 .tab{flex:0 0 auto;border:none;background:none;padding:13px 13px 11px;font-family:var(--disp);font-weight:600;font-size:14px;letter-spacing:.2px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:7px;white-space:nowrap}
 .tab:hover{color:var(--azul-d)}.tab.active{color:var(--azul-d);border-bottom-color:var(--ouro)}
 .tab .cnt{font-family:var(--mono);font-size:11px;font-weight:500;background:var(--line-2);color:var(--muted);padding:1px 7px;border-radius:20px;min-width:22px;text-align:center}
@@ -91,7 +92,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);f
 .tab.flag.active .cnt{background:var(--bad);color:#fff}.tab.flag .cnt{color:var(--bad)}
 
 /* MAIN */
-main{max-width:1320px;margin:0 auto;padding:20px 24px 80px}
+main{max-width:var(--wrap);margin:0 auto;padding:20px 24px 80px}
 .panel{display:none;animation:fade .25s ease}.panel.active{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .phead{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;flex-wrap:wrap}
@@ -152,11 +153,27 @@ td.num{font-family:var(--mono);text-align:right;white-space:nowrap;font-size:12.
 .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
 .note{background:var(--warn-bg);border:1px solid #f0dcb4;border-radius:9px;padding:12px 15px;margin-bottom:14px;font-size:13px;color:#6b5018}
 .note b{color:#5a4310}.empty{padding:40px;text-align:center;color:var(--muted);font-style:italic}
-footer{max-width:1320px;margin:0 auto;padding:18px 24px 40px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
+footer{max-width:var(--wrap);margin:0 auto;padding:18px 24px 40px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a2332;color:#fff;font-size:13px;padding:10px 20px;border-radius:8px;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(max-width:760px){.rail{grid-template-columns:1fr}.phead .pt{font-size:19px}.act-name{max-width:200px}}
 @keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* -- seletor base + banner de comparacao + botoes -- */
+.ctrl-bar .grp{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.btn-ghost{background:var(--line-2);color:var(--azul-d);border:1px solid var(--line);padding:8px 11px}
+.btn-ghost:hover:not(:disabled){background:#e3e9f1}
+#sel-base{border-color:#cdd7e4;background:#fbfcfe}
+.cmp-banner{max-width:var(--wrap);margin:14px auto 0;padding:0 24px;display:flex;flex-direction:column;gap:6px}
+.cb-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px}
+.cb-mode{font-family:var(--disp);font-weight:700;color:var(--azul-d);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+.cb-rev{font-family:var(--mono);font-size:11.5px;padding:4px 10px;border-radius:6px;border:1px solid var(--line);white-space:nowrap}
+.cb-base{background:#f3f6fb;color:var(--muted)}
+.cb-atual{background:#eaf1fb;color:var(--azul-d);border-color:#cfe0f4}
+.cb-arrow{color:var(--ouro-d);font-weight:700;font-size:15px}
+.cb-hint{color:var(--muted)}.cb-hint b{color:var(--azul-d)}
+.cb-warn{font-size:12px;color:#6b5018;background:var(--warn-bg);border:1px solid #f0dcb4;border-radius:8px;padding:8px 12px}
+.gstats .s .val.win{color:var(--azul-d)}
 </style>
 </head>
 <body>
@@ -174,16 +191,25 @@ footer{max-width:1320px;margin:0 auto;padding:18px 24px 40px;color:var(--muted);
 </div>
 
 <div class="ctrl-bar">
-  <label>Versão:</label>
-  <select id="sel-versao" onchange="loadVersion(this.value)">
-    <option value="">— selecione ou carregue XML —</option>
-  </select>
+  <div class="grp">
+    <label>Revisão atual:</label>
+    <select id="sel-versao" onchange="applyCompare()">
+      <option value="">— selecione a revisão atual —</option>
+    </select>
+  </div>
+  <div class="grp">
+    <label>Comparar com (base):</label>
+    <select id="sel-base" onchange="applyCompare()">
+      <option value="">— (opcional) revisão base —</option>
+    </select>
+    <button class="btn btn-ghost" id="btn-swap" title="Inverter base ↔ atual" onclick="swapRevs()">⇄</button>
+  </div>
   <span class="ver-tag" id="ver-tag" style="display:none"></span>
   <span class="ctrl-sep"></span>
   <button class="btn btn-primary" onclick="document.getElementById('xml-input').click()">⬆ Subir XML do MS Project</button>
   <input type="file" id="xml-input" accept=".xml,application/xml,text/xml" style="display:none" onchange="handleXmlUpload(this)">
   <button class="btn btn-warn" id="btn-export" style="display:none" onclick="exportHtml()">⬇ Exportar HTML</button>
-  <button class="btn btn-bad" id="btn-delete" style="display:none" onclick="deleteVersion()">🗑 Excluir</button>
+  <button class="btn btn-bad" id="btn-delete" style="display:none" onclick="deleteVersion()">🗑 Excluir revisão atual</button>
 </div>
 
 <div class="progress-wrap" id="progress-wrap">
@@ -203,6 +229,7 @@ footer{max-width:1320px;margin:0 auto;padding:18px 24px 40px;color:var(--muted);
 </div>
 
 <div id="analysis-view" style="display:none">
+  <div class="cmp-banner" id="cmp-banner" style="display:none"></div>
   <section class="rail" id="rail"></section>
   <div class="tabwrap"><div class="tabs" id="tabs"></div></div>
   <main id="main"></main>
@@ -251,6 +278,29 @@ async function sbFetch(path, opts={}){
 }
 
 /* ════════════════════════
+   HELPERS · previsto robusto
+   (baseline preferido; se ausente, usa Início/Fim programados)
+════════════════════════ */
+function numOr0(v){ return (v===null||v===undefined||v===''||isNaN(+v))?0:+v; }
+function round2(v){ return Math.round(v*100)/100; }
+function faseFromWbs(w){ w=(w||''); return w.startsWith('1.4.4.')?'Fase 2':'Fase 1'; }
+function fmtBR(iso){ if(!iso) return ''; const p=String(iso).substring(0,10).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
+function plannedPct(startISO, finishISO, statusISO){
+  if(!startISO||!finishISO||startISO==='NA'||finishISO==='NA'||!statusISO) return null;
+  const s=new Date(startISO), f=new Date(finishISO), d=new Date(statusISO);
+  if(isNaN(s)||isNaN(f)||isNaN(d)) return null;
+  if(f<=s) return d>=f?100:0;
+  if(d<=s) return 0;
+  if(d>=f) return 100;
+  return Math.round((d-s)/(f-s)*10000)/100;
+}
+function plannedFor(t, statusISO){
+  let p = plannedPct(t.baselineStart, t.baselineFinish, statusISO);
+  if(p===null) p = plannedPct(t.start, t.finish, statusISO);
+  return p;
+}
+
+/* ════════════════════════
    AUTH
 ════════════════════════ */
 (function(){
@@ -258,78 +308,114 @@ async function sbFetch(path, opts={}){
   const un=document.getElementById('unidade-nome');
   if(un) un.textContent=pcoUnidadeInfo().nome;
   pcoRenderSwitcher('unidade-switcher');
-  loadVersionList();
+  loadVersionList().then(()=>{
+    const selA=document.getElementById('sel-versao');
+    if(_versoes && _versoes.length){ selA.value=_versoes[0].data_status; applyCompare(); }
+  });
 })();
 
 /* ════════════════════════
-   VERSION LIST
+   LISTA DE REVISÕES + SELEÇÃO / COMPARAÇÃO
 ════════════════════════ */
-async function loadVersionList(){
+let _versoes = [];  // [{data_status,label,...}] mais recentes primeiro
+
+async function loadVersionList(keepSel){
   try{
     const rows = await sbFetch(pcoComUnidade(TABLE+'?select=id,data_status,label,created_at&order=data_status.desc'));
-    const sel = document.getElementById('sel-versao');
-    sel.innerHTML = '<option value="">— selecione ou carregue XML —</option>';
-    if(rows && rows.length){
-      rows.forEach(r=>{
-        const opt = document.createElement('option');
-        opt.value = r.data_status;
-        const lbl = r.label ? `  ·  ${r.label}` : '';
-        opt.textContent = `${r.data_status}${lbl}`;
-        sel.appendChild(opt);
-      });
-    }
+    _versoes = rows||[];
+    const selA=document.getElementById('sel-versao'), selB=document.getElementById('sel-base');
+    const prevA = keepSel? selA.value : '';
+    const prevB = keepSel? selB.value : '';
+    const opts = ph => '<option value="">'+ph+'</option>' + _versoes.map(r=>{
+      const lbl = r.label ? ('  ·  '+r.label) : '';
+      return '<option value="'+r.data_status+'">'+r.data_status+lbl+'</option>';
+    }).join('');
+    selA.innerHTML = opts('— selecione a revisão atual —');
+    selB.innerHTML = opts('— (opcional) revisão base —');
+    if(prevA) selA.value = prevA;
+    if(prevB) selB.value = prevB;
   }catch(e){
     setSyncStatus('Erro ao carregar versões','error');
     console.error('loadVersionList:', e);
   }
 }
 
-async function loadVersion(dataStatus){
-  if(!dataStatus) return;
-  setSyncStatus('Carregando…','saving');
-  try{
-    const rows = await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(dataStatus)+'&select=*&limit=1'));
-    if(!rows||!rows.length){ toast('Versão não encontrada',true); setSyncStatus('Pronto'); return; }
-    const row = rows[0];
-    const D = JSON.parse(row.dados_json);
-    showAnalysis(D, row.data_status, row.label);
-    document.getElementById('ver-tag').textContent = row.data_status+(row.label?'  ·  '+row.label:'');
-    document.getElementById('ver-tag').style.display = '';
-    document.getElementById('btn-export').style.display = '';
-    document.getElementById('btn-delete').style.display = '';
-    window._currentD = D;
-    window._currentStatus = row.data_status;
-    window._currentLabel = row.label;
-    setSyncStatus('Versão '+row.data_status+' carregada','ok');
-  }catch(e){
-    toast('Erro ao carregar: '+e.message, true);
-    setSyncStatus('Erro','error');
-    console.error('loadVersion:', e);
-  }
+async function fetchRow(dataStatus){
+  const rows = await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(dataStatus)+'&select=*&order=updated_at.desc&limit=1'));
+  return rows && rows.length ? rows[0] : null;
+}
+function parseStored(row){
+  let D=row.dados_json; if(typeof D==='string'){ try{D=JSON.parse(D);}catch(_){D=null;} }
+  return D;
 }
 
-async function deleteVersion(){
-  const status = window._currentStatus;
-  if(!status) return;
-  if(!confirm('Excluir versão "'+status+'"? Esta ação não pode ser desfeita.')) return;
-  setSyncStatus('Excluindo…','saving');
-  try{
-    await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(status)), {method:'DELETE',prefer:'return=minimal'});
-    toast('Versão excluída');
+function swapRevs(){
+  const selA=document.getElementById('sel-versao'), selB=document.getElementById('sel-base');
+  if(!selB.value) return;
+  const a=selA.value; selA.value=selB.value; selB.value=a;
+  applyCompare();
+}
+
+async function applyCompare(){
+  const selA=document.getElementById('sel-versao'), selB=document.getElementById('sel-base');
+  const atualStatus=selA.value, baseStatus=selB.value;
+  if(!atualStatus){
     document.getElementById('analysis-view').style.display='none';
     document.getElementById('upload-zone').style.display='';
     document.getElementById('btn-export').style.display='none';
     document.getElementById('btn-delete').style.display='none';
     document.getElementById('ver-tag').style.display='none';
-    document.getElementById('sel-versao').value='';
-    window._currentD=null; window._currentStatus=null;
-    await loadVersionList();
+    const cb=document.getElementById('cmp-banner'); if(cb) cb.style.display='none';
+    return;
+  }
+  // impede escolher a mesma revisão como base e atual
+  if(baseStatus && baseStatus===atualStatus){ selB.value=''; }
+  setSyncStatus('Carregando…','saving');
+  try{
+    const atualRow=await fetchRow(atualStatus);
+    if(!atualRow){ toast('Revisão não encontrada',true); setSyncStatus('Pronto'); return; }
+    let baseRow=null;
+    if(selB.value && selB.value!==atualStatus){ baseRow=await fetchRow(selB.value); }
+    const D = buildView(atualRow, baseRow);
+    window._currentD      = D;
+    window._exportD       = parseStored(atualRow); // análise single-version p/ Exportar HTML
+    window._currentStatus = atualStatus;
+    window._currentLabel  = atualRow.label;
+    showAnalysis(D);
+    const tag = (baseRow? (baseRow.data_status+' → '):'') + atualStatus + (atualRow.label?('  ·  '+atualRow.label):'');
+    const vt=document.getElementById('ver-tag'); vt.textContent=tag; vt.style.display='';
+    document.getElementById('btn-export').style.display='';
+    document.getElementById('btn-delete').style.display='';
+    setSyncStatus(baseRow?('Comparando '+baseRow.data_status+' → '+atualStatus):('Revisão '+atualStatus),'ok');
+  }catch(e){
+    toast('Erro ao carregar: '+e.message, true);
+    setSyncStatus('Erro','error');
+    console.error('applyCompare:', e);
+  }
+}
+
+async function deleteVersion(){
+  const status = document.getElementById('sel-versao').value || window._currentStatus;
+  if(!status) return;
+  if(!confirm('Excluir a revisão "'+status+'"? Esta ação não pode ser desfeita.\n\nSe esta for a revisão mais recente, o Mapa Semanal passará a usar a revisão anterior como cronograma mestre.')) return;
+  setSyncStatus('Excluindo…','saving');
+  try{
+    await sbFetch(pcoComUnidade(TABLE+'?data_status=eq.'+encodeURIComponent(status)), {method:'DELETE',prefer:'return=minimal'});
+    toast('Revisão excluída');
+    const selA=document.getElementById('sel-versao'), selB=document.getElementById('sel-base');
+    if(selA.value===status) selA.value='';
+    if(selB.value===status) selB.value='';
+    window._currentD=null; window._currentStatus=null; window._exportD=null;
+    await loadVersionList(true);
+    if(!selA.value && _versoes.length) selA.value=_versoes[0].data_status;
+    await applyCompare();
     setSyncStatus('Pronto');
   }catch(e){
     toast('Erro ao excluir: '+e.message, true);
     setSyncStatus('Erro','error');
   }
 }
+
 
 /* ════════════════════════
    UPLOAD
@@ -375,13 +461,12 @@ async function handleXmlUpload(input){
     }
     setProgress(95,'Renderizando…');
     await loadVersionList();
-    document.getElementById('sel-versao').value = D.meta.data_status;
-    showAnalysis(D, D.meta.data_status, D.meta.label);
-    document.getElementById('ver-tag').textContent = D.meta.data_status+(D.meta.label?'  ·  '+D.meta.label:'');
-    document.getElementById('ver-tag').style.display='';
-    document.getElementById('btn-export').style.display='';
-    document.getElementById('btn-delete').style.display='';
-    window._currentD=D; window._currentStatus=D.meta.data_status; window._currentLabel=D.meta.label;
+    const _selA=document.getElementById('sel-versao'), _selB=document.getElementById('sel-base');
+    _selA.value = D.meta.data_status;
+    // sugere comparar automaticamente com a revisão imediatamente anterior
+    const _anterior = (_versoes||[]).map(r=>r.data_status).filter(x=>x!==D.meta.data_status)[0] || '';
+    _selB.value = _anterior;
+    await applyCompare();
     setSyncStatus('Salvo','ok');
     setProgress(100,'Concluído!');
     clearProgress();
@@ -423,24 +508,21 @@ function parseXmlToAnalysis(xmlText){
     let concl = parseFloat(t.querySelector('PhysicalPercentComplete')?.textContent||'');
     if(isNaN(concl)) concl = parseFloat(t.querySelector('PercentComplete')?.textContent||'0');
 
-    // Planned % from baseline dates vs status date
-    const bStart = t.querySelector('BaselineStart')?.textContent?.substring(0,10)||null;
+    // % previsto: baseline preferido, com fallback p/ Início/Fim programados
+    const bStart  = t.querySelector('BaselineStart')?.textContent?.substring(0,10)||null;
     const bFinish = t.querySelector('BaselineFinish')?.textContent?.substring(0,10)||null;
-    let prev = null;
-    if(bStart && bFinish && bStart!=='NA' && bFinish!=='NA'){
-      const s=new Date(bStart),f=new Date(bFinish),d=new Date(statusDate);
-      if(d<=s) prev=0;
-      else if(d>=f) prev=100;
-      else prev=Math.round((d-s)/(f-s)*10000)/100;
-    }
+    const pStart  = t.querySelector('Start')?.textContent?.substring(0,10)||null;
+    const pFinish = t.querySelector('Finish')?.textContent?.substring(0,10)||null;
+    const prev = plannedFor({baselineStart:bStart,baselineFinish:bFinish,start:pStart,finish:pFinish}, statusDate);
 
-    const dur = parseFloat(t.querySelector('Duration')?.textContent||'PT8H')||8;
+    const dur = parseMsDuration(t.querySelector('Duration')?.textContent||'')||8;
     tasks.push({
       outnum, name,
       fase: outnum.startsWith('1.3.4.')?'Fase 1':'Fase 2',
       area: inferArea(outnum),
       disc: inferDisc(name),
-      concl, prev, dur, id:null
+      concl, prev, dur, id:null,
+      start:pStart, finish:pFinish, baselineStart:bStart, baselineFinish:bFinish
     });
   });
 
@@ -553,13 +635,11 @@ function parseFullTasksForAvanco(doc, statusDate){
 
     let concl = parseFloat(childText(t,'PhysicalPercentComplete')||'');
     if(isNaN(concl)) concl = parseFloat(childText(t,'PercentComplete')||'0');
-    const bStart = childText(t,'BaselineStart')?.substring(0,10)||null;
+    const bStart  = childText(t,'BaselineStart')?.substring(0,10)||null;
     const bFinish = childText(t,'BaselineFinish')?.substring(0,10)||null;
-    let prev = null;
-    if(bStart && bFinish && bStart!=='NA' && bFinish!=='NA'){
-      const s=new Date(bStart), f=new Date(bFinish), d=new Date(statusDate);
-      if(d<=s) prev=0; else if(d>=f) prev=100; else prev=Math.round((d-s)/(f-s)*10000)/100;
-    }
+    const pStart  = childText(t,'Start')?.substring(0,10)||null;
+    const pFinish = childText(t,'Finish')?.substring(0,10)||null;
+    const prev = plannedFor({baselineStart:bStart,baselineFinish:bFinish,start:pStart,finish:pFinish}, statusDate);
 
     tarefas.push({
       uid: +uidRaw,
@@ -571,7 +651,8 @@ function parseFullTasksForAvanco(doc, statusDate){
       disciplina,
       durationHoras,
       previsto: prev,
-      concluido: Math.round((isNaN(concl)?0:concl)*100)/100
+      concluido: Math.round((isNaN(concl)?0:concl)*100)/100,
+      start:pStart, finish:pFinish, baselineStart:bStart, baselineFinish:bFinish
     });
   });
 
@@ -695,7 +776,7 @@ function buildAnalysis(tasks, statusDate, statusDateFmt, label){
    EXPORT HTML
 ════════════════════════ */
 function exportHtml(){
-  const D = window._currentD;
+  const D = window._exportD || window._currentD;
   if(!D){ toast('Carregue uma versão primeiro',true); return; }
   const dataStr = JSON.stringify(D).replace(/<\/script>/gi,'<\\/script>');
   const status = window._currentStatus || D.meta.data_status;
@@ -900,61 +981,219 @@ renderRail();renderTabs();activate(TABS[0].id);renderPanel(TABS[0]);document.get
 }
 
 /* ════════════════════════
-   RENDER ENGINE
+   RENDER ENGINE + COMPARAÇÃO
 ════════════════════════ */
 const fmt  = (v,d=2)=>(v===null||v===undefined)?null:Number(v).toFixed(d);
 const num  = v=>(v===null||v===undefined)?'<span class="dash">—</span>':`<span>${fmt(v)}</span>`;
 const esc  = s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const fasePill = f=>`<span class="fase-pill ${f.includes('1')?'f1':'f2'}">${f.replace('Fase ','F')}</span>`;
+const fasePill = f=>`<span class="fase-pill ${(f||'').includes('1')?'f1':'f2'}">${(f||'').replace('Fase ','F')}</span>`;
 const chipVal  = v=>{ if(v===null||v===undefined)return'<span class="dash">—</span>'; const n=Number(v); return `<span class="chip2 ${Math.abs(n)<0.005?'c-zero':n<0?'c-bad':'c-good'}">${n>0?'+':''}${fmt(v)}</span>`; };
+const chipNeutral = v=>{ if(v===null||v===undefined)return'<span class="dash">—</span>'; const n=Number(v); return `<span class="chip2 c-zero">${n>0?'+':''}${fmt(v)}</span>`; };
 const discTag  = d=>{ const k=(d||'').toLowerCase().replace(/[^a-z]/g,''); const m={civil:'civil',mecanica:'mecanica',eletrica:'eletrica',instrumentacao:'instrumentacao',automacao:'automacao',isolamento:'isolamento',rotativos:'rotativos',pintura:'pintura'}; return `<span class="disc-tag d-${m[k]||'outros'}">${esc(d)}</span>`; };
-const legendFor = ()=>`<div class="legend"><span class="li"><span class="sw" style="background:var(--azul)"></span><b>Previsto→Realizado</b>: % concluído físico</span><span class="li"><span class="chip2 c-bad" style="font-size:10px">–X</span> Desvio negativo (atraso)</span><span class="li"><span class="chip2 c-good" style="font-size:10px">+X</span> Adiantado</span></div>`;
+const legendFor = ()=>`<div class="legend"><span class="li"><span class="sw" style="background:var(--azul)"></span><b>Previsto→Realizado</b>: % concluído físico</span><span class="li"><span class="chip2 c-bad" style="font-size:10px">–X</span> Desvio negativo (atraso)</span><span class="li"><span class="chip2 c-good" style="font-size:10px">+X</span> Adiantado / avanço</span></div>`;
 
+/* ── extrai a lista executiva (1.3.4.* / 1.4.4.*, sem resumos) de uma revisão,
+      recalculando o previsto quando necessário ── */
+function execTasks(row){
+  const D=parseStored(row); if(!D) return {tasks:[], status:row.data_status, hasPrev:false};
+  const status=(D.meta&&D.meta.data_status)||row.data_status;
+  let out=[];
+  const tg = Array.isArray(D.tarefasGerais)? D.tarefasGerais : [];
+  const exec = tg.filter(t=>{ const w=(t.wbs||''); return (w.startsWith('1.3.4.')||w.startsWith('1.4.4.')) && !t.summary; });
+  if(exec.length){
+    out = exec.map(t=>{
+      let prev = (t.previsto===0||t.previsto)? t.previsto : null;
+      if(prev===null) prev = plannedFor(t, status);            // fallback baseline→programado
+      return {
+        uid: t.uid, wbs:(t.wbs||''), name:(t.name||''),
+        fase: faseFromWbs(t.wbs), area: inferArea(t.wbs||''),
+        disc: t.disciplina || inferDisc(t.name||''),
+        dur: numOr0(t.durationHoras)||1,
+        concl: round2(numOr0(t.concluido)),
+        prev: (prev===null? null : round2(prev))
+      };
+    });
+  } else {
+    // compat: revisão antiga sem tarefasGerais — reconstrói pelas categorias salvas
+    const seen=new Map();
+    ['cpa','inc','dec','stalled','should','antic'].forEach(k=>(D[k]||[]).forEach(r=>{
+      const key=r.outnum||r.name;
+      if(!seen.has(key)) seen.set(key,{
+        uid:r.uid, wbs:(r.outnum||''), name:r.name, fase:r.fase, area:r.area, disc:r.disc,
+        dur:numOr0(r.dur)||1, concl:round2(numOr0(r.concl2)), prev:(r.prev2==null?null:round2(r.prev2))
+      });
+    }));
+    out=[...seen.values()];
+  }
+  return {tasks:out, status, hasPrev: out.some(t=>t.prev!=null)};
+}
+
+/* ── constrói a "view" (mesmo formato de dados usado pela renderização),
+      em modo single-version (só atual) ou comparação (base → atual) ── */
+function buildView(atualRow, baseRow){
+  const A=execTasks(atualRow);
+  const B=baseRow? execTasks(baseRow): null;
+  const cmp=!!(B && B.tasks.length);
+  const baseByUid=new Map(), baseByWbs=new Map();
+  if(cmp) B.tasks.forEach(t=>{ if(t.uid!=null) baseByUid.set(String(t.uid),t); if(t.wbs) baseByWbs.set(t.wbs,t); });
+
+  const twAll = A.tasks.reduce((s,t)=>s+t.dur,0)||1;
+
+  const rows = A.tasks.map(t=>{
+    const b = cmp ? (baseByUid.get(String(t.uid)) || baseByWbs.get(t.wbs) || null) : null;
+    const rA=numOr0(t.concl), pA=(t.prev==null?null:t.prev);
+    const rB=b? numOr0(b.concl) : null, pB=b? (b.prev==null?null:b.prev) : null;
+    const dReal = cmp ? round2(rA - (rB==null?0:rB)) : null;
+    const dPrev = cmp ? round2((pA==null?0:pA) - (pB==null?0:pB)) : null;
+    const dvJan = (dReal!=null&&dPrev!=null)? round2(dReal-dPrev) : null;
+    const dvAcum= (pA==null)? null : round2(rA-pA);
+    const cpaAcum=(pA==null)? null : round2((rA-pA)*t.dur/twAll);
+    const cpaJan =(dvJan==null)?null : round2((dReal-dPrev)*t.dur/twAll);
+    return {
+      uid:t.uid, outnum:t.wbs, name:t.name, fase:t.fase, area:t.area, disc:t.disc, dur:t.dur,
+      prev2:pA, concl2:rA, dv2:dvAcum, cpa2:cpaAcum,
+      realBase:rB, prevBase:pB, dReal:dReal, dPrev:dPrev, dvJan:dvJan, cpaJan:cpaJan,
+      isNew: cmp? (b?false:true) : false
+    };
+  });
+
+  const f1=rows.filter(r=>r.fase==='Fase 1'), f2=rows.filter(r=>r.fase==='Fase 2');
+  const withPrev=rows.filter(r=>r.prev2!=null);
+
+  // categorias acumuladas (valem em ambos os modos)
+  const inc    = withPrev.filter(r=>r.dv2<-0.005).sort((a,b)=>a.dv2-b.dv2);
+  const naoIni = withPrev.filter(r=>r.prev2>0.005 && r.concl2<=0.005).sort((a,b)=>b.prev2-a.prev2);
+  const should = withPrev.filter(r=>r.prev2>=99 && r.concl2<100).sort((a,b)=>a.concl2-b.concl2);
+  const dec    = withPrev.filter(r=>r.dv2>0.005).sort((a,b)=>b.dv2-a.dv2);
+  const antic  = rows.filter(r=>(r.prev2==null||r.prev2<=0.005) && r.concl2>0.005).sort((a,b)=>b.concl2-a.concl2);
+  const cpa    = withPrev.filter(r=>r.cpa2!=null).sort((a,b)=>a.cpa2-b.cpa2);
+
+  // categorias de janela (só comparação)
+  let parado=[], acima=[], dq_regress=[];
+  if(cmp){
+    parado = rows.filter(r=>r.dPrev!=null && r.dPrev>=1 && Math.abs(numOr0(r.dReal))<0.5).sort((a,b)=>b.dPrev-a.dPrev);
+    acima  = rows.filter(r=>r.dvJan!=null && r.dvJan>=1).sort((a,b)=>b.dvJan-a.dvJan);
+    dq_regress = rows.filter(r=>r.realBase!=null && r.concl2 < r.realBase-0.5)
+                     .sort((a,b)=>(a.concl2-a.realBase)-(b.concl2-b.realBase));
+  }
+
+  function sectFor(arr){
+    const w=arr.reduce((s,t)=>s+t.dur,0)||1;
+    const R=arr.reduce((s,t)=>s+numOr0(t.concl2)*t.dur,0)/w;
+    const wp=arr.filter(t=>t.prev2!=null), wpW=wp.reduce((s,t)=>s+t.dur,0)||1;
+    const P=wp.reduce((s,t)=>s+t.prev2*t.dur,0)/wpW;
+    const res={prev1:null,concl1:null,cpa1:null,prev2:round2(P),concl2:round2(R),cpa2:round2((R-P)/100)};
+    if(cmp){
+      const wr=arr.filter(t=>t.dReal!=null), wrW=wr.reduce((s,t)=>s+t.dur,0)||1;
+      res.dReal=round2(wr.reduce((s,t)=>s+t.dReal*t.dur,0)/wrW);
+      const wq=arr.filter(t=>t.dPrev!=null), wqW=wq.reduce((s,t)=>s+t.dur,0)||1;
+      res.dPrev=round2(wq.reduce((s,t)=>s+t.dPrev*t.dur,0)/wqW);
+    }
+    return res;
+  }
+  function discCpaFor(arr){
+    const w=arr.reduce((s,t)=>s+t.dur,0)||1, m={};
+    arr.forEach(t=>{ if(t.prev2==null) return; (m[t.disc]=m[t.disc]||{c:0}); m[t.disc].c += (t.concl2-t.prev2)*t.dur; });
+    return Object.entries(m).map(([disc,v])=>({disc, cpa:round2(v.c/w/100), dcpa:0})).sort((a,b)=>a.cpa-b.cpa);
+  }
+
+  return {
+    cmp,
+    meta:{
+      atualStatus:A.status, atualLabel:atualRow.label||'',
+      baseStatus: cmp?B.status:null, baseLabel: cmp?(baseRow.label||''):null,
+      data_status:A.status, label:atualRow.label||'',
+      v1: cmp?fmtBR(B.status):fmtBR(A.status), v2:fmtBR(A.status)
+    },
+    warn: (!A.hasPrev
+      ? 'Previsto indisponível nesta revisão atual (o XML não trouxe baseline nem datas de Início/Fim). Reenvie o XML por esta tela para recalcular.'
+      : (cmp && !B.hasPrev
+        ? 'A revisão base não tem previsto calculável — os deltas de previsto podem ficar zerados. Reenvie o XML da base para recalcular.'
+        : '')),
+    disc_order:['Civil','Mecânica','Elétrica','Instrumentação','Automação','Isolamento','Rotativos','Pintura','Outros'],
+    disc_cpa:{ all:discCpaFor(rows), 'Fase 1':discCpaFor(f1), 'Fase 2':discCpaFor(f2) },
+    sect:{ f1:sectFor(f1), f2:sectFor(f2) },
+    inc, naoIni, should, dec, antic, cpa, parado, acima,
+    dq_regress, dq_fake:[]
+  };
+}
+
+/* ── definição das abas / colunas ── */
+const ACC = ['fase','area','name','disc','prev2','concl2','dv2','cpa2'];
 const TABS=[
-  {id:'inc',    label:'Maiores Desvios',     flag:true, dir:'Tarefas com maior desvio previsto × realizado (negativo = atrasado). Ordenado pelo pior desvio.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
-  {id:'stalled',label:'Estagnadas',          flag:true, dir:'Tinham avanço previsto na semana mas o realizado foi zero — o plano esperava mais.',cols:['fase','area','name','disc','prev2','concl2','dv2']},
-  {id:'should', label:'Deveriam estar 100%', flag:true, dir:'Previsto ≥ 100% mas o realizado ainda não chegou lá. Atenção imediata: são as entregas em atraso crítico.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
-  {id:'dec',    label:'Destaques Positivos', flag:false,dir:'Tarefas mais adiantadas em relação ao previsto — reconheça o esforço do time.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
-  {id:'antic',  label:'Antecipações',        flag:false,dir:'Execução iniciou antes do previsto no cronograma-base. Verifique se o cronograma reflete a realidade.',cols:['fase','area','name','disc','concl2','cpa2']},
-  {id:'cpa',    label:'Por CPA',             flag:false,dir:'Todas as tarefas ordenadas pela Contribuição ao Desvio Acumulado do Projeto. Positivo puxa pra frente; negativo, pra trás.',cols:['fase','area','name','disc','prev2','concl2','dv2','cpa2']},
-  {id:'dq',     label:'Suspeitas',           flag:true, dir:'Possíveis inconsistências de apontamento: físico que regrediu ou previsto zerado sem justificativa.'},
+  {id:'inc',    label:'Maiores Desvios',            flag:true,  dir:'Maior desvio acumulado (Realizado − Previsto). Negativo = atrasado. Ordenado do pior para o melhor.', cols:ACC},
+  {id:'parado', label:'Previa avanço, ficou parado',flag:true,  cmpOnly:true, dir:'O plano previa avanço nesta janela (Δ Previsto ≥ 1pp), mas o realizado praticamente não mudou. É aqui que o time provavelmente esqueceu de apontar ou de executar.', cols:['fase','area','name','disc','rbase','concl2','dreal','dprev']},
+  {id:'naoIni', label:'Deveriam ter começado',      flag:true,  dir:'Previsto acumulado maior que 0 e realizado ainda em 0%. Já era para ter iniciado.', cols:['fase','area','name','disc','prev2','concl2','dv2']},
+  {id:'should', label:'Deveriam estar 100%',        flag:true,  dir:'Previsto ≥ 100% e realizado abaixo de 100%. Entregas em atraso crítico — atenção imediata.', cols:ACC},
+  {id:'acima',  label:'Avançou acima do previsto',  flag:false, cmpOnly:true, dir:'O realizado na janela superou o previsto (Desvio janela ≥ 1pp). Bom sinal — confira também se o apontamento não foi inflado.', cols:['fase','area','name','disc','dprev','dreal','dvjan','concl2']},
+  {id:'dec',    label:'Destaques Positivos',        flag:false, dir:'Tarefas mais adiantadas em relação ao previsto acumulado — reconheça o esforço do time.', cols:ACC},
+  {id:'antic',  label:'Antecipações',               flag:false, dir:'Execução iniciou antes do previsto no cronograma. Verifique se o cronograma reflete a realidade.', cols:['fase','area','name','disc','concl2','cpa2']},
+  {id:'cpa',    label:'Por CPA',                     flag:false, dir:'Todas as tarefas com previsto, ordenadas pela Contribuição ao Desvio Acumulado do Projeto (ponderada por duração).', cols:ACC},
+  {id:'dq',     label:'Suspeitas',                   flag:true,  cmpOnly:true, dir:'Regressões de físico: o realizado ficou menor do que estava na revisão base — provável apagamento acidental ou apontamento errado.'},
 ];
+
+const COL = {
+  fase:  {h:'Fase',        cls:'',         get:r=>r.fase,   cell:r=>fasePill(r.fase)},
+  area:  {h:'Área',        cls:'area-cell',get:r=>r.area,   cell:r=>`<span class="area-cell" title="${esc(r.area)}">${esc(r.area)}</span>`},
+  name:  {h:'Atividade',   cls:'act-name', get:r=>r.name,   cell:r=>`<span class="act-name">${esc(r.name)}</span>`},
+  disc:  {h:'Disciplina',  cls:'',         get:r=>r.disc,   cell:r=>discTag(r.disc)},
+  prev2: {h:'Previsto %',  cls:'num',      get:r=>r.prev2,  cell:r=>num(r.prev2)},
+  concl2:{h:'Realizado %', cls:'num',      get:r=>r.concl2, cell:r=>num(r.concl2)},
+  dv2:   {h:'Desvio',      cls:'num',      get:r=>r.dv2,    cell:r=>chipVal(r.dv2)},
+  cpa2:  {h:'CPA',         cls:'num',      get:r=>r.cpa2,   cell:r=>chipVal(r.cpa2)},
+  rbase: {h:'Base %',      cls:'num',      get:r=>r.realBase,cell:r=>num(r.realBase)},
+  dreal: {h:'Δ Realizado', cls:'num',      get:r=>r.dReal,  cell:r=>chipVal(r.dReal)},
+  dprev: {h:'Δ Previsto',  cls:'num',      get:r=>r.dPrev,  cell:r=>chipNeutral(r.dPrev)},
+  dvjan: {h:'Desvio janela',cls:'num',     get:r=>r.dvJan,  cell:r=>chipVal(r.dvJan)},
+};
+
+const cpaClass = v=>Math.abs(v)<0.005?'cpa-zero':(v<0?'cpa-neg':'cpa-pos');
+const ledClass = v=>Math.abs(v)<0.005?'led-zero':(v<0?'led-neg':'led-pos');
 
 const tabState = {};
 TABS.forEach(t=>{ tabState[t.id]={fase:'all',disc:'all',q:'',sortKey:null,sortDir:1}; });
 
-const COL = {
-  fase:  {h:'Fase',      cls:'',        get:r=>r.fase,   cell:r=>fasePill(r.fase)},
-  area:  {h:'Área',      cls:'area-cell',get:r=>r.area,  cell:r=>`<span class="area-cell" title="${esc(r.area)}">${esc(r.area)}</span>`},
-  name:  {h:'Atividade', cls:'act-name', get:r=>r.name,  cell:r=>`<span class="act-name">${esc(r.name)}</span>`},
-  disc:  {h:'Disciplina',cls:'',         get:r=>r.disc,  cell:r=>discTag(r.disc)},
-  prev2: {h:'Previsto %',cls:'num',      get:r=>r.prev2, cell:r=>num(r.prev2)},
-  concl2:{h:'Realizado %',cls:'num',     get:r=>r.concl2,cell:r=>num(r.concl2)},
-  dv2:   {h:'Desvio',   cls:'num',       get:r=>r.dv2,   cell:r=>chipVal(r.dv2)},
-  cpa2:  {h:'CPA',      cls:'num',       get:r=>r.cpa2,  cell:r=>chipVal(r.cpa2)},
-};
+function visibleTabs(D){ return TABS.filter(t=>!t.cmpOnly || D.cmp); }
 
-const cpaClass = v=>Math.abs(v)<0.005?'cpa-zero':(v<0?'cpa-neg':'cpa-pos');
-const ledClass  = v=>Math.abs(v)<0.005?'led-zero':(v<0?'led-neg':'led-pos');
-
-function showAnalysis(D, statusDate, label){
+function showAnalysis(D){
   document.getElementById('upload-zone').style.display = 'none';
   document.getElementById('analysis-view').style.display = '';
-  // Reset panel state
-  TABS.forEach(t=>{ tabState[t.id]={fase:'all',disc:'all',q:'',sortKey:null,sortDir:1}; });
+  const vis = visibleTabs(D);
+  vis.forEach(t=>{ tabState[t.id]={fase:'all',disc:'all',q:'',sortKey:null,sortDir:1}; });
+  renderBanner(D);
   renderRail(D);
-  renderTabsUI(D);
+  renderTabsUI(D, vis);
   document.querySelectorAll('.panel').forEach(p=>p.removeAttribute('data-built'));
-  activateTab(D, TABS[0].id);
-  renderPanelFor(D, TABS[0]);
-  document.getElementById('panel-'+TABS[0].id).dataset.built='1';
+  activateTab(D, vis[0].id);
+  renderPanelFor(D, vis[0]);
+  document.getElementById('panel-'+vis[0].id).dataset.built='1';
+}
+
+function renderBanner(D){
+  const el=document.getElementById('cmp-banner'); if(!el) return;
+  const parts=[];
+  if(D.cmp){
+    parts.push('<span class="cb-mode">Comparando revisões</span>');
+    parts.push('<span class="cb-rev cb-base">Base · '+esc(D.meta.baseStatus)+(D.meta.baseLabel?(' · '+esc(D.meta.baseLabel)):'')+'</span>');
+    parts.push('<span class="cb-arrow">→</span>');
+    parts.push('<span class="cb-rev cb-atual">Atual · '+esc(D.meta.atualStatus)+(D.meta.atualLabel?(' · '+esc(D.meta.atualLabel)):'')+'</span>');
+  }else{
+    parts.push('<span class="cb-mode">Análise da revisão</span>');
+    parts.push('<span class="cb-rev cb-atual">'+esc(D.meta.atualStatus)+(D.meta.atualLabel?(' · '+esc(D.meta.atualLabel)):'')+'</span>');
+    parts.push('<span class="cb-hint">Escolha uma <b>revisão base</b> no topo para ver o avanço entre duas revisões.</span>');
+  }
+  let html='<div class="cb-line">'+parts.join('')+'</div>';
+  if(D.warn) html+='<div class="cb-warn">⚠ '+esc(D.warn)+'</div>';
+  el.innerHTML=html; el.style.display='';
 }
 
 function renderRail(D){
   document.getElementById('rail').innerHTML = [{id:'f1',label:'Fase 1'},{id:'f2',label:'Fase 2'}].map(ph=>{
-    const s = D.sect[ph.id]; if(!s) return '';
-    const c = Math.min(s.concl2||0,100), p = Math.min(s.prev2||0,100);
-    const dv = (c-p).toFixed(2);
+    const s=D.sect[ph.id]; if(!s) return '';
+    const c=Math.min(s.concl2||0,100), p=Math.min(s.prev2||0,100), dv=(c-p).toFixed(2);
+    const win = (D.cmp && (s.dReal!=null||s.dPrev!=null)) ? `
+        <div class="s"><div class="lab">Avanço real (Δ)</div><div class="val win">${(s.dReal>0?'+':'')}${(s.dReal||0).toFixed(2)}<small>pp</small></div></div>
+        <div class="s"><div class="lab">Avanço previsto (Δ)</div><div class="val win">${(s.dPrev>0?'+':'')}${(s.dPrev||0).toFixed(2)}<small>pp</small></div></div>` : '';
     return `<div class="gauge">
       <div class="gh"><span class="n">${ph.label}</span><span class="tag">% físico-EAP</span></div>
       <div class="track">
@@ -965,92 +1204,87 @@ function renderRail(D){
         <div class="s"><div class="lab">Realizado</div><div class="val">${c.toFixed(2)}<small>%</small></div></div>
         <div class="s"><div class="lab">Previsto</div><div class="val">${p.toFixed(2)}<small>%</small></div></div>
         <div class="s"><div class="lab">Desvio</div><div class="val ${parseFloat(dv)<0?'delta-up':'delta-dn'}">${parseFloat(dv)>0?'+':''}${dv}<small>pp</small></div></div>
-        ${s.cpa2!=null?`<div class="s"><div class="lab">CPA</div><div class="val ${parseFloat(s.cpa2)<0?'delta-up':'delta-dn'}">${parseFloat(s.cpa2)>0?'+':''}${s.cpa2.toFixed(2)}</div></div>`:''}
+        ${win}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderTabsUI(D){
-  document.getElementById('tabs').innerHTML = TABS.map(t=>{
+function renderTabsUI(D, vis){
+  document.getElementById('tabs').innerHTML = vis.map(t=>{
     const data = t.id==='dq' ? (D.dq_regress||[]).concat(D.dq_fake||[]) : (D[t.id]||[]);
     return `<button class="tab${t.flag?' flag':''}" data-id="${t.id}" onclick="activateTab(window._currentD,'${t.id}')">
       ${t.label}<span class="cnt">${data.length}</span>
     </button>`;
   }).join('');
-  document.getElementById('main').innerHTML = TABS.map(t=>`<div class="panel" id="panel-${t.id}"></div>`).join('');
+  document.getElementById('main').innerHTML = vis.map(t=>`<div class="panel" id="panel-${t.id}"></div>`).join('');
 }
 
 function renderDiscbarFor(D, t){
-  const st = tabState[t.id];
-  const el = document.getElementById('discbar-'+t.id);
-  const items = D.disc_cpa[st.fase==='all'?'all':st.fase] || [];
-  const reset = `<div class="disc-card reset ${st.disc==='all'?'on':''}" data-d="all"><span class="dn">Todas</span></div>`;
-  const cards = items.map(it=>`<div class="disc-card ${st.disc===it.disc?'on':''}" data-d="${it.disc}">
+  const st=tabState[t.id], el=document.getElementById('discbar-'+t.id);
+  const items=D.disc_cpa[st.fase==='all'?'all':st.fase]||[];
+  const reset=`<div class="disc-card reset ${st.disc==='all'?'on':''}" data-d="all"><span class="dn">Todas</span></div>`;
+  const cards=items.map(it=>`<div class="disc-card ${st.disc===it.disc?'on':''}" data-d="${it.disc}">
     <span class="dn"><span class="led ${ledClass(it.cpa)}"></span>${it.disc}</span>
-    <span class="dv ${cpaClass(it.cpa)}">${(it.cpa>0?'+':'')+it.cpa.toFixed(2)}</span>
-    <span class="dd">Δ ${it.dcpa.toFixed(2)}</span></div>`).join('');
-  el.innerHTML = `<div class="disc-label"><span class="t">CPA por disciplina</span><span class="s">${st.fase==='all'?'Fase 1 + 2':st.fase}</span></div>${reset}${cards}`;
+    <span class="dv ${cpaClass(it.cpa)}">${(it.cpa>0?'+':'')+it.cpa.toFixed(2)}</span></div>`).join('');
+  el.innerHTML=`<div class="disc-label"><span class="t">CPA por disciplina</span><span class="s">${st.fase==='all'?'Fase 1 + 2':st.fase}</span></div>${reset}${cards}`;
   el.querySelectorAll('.disc-card').forEach(c=>c.onclick=()=>{
-    st.disc = (st.disc===c.dataset.d ? 'all' : c.dataset.d);
+    st.disc=(st.disc===c.dataset.d?'all':c.dataset.d);
     renderDiscbarFor(D,t); drawTableFor(D,t);
   });
 }
 
 function drawTableFor(D, t){
-  const st = tabState[t.id];
-  const cols = t.cols.map(k=>COL[k]);
-  let rows = (D[t.id]||[]).filter(r=>{
+  const st=tabState[t.id], cols=t.cols.map(k=>COL[k]);
+  let rows=(D[t.id]||[]).filter(r=>{
     if(st.fase!=='all' && r.fase!==st.fase) return false;
     if(st.disc!=='all' && r.disc!==st.disc) return false;
     if(st.q){ const h=(r.name+' '+(r.area||'')).toLowerCase(); if(!h.includes(st.q)) return false; }
     return true;
   });
   if(st.sortKey!==null){
-    const col = COL[st.sortKey];
+    const col=COL[st.sortKey];
     rows.sort((a,b)=>{
-      let x=col.get(a), y=col.get(b);
+      let x=col.get(a),y=col.get(b);
       const xn=x===null||x===undefined, yn=y===null||y===undefined;
       if(xn&&yn)return 0; if(xn)return 1; if(yn)return -1;
       if(typeof x==='number') return (x-y)*st.sortDir;
       return (''+x).localeCompare(''+y,'pt')*st.sortDir;
     });
   }
-  const tbl = document.getElementById('tbl-'+t.id);
-  const thead = '<thead><tr>'+t.cols.map(k=>{
+  const tbl=document.getElementById('tbl-'+t.id);
+  const thead='<thead><tr>'+t.cols.map(k=>{
     const c=COL[k], sorted=st.sortKey===k?'sorted':'';
     const ar=st.sortKey===k?(st.sortDir>0?'▲':'▼'):'';
     return `<th class="${c.cls} ${sorted}" data-k="${k}">${c.h}<span class="ar">${ar}</span></th>`;
   }).join('')+'</tr></thead>';
-  const body = rows.length
+  const body=rows.length
     ? '<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td class="${c.cls}">${c.cell(r)}</td>`).join('')+'</tr>').join('')+'</tbody>'
     : `<tbody><tr><td colspan="${cols.length}" class="empty">Nenhuma atividade nesta combinação de filtros.</td></tr></tbody>`;
-  tbl.innerHTML = thead+body;
+  tbl.innerHTML=thead+body;
   tbl.querySelectorAll('th').forEach(th=>th.onclick=()=>{
     const k=th.dataset.k;
     if(st.sortKey===k) st.sortDir*=-1;
     else { st.sortKey=k; st.sortDir=COL[k].cls==='num'?-1:1; }
     drawTableFor(D,t);
   });
-  const rc = document.getElementById('rc-'+t.id);
-  if(rc) rc.textContent = `${rows.length} de ${(D[t.id]||[]).length}`;
+  const rc=document.getElementById('rc-'+t.id);
+  if(rc) rc.textContent=`${rows.length} de ${(D[t.id]||[]).length}`;
 }
 
 function renderPanelFor(D, t){
-  const p = document.getElementById('panel-'+t.id);
+  const p=document.getElementById('panel-'+t.id);
   if(t.id==='dq'){
-    const reg=D.dq_regress||[], fk=D.dq_fake||[];
-    const mk=(arr,lbl,desc)=>`<div class="phead" style="margin-top:6px"><div class="pt" style="font-size:17px">${lbl} (${arr.length})</div><div class="dir">${desc}</div></div>
-      <div class="tblwrap"><div class="scroll"><table><thead><tr><th>Fase</th><th>Área</th><th>Atividade</th><th class="num">Previsto</th><th class="num">Realizado</th></tr></thead>
-      <tbody>${arr.length?arr.map(r=>`<tr><td>${fasePill(r.fase)}</td><td class="area-cell">${esc(r.area)}</td><td class="act-name">${esc(r.name)}</td><td class="num">${num(r.prev2)}</td><td class="num">${num(r.concl2)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nenhuma ocorrência.</td></tr>'}</tbody></table></div></div>`;
-    p.innerHTML = `<div class="phead"><div class="pt">Suspeitas de apontamento</div><div class="dir">${t.dir}</div></div>
-      <div class="note"><b>Por que olhar aqui:</b> físico não volta atrás; previsto zerado sem justificativa reduz o desvio artificialmente.</div>
-      ${mk(reg,'① Realizado regrediu','Físico estava maior e voltou para valor menor ou em branco — provável apagamento acidental.')}
-      ${mk(fk,'② Previsto zerado / removido','Tarefas com previsto que agora aparecem sem previsto, sem avanço real.')}`;
+    const reg=D.dq_regress||[];
+    const tbl=`<div class="tblwrap"><div class="scroll"><table><thead><tr><th>Fase</th><th>Área</th><th>Atividade</th><th class="num">Base %</th><th class="num">Atual %</th><th class="num">Δ Realizado</th></tr></thead>
+      <tbody>${reg.length?reg.map(r=>`<tr style="background:#fdecea"><td>${fasePill(r.fase)}</td><td class="area-cell">${esc(r.area)}</td><td class="act-name">${esc(r.name)}</td><td class="num">${num(r.realBase)}</td><td class="num">${num(r.concl2)}</td><td class="num">${chipVal(r.dReal)}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhuma regressão de físico detectada entre as duas revisões. 👍</td></tr>'}</tbody></table></div></div>`;
+    p.innerHTML=`<div class="phead"><div class="pt">Suspeitas de apontamento</div><div class="dir">${t.dir}</div></div>
+      <div class="note"><b>Por que olhar aqui:</b> físico não volta atrás. Quando o realizado da revisão atual está menor que o da base, quase sempre é apagamento acidental ou apontamento na linha errada.</div>
+      ${tbl}`;
     return;
   }
-  const st = tabState[t.id];
-  p.innerHTML = `<div class="phead"><div class="pt">${t.label}</div><div class="dir">${t.dir}</div></div>
+  const st=tabState[t.id];
+  p.innerHTML=`<div class="phead"><div class="pt">${t.label}</div><div class="dir">${t.dir}</div></div>
     <div class="toolbar">
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1072,10 +1306,10 @@ function renderPanelFor(D, t){
 }
 
 function setFaseFilter(tabId, fase, btn){
-  tabState[tabId].fase = fase;
+  tabState[tabId].fase=fase;
   btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  const t = TABS.find(x=>x.id===tabId);
+  const t=TABS.find(x=>x.id===tabId);
   renderDiscbarFor(window._currentD, t);
   drawTableFor(window._currentD, t);
 }
@@ -1083,10 +1317,11 @@ function setFaseFilter(tabId, fase, btn){
 function activateTab(D, id){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.id===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+id));
-  const t = TABS.find(x=>x.id===id);
-  const panel = document.getElementById('panel-'+id);
-  if(!panel.dataset.built){ renderPanelFor(D, t); panel.dataset.built='1'; }
+  const t=TABS.find(x=>x.id===id);
+  const panel=document.getElementById('panel-'+id);
+  if(panel && !panel.dataset.built){ renderPanelFor(D, t); panel.dataset.built='1'; }
 }
+
 </script>
 </body>
 </html>
