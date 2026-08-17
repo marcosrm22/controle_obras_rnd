@@ -1,6 +1,1019 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+<head><!DOCTYPE html>
+<html lang="pt-BR">
 <head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plano de Ação · Desvio Semanal · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--border:#d8dde4;--border-2:#e6e9ee;
+  --text:#1a2332;--text-dim:#546175;--text-mute:#8a95a6;
+  --blue:#304F7E;--blue-dark:#223a60;--blue-soft:#eef2f8;--blue-claro:#4a6ea8;
+  --gold:#EAA239;--gold-vibr:#FFA32A;
+  --green:#2e7d32;--green-soft:#e8efe1;--orange:#D97706;
+  --red:#C0392B;--red-soft:#fdecea;--terracota:#CC5121;--cinza:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);--shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+/* largura ampliada — mesmo padrão adotado no Relatório Gerencial */
+.page{max-width:1600px;margin:0 auto;padding:28px 24px 80px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);text-decoration:none}
+.back-link:hover{color:var(--blue)}
+.nav-group{display:flex;gap:8px;flex-wrap:wrap}
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:23px;font-weight:800;letter-spacing:-0.5px}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.subtitle{font-size:12px;color:var(--text-dim);margin-top:6px}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;padding:5px 11px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.logout-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;border:1px solid var(--border-2);background:#fff;color:var(--text-dim);cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.notice{font-size:12px;padding:14px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);color:var(--blue-dark);margin-bottom:18px;line-height:1.6;display:none}
+.notice.warn{border-left-color:var(--gold);background:#FEF3C7;color:#7c4a00}
+.notice code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;padding:1px 5px;border:1px solid var(--border)}
+
+/* ── barra da semana ── */
+.week-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--blue);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.week-bar .wk-field{display:flex;flex-direction:column;gap:3px}
+.week-bar label{font-size:8.6px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mute)}
+.week-bar select{font-family:inherit;font-size:13px;border:1px solid var(--border);padding:8px 12px;background:#fff;color:var(--text);outline:none;font-weight:700;min-width:240px}
+.week-bar select:focus{border-color:var(--blue)}
+.week-bar .emissao{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);font-weight:600}
+.week-bar .emissao b{color:var(--text)}
+.week-bar .spacer{flex:1}
+.wk-btn{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.4px;padding:8px 13px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.wk-btn:hover{border-color:var(--blue);background:var(--blue-soft)}
+.wk-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+.wk-btn.gold:hover{filter:brightness(.96)}
+
+/* ===== KPIs ===== */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--cinza);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(48,79,126,.16)}
+.kpi.active{outline:2px solid var(--blue)}
+.kpi .num{font-size:24px;font-weight:800;line-height:1;letter-spacing:-1px}
+.kpi .label{font-size:9.5px;color:var(--text-mute);font-weight:700;margin-top:6px;text-transform:uppercase;letter-spacing:.6px}
+.kpi.total{border-left-color:var(--blue)}
+.kpi.atrasado{border-left-color:var(--terracota)}.kpi.atrasado .num{color:var(--terracota)}
+.kpi.noprazo{border-left-color:var(--green)}.kpi.noprazo .num{color:var(--green)}
+.kpi.concluido{border-left-color:#1d5c1a}.kpi.concluido .num{color:#1d5c1a}
+.kpi.naoiniciado{border-left-color:var(--cinza)}.kpi.naoiniciado .num{color:var(--text-dim)}
+.kpi.cancelada{border-left-color:#8a95a6}.kpi.cancelada .num{color:#6b7280}
+
+/* barra de progresso por status */
+.progress-summary{margin-bottom:18px}
+.progress-bar{display:flex;width:100%;height:10px;overflow:hidden;background:#E7EAED;box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}
+.progress-bar span{height:100%;transition:width .4s ease}
+.seg-atrasado{background:var(--terracota)}.seg-noprazo{background:var(--green)}
+.seg-concluido{background:#1d5c1a}.seg-naoiniciado{background:var(--cinza)}.seg-cancelada{background:#8a95a6}
+.progress-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:11px;color:var(--text-dim);font-weight:600}
+.progress-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot.atrasado{background:var(--terracota)}.dot.noprazo{background:var(--green)}
+.dot.concluido{background:#1d5c1a}.dot.naoiniciado{background:var(--cinza)}.dot.cancelada{background:#8a95a6}
+
+/* toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--border);padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.toolbar input[type="text"]{flex:1;min-width:210px;padding:9px 12px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;outline:none}
+.toolbar input[type="text"]:focus{border-color:var(--blue)}
+.toolbar select{padding:9px 10px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;background:#fff;color:var(--text);font-weight:600}
+.toolbar button{font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;padding:9px 14px;border:1px solid var(--border);background:#fff;color:var(--text-dim);white-space:nowrap}
+.toolbar button:hover{background:var(--blue-soft)}
+.toolbar button.export{background:var(--blue);color:#fff;border-color:var(--blue)}
+.toolbar button.export:hover{background:var(--blue-dark)}
+.toolbar button.new-btn{background:var(--green);color:#fff;border-color:var(--green)}
+.toolbar button.new-btn:hover{background:#4F7C3B}
+.count-line{font-size:12.5px;color:var(--text-dim);margin:0 0 12px 4px;font-weight:500}
+.count-line strong{color:var(--blue)}
+
+/* ===== cards / blocos ===== */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow);border-left:5px solid var(--cinza);display:grid;grid-template-columns:44px 1fr 250px;gap:18px;align-items:start}
+@media(max-width:820px){.card{grid-template-columns:44px 1fr}.card .side{grid-column:1/-1;text-align:left;align-items:flex-start}}
+.card.st-atrasado{border-left-color:var(--terracota)}
+.card.st-noprazo{border-left-color:var(--green)}
+.card.st-concluido{border-left-color:#1d5c1a}
+.card.st-naoiniciado{border-left-color:var(--cinza)}
+.card.st-cancelada{border-left-color:#8a95a6;opacity:.82}
+.card .idx{width:44px;height:34px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace}
+.card .body .acao{font-weight:700;font-size:14px;margin:0 0 8px;color:var(--text);line-height:1.4;white-space:pre-line}
+.meta-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;margin:0 0 10px}
+.meta-badge{display:inline-flex;align-items:center;width:auto;height:auto;align-self:flex-start;font-size:10.5px;font-weight:700;line-height:1.3;padding:3px 10px;border-radius:20px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.meta-badge.resp{background:#E4EDF6;color:var(--blue-dark);border:1px solid #C9DBEA}
+.meta-badge.exec{background:#DCEEEC;color:#007D77;border:1px solid #BFE0DC}
+.meta-badge.area{background:#DCEAF7;color:var(--blue);border:1px solid #C2DCF0}
+.meta-badge.impacto{background:#FBF0DD;color:#A5710C;border:1px solid #F0DFB8}
+.meta-badge.empty{background:#F2F2F2;color:#A3A9AE;font-style:italic;font-weight:600;border:1px solid #E6E6E6}
+.badge-novo{display:inline-block;background:var(--green);color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.4px;vertical-align:middle;margin-right:4px}
+.card.is-new{animation:highlightNew 2.2s ease}
+@keyframes highlightNew{0%{box-shadow:0 0 0 3px rgba(96,147,70,.55)}100%{box-shadow:var(--shadow)}}
+
+/* justificativa (impacto do desvio) */
+.just-label{font-size:10.5px;font-weight:800;color:var(--terracota);text-transform:uppercase;letter-spacing:.5px;margin:2px 0 4px;display:flex;align-items:center;gap:5px}
+.just-label::before{content:"⚠";font-size:11px}
+.just-text{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin:0 0 10px;white-space:pre-line}
+.just-empty{color:#A8ADB2;font-style:italic}
+
+/* bloco de acompanhamento (efetividade) */
+.at-label{font-size:10.5px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin:0 0 5px;display:flex;align-items:center;gap:5px}
+.at-label::before{content:"🎯";font-size:11px}
+.at-view{margin:0 0 8px}
+.at-text{font-size:12.5px;color:var(--text);line-height:1.55;margin:0 0 4px;white-space:pre-line}
+.at-meta{font-size:9.5px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin:0 0 6px}
+.at-empty{color:#A8ADB2;font-style:italic}
+.edit-btn,.hist-btn{background:none;border:1px solid #D3E1EC;color:var(--blue-claro);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;padding:3px 10px;border-radius:14px;margin-right:6px}
+.edit-btn:hover,.hist-btn:hover{background:#EEF4FA}
+.at-edit{margin:0 0 10px}
+textarea.at-input{width:100%;font-family:inherit;font-size:12.5px;color:var(--text);line-height:1.5;margin:0 0 8px;white-space:pre-line;border:1px solid var(--blue-claro);background:#fff;padding:8px 10px;resize:vertical;min-height:60px;outline:none;box-shadow:0 0 0 2px rgba(48,79,126,.08)}
+.at-actions{display:flex;gap:8px}
+.publish-btn,.cancel-edit-btn{font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;padding:6px 13px;border:1px solid var(--cinza)}
+.publish-btn{background:var(--green);color:#fff;border-color:var(--green)}
+.publish-btn:hover{background:#4F7C3B}
+.cancel-edit-btn{background:#fff;color:var(--text-dim)}
+.cancel-edit-btn:hover{background:#F0F2F4}
+.hist-label{font-size:10.5px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px}
+.hist-list{margin-top:2px;padding-left:10px;border-left:2px solid #C9DBEA}
+.hist-item{font-size:11px;color:var(--text-dim);line-height:1.5;padding:6px 0 6px 8px;border-bottom:1px dashed #EEE;white-space:pre-line}
+.hist-item:last-child{border-bottom:none}
+.hist-time{display:block;font-size:10px;font-weight:700;color:var(--blue);margin-bottom:2px;font-family:'JetBrains Mono',monospace}
+.hist-empty{font-size:11px;color:#A8ADB2;font-style:italic;padding:4px 0}
+
+/* lado direito do card */
+.card .side{text-align:right;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.card-edit-btn{background:none;border:1px solid #D3E1EC;color:var(--blue-claro);font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;padding:4px 11px;border-radius:14px;white-space:nowrap}
+.card-edit-btn:hover{background:#EEF4FA}
+.status-pill{font-size:11.5px;font-weight:800;padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.status-pill.atrasado{background:#FBE3D6;color:var(--terracota)}
+.status-pill.noprazo{background:#E4F0DD;color:var(--green)}
+.status-pill.concluido{background:var(--green-soft);color:#1d5c1a}
+.status-pill.naoiniciado{background:#ECEDEE;color:var(--text-dim)}
+.status-pill.cancelada{background:#f3f4f6;color:#6b7280}
+.est-chip{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;background:#FBF0DD;color:#A5710C;border:1px solid #F0DFB8;padding:3px 9px;white-space:nowrap}
+.dates{font-size:11.5px;color:var(--text-dim);line-height:1.6;text-align:right}
+.dates b{color:var(--text)}
+.desvio{font-size:11px;font-weight:700}
+.desvio.pos{color:var(--terracota)}.desvio.zero{color:var(--text-dim)}.desvio.neg{color:var(--green)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-mute);background:var(--panel);border:1px solid var(--border)}
+.empty-state .big{font-size:40px;margin-bottom:10px;opacity:.4}
+
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,35,50,.5);z-index:100;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;width:100%;max-width:640px;box-shadow:var(--shadow-lg);border-top:4px solid var(--gold)}
+.modal.narrow{max-width:420px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border-2);background:linear-gradient(135deg,var(--blue-dark),var(--blue))}
+.modal-header h2{margin:0;font-size:15px;color:#fff;font-weight:800}
+.modal-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;opacity:.85}
+.modal-close:hover{opacity:1}
+.modal-body{padding:20px 22px;max-height:72vh;overflow-y:auto}
+.field{margin-bottom:13px;display:flex;flex-direction:column;gap:5px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.field-row{grid-template-columns:1fr}}
+.field label{font-size:10px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{padding:9px 11px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;color:var(--text);outline:none;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue)}
+.field.invalid input,.field.invalid textarea{border-color:var(--terracota)}
+.modal-hint{font-size:11px;color:var(--text-mute);margin:4px 0 0;font-style:italic}
+.desvio-preview{font-size:11.5px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-dim)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border-2)}
+.modal-btn{padding:10px 18px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--cinza);background:#fff;color:var(--text-dim)}
+.modal-btn:hover{background:#F0F2F4}
+.modal-btn.save{background:var(--green);color:#fff;border-color:var(--green)}
+.modal-btn.save:hover{background:#4F7C3B}
+.modal-btn.danger{color:var(--red);margin-right:auto}
+.modal-btn.danger:hover{border-color:var(--red);background:var(--red-soft)}
+
+/* impressão: layout compacto — mais ações por página */
+@media print{
+  @page{size:A4 portrait;margin:8mm}
+  html,body{background:#fff;font-size:10px}
+  .page{max-width:100%;padding:0;margin:0}
+  .nav-row,.user-bar,.toolbar,.notice,.count-line,.week-bar .wk-btn,
+  .edit-btn,.hist-btn,.card-edit-btn,.at-edit,.modal-overlay,.badge-novo{display:none !important}
+  /* cabeçalho enxuto */
+  .site-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;margin-bottom:6px;padding-bottom:6px}
+  .site-header h1{font-size:17px;margin:0}
+  .eyebrow{font-size:8px;margin-bottom:2px}
+  .subtitle{display:none}
+  /* barra da semana compacta */
+  .week-bar{padding:5px 10px;margin-bottom:7px;gap:14px;box-shadow:none}
+  .week-bar label{font-size:8px}
+  .week-bar select,.week-bar .emissao{font-size:11px}
+  /* KPIs compactos */
+  .kpis{gap:6px;margin-bottom:7px}
+  .kpi{padding:5px 8px;box-shadow:none;border:1px solid #ddd}
+  .kpi .num{font-size:15px}
+  .kpi .label{font-size:7.5px}
+  .progress-summary{margin-bottom:8px;padding:6px 8px;box-shadow:none}
+  .progress-bar{height:9px}
+  .progress-legend{font-size:8px;gap:8px}
+  /* ===== cards em DUAS COLUNAS (fluxo multicoluna) ===== */
+  .cards{display:block;column-count:2;column-gap:9px}
+  .card{
+    display:block;break-inside:avoid;page-break-inside:avoid;
+    box-shadow:none;border:1px solid #ccc;border-left:4px solid var(--cinza);
+    padding:6px 9px;margin:0 0 8px;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  .card .idx{width:auto;height:auto;display:inline-block;padding:1px 8px;font-size:10px;margin-bottom:3px}
+  .card .body .acao{font-size:10.5px;line-height:1.28;margin:0 0 4px}
+  .meta-badges{gap:3px;margin:0 0 4px}
+  .meta-badge{font-size:8.5px;padding:1px 7px;border-radius:10px}
+  .just-label,.at-label{font-size:8.5px;letter-spacing:.3px;margin:2px 0 2px}
+  .just-text,.at-text{font-size:9.5px;line-height:1.3;margin:0 0 3px}
+  .at-meta{font-size:7.5px;margin:0 0 2px}
+  .hist-label{font-size:8.5px;margin:5px 0 2px}
+  .hist-list{display:block !important;padding-left:8px}
+  .hist-item{font-size:8.5px;padding:3px 0 3px 7px}
+  .hist-time{font-size:8px}
+  /* lado direito vira faixa horizontal enxuta ao pé do card */
+  .card .side{
+    text-align:left;align-items:center;flex-direction:row;flex-wrap:wrap;
+    gap:5px 10px;margin-top:5px;border-top:1px dashed #E1E1E1;padding-top:4px
+  }
+  .status-pill{font-size:9px;padding:1px 8px}
+  .est-chip{font-size:8.5px;padding:1px 7px}
+  .dates{display:flex;flex-wrap:wrap;gap:1px 10px;font-size:9px;line-height:1.3;text-align:left}
+  .dates>div{white-space:nowrap}
+  .desvio{font-size:9px}
+}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="nav-row">
+    <a class="back-link" href="index.html">← Painel de Ferramentas</a>
+    <div class="nav-group">
+      <a class="back-link" href="plano_acao_rso.html" style="color:var(--blue)">📋 Plano de Ação · RSO</a>
+      <a class="back-link" href="relatorio_gerencial.html" style="color:var(--blue)">📑 Relatório Gerencial</a>
+      <a class="back-link" href="dashboard_desempenho.html" style="color:var(--blue)">📈 Dashboard</a>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Planejamento &amp; Controle · Desvio Semanal</div>
+      <h1>Plano de Ação <span>· Desvio Semanal</span></h1>
+      <p class="subtitle">Justificativa do desvio da semana e acompanhamento da efetividade das ações — por empresa, área e responsável.</p>
+    </div>
+    <div class="user-bar">
+      <span id="unidade-switcher" style="margin-right:4px"></span>
+      <div class="user-chip"><div class="user-avatar" id="user-avatar">?</div>
+        <div><div id="user-nome" style="font-size:11px;font-weight:700">…</div>
+        <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div></div></div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="notice warn" id="setup-notice"></div>
+
+  <!-- barra da semana -->
+  <div class="week-bar">
+    <div class="wk-field">
+      <label>Semana do plano</label>
+      <select id="weekSelect" onchange="switchWeek(this.value)"></select>
+    </div>
+    <div class="wk-field">
+      <label>Data de emissão</label>
+      <span class="emissao">📅 <b id="weekEmissao">—</b></span>
+    </div>
+    <div class="spacer"></div>
+    <button class="wk-btn" id="copyPrevBtn" onclick="copyPrevWeek()" title="Traz as ações ainda em aberto da semana anterior para esta semana">⧉ Copiar ações em aberto da semana anterior</button>
+    <button class="wk-btn gold" onclick="openWeekModal()">＋ Nova semana</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis" id="kpis">
+    <div class="kpi total"    data-st=""            onclick="setStatusFilter('')"><div class="num" id="kpi-total">0</div><div class="label">Ações da semana</div></div>
+    <div class="kpi atrasado" data-st="Atrasado"    onclick="setStatusFilter('Atrasado')"><div class="num" id="kpi-atrasado">0</div><div class="label">Atrasadas</div></div>
+    <div class="kpi noprazo"  data-st="No Prazo"    onclick="setStatusFilter('No Prazo')"><div class="num" id="kpi-noprazo">0</div><div class="label">No Prazo</div></div>
+    <div class="kpi naoiniciado" data-st="Não iniciado" onclick="setStatusFilter('Não iniciado')"><div class="num" id="kpi-naoiniciado">0</div><div class="label">Não iniciadas</div></div>
+    <div class="kpi concluido" data-st="Concluído"  onclick="setStatusFilter('Concluído')"><div class="num" id="kpi-concluido">0</div><div class="label">Concluídas</div></div>
+    <div class="kpi cancelada" data-st="Cancelada"  onclick="setStatusFilter('Cancelada')"><div class="num" id="kpi-cancelada">0</div><div class="label">Canceladas</div></div>
+  </div>
+
+  <!-- barra de progresso -->
+  <div class="progress-summary">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-legend">
+      <span><i class="dot concluido"></i>Concluídas</span>
+      <span><i class="dot noprazo"></i>No Prazo</span>
+      <span><i class="dot atrasado"></i>Atrasadas</span>
+      <span><i class="dot naoiniciado"></i>Não iniciadas</span>
+      <span><i class="dot cancelada"></i>Canceladas</span>
+    </div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Buscar por ação, empresa, área, responsável…" oninput="render()"/>
+    <select id="empresaFilter" onchange="render()"><option value="">Todas as empresas</option></select>
+    <select id="respFilter" onchange="render()"><option value="">Todos os responsáveis</option></select>
+    <select id="sortSelect" onchange="render()">
+      <option value="num">Ordem (#)</option>
+      <option value="status">Status</option>
+      <option value="empresa">Empresa</option>
+      <option value="desvio">Maior desvio</option>
+      <option value="termino">Data de término</option>
+    </select>
+    <button class="new-btn" onclick="openModal()">＋ Nova ação</button>
+    <button class="export" onclick="exportExcel()">⬇ Exportar Excel</button>
+    <button onclick="window.print()">🖨 Imprimir</button>
+  </div>
+
+  <p class="count-line" id="countLine"></p>
+
+  <div class="cards" id="cardsContainer"></div>
+</div>
+
+<!-- MODAL: ação -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Nova ação</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Empresa</label><input type="text" id="f-empresa" placeholder="Ex.: CORAN"/></div>
+        <div class="field"><label>Área</label><input type="text" id="f-area" placeholder="Ex.: Dornas de Fermentação"/></div>
+      </div>
+      <div class="field" id="f-acao-field"><label>Ação *</label><textarea id="f-acao" rows="3" placeholder="Descreva a ação para tratar o desvio…"></textarea></div>
+      <div class="field"><label>Impacto / Justificativa do desvio</label><textarea id="f-impacto" rows="3" placeholder="Motivo do desvio e o impacto esperado da ação…"></textarea></div>
+      <div class="field-row">
+        <div class="field"><label>Impacto estimado na próxima semana</label><input type="text" id="f-estimado" placeholder="Ex.: 0,10"/><p class="modal-hint">Contribuição estimada no desvio (p.p.). Aceita vírgula ou ponto.</p></div>
+        <div class="field"><label>Responsável</label><input type="text" id="f-responsavel" placeholder="Ex.: Rodrigo"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Data planejada — início</label><input type="date" id="f-dpi"/></div>
+        <div class="field"><label>Data planejada — término</label><input type="date" id="f-dpt"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Data replanejada</label><input type="date" id="f-drep"/></div>
+        <div class="field"><label>Data realizada</label><input type="date" id="f-dreal"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Status</label>
+          <select id="f-status">
+            <option value="Não iniciado">⬜ Não iniciado</option>
+            <option value="No Prazo">🟢 No Prazo</option>
+            <option value="Atrasado">🔴 Atrasado</option>
+            <option value="Concluído">✅ Concluído</option>
+            <option value="Cancelada">⛔ Cancelada</option>
+          </select>
+        </div>
+        <div class="field"><label>Desvio calculado</label><span class="desvio-preview" id="f-desvio-preview">—</span><p class="modal-hint">Realizada (ou replanejada) − término planejado.</p></div>
+      </div>
+      <div class="field" id="f-acomp-field"><label>Acompanhamento inicial (opcional)</label><textarea id="f-acomp" rows="2" placeholder="Situação atual / efetividade da ação…"></textarea><p class="modal-hint">Vira a primeira entrada do histórico de acompanhamento.</p></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn danger" id="modalDelete" style="display:none" onclick="deleteItem()">Excluir</button>
+      <button class="modal-btn" onclick="closeModal()">Cancelar</button>
+      <button class="modal-btn save" id="modalSave" onclick="saveModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nova semana -->
+<div class="modal-overlay" id="weekModalOverlay">
+  <div class="modal narrow">
+    <div class="modal-header">
+      <h2>Nova semana</h2>
+      <button class="modal-close" onclick="closeWeekModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Data de emissão da semana</label><input type="date" id="f-week-date"/><p class="modal-hint">Use a data de referência do plano (normalmente a segunda-feira ou a data da reunião).</p></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeWeekModal()">Cancelar</button>
+      <button class="modal-btn save" onclick="createWeek()">Criar semana</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================================================================
+   Plano de Ação — Desvio Semanal
+   Supabase: tabelas desvio_plano_acao + desvio_status_updates
+   Sempre usa SB_KEY como Bearer (nunca pco_token) — evita PGRST303.
+   =================================================================== */
+const SB_URL=(window.PCO_CONFIG||{}).supabase?.url||'';
+const SB_KEY=(window.PCO_CONFIG||{}).supabase?.key||'';
+const $=id=>document.getElementById(id);
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtBr(d){if(!d)return null;const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:null;}
+function fmtDFull(d){return fmtBr(d)||'—';}
+function fmtTS(ts){if(!ts)return '';const d=new Date(ts);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function userNome(){return sessionStorage.getItem('pco_nome')||sessionStorage.getItem('pco_email')||'';}
+function unidadeNome(){return pcoUnidadeInfo().nome;}
+/* aceita "0,10" ou "0.1" — retorna número ou null */
+function parseEst(v){
+  if(v==null||v==='')return null;
+  let s=String(v).trim().replace(/\s/g,'');
+  if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.');
+  const n=Number(s);
+  return isNaN(n)?null:n;
+}
+function fmtEst(n){return (n==null||isNaN(n))?null:Number(n).toLocaleString('pt-BR',{maximumFractionDigits:4});}
+
+async function sb(method,path,body){
+  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  if(body){headers['Content-Type']='application/json';headers['Prefer']='return=representation';}
+  const res=await fetch(SB_URL+'/rest/v1/'+path,{method,headers,body:body?JSON.stringify(body):undefined});
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,220));}
+  const txt=await res.text();try{return JSON.parse(txt);}catch(_){return [];}
+}
+async function sbGetAll(path){
+  const out=[];let from=0;const step=1000;
+  for(;;){
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:{
+      'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Range':from+'-'+(from+step-1)}});
+    if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,220));}
+    const chunk=await res.json();
+    out.push(...chunk);
+    if(chunk.length<step)break;
+    from+=step;
+  }
+  return out;
+}
+
+/* ---------- estado ---------- */
+let DATA=[], UPD={}, SEMANAS=[], CURRENT=null;
+let activeStatusFilter='', editingId=null, NEW_ID=null;
+const EDIT_OPEN={}, HIST_OPEN={};
+
+const STATUS_META={
+  'Atrasado'    :{cls:'atrasado',    pill:'🔴 Atrasado',    seg:'atrasado'},
+  'No Prazo'    :{cls:'noprazo',     pill:'🟢 No Prazo',    seg:'noprazo'},
+  'Concluído'   :{cls:'concluido',   pill:'✅ Concluído',   seg:'concluido'},
+  'Não iniciado':{cls:'naoiniciado', pill:'⬜ Não iniciado', seg:'naoiniciado'},
+  'Cancelada'   :{cls:'cancelada',   pill:'⛔ Cancelada',   seg:'cancelada'}
+};
+function statusMeta(st){return STATUS_META[st]||STATUS_META['Não iniciado'];}
+
+/* desvio (dias): (realizada || replanejada) − término planejado. + = atraso */
+function desvioDias(it){
+  const fim=it.data_realizada||it.data_replanejada;
+  const base=it.data_planejada_termino;
+  if(!fim||!base)return null;
+  return Math.round((new Date(fim+'T00:00:00')-new Date(base+'T00:00:00'))/86400000);
+}
+/* sugestão de status a partir das datas (usada como apoio no modal) */
+function suggestStatus(it){
+  if(it.data_realizada)return 'Concluído';
+  const ref=it.data_replanejada||it.data_planejada_termino;
+  if(!ref)return 'Não iniciado';
+  const today=new Date();today.setHours(0,0,0,0);
+  const d=new Date(ref+'T00:00:00');
+  return d<today?'Atrasado':'No Prazo';
+}
+
+/* ---------- carregamento ---------- */
+async function loadAll(){
+  try{
+    DATA=await sbGetAll(pcoComUnidade('desvio_plano_acao?select=*&ativo=eq.true&order=semana.desc,num.asc,criado_em.asc'));
+    const ups=await sbGetAll(pcoComUnidade('desvio_status_updates?select=*&order=criado_em.desc'));
+    UPD={};
+    ups.forEach(u=>{(UPD[u.item_id]=UPD[u.item_id]||[]).push(u);});
+    buildWeeks();
+    if(!CURRENT || !SEMANAS.includes(CURRENT)) CURRENT=SEMANAS[0]||null;
+    renderWeekSelect();
+    populateFilters();
+    refresh();
+  }catch(err){
+    if(/42P01|PGRST205|does not exist|schema cache/i.test(err.message)){
+      const n=$('setup-notice');n.style.display='';
+      n.innerHTML='<b>Tabelas ainda não criadas.</b> Rode <code>supabase_desvio_plano_acao.sql</code> no SQL Editor do Supabase e recarregue esta página.';
+      $('cardsContainer').innerHTML='';
+    }else{
+      $('cardsContainer').innerHTML='<div class="empty-state"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+    }
+  }
+}
+function buildWeeks(){
+  const set=new Set(DATA.map(r=>r.semana).filter(Boolean));
+  if(CURRENT) set.add(CURRENT); // mantém semana recém-criada mesmo sem ações
+  SEMANAS=[...set].sort((a,b)=>b.localeCompare(a)); // mais recente primeiro
+}
+function renderWeekSelect(){
+  const sel=$('weekSelect');
+  if(!SEMANAS.length){sel.innerHTML='<option value="">Nenhuma semana cadastrada</option>';$('weekEmissao').textContent='—';return;}
+  sel.innerHTML=SEMANAS.map(s=>`<option value="${s}"${s===CURRENT?' selected':''}>Semana de ${fmtBr(s)}</option>`).join('');
+  $('weekEmissao').textContent=fmtBr(CURRENT)||'—';
+}
+function weekRows(){return DATA.filter(r=>r.semana===CURRENT);}
+
+function populateFilters(){
+  const rows=weekRows();
+  const empresas=new Set(),resps=new Set();
+  rows.forEach(r=>{if(r.empresa)empresas.add(r.empresa);if(r.responsavel)resps.add(r.responsavel);});
+  const fill=(sel,items,all)=>{
+    const cur=sel.value;
+    sel.innerHTML=`<option value="">${all}</option>`+[...items].sort((a,b)=>a.localeCompare(b,'pt-BR'))
+      .map(v=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(v)}</option>`).join('');
+  };
+  fill($('empresaFilter'),empresas,'Todas as empresas');
+  fill($('respFilter'),resps,'Todos os responsáveis');
+}
+
+/* ---------- filtros / ordenação ---------- */
+function filteredRows(){
+  const q=($('searchInput').value||'').toLowerCase().trim();
+  const emp=$('empresaFilter').value, resp=$('respFilter').value;
+  return weekRows().filter(r=>{
+    if(activeStatusFilter && r.status!==activeStatusFilter)return false;
+    if(emp && r.empresa!==emp)return false;
+    if(resp && r.responsavel!==resp)return false;
+    if(q){
+      const blob=[r.acao,r.empresa,r.area,r.responsavel,r.impacto,(UPD[r.id]||[]).map(u=>u.texto).join(' ')].join(' ').toLowerCase();
+      if(!blob.includes(q))return false;
+    }
+    return true;
+  });
+}
+function sortRows(rows,mode){
+  const r=[...rows];
+  const order=['Atrasado','Não iniciado','No Prazo','Concluído','Cancelada'];
+  if(mode==='status')r.sort((a,b)=>order.indexOf(a.status)-order.indexOf(b.status)||(a.num||0)-(b.num||0));
+  else if(mode==='empresa')r.sort((a,b)=>(a.empresa||'').localeCompare(b.empresa||'','pt-BR')||(a.num||0)-(b.num||0));
+  else if(mode==='desvio')r.sort((a,b)=>(desvioDias(b)??-1e9)-(desvioDias(a)??-1e9));
+  else if(mode==='termino')r.sort((a,b)=>(a.data_planejada_termino||'9999').localeCompare(b.data_planejada_termino||'9999'));
+  else r.sort((a,b)=>(a.num||0)-(b.num||0));
+  return r;
+}
+
+/* ---------- KPIs / progresso ---------- */
+function refresh(){populateFilters();updateKPIs();updateProgress();render();}
+function updateKPIs(){
+  const rows=weekRows();
+  const c=st=>rows.filter(r=>r.status===st).length;
+  $('kpi-total').textContent=rows.length;
+  $('kpi-atrasado').textContent=c('Atrasado');
+  $('kpi-noprazo').textContent=c('No Prazo');
+  $('kpi-naoiniciado').textContent=c('Não iniciado');
+  $('kpi-concluido').textContent=c('Concluído');
+  $('kpi-cancelada').textContent=c('Cancelada');
+  document.querySelectorAll('.kpi').forEach(k=>k.classList.toggle('active',(k.dataset.st||'')===activeStatusFilter));
+}
+function updateProgress(){
+  const rows=weekRows();const t=rows.length||1;
+  const c=st=>rows.filter(r=>r.status===st).length;
+  const segs=[['concluido',c('Concluído')],['noprazo',c('No Prazo')],['atrasado',c('Atrasado')],['naoiniciado',c('Não iniciado')],['cancelada',c('Cancelada')]];
+  $('progressBar').innerHTML=segs.map(([s,n])=>`<span class="seg-${s}" style="width:${(n/t*100).toFixed(1)}%"></span>`).join('');
+}
+function setStatusFilter(st){activeStatusFilter=(activeStatusFilter===st)?'':st;updateKPIs();render();}
+
+/* ---------- render dos cards ---------- */
+function render(){
+  const rows=sortRows(filteredRows(),$('sortSelect').value);
+  const total=weekRows().length;
+  $('countLine').innerHTML=`<strong>${rows.length}</strong> de ${total} ação(ões) na semana de ${fmtBr(CURRENT)||'—'}`
+    +(activeStatusFilter?` · filtro: ${esc(activeStatusFilter)}`:'');
+  const box=$('cardsContainer');
+  if(!SEMANAS.length){
+    box.innerHTML='<div class="empty-state"><div class="big">🗓️</div>Nenhuma semana cadastrada ainda.<br>Clique em <b>+ Nova semana</b> para começar.</div>';return;
+  }
+  if(!rows.length){
+    box.innerHTML='<div class="empty-state"><div class="big">📭</div>Nenhuma ação para os filtros atuais.<br>Use <b>+ Nova ação</b> para registrar a justificativa do desvio.</div>';return;
+  }
+  box.innerHTML=rows.map(cardHTML).join('');
+}
+function cardHTML(r){
+  const m=statusMeta(r.status);
+  const hist=UPD[r.id]||[];
+  const last=hist[0];
+  const dv=desvioDias(r);
+  const dvCls=dv==null?'zero':(dv>0?'pos':(dv<0?'neg':'zero'));
+  const dvTxt=dv==null?'—':(dv>0?`+${dv}d`:(dv<0?`${dv}d`:'0d'));
+  const est=fmtEst(r.impacto_estimado);
+  const editing=EDIT_OPEN[r.id];
+  const histOpen=HIST_OPEN[r.id];
+  const older=hist.slice(1);
+
+  const acomp = editing
+    ? `<div class="at-edit">
+         <textarea class="at-input" id="at-input-${r.id}" placeholder="Registre a situação atual e a efetividade da ação…">${esc(last?last.texto:'')}</textarea>
+         <div class="at-actions">
+           <button class="publish-btn" onclick="postAcomp('${r.id}')">Publicar acompanhamento</button>
+           <button class="cancel-edit-btn" onclick="toggleAcompEdit('${r.id}',false)">Cancelar</button>
+         </div>
+       </div>`
+    : `<div class="at-view">
+         ${last
+            ? `<p class="at-text">${esc(last.texto)}</p><p class="at-meta">${esc(last.autor||'')} · ${fmtTS(last.criado_em)}</p>`
+            : `<p class="at-text at-empty">Sem acompanhamento ainda.</p>`}
+         <button class="edit-btn" onclick="toggleAcompEdit('${r.id}',true)">✏️ ${last?'Atualizar':'Adicionar'} acompanhamento</button>
+         ${older.length?`<button class="hist-btn" onclick="toggleHist('${r.id}')">${histOpen?'Ocultar':'Ver'} histórico (${older.length})</button>`:''}
+       </div>`;
+
+  const histBlock = (!editing && histOpen && older.length)
+    ? `<div class="hist-label">Histórico de acompanhamento</div>
+       <div class="hist-list">${older.map(u=>`<div class="hist-item"><span class="hist-time">${esc(u.autor||'')} · ${fmtTS(u.criado_em)}</span>${esc(u.texto)}</div>`).join('')}</div>`
+    : '';
+
+  return `<div class="card st-${m.cls} ${r.id===NEW_ID?'is-new':''}">
+    <div class="idx">${r.num??'—'}</div>
+    <div class="body">
+      <p class="acao">${r.id===NEW_ID?'<span class="badge-novo">NOVA</span>':''}${esc(r.acao||'(sem descrição)')}</p>
+      <div class="meta-badges">
+        ${r.empresa?`<span class="meta-badge exec">${esc(r.empresa)}</span>`:''}
+        ${r.area?`<span class="meta-badge area">${esc(r.area)}</span>`:''}
+        ${r.responsavel?`<span class="meta-badge resp">👤 ${esc(r.responsavel)}</span>`:''}
+        ${est!=null?`<span class="meta-badge impacto">📈 ${esc(est)} p.p.</span>`:''}
+      </div>
+      ${r.impacto?`<div class="just-label">Impacto / justificativa</div><p class="just-text">${esc(r.impacto)}</p>`:''}
+      <div class="at-label">Acompanhamento da efetividade</div>
+      ${acomp}
+      ${histBlock}
+    </div>
+    <div class="side">
+      <span class="status-pill ${m.cls}">${m.pill}</span>
+      ${est!=null?`<span class="est-chip">Impacto est.: ${esc(est)}</span>`:''}
+      <div class="dates">
+        <div>Início: <b>${fmtDFull(r.data_planejada_inicio)}</b></div>
+        <div>Término: <b>${fmtDFull(r.data_planejada_termino)}</b></div>
+        ${r.data_replanejada?`<div>Replan.: <b>${fmtDFull(r.data_replanejada)}</b></div>`:''}
+        ${r.data_realizada?`<div>Realizada: <b>${fmtDFull(r.data_realizada)}</b></div>`:''}
+        <div class="desvio ${dvCls}">Desvio: ${dvTxt}</div>
+      </div>
+      <button class="card-edit-btn" onclick="openModal('${r.id}')">✏️ Editar ação</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- acompanhamento inline ---------- */
+function toggleAcompEdit(id,on){EDIT_OPEN[id]=!!on;render();if(on){const t=$('at-input-'+id);if(t){t.focus();t.selectionStart=t.value.length;}}}
+function toggleHist(id){HIST_OPEN[id]=!HIST_OPEN[id];render();}
+async function postAcomp(id){
+  const t=$('at-input-'+id);const texto=(t?t.value:'').trim();
+  if(!texto){alert('Escreva o acompanhamento antes de publicar.');return;}
+  try{
+    await sb('POST','desvio_status_updates',pcoComTag({item_id:id,texto,autor:userNome(),tipo:'acompanhamento'}));
+    await sb('PATCH',pcoComUnidade('desvio_plano_acao?id=eq.'+id),{acompanhamento:texto,atualizado_em:new Date().toISOString()});
+    EDIT_OPEN[id]=false;HIST_OPEN[id]=true;
+    await loadAll();
+  }catch(err){alert('Não foi possível salvar o acompanhamento.\n\n'+err.message);}
+}
+
+/* ---------- modal de ação ---------- */
+function recalcDesvioPreview(){
+  const it={data_realizada:$('f-dreal').value||null,data_replanejada:$('f-drep').value||null,data_planejada_termino:$('f-dpt').value||null};
+  const dv=desvioDias(it);
+  $('f-desvio-preview').textContent=dv==null?'—':(dv>0?`+${dv} dia(s) de atraso`:(dv<0?`${Math.abs(dv)} dia(s) adiantado`:'no prazo (0d)'));
+}
+['f-dpt','f-drep','f-dreal'].forEach(id=>{const e=$(id);if(e)e.addEventListener('change',recalcDesvioPreview);});
+
+function openModal(id){
+  editingId=id||null;
+  const r=id?DATA.find(x=>x.id===id):null;
+  $('modalTitle').textContent=r?`Editar ação #${r.num??''}`:'Nova ação';
+  $('modalDelete').style.display=r?'':'none';
+  $('f-empresa').value=r?.empresa||'';
+  $('f-area').value=r?.area||'';
+  $('f-acao').value=r?.acao||'';
+  $('f-impacto').value=r?.impacto||'';
+  $('f-estimado').value=r&&r.impacto_estimado!=null?fmtEst(r.impacto_estimado):'';
+  $('f-responsavel').value=r?.responsavel||'';
+  $('f-dpi').value=r?.data_planejada_inicio||'';
+  $('f-dpt').value=r?.data_planejada_termino||'';
+  $('f-drep').value=r?.data_replanejada||'';
+  $('f-dreal').value=r?.data_realizada||'';
+  $('f-status').value=r?.status||'Não iniciado';
+  $('f-acomp-field').style.display=r?'none':'';
+  $('f-acomp').value='';
+  $('f-acao-field').classList.remove('invalid');
+  recalcDesvioPreview();
+  $('modalOverlay').classList.add('show');
+  setTimeout(()=>$('f-empresa').focus(),40);
+}
+function closeModal(){$('modalOverlay').classList.remove('show');editingId=null;}
+
+async function saveModal(){
+  const acao=$('f-acao').value.trim();
+  if(!acao){$('f-acao-field').classList.add('invalid');$('f-acao').focus();return;}
+  const payload={
+    empresa:$('f-empresa').value.trim()||null,
+    area:$('f-area').value.trim()||null,
+    acao,
+    impacto:$('f-impacto').value.trim()||null,
+    impacto_estimado:parseEst($('f-estimado').value),
+    responsavel:$('f-responsavel').value.trim()||null,
+    data_planejada_inicio:$('f-dpi').value||null,
+    data_planejada_termino:$('f-dpt').value||null,
+    data_replanejada:$('f-drep').value||null,
+    data_realizada:$('f-dreal').value||null,
+    status:$('f-status').value,
+    atualizado_em:new Date().toISOString()
+  };
+  const btn=$('modalSave');btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    if(editingId){
+      await sb('PATCH',pcoComUnidade('desvio_plano_acao?id=eq.'+editingId),payload);
+      NEW_ID=editingId;
+    }else{
+      const num=Math.max(0,...weekRows().map(r=>r.num||0))+1;
+      const acomp=$('f-acomp').value.trim();
+      const novo=(await sb('POST','desvio_plano_acao',pcoComTag({...payload,semana:CURRENT,num,criado_por:userNome(),acompanhamento:acomp||null})))[0];
+      if(novo&&acomp) await sb('POST','desvio_status_updates',pcoComTag({item_id:novo.id,texto:acomp,autor:userNome(),tipo:'acompanhamento'}));
+      NEW_ID=novo?novo.id:null;
+    }
+    closeModal();
+    await loadAll();
+    if(NEW_ID)setTimeout(()=>{NEW_ID=null;render();},2400);
+  }catch(err){
+    alert('Não foi possível salvar a ação.\n\nSe o erro mencionar uma coluna, confira se o script SQL mais recente foi aplicado.\n\nDetalhe: '+err.message);
+  }finally{btn.disabled=false;btn.textContent='Salvar';}
+}
+async function deleteItem(){
+  if(!editingId)return;
+  if(!confirm('Excluir esta ação e todo o seu histórico de acompanhamento? Esta ação não pode ser desfeita.'))return;
+  try{
+    await sb('DELETE',pcoComUnidade('desvio_status_updates?item_id=eq.'+editingId));
+    await sb('DELETE',pcoComUnidade('desvio_plano_acao?id=eq.'+editingId));
+    closeModal();
+    await loadAll();
+  }catch(err){alert('Não foi possível excluir.\n\n'+err.message);}
+}
+
+/* ---------- semanas ---------- */
+function openWeekModal(){
+  const d=new Date();const iso=d.toISOString().slice(0,10);
+  $('f-week-date').value=iso;
+  $('weekModalOverlay').classList.add('show');
+}
+function closeWeekModal(){$('weekModalOverlay').classList.remove('show');}
+function createWeek(){
+  const v=$('f-week-date').value;
+  if(!v){alert('Escolha a data de emissão da semana.');return;}
+  CURRENT=v;
+  if(!SEMANAS.includes(v))SEMANAS.unshift(v);
+  SEMANAS.sort((a,b)=>b.localeCompare(a));
+  closeWeekModal();
+  renderWeekSelect();
+  refresh();
+}
+function switchWeek(v){CURRENT=v||null;activeStatusFilter='';$('searchInput').value='';renderWeekSelect();refresh();}
+
+async function copyPrevWeek(){
+  if(!CURRENT){alert('Selecione uma semana primeiro.');return;}
+  const asc=[...SEMANAS].sort((a,b)=>a.localeCompare(b));
+  const idx=asc.indexOf(CURRENT);
+  const prev=idx>0?asc[idx-1]:null;
+  if(!prev){alert('Não há uma semana anterior para copiar.');return;}
+  const src=DATA.filter(r=>r.semana===prev && r.status!=='Concluído' && r.status!=='Cancelada');
+  if(!src.length){alert('A semana anterior ('+fmtBr(prev)+') não tem ações em aberto para copiar.');return;}
+  if(!confirm(`Copiar ${src.length} ação(ões) em aberto de ${fmtBr(prev)} para a semana de ${fmtBr(CURRENT)}?\n\nAs datas realizadas e o acompanhamento serão zerados; o status volta para "Não iniciado".`))return;
+  let base=Math.max(0,...weekRows().map(r=>r.num||0));
+  const novos=src.map((r,i)=>pcoComTag({
+    semana:CURRENT,num:base+i+1,empresa:r.empresa,area:r.area,acao:r.acao,impacto:r.impacto,
+    impacto_estimado:r.impacto_estimado,responsavel:r.responsavel,
+    data_planejada_inicio:r.data_planejada_inicio,data_planejada_termino:r.data_planejada_termino,
+    data_replanejada:r.data_replanejada,data_realizada:null,status:'Não iniciado',
+    acompanhamento:null,criado_por:userNome()
+  }));
+  try{
+    await sb('POST','desvio_plano_acao',novos);
+    await loadAll();
+  }catch(err){alert('Não foi possível copiar as ações.\n\n'+err.message);}
+}
+
+/* ---------- exportação Excel (layout fiel ao arquivo de origem) ---------- */
+/* Núcleo de geração do Excel do Plano de Ação — Desvio Semanal.
+   Reproduz o layout do arquivo de origem (faixa de título, cabeçalho dourado,
+   bordas cinza, linha de total, formatos de data/número).
+   Usado tanto no browser (ExcelJS via CDN) quanto no teste Node. */
+function buildDesvioWorkbook(ExcelJS, opts){
+  const rows      = opts.rows;
+  const UPD       = opts.UPD || {};
+  const unidade   = opts.unidade || '';
+  const current   = opts.current || '';
+  const fmtTS     = opts.fmtTS || (x=>String(x||''));
+  const desvioDias= opts.desvioDias;
+
+  // paleta do arquivo de origem
+  const NAVY='FF1A2B3C', HEAD1='FF34495E', HEAD2='FF2E4057',
+        GOLD='FFFFC000', GREY='FFB0BEC5', TXT='FF1A2B3C',
+        GOLDTXT='FFF5A623', WHITE='FFFFFFFF';
+  const NCOLS=14;
+
+  const toDate = s=>{
+    if(!s) return null;
+    const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+    return m ? new Date(Number(m[1]),Number(m[2])-1,Number(m[3])) : null;
+  };
+  const thin  = c=>({style:'thin',color:{argb:c}});
+  const allBd = c=>({top:thin(c),left:thin(c),bottom:thin(c),right:thin(c)});
+  const solid = c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+
+  const wb=new ExcelJS.Workbook();
+  wb.creator='PCO Digital'; wb.created=new Date();
+
+  /* ================= aba principal ================= */
+  const ws=wb.addWorksheet('Plano de Ação',{
+    views:[{state:'frozen',ySplit:5}],
+    pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,
+      margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2}}
+  });
+
+  const widths=[5,16,30,46,46,16,26,18,15,15,15,15,11,16];
+  widths.forEach((w,i)=>ws.getColumn(i+1).width=w);
+
+  // R1 — faixa fina dourada
+  ws.mergeCells(1,1,1,NCOLS);
+  ws.getRow(1).height=6;
+  for(let c=1;c<=NCOLS;c++) ws.getCell(1,c).fill=solid(GOLD);
+
+  // R2 — título
+  ws.mergeCells(2,1,2,NCOLS);
+  ws.getRow(2).height=26;
+  for(let c=1;c<=NCOLS;c++) ws.getCell(2,c).fill=solid(NAVY);
+  const t=ws.getCell(2,1);
+  t.value='Plano de Ação - Desvio Semanal';
+  t.font={name:'Arial',size:16,bold:true,color:{argb:WHITE}};
+  t.alignment={horizontal:'center',vertical:'middle'};
+
+  // R3 — unidade + data de emissão
+  ws.getRow(3).height=16;
+  for(let c=1;c<=NCOLS;c++) ws.getCell(3,c).fill=solid(HEAD2);
+  ws.mergeCells(3,1,3,3);
+  const uni=ws.getCell(3,1);
+  uni.value='Unidade: '+unidade;
+  uni.font={name:'Arial',size:9,bold:true,color:{argb:WHITE}};
+  uni.alignment={horizontal:'center',vertical:'middle'};
+  ws.getCell(3,1).fill=solid(HEAD1);
+  ws.mergeCells(3,12,3,13);
+  const del=ws.getCell(3,12);
+  del.value='Data Emissão:';
+  del.font={name:'Arial',size:9,bold:true,color:{argb:WHITE}};
+  del.alignment={horizontal:'right',vertical:'middle'};
+  const dev=ws.getCell(3,14);
+  const dCur=toDate(current);
+  dev.value=dCur||current;
+  if(dCur) dev.numFmt='dd/mm/yyyy';
+  dev.font={name:'Arial',size:9,color:{argb:GOLDTXT}};
+  dev.alignment={horizontal:'left',vertical:'middle'};
+
+  // R4 — faixa "AÇÕES"
+  ws.getRow(4).height=16;
+  for(let c=1;c<=NCOLS;c++) ws.getCell(4,c).fill=solid(HEAD1);
+  ws.mergeCells(4,1,4,3);
+  const ac=ws.getCell(4,1);
+  ac.value='AÇÕES';
+  ac.font={name:'Arial',size:9,bold:true,color:{argb:WHITE}};
+  ac.alignment={horizontal:'center',vertical:'middle'};
+
+  // R5 — cabeçalho das colunas
+  const header=['#','Empresa','Área','Ação','Impacto','Impacto estimado na próxima semana',
+    'Acompanhamento','Responsável','Data Planejada Início','Data Planejada Término',
+    'Data Replanejada','Data Realizada','Desvio (dias)','Situação'];
+  ws.getRow(5).height=30;
+  header.forEach((h,i)=>{
+    const c=ws.getCell(5,i+1);
+    c.value=h;
+    c.font={name:'Arial',size:10,bold:true,color:{argb:TXT}};
+    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    c.fill=solid(GOLD);
+    c.border=allBd(WHITE);
+  });
+
+  // dados
+  let ri=6;
+  rows.forEach(r=>{
+    const last=(UPD[r.id]||[])[0];
+    const dv=desvioDias?desvioDias(r):null;
+    const vals=[
+      (r.num!=null?r.num:''), r.empresa||'', r.area||'', r.acao||'', r.impacto||'',
+      (r.impacto_estimado!=null&&r.impacto_estimado!==''?Number(r.impacto_estimado):''),
+      last?last.texto:(r.acompanhamento||''),
+      r.responsavel||'',
+      toDate(r.data_planejada_inicio), toDate(r.data_planejada_termino),
+      toDate(r.data_replanejada), toDate(r.data_realizada),
+      (dv==null?'':dv), (r.status||'')
+    ];
+    vals.forEach((v,i)=>{
+      const c=ws.getCell(ri,i+1);
+      c.value=(v==null?'':v);
+      c.font={name:'Arial',size:10,color:{argb:TXT},bold:(i===3||i===5)};
+      const isDate=(i>=8&&i<=11);
+      const centered=(i===0||i===5||i===12||isDate);
+      c.alignment={horizontal:centered?'center':'left',vertical:'middle',wrapText:true};
+      c.border=allBd(GREY);
+      if(isDate && v instanceof Date) c.numFmt='dd/mm/yyyy';
+      if(i===5 && typeof v==='number')  c.numFmt='0.00';
+      if(i===12 && typeof v==='number') c.numFmt='0';
+    });
+    ri++;
+  });
+
+  // linha TOTAL (soma dos impactos estimados)
+  for(let c=1;c<=NCOLS;c++) ws.getCell(ri,c).border=allBd(GREY);
+  const tl=ws.getCell(ri,5);
+  tl.value='TOTAL';
+  tl.font={name:'Arial',size:11,bold:true,color:{argb:TXT}};
+  tl.alignment={horizontal:'right',vertical:'middle'};
+  const somaEst=rows.reduce((a,r)=>a+(Number(r.impacto_estimado)||0),0);
+  const tv=ws.getCell(ri,6);
+  tv.value={formula:`SUBTOTAL(109,F6:F${ri-1})`, result:somaEst};
+  tv.font={name:'Arial',size:12,bold:true,color:{argb:TXT}};
+  tv.alignment={horizontal:'center',vertical:'middle'};
+  tv.fill=solid(GOLD);
+  tv.numFmt='0.00';
+  const lastDataRow=ri;
+  ri++;
+
+  ws.autoFilter={from:{row:5,column:1},to:{row:5,column:NCOLS}};
+
+  /* ================= aba Histórico ================= */
+  const wsH=wb.addWorksheet('Histórico',{pageSetup:{orientation:'landscape'}});
+  [6,46,72,20,22].forEach((w,i)=>wsH.getColumn(i+1).width=w);
+  const hh=['#','Ação','Acompanhamento','Data e hora','Autor'];
+  wsH.getRow(1).height=20;
+  hh.forEach((h,i)=>{
+    const c=wsH.getCell(1,i+1);
+    c.value=h;
+    c.font={name:'Arial',size:10,bold:true,color:{argb:WHITE}};
+    c.alignment={horizontal:'center',vertical:'middle'};
+    c.fill=solid(HEAD2);
+    c.border=allBd(WHITE);
+  });
+  let hi=2;
+  rows.forEach(r=>{
+    [...(UPD[r.id]||[])].reverse().forEach(u=>{
+      const vals=[(r.num!=null?r.num:''), r.acao||'', u.texto||'', fmtTS(u.criado_em), u.autor||''];
+      vals.forEach((v,i)=>{
+        const c=wsH.getCell(hi,i+1);
+        c.value=v;
+        c.font={name:'Arial',size:10,color:{argb:TXT}};
+        c.alignment={horizontal:(i===0?'center':'left'),vertical:'top',wrapText:true};
+        c.border=allBd(GREY);
+      });
+      hi++;
+    });
+  });
+  if(hi===2){
+    wsH.getCell(2,1).value='—';
+    wsH.getCell(2,2).value='Sem registros de acompanhamento nesta semana.';
+    wsH.getCell(2,2).font={name:'Arial',size:10,italic:true,color:{argb:'FF999999'}};
+  }
+
+  return {wb, lastDataRow};
+}
+
+async function exportExcel(){
+  if(typeof ExcelJS==='undefined'){alert('Biblioteca de Excel (ExcelJS) não carregou — verifique a conexão e tente novamente.');return;}
+  if(!CURRENT){alert('Selecione uma semana para exportar.');return;}
+  const rows=sortRows(weekRows(),$('sortSelect').value);
+  if(!rows.length){alert('Nenhuma ação nesta semana para exportar.');return;}
+  try{
+    const {wb}=buildDesvioWorkbook(ExcelJS,{
+      rows, UPD, unidade:unidadeNome(), current:CURRENT, fmtTS, desvioDias
+    });
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const uTag=unidadeNome().replace(/\s+/g,'_');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`Plano_de_Acao_Desvio_Semanal_${uTag}_${CURRENT}.xlsx`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+  }catch(err){
+    alert('Não foi possível gerar o Excel.\n\n'+(err&&err.message?err.message:err));
+  }
+}
+
+/* ---------- fechar modais ao clicar fora / ESC ---------- */
+['modalOverlay','weekModalOverlay'].forEach(id=>{
+  const ov=$(id);
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('show');});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('modalOverlay').classList.remove('show');$('weekModalOverlay').classList.remove('show');}});
+
+/* ---------- boot ---------- */
+function doLogout(){sessionStorage.clear();window.location.href='login.html';}
+(function init(){
+  const token=sessionStorage.getItem('pco_token');
+  if(!token){window.location.href='login.html';return;}
+  const nome=sessionStorage.getItem('pco_nome')||'',email=sessionStorage.getItem('pco_email')||'';
+  $('user-avatar').textContent=(nome.split(' ').slice(0,2).map(w=>w[0]).join('')||'?').toUpperCase();
+  $('user-nome').textContent=nome||email;$('user-email').textContent=email;
+  pcoRenderSwitcher('unidade-switcher');
+  loadAll();
+})();
+</script>
+</body>
+</html>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Plano de Ação · Desvio Semanal · PCO</title>
