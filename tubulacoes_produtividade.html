@@ -573,7 +573,11 @@ svg.chart text{font-family:'Montserrat',sans-serif}
 const CFG    = window.PCO_CONFIG || {};
 const SB_URL = (CFG.supabase||{}).url || '';
 const SB_KEY = (CFG.supabase||{}).key || '';
-const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+// O access_token do Supabase Auth (pco_token) expira em ~1h e o sistema não
+// guarda refresh_token — por isso as chamadas de dados usam a anon key, igual
+// aos demais módulos (drenagem, terraplanagem). O pco_token continua sendo a
+// prova de sessão para o guard da página.
+const TOKEN  = SB_KEY;
 const PERFIL = sessionStorage.getItem('pco_perfil') || 'viewer';
 const EMAIL  = sessionStorage.getItem('pco_email')  || '';
 const NOME   = sessionStorage.getItem('pco_nome')   || '';
@@ -637,16 +641,26 @@ const comUni  = p => (typeof pcoComUnidade==='function' ? pcoComUnidade(p) : p);
 const comTag  = b => Array.isArray(b) ? b.map(r=>Object.assign({unidade:UNI()},r))
                                       : Object.assign({unidade:UNI()},b);
 
+// PGRST303 = JWT expirado. Só acontece se a anon key também for um JWT vencido;
+// nesse caso não adianta insistir, o usuário precisa entrar de novo.
+function checaSessao(txt){
+  if(txt && txt.indexOf('PGRST303')>=0){
+    toast('Sua sessão expirou. Entre novamente para continuar.','err');
+    setTimeout(()=>{ sessionStorage.clear(); window.location.href='login.html' }, 2600);
+    return true;
+  }
+  return false;
+}
 async function sbGet(path){
   const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{headers:H()});
-  if(!r.ok) throw new Error(await r.text());
+  if(!r.ok){ const t=await r.text(); checaSessao(t); throw new Error(t) }
   return r.json();
 }
 async function sbAll(path){          // pagina de 1000 em 1000
   let out=[], from=0;
   for(;;){
     const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{headers:H({'Range-Unit':'items','Range':from+'-'+(from+999)})});
-    if(!r.ok) throw new Error(await r.text());
+    if(!r.ok){ const t=await r.text(); checaSessao(t); throw new Error(t) }
     const j = await r.json();
     out = out.concat(j);
     if(j.length < 1000) break;
@@ -658,13 +672,13 @@ async function sbAll(path){          // pagina de 1000 em 1000
 async function sbPost(path, body, prefer){
   const r = await fetch(SB_URL+'/rest/v1/'+path,{method:'POST',
     headers:H({'Prefer': prefer || 'return=representation'}), body:JSON.stringify(comTag(body))});
-  if(!r.ok) throw new Error(await r.text());
+  if(!r.ok){ const t=await r.text(); checaSessao(t); throw new Error(t) }
   const t = await r.text();
   try{ return JSON.parse(t) }catch(_){ return [] }
 }
 async function sbDel(path){
   const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{method:'DELETE',headers:H()});
-  if(!r.ok) throw new Error(await r.text());
+  if(!r.ok){ const t=await r.text(); checaSessao(t); throw new Error(t) }
 }
 async function sbPatch(path, body){
   const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{method:'PATCH',headers:H(),body:JSON.stringify(body)});
@@ -699,10 +713,22 @@ async function carregar(){
     renderTudo();
   }catch(e){
     console.error(e);
-    toast('Não consegui carregar os dados. Confira se o schema SQL já foi criado no Supabase.','err');
-    $('#kpis').innerHTML = '<div class="note err" style="grid-column:1/-1">'+
-      '<strong>Sem conexão com as tabelas de tubulações.</strong><br>'+
-      'Rode o script <code>pco_tubulacoes_schema.sql</code> no SQL Editor do Supabase e recarregue a página.</div>';
+    const msg = String(e.message||'');
+    const semTabela = msg.indexOf('42P01')>=0 || msg.indexOf('PGRST205')>=0 ||
+                      msg.toLowerCase().indexOf('does not exist')>=0;
+    if(msg.indexOf('PGRST303')>=0){
+      $('#kpis').innerHTML = '<div class="note err" style="grid-column:1/-1">'+
+        '<strong>Sessão expirada.</strong><br>Entre novamente para carregar os dados.</div>';
+    } else if(semTabela){
+      toast('As tabelas de tubulações ainda não existem no Supabase.','err');
+      $('#kpis').innerHTML = '<div class="note err" style="grid-column:1/-1">'+
+        '<strong>Tabelas de tubulações não encontradas.</strong><br>'+
+        'Rode o script <code>pco_tubulacoes_schema.sql</code> no SQL Editor do Supabase e recarregue a página.</div>';
+    } else {
+      toast('Não consegui carregar os dados: '+msg.slice(0,140),'err');
+      $('#kpis').innerHTML = '<div class="note err" style="grid-column:1/-1">'+
+        '<strong>Falha ao carregar.</strong><br>'+esc(msg.slice(0,300))+'</div>';
+    }
   }
 }
 
