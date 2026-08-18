@@ -792,6 +792,69 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
+    <!-- PRODUTIVIDADE -->
+    <a class="card" href="produtividade.html" id="card-produtividade" style="--prod:#304F7E">
+      <div class="card-bar" style="background:linear-gradient(90deg,#304F7E,#007D77)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#eef2f8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#304F7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 20h18"/>
+            <rect x="4" y="12" width="3.5" height="6" rx="0.5"/>
+            <rect x="10.25" y="8" width="3.5" height="10" rx="0.5"/>
+            <rect x="16.5" y="4" width="3.5" height="14" rx="0.5"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#304F7E">Produtividade · Memoriais</div>
+        <div class="card-title">Produtividade</div>
+        <div class="card-desc">Avanço semanal das contratadas a partir dos memoriais de cálculo. Começa por Tubulações — carbono e inox, fabricação, montagem, suportes e pintura — com controle de cobertura da lista de materiais.</div>
+        <div class="card-chips">
+          <span class="chip chip-blue">Tubulações</span>
+          <span class="chip chip-green">Avanço semanal</span>
+          <span class="chip chip-gray">Memorial · Excel</span>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="pr-emp">—</div>
+          <div class="card-kpi-label">Empresas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="pr-iso">—</div>
+          <div class="card-kpi-label">Isométricos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="pr-sem">—</div>
+          <div class="card-kpi-label">Semanas</div>
+        </div>
+      </div>
+
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço ponderado — tubulações</span>
+          <span class="card-progress-pct" id="pr-pct" style="color:#304F7E">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div id="pr-bar" style="background:#304F7E;height:100%;width:0%;transition:width .6s"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço na última semana</span>
+          <span class="card-progress-pct" id="pr-delta" style="color:var(--green)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="pr-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#304F7E">Abrir produtividade</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
     <div class="card orange soon">
       <div class="soon-badge">Em breve</div>
@@ -1117,6 +1180,43 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
+  /* ── PRODUTIVIDADE · TUBULAÇÕES ── */
+  async function loadProdutividade(){
+    try{
+      const [emp, mem] = await Promise.all([
+        sbGet('tub_empresas?select=id&ativo=eq.true'),
+        sbGet('tub_memoriais?select=empresa_id,semana,qtd_itens,avanco_total&order=semana.asc')
+      ]);
+      const memo = mem.data || [];
+      setEl('pr-emp', fmt((emp.data||[]).length));
+      const semanas = [...new Set(memo.map(m=>m.semana))].sort();
+      setEl('pr-sem', fmt(semanas.length));
+
+      const ult = {};
+      memo.forEach(m=>{ if(!ult[m.empresa_id] || m.semana > ult[m.empresa_id].semana) ult[m.empresa_id]=m });
+      const fotos = Object.values(ult);
+      setEl('pr-iso', fmt(fotos.reduce((a,m)=>a+(m.qtd_itens||0),0)));
+      if(!fotos.length){ setEl('pr-pct','—'); setEl('pr-delta','sem memoriais'); return }
+
+      const media = fotos.reduce((a,m)=>a+(m.avanco_total||0),0)/fotos.length;
+      setEl('pr-pct', Math.round(media*1000)/10 + '%');
+      const bar = document.getElementById('pr-bar');
+      if(bar) bar.style.width = (media*100) + '%';
+
+      if(semanas.length >= 2){
+        const s1=semanas[semanas.length-1], s0=semanas[semanas.length-2];
+        const a1=memo.filter(m=>m.semana===s1), a0=memo.filter(m=>m.semana===s0);
+        if(a1.length && a0.length){
+          const m1=a1.reduce((a,m)=>a+(m.avanco_total||0),0)/a1.length;
+          const m0=a0.reduce((a,m)=>a+(m.avanco_total||0),0)/a0.length;
+          const d=(m1-m0)*100;
+          setEl('pr-delta', (d>=0?'+':'') + (Math.round(d*100)/100) + ' p.p.');
+        }
+      } else setEl('pr-delta','1ª semana');
+      setEl('pr-updated','última semana importada: ' + semanas[semanas.length-1]);
+    } catch(_){ setEl('pr-pct','—'); setEl('pr-delta','módulo não configurado') }
+  }
+
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
     loadDrenagem();
@@ -1125,6 +1225,7 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     loadLpsEi();
     loadRso();
     loadDesvio();
+    loadProdutividade();
     setTimeout(loadAdmin, 300);
   });
 })();

@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tubulações · Produtividade · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4; --border-2:#e6eaef;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-soft:#eef2f8;
+  --gold:#EAA239; --gold-soft:#fdf3e3;
+  --green:#609346; --green-soft:#e8efe1;
+  --orange:#D97706; --orange-soft:#FEF3C7;
+  --red:#CC5121; --red-soft:#fbeae3;
+  --teal:#007D77; --teal-soft:#e0f2f1;
+  --purple:#6B5B95;
+  --neutral:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+.page{max-width:1440px;margin:0 auto;padding:34px 24px 80px}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* HEADER */
+.site-header{border-bottom:3px solid var(--blue);padding-bottom:16px;margin-bottom:14px;
+  display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.site-header .eyebrow{font-size:9px;color:var(--blue);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.site-header h1{font-size:24px;font-weight:800;letter-spacing:-0.5px;line-height:1.15}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.breadcrumb{font-size:10px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:20px}
+.breadcrumb a{color:var(--blue);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+.user-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-chip{display:flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #b0c0da;
+  padding:5px 11px;font-size:11px;font-weight:600;color:var(--blue)}
+.user-chip .user-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;
+  font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.user-role{font-size:8px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;
+  background:#fff;border:1px solid var(--border);padding:2px 6px;color:var(--text-mute)}
+
+/* BUTTONS */
+.btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;padding:8px 14px;border:1px solid var(--border);background:var(--panel);
+  color:var(--text-dim);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:#223a60}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#3d2a00}
+.btn.ghost-red:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:13px;height:13px}
+
+/* TOOLBAR */
+.toolbar{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);
+  padding:14px 16px;margin-bottom:18px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:8px;color:var(--text-mute);letter-spacing:1.2px;text-transform:uppercase;font-weight:700}
+.fld select,.fld input{font-family:'Montserrat',sans-serif;font-size:12px;border:1px solid var(--border);
+  padding:7px 9px;background:var(--bg);outline:none;color:var(--text);min-width:150px}
+.fld select:focus,.fld input:focus{border-color:var(--blue)}
+.toolbar .spacer{flex:1}
+
+/* TABS */
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:22px;flex-wrap:wrap}
+.tab{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:11px 18px;
+  border:none;background:none;color:var(--text-mute);cursor:pointer;border-bottom:3px solid transparent;
+  margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--text-dim)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab .badge{display:inline-block;background:var(--red);color:#fff;font-size:8px;padding:1px 5px;margin-left:5px;border-radius:8px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* KPI STRIP */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--blue);
+  padding:14px 16px;box-shadow:var(--shadow)}
+.kpi.teal{border-top-color:var(--teal)} .kpi.gold{border-top-color:var(--gold)}
+.kpi.green{border-top-color:var(--green)} .kpi.red{border-top-color:var(--red)}
+.kpi-label{font-size:8px;color:var(--text-mute);letter-spacing:1.2px;text-transform:uppercase;font-weight:700;margin-bottom:7px}
+.kpi-val{font-size:27px;font-weight:800;letter-spacing:-1.2px;line-height:1}
+.kpi-sub{font-size:10px;color:var(--text-dim);margin-top:5px;line-height:1.4}
+
+/* BOX */
+.box{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:22px}
+.box-head{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.box-title{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase}
+.box-sub{font-size:10px;color:var(--text-mute);margin-top:3px;font-weight:500;letter-spacing:0;text-transform:none}
+.box-body{padding:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:1000px){.grid-2{grid-template-columns:1fr}}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim);font-weight:600}
+.legend i{width:11px;height:11px;display:inline-block;border-radius:2px}
+
+/* TABLE */
+.tbl-wrap{overflow:auto;max-height:620px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{position:sticky;top:0;background:#f7f8fa;z-index:2;text-align:left;font-size:8.5px;
+  letter-spacing:1px;text-transform:uppercase;color:var(--text-mute);font-weight:800;
+  padding:9px 10px;border-bottom:2px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+thead th.nosort{cursor:default}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tbody tr:hover{background:#fafbfc}
+td.num,th.num{text-align:right;font-family:'JetBrains Mono',monospace}
+.tag{font-size:8.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 7px;border:1px solid;white-space:nowrap}
+.t-carbono{background:var(--blue-soft);border-color:#b0c0da;color:var(--blue)}
+.t-inox{background:var(--teal-soft);border-color:#9ecfcb;color:#00615c}
+.t-suporte{background:var(--gold-soft);border-color:#eccb90;color:#8a5d00}
+.t-outro{background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
+.t-ok{background:var(--green-soft);border-color:#a8c990;color:#3a6229}
+.t-alerta{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.t-erro{background:var(--red-soft);border-color:#e7b39c;color:#8f3411}
+
+/* mini progress bar in table */
+.pbar{position:relative;height:14px;background:#eef0f3;min-width:74px}
+.pbar>i{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+.pbar>b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--text)}
+
+/* EMPRESA CARDS */
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:22px}
+.emp-card{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+.emp-card .bar{height:4px}
+.emp-card .in{padding:14px 16px}
+.emp-name{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.emp-ct{font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-top:2px}
+.emp-big{display:flex;align-items:baseline;gap:9px;margin:12px 0 4px}
+.emp-big .v{font-size:30px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.emp-big .d{font-size:11px;font-weight:800}
+.emp-rows{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+.emp-row{display:grid;grid-template-columns:78px 1fr 42px;gap:8px;align-items:center;font-size:10px}
+.emp-row .lb{color:var(--text-mute);font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:8.5px}
+.emp-row .tr{height:8px;background:#eef0f3}
+.emp-row .tr>i{display:block;height:100%}
+.emp-row .pc{font-family:'JetBrains Mono',monospace;font-size:10px;text-align:right;font-weight:700}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(20,28,42,.55);display:none;align-items:flex-start;
+  justify-content:center;z-index:200;padding:40px 16px;overflow:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);box-shadow:0 24px 64px -12px rgba(0,0,0,.4);
+  width:100%;max-width:1000px}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{font-size:14px;font-weight:800;letter-spacing:-.2px}
+.modal-body{padding:20px;max-height:70vh;overflow:auto}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:#fafbfc}
+.close-x{background:none;border:none;font-size:22px;line-height:1;color:var(--text-mute);cursor:pointer}
+.close-x:hover{color:var(--red)}
+
+/* STEPS */
+.steps{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border)}
+.step{flex:1;padding:9px 12px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-mute);background:#fafbfc;border-right:1px solid var(--border);text-align:center}
+.step:last-child{border-right:none}
+.step.on{background:var(--blue);color:#fff}
+.step.done{background:var(--blue-soft);color:var(--blue)}
+
+.drop{border:2px dashed var(--border);padding:36px 20px;text-align:center;background:#fafbfc;cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--blue);background:var(--blue-soft)}
+.drop .big{font-size:13px;font-weight:700;margin-bottom:5px}
+.drop .sm{font-size:11px;color:var(--text-mute)}
+
+.map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.note{background:var(--blue-soft);border-left:3px solid var(--blue);padding:11px 13px;font-size:11px;
+  color:var(--text-dim);line-height:1.6;margin-bottom:16px}
+.note.warn{background:var(--orange-soft);border-left-color:var(--orange)}
+.note.ok{background:var(--green-soft);border-left-color:var(--green)}
+.note.err{background:var(--red-soft);border-left-color:var(--red)}
+.note strong{color:var(--text)}
+
+.empty{padding:48px 20px;text-align:center;color:var(--text-mute);font-size:12px}
+.empty .big{font-size:14px;font-weight:700;color:var(--text-dim);margin-bottom:6px}
+
+/* toast */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--text);color:#fff;padding:11px 20px;font-size:12px;font-weight:600;z-index:400;
+  transition:all .25s;pointer-events:none;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:var(--red)}
+#toast.ok{background:var(--green)}
+
+svg.chart{width:100%;display:block;overflow:visible}
+svg.chart text{font-family:'Montserrat',sans-serif}
+.chart-tip{position:fixed;background:var(--text);color:#fff;font-size:10.5px;padding:7px 10px;
+  pointer-events:none;z-index:300;display:none;line-height:1.5;box-shadow:0 6px 20px -4px rgba(0,0,0,.4)}
+.chart-tip b{font-weight:700}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">Produtividade</div>
+      <h1>Tubulações <span>· Avanço por contrato</span></h1>
+    </div>
+    <div class="user-bar">
+      <span id="unidade-switcher"></span>
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div id="user-nome" style="font-size:11px;font-weight:700">—</div>
+          <div id="user-email" style="font-size:9px;color:var(--text-mute)" class="mono"></div>
+        </div>
+      </div>
+      <span class="user-role" id="user-role">viewer</span>
+      <button class="btn ghost-red" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="breadcrumb">
+    <a href="index.html">Painel</a> / <a href="produtividade.html">Produtividade</a> / Tubulações
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="fld">
+      <label>Empresa</label>
+      <select id="f-empresa"><option value="">Todas as empresas</option></select>
+    </div>
+    <div class="fld">
+      <label>Semana de referência</label>
+      <select id="f-semana"></select>
+    </div>
+    <div class="fld">
+      <label>Escopo</label>
+      <select id="f-escopo">
+        <option value="">Tubulações + Suportes</option>
+        <option value="TUBULACAO">Somente tubulações</option>
+        <option value="SUPORTE">Somente suportes</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>Material</label>
+      <select id="f-material">
+        <option value="">Carbono + Inox</option>
+        <option value="CARBONO">Carbono</option>
+        <option value="INOX">Inox</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn primary" id="btn-import">＋ Importar memorial</button>
+    <button class="btn" id="btn-lista">Lista de materiais</button>
+    <button class="btn" id="btn-empresas">Empresas</button>
+    <button class="btn" id="btn-export">Exportar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" data-panel="p-geral">Visão geral</button>
+    <button class="tab" data-panel="p-semanal">Avanço semanal</button>
+    <button class="tab" data-panel="p-itens">Isométricos</button>
+    <button class="tab" data-panel="p-cobertura">Cobertura <span class="badge" id="cob-badge" style="display:none">0</span></button>
+    <button class="tab" data-panel="p-hist">Memoriais</button>
+  </div>
+
+  <!-- ── PANEL: VISÃO GERAL ── -->
+  <div class="panel active" id="p-geral">
+    <div class="emp-grid" id="emp-grid"></div>
+    <div class="grid-2">
+      <div class="box">
+        <div class="box-head">
+          <div>
+            <div class="box-title">Avanço acumulado por semana</div>
+            <div class="box-sub">% ponderado pelo peso de cada item · por empresa</div>
+          </div>
+          <div class="legend" id="lg-acum"></div>
+        </div>
+        <div class="box-body"><div id="ch-acum"></div></div>
+      </div>
+      <div class="box">
+        <div class="box-head">
+          <div>
+            <div class="box-title">Composição do avanço por etapa</div>
+            <div class="box-sub">Fabricação · Montagem · Pintura — última semana</div>
+          </div>
+          <div class="legend">
+            <span><i style="background:#304F7E"></i>Fabricação</span>
+            <span><i style="background:#007D77"></i>Montagem</span>
+            <span><i style="background:#609346"></i>Pintura</span>
+          </div>
+        </div>
+        <div class="box-body"><div id="ch-etapas"></div></div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Resumo por empresa · escopo · material</div>
+          <div class="box-sub">Semana selecionada · peso relativo dentro do contrato</div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="tb-resumo"></table></div>
+    </div>
+  </div>
+
+  <!-- ── PANEL: AVANÇO SEMANAL ── -->
+  <div class="panel" id="p-semanal">
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Avanço no período (p.p. por semana)</div>
+          <div class="box-sub">Diferença de avanço ponderado entre memoriais consecutivos</div>
+        </div>
+        <div class="legend" id="lg-delta"></div>
+      </div>
+      <div class="box-body"><div id="ch-delta"></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <div class="box-head">
+          <div>
+            <div class="box-title">Tubulações de carbono</div>
+            <div class="box-sub">Acumulado (linha) e avanço da semana (barra)</div>
+          </div>
+        </div>
+        <div class="box-body"><div id="ch-carbono"></div></div>
+      </div>
+      <div class="box">
+        <div class="box-head">
+          <div>
+            <div class="box-title">Tubulações de inox</div>
+            <div class="box-sub">Acumulado (linha) e avanço da semana (barra)</div>
+          </div>
+        </div>
+        <div class="box-body"><div id="ch-inox"></div></div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-head">
+        <div class="box-title">Histórico semanal detalhado</div>
+      </div>
+      <div class="tbl-wrap"><table id="tb-semanal"></table></div>
+    </div>
+  </div>
+
+  <!-- ── PANEL: ISOMÉTRICOS ── -->
+  <div class="panel" id="p-itens">
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Isométricos / itens do memorial</div>
+          <div class="box-sub" id="itens-sub">—</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="fld"><label>Buscar</label><input id="q-itens" placeholder="line number, tag..." style="min-width:210px"></div>
+          <div class="fld"><label>Etapa</label><select id="f-etapa"><option value="">Todas</option></select></div>
+          <div class="fld"><label>Faixa</label>
+            <select id="f-faixa">
+              <option value="">Todas</option>
+              <option value="0">Não iniciados (0%)</option>
+              <option value="wip">Em andamento</option>
+              <option value="100">Concluídos (100%)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="tb-itens"></table></div>
+    </div>
+  </div>
+
+  <!-- ── PANEL: COBERTURA ── -->
+  <div class="panel" id="p-cobertura">
+    <div class="kpis" id="cob-kpis"></div>
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Cobertura da lista de materiais</div>
+          <div class="box-sub">Cada line number da lista mestre confrontado com os memoriais da última semana</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="fld"><label>Situação</label>
+            <select id="f-cob">
+              <option value="">Todas</option>
+              <option value="NAO_MAPEADO">Não mapeados</option>
+              <option value="DIVERGENCIA_MATERIAL">Divergência de material</option>
+              <option value="EXTRA">Fora da lista (só no memorial)</option>
+              <option value="DUPLICADO">Duplicados entre empresas</option>
+              <option value="OK">OK</option>
+            </select>
+          </div>
+          <div class="fld"><label>Buscar</label><input id="q-cob" placeholder="line number..." style="min-width:190px"></div>
+          <button class="btn" id="btn-cob-exp">Exportar pendências</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="tb-cob"></table></div>
+    </div>
+  </div>
+
+  <!-- ── PANEL: MEMORIAIS ── -->
+  <div class="panel" id="p-hist">
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Memoriais importados</div>
+          <div class="box-sub">Uma foto por empresa por semana</div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="tb-hist"></table></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ MODAL: IMPORTAR MEMORIAL ══════════ -->
+<div class="modal-bg" id="md-import">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Importar memorial de cálculo</h3>
+      <button class="close-x" data-close="md-import">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="steps">
+        <div class="step on"   id="st-1">1 · Arquivo</div>
+        <div class="step"      id="st-2">2 · Mapeamento</div>
+        <div class="step"      id="st-3">3 · Conferência</div>
+        <div class="step"      id="st-4">4 · Gravação</div>
+      </div>
+
+      <!-- passo 1 -->
+      <div id="imp-1">
+        <div class="note">Envie o arquivo <strong>.xlsx</strong> do memorial. O sistema tenta reconhecer
+          automaticamente o padrão da empresa; se não reconhecer, você indica manualmente qual coluna é o quê —
+          e esse mapeamento fica salvo para as próximas semanas.</div>
+        <div class="drop" id="drop">
+          <div class="big">Clique aqui ou arraste o memorial</div>
+          <div class="sm">.xlsx · .xlsm · .xls</div>
+          <input type="file" id="file" accept=".xlsx,.xlsm,.xls" style="display:none">
+        </div>
+      </div>
+
+      <!-- passo 2 -->
+      <div id="imp-2" style="display:none">
+        <div id="imp-detect"></div>
+        <div class="map-grid" style="margin-bottom:16px">
+          <div class="fld"><label>Aba da planilha</label><select id="m-aba"></select></div>
+          <div class="fld"><label>Linha do cabeçalho</label><input type="number" id="m-header" min="1" value="1"></div>
+        </div>
+        <div class="box" style="margin-bottom:16px">
+          <div class="box-head"><div class="box-title">De-para das colunas</div></div>
+          <div class="box-body">
+            <div class="map-grid" id="map-fields"></div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="box-head"><div class="box-title">Pesos de ponderação das etapas</div>
+            <div class="box-sub">Usados só quando o memorial não traz a coluna de % total</div></div>
+          <div class="box-body">
+            <div class="map-grid">
+              <div class="fld"><label>Fabricação (c/ pintura)</label><input type="number" step="0.01" id="w-fab-cp" value="0.30"></div>
+              <div class="fld"><label>Montagem (c/ pintura)</label><input type="number" step="0.01" id="w-mont-cp" value="0.65"></div>
+              <div class="fld"><label>Pintura</label><input type="number" step="0.01" id="w-pint-cp" value="0.05"></div>
+              <div class="fld"><label>Fabricação (s/ pintura)</label><input type="number" step="0.01" id="w-fab-sp" value="0.30"></div>
+              <div class="fld"><label>Montagem (s/ pintura)</label><input type="number" step="0.01" id="w-mont-sp" value="0.70"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- passo 3 -->
+      <div id="imp-3" style="display:none">
+        <div id="imp-valid"></div>
+        <div class="kpis" id="imp-kpis"></div>
+        <div class="box">
+          <div class="box-head"><div class="box-title">Prévia dos itens lidos</div>
+            <div class="box-sub" id="imp-prev-sub"></div></div>
+          <div class="tbl-wrap" style="max-height:340px"><table id="tb-prev"></table></div>
+        </div>
+      </div>
+
+      <!-- passo 4 -->
+      <div id="imp-4" style="display:none">
+        <div class="map-grid" style="margin-bottom:16px">
+          <div class="fld"><label>Empresa</label><select id="i-empresa"></select></div>
+          <div class="fld"><label>Semana de referência (segunda-feira)</label><input type="date" id="i-semana"></div>
+          <div class="fld"><label>Revisão do memorial</label><input id="i-revisao" placeholder="REV 05"></div>
+        </div>
+        <div class="fld" style="margin-bottom:16px"><label>Observação</label><input id="i-obs" placeholder="opcional"></div>
+        <div class="note warn">A gravação <strong>substitui</strong> a foto já existente daquela empresa naquela semana.
+          O histórico das demais semanas não é afetado.</div>
+        <div id="imp-status"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="imp-back" style="display:none">← Voltar</button>
+      <button class="btn" data-close="md-import">Cancelar</button>
+      <button class="btn primary" id="imp-next" disabled>Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: LISTA DE MATERIAIS ══════════ -->
+<div class="modal-bg" id="md-lista">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Lista de materiais (lista mestre)</h3>
+      <button class="close-x" data-close="md-lista">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="note">A lista de materiais é a referência de <strong>tudo que existe na obra</strong>.
+        É contra ela que o sistema verifica se cada isométrico está mapeado em algum memorial.</div>
+      <div class="drop" id="drop-lista">
+        <div class="big">Clique aqui ou arraste a lista de materiais</div>
+        <div class="sm">.xlsx · .csv</div>
+        <input type="file" id="file-lista" accept=".xlsx,.xlsm,.xls,.csv" style="display:none">
+      </div>
+      <div id="lista-map" style="display:none;margin-top:18px">
+        <div class="map-grid" style="margin-bottom:14px">
+          <div class="fld"><label>Aba</label><select id="l-aba"></select></div>
+          <div class="fld"><label>Linha do cabeçalho</label><input type="number" id="l-header" min="1" value="1"></div>
+          <div class="fld"><label>Revisão</label><input id="l-revisao" placeholder="REV 00"></div>
+        </div>
+        <div class="map-grid" id="lista-fields"></div>
+        <div id="lista-prev" style="margin-top:16px"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close="md-lista">Fechar</button>
+      <button class="btn primary" id="lista-save" disabled>Gravar lista</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: EMPRESAS ══════════ -->
+<div class="modal-bg" id="md-empresas">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-head">
+      <h3>Empresas com escopo de tubulações</h3>
+      <button class="close-x" data-close="md-empresas">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="map-grid" style="margin-bottom:14px">
+        <div class="fld"><label>Nome</label><input id="e-nome" placeholder="RANGEL"></div>
+        <div class="fld"><label>Sigla</label><input id="e-sigla" placeholder="RGL"></div>
+        <div class="fld"><label>Contrato</label><input id="e-contrato" placeholder="30055"></div>
+        <div class="fld"><label>Cor no gráfico</label><input type="color" id="e-cor" value="#304F7E"></div>
+      </div>
+      <div class="fld" style="margin-bottom:14px"><label>Escopo</label><input id="e-escopo" placeholder="Tubulações e suportes — Pipe Rack"></div>
+      <button class="btn primary" id="e-add">Adicionar empresa</button>
+      <div class="box" style="margin-top:18px">
+        <div class="tbl-wrap" style="max-height:300px"><table id="tb-emp"></table></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" data-close="md-empresas">Fechar</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="chart-tip" id="tip"></div>
+<script>
+/* ================================================================
+   TUBULAÇÕES · PRODUTIVIDADE — lógica da tela
+   ================================================================ */
+(function(){
+'use strict';
+
+/* ─────────────── CONFIG / SESSÃO ─────────────── */
+const CFG    = window.PCO_CONFIG || {};
+const SB_URL = (CFG.supabase||{}).url || '';
+const SB_KEY = (CFG.supabase||{}).key || '';
+const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+const PERFIL = sessionStorage.getItem('pco_perfil') || 'viewer';
+const EMAIL  = sessionStorage.getItem('pco_email')  || '';
+const NOME   = sessionStorage.getItem('pco_nome')   || '';
+
+if(!sessionStorage.getItem('pco_token')) { window.location.href='login.html'; }
+document.getElementById('user-avatar').textContent =
+  (NOME.split(' ').slice(0,2).map(w=>w[0]).join('') || '?').toUpperCase();
+document.getElementById('user-nome').textContent  = NOME || EMAIL;
+document.getElementById('user-email').textContent = EMAIL;
+document.getElementById('user-role').textContent  = PERFIL;
+window.doLogout = function(){ sessionStorage.clear(); window.location.href='login.html'; };
+if(typeof pcoRenderSwitcher==='function') pcoRenderSwitcher('unidade-switcher');
+
+const PODE_EDITAR = ['admin','editor','planejador'].includes(PERFIL);
+
+/* ─────────────── UTILS ─────────────── */
+const $  = s=>document.querySelector(s);
+const $$ = s=>Array.from(document.querySelectorAll(s));
+const nf0 = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+const nf1 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const nf2 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pc  = (v,d)=> v==null||isNaN(v) ? '—' : (d===2?nf2:nf1).format(v*100)+'%';
+const kg  = v=> v==null?'—':nf0.format(v);
+const esc = s=> String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v=>{
+  if(v==null||v==='') return 0;
+  if(typeof v==='number') return isFinite(v)?v:0;
+  const s=String(v).replace(/\s|%/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',','.');
+  const n=parseFloat(s); return isFinite(n)?n:0;
+};
+function toast(msg, kind){
+  const t=$('#toast'); t.textContent=msg; t.className='show '+(kind||'');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3800);
+}
+function segunda(d){
+  const x = d instanceof Date ? new Date(d) : new Date(d+'T00:00:00');
+  const dow = (x.getDay()+6)%7; x.setDate(x.getDate()-dow);
+  return x.toISOString().slice(0,10);
+}
+function dBR(s){ return s ? s.split('-').reverse().join('/') : '—' }
+function semanaLabel(s){
+  const d=new Date(s+'T00:00:00');
+  const ini=new Date(d.getFullYear(),0,1);
+  const w=Math.ceil((((d-ini)/86400000)+ini.getDay()+1)/7);
+  return 'S'+String(w).padStart(2,'0')+' · '+dBR(s).slice(0,5);
+}
+function normLine(s){
+  return String(s||'').toUpperCase().replace(/\s+/g,' ').trim()
+    .replace(/[–—]/g,'-').replace(/\s*-\s*/g,'-');
+}
+
+/* ─────────────── SUPABASE (com multi-unidade) ─────────────── */
+const H = extra => Object.assign({
+  'apikey':SB_KEY, 'Authorization':'Bearer '+TOKEN, 'Content-Type':'application/json'
+}, extra||{});
+
+// unidade.js define pcoUnidadeAtual/pcoComUnidade/pcoComTag; fallback seguro
+// caso a página seja aberta isolada.
+const UNI     = ()=> (typeof pcoUnidadeAtual==='function' ? pcoUnidadeAtual() : 'RDN');
+const comUni  = p => (typeof pcoComUnidade==='function' ? pcoComUnidade(p) : p);
+const comTag  = b => Array.isArray(b) ? b.map(r=>Object.assign({unidade:UNI()},r))
+                                      : Object.assign({unidade:UNI()},b);
+
+async function sbGet(path){
+  const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{headers:H()});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbAll(path){          // pagina de 1000 em 1000
+  let out=[], from=0;
+  for(;;){
+    const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{headers:H({'Range-Unit':'items','Range':from+'-'+(from+999)})});
+    if(!r.ok) throw new Error(await r.text());
+    const j = await r.json();
+    out = out.concat(j);
+    if(j.length < 1000) break;
+    from += 1000;
+    if(from > 200000) break;
+  }
+  return out;
+}
+async function sbPost(path, body, prefer){
+  const r = await fetch(SB_URL+'/rest/v1/'+path,{method:'POST',
+    headers:H({'Prefer': prefer || 'return=representation'}), body:JSON.stringify(comTag(body))});
+  if(!r.ok) throw new Error(await r.text());
+  const t = await r.text();
+  try{ return JSON.parse(t) }catch(_){ return [] }
+}
+async function sbDel(path){
+  const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{method:'DELETE',headers:H()});
+  if(!r.ok) throw new Error(await r.text());
+}
+async function sbPatch(path, body){
+  const r = await fetch(SB_URL+'/rest/v1/'+comUni(path),{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+}
+
+/* ─────────────── ESTADO ─────────────── */
+const PALETA = ['#304F7E','#007D77','#EAA239','#609346','#CC5121','#6B5B95','#0F766E','#B45309'];
+const S = {
+  empresas:[], memoriais:[], resumo:[], itens:[], lista:[], itensUlt:[],
+  f:{empresa:'', semana:'', escopo:'', material:''},
+  semanas:[], sortItens:{k:'pct_total',dir:1}, ready:false
+};
+const empById = id => S.empresas.find(e=>e.id==id);
+const corEmp  = id => { const e=empById(id); if(e&&e.cor) return e.cor;
+  const i=S.empresas.findIndex(x=>x.id==id); return PALETA[(i<0?0:i)%PALETA.length]; };
+const nomeEmp = id => (empById(id)||{}).nome || ('Empresa '+id);
+
+/* ─────────────── CARGA ─────────────── */
+async function carregar(){
+  try{
+    const [emp, mem, res] = await Promise.all([
+      sbAll('tub_empresas?select=*&order=nome.asc'),
+      sbAll('tub_memoriais?select=*&order=semana.asc'),
+      sbAll('tub_resumo_semanal?select=*&order=semana.asc')
+    ]);
+    S.empresas = emp; S.memoriais = mem; S.resumo = res;
+    S.semanas = [...new Set(mem.map(m=>m.semana))].sort();
+    S.ready = true;
+    montarFiltros();
+    await carregarItens();
+    renderTudo();
+  }catch(e){
+    console.error(e);
+    toast('Não consegui carregar os dados. Confira se o schema SQL já foi criado no Supabase.','err');
+    $('#kpis').innerHTML = '<div class="note err" style="grid-column:1/-1">'+
+      '<strong>Sem conexão com as tabelas de tubulações.</strong><br>'+
+      'Rode o script <code>pco_tubulacoes_schema.sql</code> no SQL Editor do Supabase e recarregue a página.</div>';
+  }
+}
+
+async function carregarItens(){
+  if(!S.semanas.length){ S.itens=[]; S.itensUlt=[]; return }
+  const sem = S.f.semana || S.semanas[S.semanas.length-1];
+  let q = 'tub_itens?select=*&semana=eq.'+sem;
+  if(S.f.empresa) q += '&empresa_id=eq.'+S.f.empresa;
+  S.itens = await sbAll(q);
+  // itens da última foto de cada empresa (para cobertura)
+  const ult = {};
+  S.memoriais.forEach(m=>{ if(!ult[m.empresa_id] || m.semana>ult[m.empresa_id]) ult[m.empresa_id]=m.semana });
+  const pares = Object.entries(ult);
+  if(pares.length){
+    const arr = await Promise.all(pares.map(([e,s])=>
+      sbAll('tub_itens?select=id,empresa_id,semana,escopo,material,line_number,linha_raw,diametro,peso_kg,pct_total&empresa_id=eq.'+e+'&semana=eq.'+s)));
+    S.itensUlt = arr.flat();
+  } else S.itensUlt = [];
+  try{ S.lista = await sbAll('tub_lista_materiais?select=*&ativo=is.true') }catch(_){ S.lista=[] }
+}
+
+/* ─────────────── FILTROS ─────────────── */
+function montarFiltros(){
+  const se = $('#f-empresa');
+  se.innerHTML = '<option value="">Todas as empresas</option>' +
+    S.empresas.map(e=>`<option value="${e.id}">${esc(e.nome)}${e.contrato?' · '+esc(e.contrato):''}</option>`).join('');
+  se.value = S.f.empresa;
+
+  const ss = $('#f-semana');
+  if(!S.semanas.length){ ss.innerHTML='<option value="">sem memoriais</option>' }
+  else{
+    ss.innerHTML = S.semanas.slice().reverse().map(s=>
+      `<option value="${s}">${semanaLabel(s)}</option>`).join('');
+    if(!S.f.semana) S.f.semana = S.semanas[S.semanas.length-1];
+    ss.value = S.f.semana;
+  }
+}
+['f-empresa','f-semana','f-escopo','f-material'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', async e=>{
+    S.f[id.slice(2)] = e.target.value;
+    if(id==='f-empresa'||id==='f-semana'){ await carregarItens() }
+    renderTudo();
+  });
+});
+
+/* ─────────────── AGREGAÇÃO ─────────────── */
+function comboFiltro(){
+  const {escopo,material} = S.f;
+  if(!escopo && !material) return ['TOTAL','TOTAL'];
+  if(!escopo &&  material) return ['TUBULACAO', material];
+  if(escopo==='SUPORTE')   return ['SUPORTE','TOTAL'];
+  return ['TUBULACAO', material || 'TOTAL'];
+}
+function resumoDe(empresaId, semana){
+  const [e,m] = comboFiltro();
+  return S.resumo.find(r=>r.empresa_id==empresaId && r.semana===semana && r.escopo===e && r.material===m);
+}
+function empresasVisiveis(){
+  const ids = S.f.empresa ? [Number(S.f.empresa)]
+    : [...new Set(S.memoriais.map(m=>m.empresa_id))];
+  return ids.filter(id=>empById(id));
+}
+function consolidado(semana){
+  const rows = empresasVisiveis().map(id=>resumoDe(id,semana)).filter(Boolean);
+  if(!rows.length) return null;
+  const W = rows.reduce((a,r)=>a+(r.peso_kg||0),0) || rows.length;
+  const wm = k => rows.reduce((a,r)=>a+(r.peso_kg||1)*(r[k]||0),0)/W;
+  return {
+    peso_kg: rows.reduce((a,r)=>a+(r.peso_kg||0),0),
+    qtd_itens: rows.reduce((a,r)=>a+(r.qtd_itens||0),0),
+    avanco_total: wm('avanco_total'), avanco_fab: wm('avanco_fab'),
+    avanco_mont: wm('avanco_mont'), avanco_pint: wm('avanco_pint'),
+    empresas: rows.length
+  };
+}
+
+/* ─────────────── RENDER ─────────────── */
+function renderTudo(){
+  renderKPIs(); renderEmpresaCards(); renderChartAcumulado(); renderChartEtapas();
+  renderTabelaResumo(); renderSemanal(); renderItens(); renderCobertura(); renderHist();
+}
+
+function renderKPIs(){
+  const sem = S.f.semana;
+  const c   = consolidado(sem);
+  const idx = S.semanas.indexOf(sem);
+  const ant = idx>0 ? consolidado(S.semanas[idx-1]) : null;
+  const delta = (c && ant) ? (c.avanco_total - ant.avanco_total) : null;
+
+  const cob = calcCobertura();
+  const box = (cls,label,val,sub)=>`<div class="kpi ${cls}">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+
+  if(!c){
+    $('#kpis').innerHTML = `<div class="note" style="grid-column:1/-1">
+      <strong>Nenhum memorial importado ainda.</strong><br>
+      Clique em <em>Importar memorial</em> e envie o arquivo da primeira empresa.</div>`;
+    return;
+  }
+  $('#kpis').innerHTML = [
+    box('','Avanço ponderado', pc(c.avanco_total),
+        (c.empresas>1? c.empresas+' empresas · ':'') + 'semana '+dBR(sem)),
+    box('green','Avanço no período',
+        delta==null?'—':(delta>=0?'+':'')+nf2.format(delta*100)+' p.p.',
+        idx>0? 'vs '+dBR(S.semanas[idx-1]) : 'primeira semana'),
+    box('teal','Fabricação', pc(c.avanco_fab), 'ponderado por peso'),
+    box('','Montagem', pc(c.avanco_mont), 'ponderado por peso'),
+    box('gold','Pintura', pc(c.avanco_pint), 'sobre o peso total do escopo'),
+    box('','Itens mapeados', nf0.format(c.qtd_itens), nf0.format(c.peso_kg/1000)+' t de projeto'),
+    box(cob.naoMapeados>0?'red':'green','Cobertura da lista',
+        cob.total? pc(1-cob.naoMapeados/cob.total) : '—',
+        cob.total? cob.naoMapeados+' de '+cob.total+' sem memorial' : 'lista de materiais não carregada')
+  ].join('');
+}
+
+function renderEmpresaCards(){
+  const sem=S.f.semana, idx=S.semanas.indexOf(sem);
+  const html = empresasVisiveis().map(id=>{
+    const r = resumoDe(id, sem);
+    if(!r) return '';
+    const a = idx>0 ? resumoDe(id, S.semanas[idx-1]) : null;
+    const d = a ? (r.avanco_total-a.avanco_total)*100 : null;
+    const cor = corEmp(id), e = empById(id)||{};
+    const linha = (lb,v,c)=>`<div class="emp-row">
+        <div class="lb">${lb}</div>
+        <div class="tr"><i style="width:${Math.max(0,Math.min(100,(v||0)*100))}%;background:${c}"></i></div>
+        <div class="pc">${v==null?'—':nf1.format(v*100)+'%'}</div></div>`;
+    return `<div class="emp-card">
+      <div class="bar" style="background:${cor}"></div>
+      <div class="in">
+        <div class="emp-name">${esc(e.nome||'')}</div>
+        <div class="emp-ct">${esc(e.contrato?'CT '+e.contrato:'')} ${esc(e.escopo_desc||'')}</div>
+        <div class="emp-big">
+          <div class="v" style="color:${cor}">${nf1.format((r.avanco_total||0)*100)}%</div>
+          <div class="d" style="color:${d==null?'var(--text-mute)':(d>=0?'var(--green)':'var(--red)')}">
+            ${d==null?'—':(d>=0?'▲ +':'▼ ')+nf2.format(d)+' p.p.'}</div>
+        </div>
+        <div class="emp-rows">
+          ${linha('Fabricação', r.avanco_fab, '#304F7E')}
+          ${linha('Montagem',  r.avanco_mont,'#007D77')}
+          ${linha('Pintura',   r.avanco_pint,'#609346')}
+        </div>
+        <div style="margin-top:12px;font-size:9.5px;color:var(--text-mute)" class="mono">
+          ${nf0.format(r.qtd_itens||0)} itens · ${nf1.format((r.peso_kg||0)/1000)} t
+        </div>
+      </div></div>`;
+  }).join('');
+  $('#emp-grid').innerHTML = html || '';
+}
+
+function renderTabelaResumo(){
+  const sem=S.f.semana, idx=S.semanas.indexOf(sem);
+  const combos=[['TUBULACAO','CARBONO','Tubulação carbono','t-carbono'],
+                ['TUBULACAO','INOX','Tubulação inox','t-inox'],
+                ['SUPORTE','TOTAL','Suportes','t-suporte']];
+  let rows='';
+  empresasVisiveis().forEach(id=>{
+    combos.forEach(([e,m,lab,cls])=>{
+      const r = S.resumo.find(x=>x.empresa_id==id&&x.semana===sem&&x.escopo===e&&x.material===m);
+      if(!r || !r.qtd_itens) return;
+      const a = idx>0 ? S.resumo.find(x=>x.empresa_id==id&&x.semana===S.semanas[idx-1]&&x.escopo===e&&x.material===m) : null;
+      const d = a? (r.avanco_total-a.avanco_total)*100 : null;
+      rows += `<tr>
+        <td><b>${esc(nomeEmp(id))}</b></td>
+        <td><span class="tag ${cls}">${lab}</span></td>
+        <td class="num">${nf0.format(r.qtd_itens||0)}</td>
+        <td class="num">${nf1.format((r.peso_kg||0)/1000)}</td>
+        <td class="num">${pc(r.peso_rel)}</td>
+        <td class="num">${pc(r.avanco_fab)}</td>
+        <td class="num">${pc(r.avanco_mont)}</td>
+        <td class="num">${pc(r.avanco_pint)}</td>
+        <td>${pbar(r.avanco_total)}</td>
+        <td class="num" style="color:${d==null?'var(--text-mute)':(d>0?'var(--green)':'var(--text-mute)')}">
+          ${d==null?'—':(d>=0?'+':'')+nf2.format(d)}</td>
+      </tr>`;
+    });
+  });
+  $('#tb-resumo').innerHTML =
+    `<thead><tr>
+      <th class="nosort">Empresa</th><th class="nosort">Recorte</th>
+      <th class="num nosort">Itens</th><th class="num nosort">Peso (t)</th><th class="num nosort">Peso rel.</th>
+      <th class="num nosort">Fabricação</th><th class="num nosort">Montagem</th><th class="num nosort">Pintura</th>
+      <th class="nosort">Avanço total</th><th class="num nosort">Δ p.p.</th>
+    </tr></thead><tbody>${rows || '<tr><td colspan="10" class="empty">Sem dados para o filtro atual.</td></tr>'}</tbody>`;
+}
+function pbar(v){
+  const p=Math.max(0,Math.min(100,(v||0)*100));
+  const cor = p>=99.5?'var(--green)':p>=50?'var(--blue)':p>0?'var(--gold)':'var(--neutral)';
+  return `<div class="pbar"><i style="width:${p}%;background:${cor}"></i><b>${nf1.format(p)}%</b></div>`;
+}
+
+/* ─────────────── GRÁFICOS (SVG) ─────────────── */
+const TIP = $('#tip');
+function showTip(ev, html){ TIP.innerHTML=html; TIP.style.display='block';
+  TIP.style.left=Math.min(window.innerWidth-TIP.offsetWidth-10, ev.clientX+14)+'px';
+  TIP.style.top =Math.max(8, ev.clientY-TIP.offsetHeight-10)+'px'; }
+function hideTip(){ TIP.style.display='none' }
+
+function svgEl(w,h){
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" width="100%" height="${h}">`;
+}
+function eixoY(x0,x1,y0,y1,max,fmt){
+  let s='', n=5;
+  for(let i=0;i<=n;i++){
+    const v=max*i/n, y=y1-(y1-y0)*(i/n);
+    s+=`<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="#e6eaef" stroke-width="1"/>`;
+    s+=`<text x="${x0-7}" y="${y+3.5}" font-size="9" fill="#8a95a6" text-anchor="end">${fmt(v)}</text>`;
+  }
+  return s;
+}
+
+function renderChartAcumulado(){
+  const el=$('#ch-acum'), sems=S.semanas;
+  if(sems.length<1){ el.innerHTML='<div class="empty">Importe pelo menos um memorial.</div>'; $('#lg-acum').innerHTML=''; return }
+  const series = empresasVisiveis().map(id=>({
+    name:nomeEmp(id), color:corEmp(id),
+    values: sems.map(s=>{ const r=resumoDe(id,s); return r? r.avanco_total*100 : null })
+  })).filter(s=>s.values.some(v=>v!=null));
+  $('#lg-acum').innerHTML = series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
+  el.innerHTML = lineChart(sems.map(semanaLabel), series, el);
+  bindTip(el, sems, series, v=>nf1.format(v)+'%');
+}
+
+function lineChart(labels, series, el){
+  const W=Math.max(420, el.clientWidth||620);
+  const H=260, x0=46,x1=W-12,y0=14,y1=H-30;
+  const max=Math.max(10, Math.ceil(Math.max(...series.flatMap(s=>s.values.filter(v=>v!=null)),0)/10)*10);
+  const X = i => labels.length<2 ? (x0+x1)/2 : x0+(x1-x0)*i/(labels.length-1);
+  const Y = v => y1-(y1-y0)*(v/max);
+  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,max,v=>nf0.format(v)+'%');
+  labels.forEach((l,i)=>{
+    if(labels.length>14 && i%Math.ceil(labels.length/12)) return;
+    s+=`<text x="${X(i)}" y="${y1+15}" font-size="8.5" fill="#8a95a6" text-anchor="middle">${esc(l)}</text>`;
+  });
+  series.forEach(se=>{
+    let d='', started=false;
+    se.values.forEach((v,i)=>{ if(v==null){started=false;return}
+      d += (started?'L':'M')+X(i)+' '+Y(v)+' '; started=true; });
+    s+=`<path d="${d}" fill="none" stroke="${se.color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    se.values.forEach((v,i)=>{ if(v==null)return;
+      s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3.2" fill="#fff" stroke="${se.color}" stroke-width="2"/>` });
+  });
+  labels.forEach((l,i)=>{ s+=`<rect class="hz" data-i="${i}" x="${X(i)-((x1-x0)/Math.max(1,labels.length-1))/2}" y="${y0}"
+      width="${(x1-x0)/Math.max(1,labels.length-1)||x1-x0}" height="${y1-y0}" fill="transparent"/>` });
+  return s+'</svg>';
+}
+function bindTip(el, sems, series, fmt){
+  el.querySelectorAll('rect.hz').forEach(r=>{
+    r.addEventListener('mousemove', ev=>{
+      const i=+r.dataset.i;
+      let h=`<b>${semanaLabel(sems[i])}</b>`;
+      series.forEach(s=>{ if(s.values[i]!=null)
+        h+=`<br><span style="color:${s.color}">■</span> ${esc(s.name)}: <b>${fmt(s.values[i])}</b>` });
+      showTip(ev,h);
+    });
+    r.addEventListener('mouseleave', hideTip);
+  });
+}
+
+function renderChartEtapas(){
+  const el=$('#ch-etapas'), sem=S.f.semana;
+  const emps=empresasVisiveis().filter(id=>resumoDe(id,sem));
+  if(!emps.length){ el.innerHTML='<div class="empty">Sem dados na semana selecionada.</div>'; return }
+  const W=Math.max(360, el.clientWidth||560), rowH=52, H=emps.length*rowH+26;
+  const x0=Math.min(150, Math.max(80, ...emps.map(id=>nomeEmp(id).length*6.2))), x1=W-46;
+  let s=svgEl(W,H);
+  emps.forEach((id,i)=>{
+    const r=resumoDe(id,sem), y=i*rowH+16;
+    s+=`<text x="0" y="${y+13}" font-size="11" font-weight="700" fill="#1a2332">${esc(nomeEmp(id))}</text>`;
+    [['avanco_fab','#304F7E',0],['avanco_mont','#007D77',12],['avanco_pint','#609346',24]].forEach(([k,c,dy])=>{
+      const v=Math.max(0,Math.min(1,r[k]||0));
+      s+=`<rect x="${x0}" y="${y+dy}" width="${x1-x0}" height="9" fill="#eef0f3"/>`;
+      s+=`<rect x="${x0}" y="${y+dy}" width="${(x1-x0)*v}" height="9" fill="${c}"><title>${nf1.format(v*100)}%</title></rect>`;
+      s+=`<text x="${x1+5}" y="${y+dy+8}" font-size="8.5" fill="#546175" font-family="JetBrains Mono">${nf0.format(v*100)}%</text>`;
+    });
+  });
+  el.innerHTML = s+'</svg>';
+}
+
+function renderSemanal(){
+  const sems=S.semanas;
+  if(sems.length<1){ $('#ch-delta').innerHTML='<div class="empty">Sem memoriais.</div>';
+    $('#ch-carbono').innerHTML=''; $('#ch-inox').innerHTML=''; $('#tb-semanal').innerHTML=''; return }
+
+  // delta por empresa
+  const series = empresasVisiveis().map(id=>({
+    name:nomeEmp(id), color:corEmp(id),
+    values: sems.map((s,i)=>{
+      const r=resumoDe(id,s); if(!r) return null;
+      const a=i>0?resumoDe(id,sems[i-1]):null;
+      return a? (r.avanco_total-a.avanco_total)*100 : null;   // 1ª semana não tem período anterior
+    })
+  })).filter(s=>s.values.some(v=>v!=null));
+  $('#lg-delta').innerHTML = series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
+  $('#ch-delta').innerHTML = groupedBars(sems.map(semanaLabel), series, '#ch-delta');
+  bindTip($('#ch-delta'), sems, series, v=>(v>=0?'+':'')+nf2.format(v)+' p.p.');
+
+  // carbono / inox
+  ['CARBONO','INOX'].forEach(mat=>{
+    const el = $(mat==='CARBONO'?'#ch-carbono':'#ch-inox');
+    const acum=[], delta=[];
+    sems.forEach((s,i)=>{
+      const rows = empresasVisiveis().map(id=>S.resumo.find(x=>x.empresa_id==id&&x.semana===s&&x.escopo==='TUBULACAO'&&x.material===mat)).filter(Boolean);
+      if(!rows.length){ acum.push(null); delta.push(null); return }
+      const W=rows.reduce((a,r)=>a+(r.peso_kg||0),0)||rows.length;
+      const v=rows.reduce((a,r)=>a+(r.peso_kg||1)*(r.avanco_total||0),0)/W;
+      acum.push(v*100);
+      delta.push(i>0&&acum[i-1]!=null ? v*100-acum[i-1] : null);
+    });
+    if(!acum.some(v=>v!=null)){ el.innerHTML='<div class="empty">Sem itens de '+mat.toLowerCase()+'.</div>'; return }
+    el.innerHTML = comboChart(sems.map(semanaLabel), delta, acum,
+      mat==='CARBONO'?'#304F7E':'#007D77', el);
+    const ser=[{name:'Avanço da semana',color:mat==='CARBONO'?'#304F7E':'#007D77',values:delta},
+               {name:'Acumulado',color:'#8a95a6',values:acum}];
+    bindTip(el, sems, ser, v=>nf2.format(v)+'%');
+  });
+
+  // tabela
+  let rows='';
+  sems.slice().reverse().forEach(s=>{
+    empresasVisiveis().forEach(id=>{
+      const r=resumoDe(id,s); if(!r) return;
+      const i=sems.indexOf(s), a=i>0?resumoDe(id,sems[i-1]):null;
+      const d=a?(r.avanco_total-a.avanco_total)*100:null;
+      const m=S.memoriais.find(x=>x.empresa_id==id&&x.semana===s);
+      rows+=`<tr>
+        <td class="mono">${dBR(s)}</td>
+        <td><b>${esc(nomeEmp(id))}</b></td>
+        <td class="num">${pc(r.avanco_fab)}</td>
+        <td class="num">${pc(r.avanco_mont)}</td>
+        <td class="num">${pc(r.avanco_pint)}</td>
+        <td>${pbar(r.avanco_total)}</td>
+        <td class="num" style="font-weight:700;color:${d==null?'var(--text-mute)':(d>0?'var(--green)':'var(--text-mute)')}">
+          ${d==null?'—':(d>=0?'+':'')+nf2.format(d)+' p.p.'}</td>
+        <td class="num">${nf0.format(r.qtd_itens||0)}</td>
+        <td>${m&&m.revisao?esc(m.revisao):'—'}</td>
+      </tr>`;
+    });
+  });
+  $('#tb-semanal').innerHTML=`<thead><tr>
+      <th class="nosort">Semana</th><th class="nosort">Empresa</th>
+      <th class="num nosort">Fabricação</th><th class="num nosort">Montagem</th><th class="num nosort">Pintura</th>
+      <th class="nosort">Acumulado</th><th class="num nosort">No período</th>
+      <th class="num nosort">Itens</th><th class="nosort">Rev.</th>
+    </tr></thead><tbody>${rows||'<tr><td colspan="9" class="empty">Sem dados.</td></tr>'}</tbody>`;
+}
+
+function groupedBars(labels, series, sel){
+  const el=document.querySelector(sel);
+  const W=Math.max(420, el.clientWidth||760), H=250, x0=46,x1=W-12,y0=14,y1=H-30;
+  const vals=series.flatMap(s=>s.values.filter(v=>v!=null));
+  const max=Math.max(1, Math.ceil(Math.max(...vals,0)*1.15));
+  const gw=(x1-x0)/Math.max(1,labels.length), bw=Math.min(26,(gw-8)/Math.max(1,series.length));
+  const Y=v=>y1-(y1-y0)*(v/max);
+  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,max,v=>nf1.format(v));
+  labels.forEach((l,i)=>{
+    const cx=x0+gw*i+gw/2;
+    if(!(labels.length>14 && i%Math.ceil(labels.length/12)))
+      s+=`<text x="${cx}" y="${y1+15}" font-size="8.5" fill="#8a95a6" text-anchor="middle">${esc(l)}</text>`;
+    series.forEach((se,j)=>{
+      const v=se.values[i]; if(v==null) return;
+      const x=cx-(series.length*bw)/2+j*bw, h=Math.max(0,Y(0)-Y(Math.max(0,v)));
+      s+=`<rect x="${x}" y="${Y(Math.max(0,v))}" width="${bw-2}" height="${h}" fill="${se.color}" opacity=".9"/>`;
+    });
+    s+=`<rect class="hz" data-i="${i}" x="${x0+gw*i}" y="${y0}" width="${gw}" height="${y1-y0}" fill="transparent"/>`;
+  });
+  return s+'</svg>';
+}
+
+function comboChart(labels, bars, line, cor, el){
+  const W=Math.max(360, el.clientWidth||520), H=240, x0=42,x1=W-40,y0=14,y1=H-30;
+  const maxB=Math.max(1, Math.max(...bars.filter(v=>v!=null),0)*1.2);
+  const gw=(x1-x0)/Math.max(1,labels.length), bw=Math.min(30, gw*0.55);
+  const YB=v=>y1-(y1-y0)*(v/maxB), YL=v=>y1-(y1-y0)*(v/100);
+  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,maxB,v=>nf1.format(v));
+  for(let i=0;i<=5;i++){ const y=y1-(y1-y0)*(i/5);
+    s+=`<text x="${x1+6}" y="${y+3.5}" font-size="9" fill="#8a95a6">${i*20}%</text>` }
+  labels.forEach((l,i)=>{
+    const cx=x0+gw*i+gw/2;
+    if(bars[i]!=null){
+      const v=Math.max(0,bars[i]);
+      s+=`<rect x="${cx-bw/2}" y="${YB(v)}" width="${bw}" height="${Math.max(0,y1-YB(v))}" fill="${cor}" opacity=".28"/>`;
+    }
+    if(!(labels.length>12 && i%Math.ceil(labels.length/10)))
+      s+=`<text x="${cx}" y="${y1+15}" font-size="8.5" fill="#8a95a6" text-anchor="middle">${esc(l)}</text>`;
+  });
+  let d='',st=false;
+  line.forEach((v,i)=>{ if(v==null){st=false;return} const cx=x0+gw*i+gw/2;
+    d+=(st?'L':'M')+cx+' '+YL(v)+' '; st=true });
+  s+=`<path d="${d}" fill="none" stroke="${cor}" stroke-width="2.4"/>`;
+  line.forEach((v,i)=>{ if(v==null)return; const cx=x0+gw*i+gw/2;
+    s+=`<circle cx="${cx}" cy="${YL(v)}" r="3" fill="#fff" stroke="${cor}" stroke-width="2"/>` });
+  labels.forEach((l,i)=>{ s+=`<rect class="hz" data-i="${i}" x="${x0+gw*i}" y="${y0}" width="${gw}" height="${y1-y0}" fill="transparent"/>` });
+  return s+'</svg>';
+}
+
+/* ─────────────── ISOMÉTRICOS ─────────────── */
+function itensFiltrados(){
+  const q=($('#q-itens').value||'').toUpperCase().trim();
+  const et=$('#f-etapa').value, fx=$('#f-faixa').value;
+  return S.itens.filter(i=>{
+    if(S.f.escopo && i.escopo!==S.f.escopo) return false;
+    if(S.f.material && i.material!==S.f.material) return false;
+    if(et && String(i.etapa_grupo)!==et) return false;
+    if(fx==='0'   && (i.pct_total||0)>0)     return false;
+    if(fx==='100' && (i.pct_total||0)<0.9995) return false;
+    if(fx==='wip' && ((i.pct_total||0)<=0 || (i.pct_total||0)>=0.9995)) return false;
+    if(q && !((i.linha_raw||'')+' '+(i.line_number||'')).toUpperCase().includes(q)) return false;
+    return true;
+  });
+}
+function renderItens(){
+  const etapas=[...new Set(S.itens.map(i=>i.etapa_grupo).filter(Boolean))];
+  const sel=$('#f-etapa'), cur=sel.value;
+  sel.innerHTML='<option value="">Todas as etapas</option>'+etapas.map(e=>`<option>${esc(e)}</option>`).join('');
+  sel.value=cur;
+
+  const rows=itensFiltrados().sort((a,b)=>{
+    const k=S.sortItens.k, d=S.sortItens.dir;
+    const va=a[k], vb=b[k];
+    if(typeof va==='number'||typeof vb==='number') return ((va||0)-(vb||0))*d;
+    return String(va||'').localeCompare(String(vb||''))*d;
+  });
+  $('#itens-sub').textContent = nf0.format(rows.length)+' itens · semana '+dBR(S.f.semana)+
+    (S.f.empresa?' · '+nomeEmp(S.f.empresa):' · todas as empresas');
+
+  const head=[['linha_raw','Line number / TAG',''],['empresa_id','Empresa',''],
+    ['escopo','Escopo',''],['material','Material',''],['diametro','Ø',''],
+    ['etapa_grupo','Etapa',''],['peso_kg','Peso (kg)','num'],['pct_projeto','% projeto','num'],
+    ['pct_fab','Fabricação','num'],['pct_mont','Montagem','num'],['pct_pint','Pintura','num'],
+    ['pct_total','Avanço','']];
+  const th=head.map(([k,l,c])=>`<th class="${c}" data-k="${k}">${l}${S.sortItens.k===k?(S.sortItens.dir>0?' ▲':' ▼'):''}</th>`).join('');
+  const body = rows.slice(0,3000).map(i=>`<tr>
+      <td class="mono" style="font-size:10.5px">${esc(i.linha_raw)}</td>
+      <td>${esc(nomeEmp(i.empresa_id))}</td>
+      <td><span class="tag ${i.escopo==='SUPORTE'?'t-suporte':'t-outro'}">${i.escopo==='SUPORTE'?'Suporte':'Tubulação'}</span></td>
+      <td>${i.material==='CARBONO'?'<span class="tag t-carbono">Carbono</span>':
+            i.material==='INOX'?'<span class="tag t-inox">Inox</span>':'—'}</td>
+      <td class="mono">${esc(i.diametro||'—')}</td>
+      <td style="font-size:10.5px">${esc(i.etapa_grupo||'—')}</td>
+      <td class="num">${nf1.format(i.peso_kg||0)}</td>
+      <td class="num">${i.pct_projeto?nf2.format(i.pct_projeto*100)+'%':'—'}</td>
+      <td class="num">${pc(i.pct_fab)}</td>
+      <td class="num">${pc(i.pct_mont)}</td>
+      <td class="num">${i.tem_pintura?pc(i.pct_pint):'—'}</td>
+      <td>${pbar(i.pct_total)}</td>
+    </tr>`).join('');
+  $('#tb-itens').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${body||'<tr><td colspan="12" class="empty">Nenhum item.</td></tr>'}</tbody>`;
+  $$('#tb-itens thead th').forEach(th=>th.addEventListener('click',()=>{
+    const k=th.dataset.k; if(!k) return;
+    S.sortItens = {k, dir: S.sortItens.k===k ? -S.sortItens.dir : -1};
+    renderItens();
+  }));
+}
+['q-itens','f-etapa','f-faixa'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener(id==='q-itens'?'input':'change', ()=>renderItens());
+});
+
+/* ─────────────── COBERTURA ─────────────── */
+function calcCobertura(){
+  const tub = S.itensUlt.filter(i=>i.escopo==='TUBULACAO');
+  const byLine = {};
+  tub.forEach(i=>{ const k=normLine(i.line_number||i.linha_raw);
+    (byLine[k]=byLine[k]||[]).push(i) });
+  const linhas=[];
+  S.lista.forEach(l=>{
+    const k=normLine(l.line_number), hits=byLine[k];
+    let sit='OK';
+    if(!hits) sit='NAO_MAPEADO';
+    else if(new Set(hits.map(h=>h.empresa_id)).size>1) sit='DUPLICADO';
+    else if(l.material && hits[0].material && String(l.material).toUpperCase().slice(0,4)!==hits[0].material.slice(0,4)) sit='DIVERGENCIA_MATERIAL';
+    linhas.push({key:k, lista:l, hits:hits||[], sit});
+  });
+  const naLista = new Set(S.lista.map(l=>normLine(l.line_number)));
+  Object.entries(byLine).forEach(([k,hits])=>{
+    if(!naLista.has(k)) linhas.push({key:k, lista:null, hits, sit:'EXTRA'});
+  });
+  return {
+    linhas,
+    total:S.lista.length,
+    naoMapeados: linhas.filter(l=>l.sit==='NAO_MAPEADO').length,
+    extras:      linhas.filter(l=>l.sit==='EXTRA').length,
+    duplicados:  linhas.filter(l=>l.sit==='DUPLICADO').length,
+    divergentes: linhas.filter(l=>l.sit==='DIVERGENCIA_MATERIAL').length
+  };
+}
+function renderCobertura(){
+  const c = calcCobertura();
+  const pend = c.naoMapeados + c.extras + c.duplicados + c.divergentes;
+  const b=$('#cob-badge'); if(pend>0){ b.style.display=''; b.textContent=pend } else b.style.display='none';
+
+  if(!S.lista.length){
+    $('#cob-kpis').innerHTML='';
+    $('#tb-cob').innerHTML=`<tbody><tr><td class="empty">
+      <div class="big">Lista de materiais ainda não carregada</div>
+      Use o botão <b>Lista de materiais</b> na barra superior para subir a lista mestre —
+      é ela que permite verificar se todos os isométricos estão mapeados nos memoriais.
+    </td></tr></tbody>`;
+    return;
+  }
+  const box=(cls,l,v,s)=>`<div class="kpi ${cls}"><div class="kpi-label">${l}</div>
+    <div class="kpi-val">${v}</div><div class="kpi-sub">${s}</div></div>`;
+  $('#cob-kpis').innerHTML=[
+    box('','Itens na lista', nf0.format(c.total),'lista mestre de materiais'),
+    box(c.naoMapeados?'red':'green','Sem memorial', nf0.format(c.naoMapeados),
+        c.total?pc(c.naoMapeados/c.total)+' da lista':''),
+    box(c.extras?'gold':'green','Fora da lista', nf0.format(c.extras),'lançados só no memorial'),
+    box(c.duplicados?'red':'green','Duplicados', nf0.format(c.duplicados),'em mais de uma empresa'),
+    box(c.divergentes?'gold':'green','Material divergente', nf0.format(c.divergentes),'lista × memorial')
+  ].join('');
+
+  const f=$('#f-cob').value, q=($('#q-cob').value||'').toUpperCase().trim();
+  const rows=c.linhas.filter(l=>(!f||l.sit===f) &&
+      (!q || (l.key+' '+((l.lista&&l.lista.linha_raw)||'')).toUpperCase().includes(q)))
+    .sort((a,b)=>a.sit.localeCompare(b.sit)||a.key.localeCompare(b.key))
+    .slice(0,3000);
+  const tag={NAO_MAPEADO:['t-erro','Sem memorial'],EXTRA:['t-alerta','Fora da lista'],
+    DUPLICADO:['t-erro','Duplicado'],DIVERGENCIA_MATERIAL:['t-alerta','Material divergente'],OK:['t-ok','OK']};
+  const body=rows.map(l=>{
+    const [cls,lab]=tag[l.sit];
+    const emps=[...new Set(l.hits.map(h=>nomeEmp(h.empresa_id)))].join(', ');
+    const av=l.hits.length? l.hits.reduce((a,h)=>a+(h.peso_kg||1)*(h.pct_total||0),0)/l.hits.reduce((a,h)=>a+(h.peso_kg||1),0) : null;
+    return `<tr>
+      <td class="mono" style="font-size:10.5px">${esc((l.lista&&l.lista.linha_raw)||l.hits[0]&&l.hits[0].linha_raw||l.key)}</td>
+      <td class="mono">${esc((l.lista&&l.lista.diametro)||(l.hits[0]&&l.hits[0].diametro)||'—')}</td>
+      <td>${esc((l.lista&&l.lista.material)||(l.hits[0]&&l.hits[0].material)||'—')}</td>
+      <td>${esc((l.lista&&l.lista.area)||'—')}</td>
+      <td class="num">${l.lista&&l.lista.peso_kg?nf1.format(l.lista.peso_kg):'—'}</td>
+      <td>${esc(emps||(l.lista&&l.lista.empresa_prevista)||'—')}</td>
+      <td>${av==null?'—':pbar(av)}</td>
+      <td><span class="tag ${cls}">${lab}</span></td>
+    </tr>`;
+  }).join('');
+  $('#tb-cob').innerHTML=`<thead><tr>
+    <th class="nosort">Line number</th><th class="nosort">Ø</th><th class="nosort">Material</th>
+    <th class="nosort">Área</th><th class="num nosort">Peso (kg)</th>
+    <th class="nosort">Empresa no memorial</th><th class="nosort">Avanço</th><th class="nosort">Situação</th>
+  </tr></thead><tbody>${body||'<tr><td colspan="8" class="empty">Nada para mostrar.</td></tr>'}</tbody>`;
+}
+$('#f-cob').addEventListener('change',renderCobertura);
+$('#q-cob').addEventListener('input',renderCobertura);
+
+/* ─────────────── MEMORIAIS ─────────────── */
+function renderHist(){
+  const rows=S.memoriais.slice().reverse().map(m=>`<tr>
+      <td class="mono">${dBR(m.semana)}</td>
+      <td><b>${esc(nomeEmp(m.empresa_id))}</b></td>
+      <td>${esc(m.revisao||'—')}</td>
+      <td style="font-size:10.5px">${esc(m.arquivo||'—')}</td>
+      <td class="num">${nf0.format(m.qtd_itens||0)}</td>
+      <td class="num">${nf1.format((m.peso_total_kg||0)/1000)}</td>
+      <td>${pbar(m.avanco_total)}</td>
+      <td style="font-size:10.5px">${esc(m.importado_por||'—')}<br>
+        <span class="mono" style="color:var(--text-mute);font-size:9px">${m.importado_em?new Date(m.importado_em).toLocaleString('pt-BR'):''}</span></td>
+      <td>${PODE_EDITAR?`<button class="btn ghost-red" data-del="${m.id}">Excluir</button>`:''}</td>
+    </tr>`).join('');
+  $('#tb-hist').innerHTML=`<thead><tr>
+    <th class="nosort">Semana</th><th class="nosort">Empresa</th><th class="nosort">Rev.</th>
+    <th class="nosort">Arquivo</th><th class="num nosort">Itens</th><th class="num nosort">Peso (t)</th>
+    <th class="nosort">Avanço</th><th class="nosort">Importação</th><th class="nosort"></th>
+  </tr></thead><tbody>${rows||'<tr><td colspan="9" class="empty">Nenhum memorial importado.</td></tr>'}</tbody>`;
+  $$('#tb-hist [data-del]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('Excluir esse memorial e todos os itens dessa semana?')) return;
+    try{
+      const id=b.dataset.del, m=S.memoriais.find(x=>x.id==id);
+      await sbDel('tub_resumo_semanal?empresa_id=eq.'+m.empresa_id+'&semana=eq.'+m.semana);
+      await sbDel('tub_memoriais?id=eq.'+id);
+      toast('Memorial excluído.','ok'); S.f.semana=''; await carregar();
+    }catch(e){ toast('Erro ao excluir: '+e.message,'err') }
+  }));
+}
+
+/* ─────────────── TABS / MODAIS ─────────────── */
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{
+  $$('.tab').forEach(x=>x.classList.remove('active'));
+  $$('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); $('#'+t.dataset.panel).classList.add('active');
+  setTimeout(()=>{ renderChartAcumulado(); renderChartEtapas(); renderSemanal() },30);
+}));
+$$('[data-close]').forEach(b=>b.addEventListener('click',()=>$('#'+b.dataset.close).classList.remove('open')));
+$$('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open') }));
+let rz; window.addEventListener('resize',()=>{ clearTimeout(rz);
+  rz=setTimeout(()=>{ renderChartAcumulado(); renderChartEtapas(); renderSemanal() },220) });
+
+/* ══════════════════════════════════════════════
+   IMPORTAÇÃO DE MEMORIAL
+   ══════════════════════════════════════════════ */
+const CAMPOS = [
+  {k:'linha',     l:'Line number / TAG',        req:true,  hint:['linha','line','isometrico','isométrico','tag','descrição','descricao']},
+  {k:'grupo',     l:'Etapa / grupo',            hint:['etapa','grupo','sistema','area','área','frente']},
+  {k:'nivel',     l:'Nível / item',             hint:['nível','nivel','item','tópico','topico']},
+  {k:'material',  l:'Material (Carbono/Inox)',  hint:['material','tipo']},
+  {k:'escopo',    l:'Escopo (Tubulação/Suporte)',hint:['escopo','disciplina']},
+  {k:'metragem',  l:'Metragem projeto (m)',     hint:['metragem projeto','metragem','comprimento','extensão']},
+  {k:'peso',      l:'Peso projeto (kg)',        req:true,  hint:['peso projeto','peso (kg)','peso kg','peso']},
+  {k:'pct_ativ',  l:'% da atividade',           hint:['% da atividade','peso da atividade','% atividade']},
+  {k:'pct_proj',  l:'% do projeto',             hint:['% do projeto','% projeto','peso relativo','ponderação','ponderacao']},
+  {k:'peso_pint', l:'Peso pintura (kg)',        hint:['peso projeto pintura','peso pintura']},
+  {k:'cor',       l:'Cor de pintura',           hint:['cor']},
+  {k:'pct_fab',   l:'% Fabricação concluída',   hint:['fabricação concluída','fabricacao concluida','% fabricação','fabricação','fabricacao']},
+  {k:'pct_mont',  l:'% Montagem concluída',     hint:['montagem concluída','montagem concluida','% montagem','montagem']},
+  {k:'pct_pint',  l:'% Pintura concluída',      hint:['pintura concluída','pintura concluida','% pintura','pintura']},
+  {k:'pct_total', l:'% Total concluído',        hint:['% total concluída','% total concluido','total concluída','% total','avanço','avanco']},
+  {k:'m_fab',     l:'Metragem fabricada',       hint:['metragem fabricada']},
+  {k:'m_mont',    l:'Metragem montada',         hint:['metragem montada']},
+  {k:'peso_exec', l:'Peso executado (kg)',      hint:['peso total executado','peso executado']}
+];
+const IMP = {wb:null, arquivo:'', passo:1, perfil:null, aoa:null, headers:[], mapa:{}, itens:null, resumo:null, pesos:{}};
+
+function abrirImport(){
+  if(!PODE_EDITAR){ toast('Seu perfil não tem permissão para importar.','err'); return }
+  if(!S.empresas.length){ toast('Cadastre a empresa antes de importar o memorial.','err'); abrirEmpresas(); return }
+  IMP.wb=null; IMP.passo=1; IMP.itens=null; IMP.mapa={};
+  passoImport(1); $('#imp-next').disabled=true; $('#file').value='';
+  $('#md-import').classList.add('open');
+}
+$('#btn-import').addEventListener('click',abrirImport);
+
+function passoImport(n){
+  IMP.passo=n;
+  [1,2,3,4].forEach(i=>{
+    $('#imp-'+i).style.display = i===n?'':'none';
+    const st=$('#st-'+i); st.className='step'+(i===n?' on':i<n?' done':'');
+  });
+  $('#imp-back').style.display = n>1?'':'none';
+  $('#imp-next').textContent = n===4?'Gravar memorial':'Continuar →';
+  $('#imp-next').disabled = (n===1 && !IMP.wb);
+}
+$('#imp-back').addEventListener('click',()=>passoImport(Math.max(1,IMP.passo-1)));
+
+/* upload */
+const drop=$('#drop'), fileEl=$('#file');
+drop.addEventListener('click',()=>fileEl.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');
+  if(e.dataTransfer.files[0]) lerArquivo(e.dataTransfer.files[0])});
+fileEl.addEventListener('change',e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]) });
+
+function lerArquivo(f){
+  IMP.arquivo=f.name;
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    try{
+      IMP.wb = XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:false});
+      drop.querySelector('.big').textContent='✓ '+f.name;
+      drop.querySelector('.sm').textContent=IMP.wb.SheetNames.length+' aba(s) · clique para trocar';
+      IMP.perfil = detectarPerfil(IMP.wb);
+      $('#imp-next').disabled=false;
+      toast(IMP.perfil?'Padrão reconhecido automaticamente.':'Arquivo carregado — confira o mapeamento.','ok');
+    }catch(err){ toast('Não consegui ler o arquivo: '+err.message,'err') }
+  };
+  fr.readAsArrayBuffer(f);
+}
+
+function detectarPerfil(wb){
+  const ws=wb.Sheets['Memorial'];
+  if(ws){
+    const g=a=>{const c=ws[a];return c?String(c.v).trim().toUpperCase():''};
+    if(g('D5')==='LINHA' && g('C5').indexOf('NÍVEL')>=0 && g('O5').indexOf('FABRICA')>=0)
+      return 'rangel_v1';
+  }
+  return null;
+}
+
+/* ---- leitura genérica ---- */
+// SheetJS começa o array na primeira coluna usada da planilha; forçamos A1 para
+// que o índice do array bata sempre com a letra da coluna do Excel.
+function sheetAoA(ws){
+  if(!ws || !ws['!ref']) return [];
+  const ref=XLSX.utils.decode_range(ws['!ref']);
+  ref.s.c=0; ref.s.r=0;
+  return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:true,range:ref});
+}
+function carregarAba(nome, headerRow){
+  const ws=IMP.wb.Sheets[nome];
+  const aoa=sheetAoA(ws);
+  IMP.aoa=aoa;
+  IMP.headers=(aoa[headerRow-1]||[]).map((h,i)=>({i, nome: h==null?'':String(h).trim(),
+    letra: XLSX.utils.encode_col(i)}));
+  return aoa;
+}
+function palpite(campo){
+  const hs=IMP.headers.map(h=>h.nome.toLowerCase());
+  for(const dica of campo.hint||[]){
+    const i=hs.findIndex(h=>h && h.indexOf(dica.toLowerCase())>=0);
+    if(i>=0) return i;
+  }
+  return -1;
+}
+function montarMapeamento(){
+  const wb=IMP.wb;
+  const sa=$('#m-aba');
+  if(!sa.dataset.done){
+    sa.innerHTML=wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join('');
+    sa.value = wb.SheetNames.includes('Memorial')?'Memorial':wb.SheetNames[0];
+    $('#m-header').value = IMP.perfil==='rangel_v1'?5:1;
+    sa.dataset.done='1';
+  }
+  carregarAba(sa.value, +$('#m-header').value);
+  const opts = '<option value="">— não usar —</option>' +
+    IMP.headers.map(h=>`<option value="${h.i}">${esc(h.letra)} · ${esc(h.nome||'(vazio)')}</option>`).join('');
+  $('#map-fields').innerHTML = CAMPOS.map(c=>{
+    const g = IMP.mapa[c.k]!=null ? IMP.mapa[c.k] : palpite(c);
+    if(g>=0) IMP.mapa[c.k]=g;
+    return `<div class="fld"><label>${c.l}${c.req?' *':''}</label>
+      <select data-campo="${c.k}">${opts}</select></div>`;
+  }).join('');
+  $$('#map-fields select').forEach(s=>{
+    s.value = IMP.mapa[s.dataset.campo]!=null ? IMP.mapa[s.dataset.campo] : '';
+    s.addEventListener('change',()=>{ IMP.mapa[s.dataset.campo]= s.value===''?null:+s.value });
+  });
+  $('#imp-detect').innerHTML = IMP.perfil==='rangel_v1'
+    ? `<div class="note ok"><strong>Padrão reconhecido: memorial tipo RANGEL.</strong>
+        Hierarquia por “Nível Tópico”, pesos de etapa no cabeçalho e colunas de fabricação/montagem/pintura já
+        identificados. Você pode ajustar qualquer coluna abaixo se precisar.</div>`
+    : `<div class="note warn"><strong>Padrão não reconhecido.</strong> Indique abaixo qual coluna corresponde a
+        cada informação. Esse de-para fica salvo no perfil da empresa e será reaproveitado nas próximas semanas.</div>`;
+}
+$('#m-aba').addEventListener('change',()=>{IMP.mapa={};montarMapeamento()});
+$('#m-header').addEventListener('change',()=>{IMP.mapa={};montarMapeamento()});
+
+/* ---- parser padrão RANGEL ---- */
+function parseRangel(){
+  const ws=IMP.wb.Sheets['Memorial'];
+  const A=a=>{const c=ws[a];return c?c.v:null};
+  const N=a=>{const v=A(a);return typeof v==='number'?v:num(v)};
+  const pesos={ w_fab_cp:N('V2')||0.30, w_mont_cp:N('Z2')||0.65, w_pint_cp:N('AD2')||0.05,
+                w_fab_sp:N('X2')||0.30, w_mont_sp:N('AB2')||0.70 };
+  const aoa=sheetAoA(ws);
+  const C=(r,i)=>{const row=aoa[r];return row?row[i]:null};
+  const itens=[]; let grupo=null, escopo=null, etapa=null;
+  for(let r=5;r<aoa.length;r++){
+    const niv=C(r,2), linha=C(r,3);
+    if(niv==null||linha==null||String(linha).trim()==='') continue;
+    const sn=String(niv).trim();
+    if(sn.indexOf('.')<0){
+      if(sn==='0') continue;
+      grupo=String(linha).trim();
+      escopo=/^SUPORTE/i.test(grupo)?'SUPORTE':'TUBULACAO';
+      const m=grupo.match(/(\d+)\s*$/); etapa=m?+m[1]:null;
+      continue;
+    }
+    if(!grupo) continue;
+    const raw=String(linha).trim();
+    let mat=C(r,4); mat=mat?String(mat).trim().toUpperCase():'';
+    mat = mat.indexOf('CARB')>=0?'CARBONO' : mat.indexOf('INOX')>=0?'INOX' : (escopo==='SUPORTE'?'OUTRO':'OUTRO');
+    const pesoPint=num(C(r,10));
+    const it={
+      escopo, etapa_grupo:grupo, etapa_num:etapa, nivel_topico:sn, linha_raw:raw, material:mat,
+      metragem_m:num(C(r,5)), peso_kg:num(C(r,6)),
+      pct_atividade:num(C(r,7)), pct_projeto:num(C(r,8)),
+      cor_pintura: C(r,9)&&String(C(r,9))!=='0'?String(C(r,9)):null,
+      peso_pint_kg:pesoPint, pct_projeto_pint:num(C(r,12)), tem_pintura: pesoPint>0,
+      pct_fab:num(C(r,14)), pct_mont:num(C(r,15)), pct_pint:num(C(r,16)), pct_total:num(C(r,17)),
+      metragem_fab:num(C(r,18)), metragem_mont:num(C(r,19)), peso_exec_kg:num(C(r,20)),
+      fab_prep_corte:num(C(r,21)), fab_acopla:num(C(r,22)), fab_solda:num(C(r,23)), fab_qualidade:num(C(r,24)),
+      mont_icamento:num(C(r,25)), mont_acopla:num(C(r,26)), mont_solda:num(C(r,27)), mont_qualidade:num(C(r,28))
+    };
+    Object.assign(it, partirLinha(raw, escopo));
+    itens.push(it);
+  }
+  return {itens, pesos};
+}
+function partirLinha(raw, escopo){
+  let m;
+  if(escopo==='SUPORTE'){
+    m = raw.match(/^(.*?)\s*[-–]\s*([\d./]+\s*")\s*$/);
+    if(m) return {line_number:m[1].trim(), diametro:m[2].replace(/\s/g,'')};
+    return {line_number:raw, diametro:null};
+  }
+  m = raw.match(/^\s*([\d./]+\s*")\s*[-\u2013\s]\s*(.+)$/);
+  if(m) return {diametro:m[1].replace(/\s/g,''), line_number:m[2].trim()};
+  return {line_number:raw, diametro:null};
+}
+
+/* ---- parser genérico ---- */
+function parseGenerico(){
+  const hdr=+$('#m-header').value;
+  const aoa=IMP.aoa;
+  const g=k=>IMP.mapa[k];
+  const pesos={ w_fab_cp:num($('#w-fab-cp').value), w_mont_cp:num($('#w-mont-cp').value),
+                w_pint_cp:num($('#w-pint-cp').value), w_fab_sp:num($('#w-fab-sp').value),
+                w_mont_sp:num($('#w-mont-sp').value) };
+  const cru=[];
+  for(let r=hdr;r<aoa.length;r++){
+    const row=aoa[r]; if(!row) continue;
+    const linha=g('linha')!=null?row[g('linha')]:null;
+    if(linha==null||String(linha).trim()==='') continue;
+    const peso=g('peso')!=null?num(row[g('peso')]):0;
+    if(!peso && !(g('pct_proj')!=null && num(row[g('pct_proj')]))) continue;
+    cru.push(row);
+  }
+  // detecta escala 0-1 vs 0-100
+  const escala={};
+  ['pct_fab','pct_mont','pct_pint','pct_total','pct_ativ','pct_proj'].forEach(k=>{
+    if(g(k)==null){escala[k]=1;return}
+    const mx=Math.max(...cru.map(r=>num(r[g(k)])),0);
+    escala[k]= mx>1.5?0.01:1;
+  });
+  const itens=cru.map(row=>{
+    const V=(k,def)=> g(k)!=null ? row[g(k)] : def;
+    const grupo = String(V('grupo','')||'').trim();
+    let escopo = String(V('escopo','')||'').trim().toUpperCase();
+    escopo = escopo.indexOf('SUPORT')>=0 ? 'SUPORTE'
+           : escopo.indexOf('TUBUL')>=0  ? 'TUBULACAO'
+           : (/SUPORTE/i.test(grupo) ? 'SUPORTE' : 'TUBULACAO');
+    let mat=String(V('material','')||'').toUpperCase();
+    mat = mat.indexOf('CARB')>=0?'CARBONO' : (mat.indexOf('INOX')>=0||mat.indexOf('AISI')>=0)?'INOX':'OUTRO';
+    const raw=String(V('linha','')).trim();
+    const pesoPint=num(V('peso_pint',0));
+    const cor=V('cor',null);
+    const temPint = pesoPint>0 || (cor && String(cor).trim()!=='0' && String(cor).trim()!=='');
+    const fab=num(V('pct_fab',0))*escala.pct_fab;
+    const mon=num(V('pct_mont',0))*escala.pct_mont;
+    const pin=num(V('pct_pint',0))*escala.pct_pint;
+    let tot = g('pct_total')!=null ? num(V('pct_total',0))*escala.pct_total : null;
+    if(tot==null) tot = temPint ? fab*pesos.w_fab_cp+mon*pesos.w_mont_cp+pin*pesos.w_pint_cp
+                                : fab*pesos.w_fab_sp+mon*pesos.w_mont_sp;
+    const m=(grupo.match(/(\d+)\s*$/)||[])[1];
+    const it={
+      escopo, etapa_grupo:grupo||null, etapa_num:m?+m:null,
+      nivel_topico: g('nivel')!=null?String(V('nivel','')):null,
+      linha_raw:raw, material:mat,
+      metragem_m:num(V('metragem',0)), peso_kg:num(V('peso',0)),
+      pct_atividade:num(V('pct_ativ',0))*escala.pct_ativ,
+      pct_projeto:num(V('pct_proj',0))*escala.pct_proj,
+      cor_pintura: cor&&String(cor)!=='0'?String(cor):null,
+      peso_pint_kg:pesoPint, pct_projeto_pint:0, tem_pintura:!!temPint,
+      pct_fab:fab, pct_mont:mon, pct_pint:pin, pct_total:tot,
+      metragem_fab:num(V('m_fab',0)), metragem_mont:num(V('m_mont',0)), peso_exec_kg:num(V('peso_exec',0))
+    };
+    Object.assign(it, partirLinha(raw, escopo));
+    return it;
+  });
+  // se não veio % do projeto, deriva do peso
+  const somaProj=itens.reduce((a,i)=>a+(i.pct_projeto||0),0);
+  if(somaProj<0.5){
+    const P=itens.reduce((a,i)=>a+(i.peso_kg||0),0)||1;
+    itens.forEach(i=> i.pct_projeto=(i.peso_kg||0)/P);
+  }
+  return {itens, pesos};
+}
+
+/* ---- resumo consolidado ---- */
+function calcResumo(itens){
+  const W = sel => sel.reduce((a,i)=>a+(i.peso_kg||0),0);
+  const media = (sel,k) => { const w=W(sel); return w? sel.reduce((a,i)=>a+(i.peso_kg||0)*(i[k]||0),0)/w : 0 };
+  const linha = (escopo, material, sel) => ({
+    escopo, material,
+    qtd_itens: sel.length,
+    peso_kg: W(sel),
+    peso_rel: sel.reduce((a,i)=>a+(i.pct_projeto||0),0),
+    avanco_fab: media(sel,'pct_fab'), avanco_mont: media(sel,'pct_mont'),
+    avanco_pint: media(sel,'pct_pint'), avanco_total: media(sel,'pct_total')
+  });
+  const tub=itens.filter(i=>i.escopo==='TUBULACAO'), sup=itens.filter(i=>i.escopo==='SUPORTE');
+  return [
+    linha('TOTAL','TOTAL',itens),
+    linha('TUBULACAO','TOTAL',tub),
+    linha('TUBULACAO','CARBONO',tub.filter(i=>i.material==='CARBONO')),
+    linha('TUBULACAO','INOX',tub.filter(i=>i.material==='INOX')),
+    linha('SUPORTE','TOTAL',sup)
+  ].filter(r=>r.qtd_itens>0);
+}
+
+/* ---- conferência ---- */
+function montarConferencia(){
+  const usaRangel = IMP.perfil==='rangel_v1' && $('#m-aba').value==='Memorial' && +$('#m-header').value===5;
+  const {itens,pesos} = usaRangel ? parseRangel() : parseGenerico();
+  IMP.itens=itens; IMP.pesos=pesos; IMP.resumo=calcResumo(itens);
+  const tot=IMP.resumo.find(r=>r.escopo==='TOTAL');
+  const alertas=[];
+  if(!itens.length) alertas.push(['err','Nenhum item foi lido. Revise a aba e a linha do cabeçalho.']);
+  const somaProj=itens.reduce((a,i)=>a+(i.pct_projeto||0),0);
+  if(itens.length && Math.abs(somaProj-1)>0.02)
+    alertas.push(['warn',`A soma do <strong>% do projeto</strong> deu ${nf2.format(somaProj*100)}% (esperado 100%). `+
+      'O avanço será ponderado pelo peso em kg, que é o critério mais estável.']);
+  const semPeso=itens.filter(i=>!i.peso_kg).length;
+  if(semPeso) alertas.push(['warn',`${semPeso} item(ns) sem peso em kg — entram com peso zero na ponderação.`]);
+  const dup={}; itens.forEach(i=>{const k=normLine(i.line_number);dup[k]=(dup[k]||0)+1});
+  const nDup=Object.values(dup).filter(v=>v>1).length;
+  if(nDup) alertas.push(['',`${nDup} line number(s) aparecem em mais de uma linha do memorial — normal quando o
+    mesmo line number tem vários isométricos/spools. Eles são somados no controle de cobertura.`]);
+  const fora=itens.filter(i=>(i.pct_total||0)<-0.001||(i.pct_total||0)>1.001).length;
+  if(fora) alertas.push(['err',`${fora} item(ns) com avanço fora da faixa 0–100%.`]);
+  if(!alertas.length) alertas.push(['ok','Leitura consistente: pesos, ponderação e avanços dentro do esperado.']);
+  $('#imp-valid').innerHTML=alertas.map(([c,t])=>`<div class="note ${c==='ok'?'ok':c}">${t}</div>`).join('');
+
+  const box=(l,v,s)=>`<div class="kpi"><div class="kpi-label">${l}</div><div class="kpi-val">${v}</div>
+    <div class="kpi-sub">${s||''}</div></div>`;
+  const tb=IMP.resumo.find(r=>r.escopo==='TUBULACAO'&&r.material==='TOTAL');
+  const sp=IMP.resumo.find(r=>r.escopo==='SUPORTE');
+  $('#imp-kpis').innerHTML=[
+    box('Itens lidos', nf0.format(itens.length), (tb?nf0.format(tb.qtd_itens)+' tubulações · ':'')+(sp?nf0.format(sp.qtd_itens)+' suportes':'')),
+    box('Peso total', nf1.format((tot?tot.peso_kg:0)/1000)+' t',''),
+    box('Avanço total', pc(tot?tot.avanco_total:0,2),'ponderado por peso'),
+    box('Fabricação', pc(tot?tot.avanco_fab:0),''),
+    box('Montagem', pc(tot?tot.avanco_mont:0),''),
+    box('Pintura', pc(tot?tot.avanco_pint:0),'')
+  ].join('');
+  $('#imp-prev-sub').textContent='mostrando os 60 primeiros de '+nf0.format(itens.length);
+  $('#tb-prev').innerHTML=`<thead><tr>
+    <th class="nosort">Line number</th><th class="nosort">Escopo</th><th class="nosort">Mat.</th>
+    <th class="nosort">Ø</th><th class="nosort">Etapa</th><th class="num nosort">Peso</th>
+    <th class="num nosort">Fab</th><th class="num nosort">Mont</th><th class="num nosort">Pint</th>
+    <th class="num nosort">Total</th></tr></thead><tbody>`+
+    itens.slice(0,60).map(i=>`<tr>
+      <td class="mono" style="font-size:10px">${esc(i.line_number)}</td>
+      <td style="font-size:10px">${i.escopo==='SUPORTE'?'Suporte':'Tubulação'}</td>
+      <td style="font-size:10px">${esc(i.material==='OUTRO'?'—':i.material)}</td>
+      <td class="mono">${esc(i.diametro||'—')}</td>
+      <td style="font-size:9.5px">${esc(i.etapa_grupo||'—')}</td>
+      <td class="num">${nf1.format(i.peso_kg||0)}</td>
+      <td class="num">${nf0.format((i.pct_fab||0)*100)}%</td>
+      <td class="num">${nf0.format((i.pct_mont||0)*100)}%</td>
+      <td class="num">${i.tem_pintura?nf0.format((i.pct_pint||0)*100)+'%':'—'}</td>
+      <td class="num"><b>${nf1.format((i.pct_total||0)*100)}%</b></td>
+    </tr>`).join('')+'</tbody>';
+}
+
+function montarGravacao(){
+  const se=$('#i-empresa');
+  se.innerHTML=S.empresas.map(e=>`<option value="${e.id}">${esc(e.nome)}${e.contrato?' · CT '+esc(e.contrato):''}</option>`).join('');
+  if(S.f.empresa) se.value=S.f.empresa;
+  if(!$('#i-semana').value) $('#i-semana').value = segunda(new Date());
+  const m=(IMP.arquivo||'').match(/REV[\s._-]*(\d+)/i);
+  if(m && !$('#i-revisao').value) $('#i-revisao').value='REV '+m[1];
+  $('#imp-status').innerHTML='';
+}
+
+$('#imp-next').addEventListener('click',async()=>{
+  try{
+    if(IMP.passo===1){ montarMapeamento(); passoImport(2); return }
+    if(IMP.passo===2){
+      if(IMP.mapa.linha==null && IMP.perfil!=='rangel_v1'){ toast('Indique a coluna do line number.','err'); return }
+      montarConferencia(); passoImport(3); return;
+    }
+    if(IMP.passo===3){
+      if(!IMP.itens||!IMP.itens.length){ toast('Nada para gravar.','err'); return }
+      montarGravacao(); passoImport(4); return;
+    }
+    await gravar();
+  }catch(e){ console.error(e); toast('Erro: '+e.message,'err') }
+});
+
+async function gravar(){
+  const empresa_id=+$('#i-empresa').value;
+  const semana=segunda($('#i-semana').value);
+  if(!empresa_id||!semana){ toast('Informe empresa e semana.','err'); return }
+  const btn=$('#imp-next'); btn.disabled=true;
+  const st=$('#imp-status');
+  const log=t=>{ st.innerHTML=`<div class="note">${t}</div>` };
+  try{
+    const tot=IMP.resumo.find(r=>r.escopo==='TOTAL');
+    const tb=IMP.resumo.find(r=>r.escopo==='TUBULACAO'&&r.material==='TOTAL');
+    const sp=IMP.resumo.find(r=>r.escopo==='SUPORTE');
+    const cb=IMP.resumo.find(r=>r.material==='CARBONO');
+    const ix=IMP.resumo.find(r=>r.material==='INOX');
+
+    log('Gravando cabeçalho do memorial…');
+    const [mem]=await sbPost('tub_memoriais?on_conflict=unidade,empresa_id,semana',[{
+      empresa_id, semana, revisao:$('#i-revisao').value||null, arquivo:IMP.arquivo,
+      perfil: IMP.perfil||'manual',
+      w_fab_cp:IMP.pesos.w_fab_cp, w_mont_cp:IMP.pesos.w_mont_cp, w_pint_cp:IMP.pesos.w_pint_cp,
+      w_fab_sp:IMP.pesos.w_fab_sp, w_mont_sp:IMP.pesos.w_mont_sp,
+      qtd_itens:IMP.itens.length, peso_total_kg:tot?tot.peso_kg:0,
+      avanco_total:tot?tot.avanco_total:0, avanco_tub:tb?tb.avanco_total:null,
+      avanco_sup:sp?sp.avanco_total:null, avanco_carbono:cb?cb.avanco_total:null,
+      avanco_inox:ix?ix.avanco_total:null,
+      importado_por: NOME||EMAIL, observacao:$('#i-obs').value||null
+    }],'resolution=merge-duplicates,return=representation');
+
+    log('Limpando a foto anterior dessa semana…');
+    await sbDel('tub_itens?memorial_id=eq.'+mem.id);
+
+    const CH=400;
+    for(let i=0;i<IMP.itens.length;i+=CH){
+      log(`Gravando itens… ${Math.min(i+CH,IMP.itens.length)} de ${IMP.itens.length}`);
+      await sbPost('tub_itens', IMP.itens.slice(i,i+CH).map(it=>Object.assign({
+        memorial_id:mem.id, empresa_id, semana}, it)), 'return=minimal');
+    }
+
+    log('Consolidando o resumo semanal…');
+    await sbDel('tub_resumo_semanal?empresa_id=eq.'+empresa_id+'&semana=eq.'+semana);
+    await sbPost('tub_resumo_semanal', IMP.resumo.map(r=>Object.assign({
+      empresa_id, memorial_id:mem.id, semana}, r)), 'return=minimal');
+
+    // salva o de-para para as próximas semanas
+    if(IMP.perfil!=='rangel_v1'){
+      try{
+        await sbPost('tub_perfis_import?on_conflict=empresa_id,nome',[{
+          empresa_id, nome:'padrao', aba:$('#m-aba').value,
+          linha_header:+$('#m-header').value, mapa:IMP.mapa
+        }],'resolution=merge-duplicates,return=minimal');
+      }catch(_){}
+    }
+
+    st.innerHTML=`<div class="note ok"><strong>Memorial gravado.</strong> ${nf0.format(IMP.itens.length)} itens ·
+      avanço ${pc(tot.avanco_total,2)} · semana ${dBR(semana)}.</div>`;
+    toast('Memorial importado com sucesso.','ok');
+    S.f.semana=semana;
+    await carregar();
+    setTimeout(()=>$('#md-import').classList.remove('open'),1200);
+  }catch(e){
+    console.error(e);
+    st.innerHTML=`<div class="note err"><strong>Falha ao gravar.</strong><br>${esc(e.message)}</div>`;
+  }finally{ btn.disabled=false }
+}
+
+/* ══════════════════════════════════════════════
+   LISTA DE MATERIAIS
+   ══════════════════════════════════════════════ */
+const LST={wb:null,aoa:null,headers:[],mapa:{},itens:null,arquivo:''};
+const CAMPOS_LISTA=[
+  {k:'line',    l:'Line number / TAG', req:true, hint:['line number','linha','isometrico','isométrico','tag','line']},
+  {k:'diametro',l:'Diâmetro',   hint:['diâmetro','diametro','dn','bitola','ø']},
+  {k:'material',l:'Material',   hint:['material','tipo']},
+  {k:'area',    l:'Área',       hint:['área','area','local','unidade']},
+  {k:'sistema', l:'Sistema',    hint:['sistema','fluido','serviço','servico']},
+  {k:'metragem',l:'Metragem (m)',hint:['metragem','comprimento','extensão','extensao']},
+  {k:'peso',    l:'Peso (kg)',  hint:['peso']},
+  {k:'empresa', l:'Empresa prevista', hint:['empresa','contratada','fornecedor','contrato']}
+];
+$('#btn-lista').addEventListener('click',()=>{
+  if(!PODE_EDITAR){ toast('Seu perfil não tem permissão para editar a lista.','err'); return }
+  $('#md-lista').classList.add('open');
+});
+const dropL=$('#drop-lista'), fileL=$('#file-lista');
+dropL.addEventListener('click',()=>fileL.click());
+dropL.addEventListener('dragover',e=>{e.preventDefault();dropL.classList.add('over')});
+dropL.addEventListener('dragleave',()=>dropL.classList.remove('over'));
+dropL.addEventListener('drop',e=>{e.preventDefault();dropL.classList.remove('over');
+  if(e.dataTransfer.files[0]) lerLista(e.dataTransfer.files[0])});
+fileL.addEventListener('change',e=>{ if(e.target.files[0]) lerLista(e.target.files[0]) });
+
+function lerLista(f){
+  LST.arquivo=f.name;
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    try{
+      LST.wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      dropL.querySelector('.big').textContent='✓ '+f.name;
+      $('#lista-map').style.display='';
+      const sa=$('#l-aba');
+      sa.innerHTML=LST.wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join('');
+      LST.mapa={}; montarMapaLista();
+    }catch(err){ toast('Não consegui ler: '+err.message,'err') }
+  };
+  fr.readAsArrayBuffer(f);
+}
+function montarMapaLista(){
+  const ws=LST.wb.Sheets[$('#l-aba').value];
+  LST.aoa=sheetAoA(ws);
+  const hdr=+$('#l-header').value;
+  LST.headers=(LST.aoa[hdr-1]||[]).map((h,i)=>({i,nome:h==null?'':String(h).trim(),letra:XLSX.utils.encode_col(i)}));
+  const opts='<option value="">— não usar —</option>'+
+    LST.headers.map(h=>`<option value="${h.i}">${esc(h.letra)} · ${esc(h.nome||'(vazio)')}</option>`).join('');
+  $('#lista-fields').innerHTML=CAMPOS_LISTA.map(c=>{
+    const hs=LST.headers.map(h=>h.nome.toLowerCase());
+    let g=-1; for(const d of c.hint){ const i=hs.findIndex(h=>h&&h.indexOf(d)>=0); if(i>=0){g=i;break} }
+    if(g>=0&&LST.mapa[c.k]==null) LST.mapa[c.k]=g;
+    return `<div class="fld"><label>${c.l}${c.req?' *':''}</label><select data-c="${c.k}">${opts}</select></div>`;
+  }).join('');
+  $$('#lista-fields select').forEach(s=>{
+    s.value=LST.mapa[s.dataset.c]!=null?LST.mapa[s.dataset.c]:'';
+    s.addEventListener('change',()=>{ LST.mapa[s.dataset.c]=s.value===''?null:+s.value; previewLista() });
+  });
+  previewLista();
+}
+$('#l-aba').addEventListener('change',()=>{LST.mapa={};montarMapaLista()});
+$('#l-header').addEventListener('change',()=>{LST.mapa={};montarMapaLista()});
+
+function previewLista(){
+  if(LST.mapa.line==null){ $('#lista-prev').innerHTML='<div class="note warn">Indique a coluna do line number.</div>';
+    $('#lista-save').disabled=true; return }
+  const hdr=+$('#l-header').value, out=[];
+  for(let r=hdr;r<LST.aoa.length;r++){
+    const row=LST.aoa[r]; if(!row) continue;
+    const raw=row[LST.mapa.line];
+    if(raw==null||String(raw).trim()==='') continue;
+    const V=k=>LST.mapa[k]!=null?row[LST.mapa[k]]:null;
+    const rawS=String(raw).trim();
+    const p=partirLinha(rawS,'TUBULACAO');
+    let mat=String(V('material')||'').toUpperCase();
+    mat = mat.indexOf('CARB')>=0?'CARBONO':(mat.indexOf('INOX')>=0||mat.indexOf('AISI')>=0)?'INOX':(mat||null);
+    out.push({
+      revisao:$('#l-revisao').value||null, escopo:'TUBULACAO',
+      line_number:p.line_number, linha_raw:rawS,
+      diametro: V('diametro')?String(V('diametro')).replace(/\s/g,''):p.diametro,
+      material:mat, area:V('area')?String(V('area')):null, sistema:V('sistema')?String(V('sistema')):null,
+      metragem_m:num(V('metragem')), peso_kg:num(V('peso')),
+      empresa_prevista:V('empresa')?String(V('empresa')):null, arquivo:LST.arquivo
+    });
+  }
+  LST.itens=out;
+  const dup={}; out.forEach(i=>{const k=normLine(i.line_number);dup[k]=(dup[k]||0)+1});
+  const nd=Object.values(dup).filter(v=>v>1).length;
+  $('#lista-prev').innerHTML=`<div class="note ok"><strong>${nf0.format(out.length)} itens lidos.</strong>
+    ${nd?nd+' line number(s) repetidos serão consolidados. ':''}
+    Peso total: ${nf1.format(out.reduce((a,i)=>a+(i.peso_kg||0),0)/1000)} t.</div>
+    <div class="tbl-wrap" style="max-height:220px"><table><thead><tr>
+      <th class="nosort">Line number</th><th class="nosort">Ø</th><th class="nosort">Material</th>
+      <th class="nosort">Área</th><th class="num nosort">Peso</th></tr></thead><tbody>`+
+    out.slice(0,40).map(i=>`<tr><td class="mono" style="font-size:10px">${esc(i.line_number)}</td>
+      <td class="mono">${esc(i.diametro||'—')}</td><td>${esc(i.material||'—')}</td>
+      <td>${esc(i.area||'—')}</td><td class="num">${nf1.format(i.peso_kg||0)}</td></tr>`).join('')+
+    '</tbody></table></div>';
+  $('#lista-save').disabled=false;
+}
+$('#lista-save').addEventListener('click',async()=>{
+  if(!LST.itens||!LST.itens.length) return;
+  const b=$('#lista-save'); b.disabled=true; b.textContent='Gravando…';
+  try{
+    const vistos=new Set(), lim=[];
+    LST.itens.forEach(i=>{ const k=normLine(i.line_number)+'|'+(i.revisao||'');
+      if(vistos.has(k)) return; vistos.add(k); lim.push(i) });
+    await sbDel('tub_lista_materiais?revisao=' + (LST.itens[0].revisao?'eq.'+encodeURIComponent(LST.itens[0].revisao):'is.null'));
+    for(let i=0;i<lim.length;i+=400)
+      await sbPost('tub_lista_materiais', lim.slice(i,i+400), 'return=minimal');
+    toast('Lista de materiais gravada.','ok');
+    await carregarItens(); renderTudo();
+    $('#md-lista').classList.remove('open');
+  }catch(e){ toast('Erro: '+e.message,'err') }
+  finally{ b.disabled=false; b.textContent='Gravar lista' }
+});
+
+/* ══════════════════════════════════════════════
+   EMPRESAS
+   ══════════════════════════════════════════════ */
+function abrirEmpresas(){ $('#md-empresas').classList.add('open'); renderEmpTable() }
+$('#btn-empresas').addEventListener('click',abrirEmpresas);
+function renderEmpTable(){
+  $('#tb-emp').innerHTML=`<thead><tr><th class="nosort">Nome</th><th class="nosort">Sigla</th>
+    <th class="nosort">Contrato</th><th class="nosort">Cor</th><th class="nosort"></th></tr></thead><tbody>`+
+    (S.empresas.map(e=>`<tr>
+      <td><b>${esc(e.nome)}</b><br><span style="font-size:10px;color:var(--text-mute)">${esc(e.escopo_desc||'')}</span></td>
+      <td>${esc(e.sigla||'—')}</td><td class="mono">${esc(e.contrato||'—')}</td>
+      <td><span style="display:inline-block;width:26px;height:12px;background:${esc(e.cor||'#304F7E')}"></span></td>
+      <td>${PODE_EDITAR?`<button class="btn ghost-red" data-edel="${e.id}">Remover</button>`:''}</td>
+    </tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhuma empresa cadastrada.</td></tr>')+'</tbody>';
+  $$('#tb-emp [data-edel]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('Remover a empresa e todos os memoriais dela?')) return;
+    try{ await sbDel('tub_empresas?id=eq.'+b.dataset.edel); toast('Empresa removida.','ok'); await carregar(); renderEmpTable() }
+    catch(e){ toast('Erro: '+e.message,'err') }
+  }));
+}
+$('#e-add').addEventListener('click',async()=>{
+  const nome=$('#e-nome').value.trim();
+  if(!nome){ toast('Informe o nome da empresa.','err'); return }
+  try{
+    await sbPost('tub_empresas',[{nome, sigla:$('#e-sigla').value.trim()||null,
+      contrato:$('#e-contrato').value.trim()||null, escopo_desc:$('#e-escopo').value.trim()||null,
+      cor:$('#e-cor').value}],'return=minimal');
+    ['e-nome','e-sigla','e-contrato','e-escopo'].forEach(i=>$('#'+i).value='');
+    toast('Empresa cadastrada.','ok'); await carregar(); renderEmpTable();
+  }catch(e){ toast('Erro: '+e.message,'err') }
+});
+
+/* ══════════════════════════════════════════════
+   EXPORTAÇÃO
+   ══════════════════════════════════════════════ */
+function baixarCSV(nome, linhas){
+  const csv='﻿'+linhas.map(l=>l.map(c=>{
+    const s=c==null?'':String(c);
+    return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  }).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=nome; a.click(); URL.revokeObjectURL(a.href);
+}
+$('#btn-export').addEventListener('click',()=>{
+  const l=[['Semana','Empresa','Escopo','Material','Itens','Peso (kg)','Peso rel.','Fabricação','Montagem','Pintura','Avanço total']];
+  S.resumo.filter(r=>!S.f.empresa||r.empresa_id==S.f.empresa).forEach(r=>l.push([
+    r.semana, nomeEmp(r.empresa_id), r.escopo, r.material, r.qtd_itens,
+    nf2.format(r.peso_kg||0), nf2.format((r.peso_rel||0)*100), nf2.format((r.avanco_fab||0)*100),
+    nf2.format((r.avanco_mont||0)*100), nf2.format((r.avanco_pint||0)*100), nf2.format((r.avanco_total||0)*100)
+  ]));
+  baixarCSV('tubulacoes_avanco_semanal.csv', l);
+});
+$('#btn-cob-exp').addEventListener('click',()=>{
+  const c=calcCobertura();
+  const l=[['Line number','Diâmetro','Material lista','Área','Peso (kg)','Empresa no memorial','Avanço','Situação']];
+  c.linhas.filter(x=>x.sit!=='OK').forEach(x=>l.push([
+    (x.lista&&x.lista.linha_raw)||x.key, (x.lista&&x.lista.diametro)||(x.hits[0]&&x.hits[0].diametro)||'',
+    (x.lista&&x.lista.material)||'', (x.lista&&x.lista.area)||'',
+    x.lista?nf2.format(x.lista.peso_kg||0):'',
+    [...new Set(x.hits.map(h=>nomeEmp(h.empresa_id)))].join(' / '),
+    x.hits.length?nf2.format((x.hits[0].pct_total||0)*100):'', x.sit
+  ]));
+  baixarCSV('tubulacoes_pendencias_cobertura.csv', l);
+});
+
+/* ─────────────── GO ─────────────── */
+carregar();
+})();
+
+</script>
+</body>
+</html>
