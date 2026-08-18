@@ -290,7 +290,7 @@ function doLogout(){ sessionStorage.clear(); window.location.href='login.html'; 
   const CFG    = window.PCO_CONFIG || {};
   const SB_URL = (CFG.supabase||{}).url || '';
   const SB_KEY = (CFG.supabase||{}).key || '';
-  const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+  const TOKEN  = SB_KEY;   // pco_token expira em ~1h; dados usam a anon key
 
   const comUni = p => (typeof pcoComUnidade==='function' ? pcoComUnidade(p) : p);
   async function sbGet(path){
