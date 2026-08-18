@@ -78,14 +78,14 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .panel.active{display:block}
 
 /* KPI STRIP */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:10px;margin-bottom:22px}
 .kpi{background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--blue);
-  padding:14px 16px;box-shadow:var(--shadow)}
+  padding:13px 13px;box-shadow:var(--shadow)}
 .kpi.teal{border-top-color:var(--teal)} .kpi.gold{border-top-color:var(--gold)}
 .kpi.green{border-top-color:var(--green)} .kpi.red{border-top-color:var(--red)}
 .kpi-label{font-size:8px;color:var(--text-mute);letter-spacing:1.2px;text-transform:uppercase;font-weight:700;margin-bottom:7px}
-.kpi-val{font-size:27px;font-weight:800;letter-spacing:-1.2px;line-height:1}
-.kpi-sub{font-size:10px;color:var(--text-dim);margin-top:5px;line-height:1.4}
+.kpi-val{font-size:24px;font-weight:800;letter-spacing:-1.2px;line-height:1.05}
+.kpi-sub{font-size:9.5px;color:var(--text-dim);margin-top:5px;line-height:1.45}
 
 /* BOX */
 .box{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:22px}
@@ -171,6 +171,17 @@ td.num,th.num{text-align:right;font-family:'JetBrains Mono',monospace}
 .drop .sm{font-size:11px;color:var(--text-mute)}
 
 .map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.aba-row{display:grid;grid-template-columns:1fr 145px 105px 80px;gap:10px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border-2);font-size:12px}
+.aba-row:last-child{border-bottom:none}
+.aba-row select,.aba-row input{font-family:'Montserrat',sans-serif;font-size:11px;border:1px solid var(--border);
+  padding:5px 7px;background:var(--bg);outline:none;color:var(--text);width:100%}
+.aba-row input{font-family:'JetBrains Mono',monospace;text-align:center}
+.aba-row .aba-info{font-size:10px;color:var(--text-mute);text-align:right;font-family:'JetBrains Mono',monospace}
+.aba-row input[type=checkbox]{width:auto;accent-color:var(--blue)}
+.inline-sel{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;border:1px solid var(--border);
+  padding:2px 5px;background:var(--panel);color:var(--blue);outline:none}
+code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f3f4f6;padding:1px 4px;border:1px solid var(--border)}
 .note{background:var(--blue-soft);border-left:3px solid var(--blue);padding:11px 13px;font-size:11px;
   color:var(--text-dim);line-height:1.6;margin-bottom:16px}
 .note.warn{background:var(--orange-soft);border-left-color:var(--orange)}
@@ -250,6 +261,15 @@ svg.chart text{font-family:'Montserrat',sans-serif}
         <option value="INOX">Inox</option>
       </select>
     </div>
+    <div class="fld">
+      <label>Etapa</label>
+      <select id="f-etapa-sel">
+        <option value="">Avanço total (ponderado)</option>
+        <option value="fab">Fabricação</option>
+        <option value="mont">Montagem</option>
+        <option value="pint">Pintura</option>
+      </select>
+    </div>
     <div class="spacer"></div>
     <button class="btn primary" id="btn-import">＋ Importar memorial</button>
     <button class="btn" id="btn-lista">Lista de materiais</button>
@@ -321,6 +341,29 @@ svg.chart text{font-family:'Montserrat',sans-serif}
       </div>
       <div class="box-body"><div id="ch-delta"></div></div>
     </div>
+
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Avanço no período (toneladas por semana)</div>
+          <div class="box-sub">Peso executado entre memoriais consecutivos · <span class="sub-etapa">avanço total ponderado</span></div>
+        </div>
+        <div class="legend" id="lg-delta-t"></div>
+      </div>
+      <div class="box-body"><div id="ch-delta-t"></div></div>
+    </div>
+
+    <div class="box">
+      <div class="box-head">
+        <div>
+          <div class="box-title">Peso executado acumulado (t)</div>
+          <div class="box-sub">Toneladas equivalentes concluídas por empresa · <span class="sub-etapa">avanço total ponderado</span></div>
+        </div>
+        <div class="legend" id="lg-acum-t"></div>
+      </div>
+      <div class="box-body"><div id="ch-acum-t"></div></div>
+    </div>
+
     <div class="grid-2">
       <div class="box">
         <div class="box-head">
@@ -341,6 +384,28 @@ svg.chart text{font-family:'Montserrat',sans-serif}
         <div class="box-body"><div id="ch-inox"></div></div>
       </div>
     </div>
+
+    <div class="grid-2">
+      <div class="box">
+        <div class="box-head">
+          <div>
+            <div class="box-title">Carbono · peso executado</div>
+            <div class="box-sub">Acumulado em t (linha) e t da semana (barra)</div>
+          </div>
+        </div>
+        <div class="box-body"><div id="ch-carbono-t"></div></div>
+      </div>
+      <div class="box">
+        <div class="box-head">
+          <div>
+            <div class="box-title">Inox · peso executado</div>
+            <div class="box-sub">Acumulado em t (linha) e t da semana (barra)</div>
+          </div>
+        </div>
+        <div class="box-body"><div id="ch-inox-t"></div></div>
+      </div>
+    </div>
+
     <div class="box">
       <div class="box-head">
         <div class="box-title">Histórico semanal detalhado</div>
@@ -447,12 +512,18 @@ svg.chart text{font-family:'Montserrat',sans-serif}
       <!-- passo 2 -->
       <div id="imp-2" style="display:none">
         <div id="imp-detect"></div>
-        <div class="map-grid" style="margin-bottom:16px">
-          <div class="fld"><label>Aba da planilha</label><select id="m-aba"></select></div>
-          <div class="fld"><label>Linha do cabeçalho</label><input type="number" id="m-header" min="1" value="1"></div>
+        <div class="box" style="margin-bottom:16px">
+          <div class="box-head"><div>
+            <div class="box-title">Abas que fazem parte do memorial</div>
+            <div class="box-sub">Todas as abas marcadas entram na mesma foto da semana. O cabeçalho pode
+              ocupar mais de uma linha — use por exemplo <code>9-12</code>.</div></div></div>
+          <div class="box-body"><div id="abas-list"></div></div>
         </div>
         <div class="box" style="margin-bottom:16px">
-          <div class="box-head"><div class="box-title">De-para das colunas</div></div>
+          <div class="box-head"><div>
+            <div class="box-title">De-para das colunas</div>
+            <div class="box-sub">Definido na aba <select id="m-aba" class="inline-sel"></select>
+              e reaplicado nas demais pelo nome da coluna</div></div></div>
           <div class="box-body">
             <div class="map-grid" id="map-fields"></div>
           </div>
@@ -689,9 +760,27 @@ async function sbPatch(path, body){
 const PALETA = ['#304F7E','#007D77','#EAA239','#609346','#CC5121','#6B5B95','#0F766E','#B45309'];
 const S = {
   empresas:[], memoriais:[], resumo:[], itens:[], lista:[], itensUlt:[],
-  f:{empresa:'', semana:'', escopo:'', material:''},
+  f:{empresa:'', semana:'', escopo:'', material:'', etapa:''},
   semanas:[], sortItens:{k:'pct_total',dir:1}, ready:false
 };
+
+/* ── ETAPA SELECIONADA ──────────────────────────────────────────
+   '' = avanço total ponderado; senão isola fabricação / montagem / pintura.
+   Toda leitura de avanço passa por avancoDe() para respeitar o filtro. */
+const CAMPO_ETAPA = {'':'avanco_total', fab:'avanco_fab', mont:'avanco_mont', pint:'avanco_pint'};
+const CAMPO_ITEM  = {'':'pct_total',    fab:'pct_fab',    mont:'pct_mont',    pint:'pct_pint'};
+const LABEL_ETAPA = {'':'avanço total', fab:'fabricação', mont:'montagem',    pint:'pintura'};
+const COR_ETAPA   = {'':'#304F7E',      fab:'#304F7E',    mont:'#007D77',     pint:'#609346'};
+const avancoDe = r => r ? (r[CAMPO_ETAPA[S.f.etapa]] || 0) : null;
+/* Toneladas executadas do recorte na semana.
+   Sempre avanço × peso total: no memorial, itens não pintáveis entram com 0% de
+   pintura, então avanco_pint × peso_kg já é exatamente o peso pintado. */
+const tonDe    = r => !r ? null : (avancoDe(r) * (r.peso_kg||0)) / 1000;
+/* Peso do escopo usado como denominador na leitura. Em pintura, o escopo
+   relevante é só o que é pintável — daí a diferença entre o % do memorial
+   (sobre o peso total) e o % sobre o pintável. */
+const pesoRef  = r => !r ? 0 : (S.f.etapa==='pint' && r.peso_pint_kg ? r.peso_pint_kg : (r.peso_kg||0));
+const ton = (v,d)=> v==null||isNaN(v) ? '—' : (d===0?nf0:nf1).format(v)+' t';
 const empById = id => S.empresas.find(e=>e.id==id);
 const corEmp  = id => { const e=empById(id); if(e&&e.cor) return e.cor;
   const i=S.empresas.findIndex(x=>x.id==id); return PALETA[(i<0?0:i)%PALETA.length]; };
@@ -766,9 +855,11 @@ function montarFiltros(){
     ss.value = S.f.semana;
   }
 }
-['f-empresa','f-semana','f-escopo','f-material'].forEach(id=>{
-  document.getElementById(id).addEventListener('change', async e=>{
-    S.f[id.slice(2)] = e.target.value;
+['f-empresa','f-semana','f-escopo','f-material','f-etapa-sel'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('change', async e=>{
+    S.f[id==='f-etapa-sel' ? 'etapa' : id.slice(2)] = e.target.value;
     if(id==='f-empresa'||id==='f-semana'){ await carregarItens() }
     renderTudo();
   });
@@ -798,7 +889,10 @@ function consolidado(semana){
   const wm = k => rows.reduce((a,r)=>a+(r.peso_kg||1)*(r[k]||0),0)/W;
   return {
     peso_kg: rows.reduce((a,r)=>a+(r.peso_kg||0),0),
+    peso_ref_kg: rows.reduce((a,r)=>a+pesoRef(r),0),
+    ton_exec: rows.reduce((a,r)=>a+(tonDe(r)||0),0),
     qtd_itens: rows.reduce((a,r)=>a+(r.qtd_itens||0),0),
+    avanco: wm(CAMPO_ETAPA[S.f.etapa]),
     avanco_total: wm('avanco_total'), avanco_fab: wm('avanco_fab'),
     avanco_mont: wm('avanco_mont'), avanco_pint: wm('avanco_pint'),
     empresas: rows.length
@@ -816,13 +910,14 @@ function renderKPIs(){
   const c   = consolidado(sem);
   const idx = S.semanas.indexOf(sem);
   const ant = idx>0 ? consolidado(S.semanas[idx-1]) : null;
-  const delta = (c && ant) ? (c.avanco_total - ant.avanco_total) : null;
+  const delta = (c && ant) ? (c.avanco - ant.avanco) : null;
 
   const cob = calcCobertura();
   const box = (cls,label,val,sub)=>`<div class="kpi ${cls}">
       <div class="kpi-label">${label}</div>
       <div class="kpi-val">${val}</div>
       <div class="kpi-sub">${sub||''}</div></div>`;
+  const et = S.f.etapa;
 
   if(!c){
     $('#kpis').innerHTML = `<div class="note" style="grid-column:1/-1">
@@ -830,16 +925,23 @@ function renderKPIs(){
       Clique em <em>Importar memorial</em> e envie o arquivo da primeira empresa.</div>`;
     return;
   }
+  const dTon = (c && ant) ? (c.ton_exec - ant.ton_exec) : null;
   $('#kpis').innerHTML = [
-    box('','Avanço ponderado', pc(c.avanco_total),
+    box('', et?'Avanço · '+LABEL_ETAPA[et]:'Avanço ponderado', pc(c.avanco),
         (c.empresas>1? c.empresas+' empresas · ':'') + 'semana '+dBR(sem)),
     box('green','Avanço no período',
-        delta==null?'—':(delta>=0?'+':'')+nf2.format(delta*100)+' p.p.',
-        idx>0? 'vs '+dBR(S.semanas[idx-1]) : 'primeira semana'),
-    box('teal','Fabricação', pc(c.avanco_fab), 'ponderado por peso'),
-    box('','Montagem', pc(c.avanco_mont), 'ponderado por peso'),
-    box('gold','Pintura', pc(c.avanco_pint), 'sobre o peso total do escopo'),
-    box('','Itens mapeados', nf0.format(c.qtd_itens), nf0.format(c.peso_kg/1000)+' t de projeto'),
+        delta==null?'—':(delta>=0?'+':'')+nf2.format(delta*100),
+        idx>0? 'p.p. vs '+dBR(S.semanas[idx-1]) : 'primeira semana'),
+    box('teal','Peso executado', ton(c.ton_exec),
+        'de '+nf1.format(c.peso_ref_kg/1000)+' t '+(et==='pint'?'pintáveis':'do escopo')+
+        (et==='pint'&&c.peso_ref_kg ? ' · '+nf1.format(c.ton_exec*1000/c.peso_ref_kg*100)+'% do pintável' : '')),
+    box('green','Executado na semana',
+        dTon==null?'—':(dTon>=0?'+':'')+nf1.format(dTon)+' t',
+        idx>0? 'vs '+dBR(S.semanas[idx-1]) : 'primeira semana · acumulado'),
+    box('','Fabricação', pc(c.avanco_fab), ton(c.avanco_fab*c.peso_kg/1000)+' executadas'),
+    box('','Montagem', pc(c.avanco_mont), ton(c.avanco_mont*c.peso_kg/1000)+' executadas'),
+    box('gold','Pintura', pc(c.avanco_pint), ton(c.avanco_pint*c.peso_kg/1000)+' executadas'),
+    box('','Itens mapeados', nf0.format(c.qtd_itens), nf1.format(c.peso_kg/1000)+' t de projeto'),
     box(cob.naoMapeados>0?'red':'green','Cobertura da lista',
         cob.total? pc(1-cob.naoMapeados/cob.total) : '—',
         cob.total? cob.naoMapeados+' de '+cob.total+' sem memorial' : 'lista de materiais não carregada')
@@ -852,7 +954,9 @@ function renderEmpresaCards(){
     const r = resumoDe(id, sem);
     if(!r) return '';
     const a = idx>0 ? resumoDe(id, S.semanas[idx-1]) : null;
-    const d = a ? (r.avanco_total-a.avanco_total)*100 : null;
+    const d = a ? (avancoDe(r)-avancoDe(a))*100 : null;
+    const tAtual = tonDe(r), tAnt = a ? tonDe(a) : null;
+    const dT = (tAtual!=null && tAnt!=null) ? tAtual-tAnt : null;
     const cor = corEmp(id), e = empById(id)||{};
     const linha = (lb,v,c)=>`<div class="emp-row">
         <div class="lb">${lb}</div>
@@ -864,9 +968,15 @@ function renderEmpresaCards(){
         <div class="emp-name">${esc(e.nome||'')}</div>
         <div class="emp-ct">${esc(e.contrato?'CT '+e.contrato:'')} ${esc(e.escopo_desc||'')}</div>
         <div class="emp-big">
-          <div class="v" style="color:${cor}">${nf1.format((r.avanco_total||0)*100)}%</div>
+          <div class="v" style="color:${cor}">${nf1.format((avancoDe(r)||0)*100)}%</div>
           <div class="d" style="color:${d==null?'var(--text-mute)':(d>=0?'var(--green)':'var(--red)')}">
             ${d==null?'—':(d>=0?'▲ +':'▼ ')+nf2.format(d)+' p.p.'}</div>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+          <div style="font-size:15px;font-weight:800;letter-spacing:-.4px">${ton(tAtual)}</div>
+          <div style="font-size:10px;color:var(--text-mute)">de ${nf1.format(pesoRef(r)/1000)} t</div>
+          ${dT==null?'':`<div style="font-size:10px;font-weight:800;color:${dT>0?'var(--green)':'var(--text-mute)'}">
+            ${(dT>=0?'+':'')+nf1.format(dT)} t na semana</div>`}
         </div>
         <div class="emp-rows">
           ${linha('Fabricação', r.avanco_fab, '#304F7E')}
@@ -892,7 +1002,9 @@ function renderTabelaResumo(){
       const r = S.resumo.find(x=>x.empresa_id==id&&x.semana===sem&&x.escopo===e&&x.material===m);
       if(!r || !r.qtd_itens) return;
       const a = idx>0 ? S.resumo.find(x=>x.empresa_id==id&&x.semana===S.semanas[idx-1]&&x.escopo===e&&x.material===m) : null;
-      const d = a? (r.avanco_total-a.avanco_total)*100 : null;
+      const d = a? (avancoDe(r)-avancoDe(a))*100 : null;
+      const tA = tonDe(r), tB = a?tonDe(a):null;
+      const dT = (tA!=null&&tB!=null)? tA-tB : null;
       rows += `<tr>
         <td><b>${esc(nomeEmp(id))}</b></td>
         <td><span class="tag ${cls}">${lab}</span></td>
@@ -902,7 +1014,10 @@ function renderTabelaResumo(){
         <td class="num">${pc(r.avanco_fab)}</td>
         <td class="num">${pc(r.avanco_mont)}</td>
         <td class="num">${pc(r.avanco_pint)}</td>
-        <td>${pbar(r.avanco_total)}</td>
+        <td>${pbar(avancoDe(r))}</td>
+        <td class="num" style="font-weight:700">${tA==null?'—':nf1.format(tA)}</td>
+        <td class="num" style="color:${dT==null?'var(--text-mute)':(dT>0?'var(--green)':'var(--text-mute)')}">
+          ${dT==null?'—':(dT>=0?'+':'')+nf1.format(dT)}</td>
         <td class="num" style="color:${d==null?'var(--text-mute)':(d>0?'var(--green)':'var(--text-mute)')}">
           ${d==null?'—':(d>=0?'+':'')+nf2.format(d)}</td>
       </tr>`;
@@ -913,8 +1028,9 @@ function renderTabelaResumo(){
       <th class="nosort">Empresa</th><th class="nosort">Recorte</th>
       <th class="num nosort">Itens</th><th class="num nosort">Peso (t)</th><th class="num nosort">Peso rel.</th>
       <th class="num nosort">Fabricação</th><th class="num nosort">Montagem</th><th class="num nosort">Pintura</th>
-      <th class="nosort">Avanço total</th><th class="num nosort">Δ p.p.</th>
-    </tr></thead><tbody>${rows || '<tr><td colspan="10" class="empty">Sem dados para o filtro atual.</td></tr>'}</tbody>`;
+      <th class="nosort">Avanço${S.f.etapa?' · '+LABEL_ETAPA[S.f.etapa]:''}</th>
+      <th class="num nosort">Exec. (t)</th><th class="num nosort">Δ t</th><th class="num nosort">Δ p.p.</th>
+    </tr></thead><tbody>${rows || '<tr><td colspan="12" class="empty">Sem dados para o filtro atual.</td></tr>'}</tbody>`;
 }
 function pbar(v){
   const p=Math.max(0,Math.min(100,(v||0)*100));
@@ -932,6 +1048,14 @@ function hideTip(){ TIP.style.display='none' }
 function svgEl(w,h){
   return `<svg class="chart" viewBox="0 0 ${w} ${h}" width="100%" height="${h}">`;
 }
+// arredonda o topo do eixo para um valor "redondo" (1/2/2,5/5 × 10^n)
+function niceMax(v, n){
+  n = n || 5;
+  if(!(v>0)) return n;
+  const p = v/n, mag = Math.pow(10, Math.floor(Math.log10(p))), norm = p/mag;
+  const step = (norm<=1?1:norm<=2?2:norm<=2.5?2.5:norm<=5?5:10)*mag;
+  return step*n;
+}
 function eixoY(x0,x1,y0,y1,max,fmt){
   let s='', n=5;
   for(let i=0;i<=n;i++){
@@ -947,20 +1071,22 @@ function renderChartAcumulado(){
   if(sems.length<1){ el.innerHTML='<div class="empty">Importe pelo menos um memorial.</div>'; $('#lg-acum').innerHTML=''; return }
   const series = empresasVisiveis().map(id=>({
     name:nomeEmp(id), color:corEmp(id),
-    values: sems.map(s=>{ const r=resumoDe(id,s); return r? r.avanco_total*100 : null })
+    values: sems.map(s=>{ const r=resumoDe(id,s); return r? avancoDe(r)*100 : null })
   })).filter(s=>s.values.some(v=>v!=null));
   $('#lg-acum').innerHTML = series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
   el.innerHTML = lineChart(sems.map(semanaLabel), series, el);
   bindTip(el, sems, series, v=>nf1.format(v)+'%');
 }
 
-function lineChart(labels, series, el){
+function lineChart(labels, series, el, yFmt, passo){
+  yFmt = yFmt || (v=>nf0.format(v)+'%');
+  passo = passo || 10;
   const W=Math.max(420, el.clientWidth||620);
   const H=260, x0=46,x1=W-12,y0=14,y1=H-30;
-  const max=Math.max(10, Math.ceil(Math.max(...series.flatMap(s=>s.values.filter(v=>v!=null)),0)/10)*10);
+  const max=niceMax(Math.max(...series.flatMap(s=>s.values.filter(v=>v!=null)),0)*1.02);
   const X = i => labels.length<2 ? (x0+x1)/2 : x0+(x1-x0)*i/(labels.length-1);
   const Y = v => y1-(y1-y0)*(v/max);
-  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,max,v=>nf0.format(v)+'%');
+  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,max,yFmt);
   labels.forEach((l,i)=>{
     if(labels.length>14 && i%Math.ceil(labels.length/12)) return;
     s+=`<text x="${X(i)}" y="${y1+15}" font-size="8.5" fill="#8a95a6" text-anchor="middle">${esc(l)}</text>`;
@@ -1012,49 +1138,96 @@ function renderChartEtapas(){
 
 function renderSemanal(){
   const sems=S.semanas;
-  if(sems.length<1){ $('#ch-delta').innerHTML='<div class="empty">Sem memoriais.</div>';
-    $('#ch-carbono').innerHTML=''; $('#ch-inox').innerHTML=''; $('#tb-semanal').innerHTML=''; return }
+  const vazio = id => { const e=$(id); if(e) e.innerHTML='<div class="empty">Sem memoriais.</div>' };
+  if(sems.length<1){
+    ['#ch-delta','#ch-delta-t','#ch-acum-t','#ch-carbono','#ch-inox','#ch-carbono-t','#ch-inox-t'].forEach(vazio);
+    $('#tb-semanal').innerHTML=''; return;
+  }
+  const et = S.f.etapa;
+  const sufixo = et ? ' · '+LABEL_ETAPA[et] : '';
+  $$('.sub-etapa').forEach(e=>e.textContent = et ? LABEL_ETAPA[et] : 'avanço total ponderado');
 
-  // delta por empresa
-  const series = empresasVisiveis().map(id=>({
-    name:nomeEmp(id), color:corEmp(id),
-    values: sems.map((s,i)=>{
-      const r=resumoDe(id,s); if(!r) return null;
-      const a=i>0?resumoDe(id,sems[i-1]):null;
-      return a? (r.avanco_total-a.avanco_total)*100 : null;   // 1ª semana não tem período anterior
-    })
-  })).filter(s=>s.values.some(v=>v!=null));
-  $('#lg-delta').innerHTML = series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
-  $('#ch-delta').innerHTML = groupedBars(sems.map(semanaLabel), series, '#ch-delta');
-  bindTip($('#ch-delta'), sems, series, v=>(v>=0?'+':'')+nf2.format(v)+' p.p.');
-
-  // carbono / inox
-  ['CARBONO','INOX'].forEach(mat=>{
-    const el = $(mat==='CARBONO'?'#ch-carbono':'#ch-inox');
-    const acum=[], delta=[];
+  /* ── séries por empresa ─────────────────────────────────────── */
+  const emps = empresasVisiveis();
+  const serPP = [], serTon = [], serAcumTon = [];
+  emps.forEach(id=>{
+    const pp=[], dt=[], at=[];
     sems.forEach((s,i)=>{
-      const rows = empresasVisiveis().map(id=>S.resumo.find(x=>x.empresa_id==id&&x.semana===s&&x.escopo==='TUBULACAO'&&x.material===mat)).filter(Boolean);
-      if(!rows.length){ acum.push(null); delta.push(null); return }
-      const W=rows.reduce((a,r)=>a+(r.peso_kg||0),0)||rows.length;
-      const v=rows.reduce((a,r)=>a+(r.peso_kg||1)*(r.avanco_total||0),0)/W;
-      acum.push(v*100);
-      delta.push(i>0&&acum[i-1]!=null ? v*100-acum[i-1] : null);
+      const r=resumoDe(id,s);
+      if(!r){ pp.push(null); dt.push(null); at.push(null); return }
+      const a = i>0 ? resumoDe(id,sems[i-1]) : null;
+      pp.push(a ? (avancoDe(r)-avancoDe(a))*100 : null);
+      const t = tonDe(r);
+      at.push(t);
+      dt.push(a ? t - tonDe(a) : null);
     });
-    if(!acum.some(v=>v!=null)){ el.innerHTML='<div class="empty">Sem itens de '+mat.toLowerCase()+'.</div>'; return }
-    el.innerHTML = comboChart(sems.map(semanaLabel), delta, acum,
-      mat==='CARBONO'?'#304F7E':'#007D77', el);
-    const ser=[{name:'Avanço da semana',color:mat==='CARBONO'?'#304F7E':'#007D77',values:delta},
-               {name:'Acumulado',color:'#8a95a6',values:acum}];
-    bindTip(el, sems, ser, v=>nf2.format(v)+'%');
+    const nome=nomeEmp(id), cor=corEmp(id);
+    if(pp.some(v=>v!=null)) serPP.push({name:nome,color:cor,values:pp});
+    if(dt.some(v=>v!=null)) serTon.push({name:nome,color:cor,values:dt});
+    if(at.some(v=>v!=null)) serAcumTon.push({name:nome,color:cor,values:at});
   });
 
-  // tabela
+  /* ── 1. avanço no período (p.p.) ─────────────────────────────── */
+  $('#lg-delta').innerHTML = serPP.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
+  $('#ch-delta').innerHTML = groupedBars(sems.map(semanaLabel), serPP, '#ch-delta', v=>nf1.format(v));
+  bindTip($('#ch-delta'), sems, serPP, v=>(v>=0?'+':'')+nf2.format(v)+' p.p.');
+
+  /* ── 2. avanço no período (toneladas) ────────────────────────── */
+  $('#lg-delta-t').innerHTML = serTon.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
+  $('#ch-delta-t').innerHTML = groupedBars(sems.map(semanaLabel), serTon, '#ch-delta-t', v=>nf1.format(v)+' t');
+  bindTip($('#ch-delta-t'), sems, serTon, v=>(v>=0?'+':'')+nf1.format(v)+' t');
+
+  /* ── 3. peso executado acumulado (t) ─────────────────────────── */
+  const elA=$('#ch-acum-t');
+  $('#lg-acum-t').innerHTML = serAcumTon.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
+  if(serAcumTon.length){
+    elA.innerHTML = lineChart(sems.map(semanaLabel), serAcumTon, elA, v=>nf0.format(v)+' t');
+    bindTip(elA, sems, serAcumTon, v=>nf1.format(v)+' t');
+  } else elA.innerHTML='<div class="empty">Sem dados.</div>';
+
+  /* ── 4. carbono / inox — % e toneladas ───────────────────────── */
+  ['CARBONO','INOX'].forEach(mat=>{
+    const elPct = $(mat==='CARBONO'?'#ch-carbono':'#ch-inox');
+    const elTon = $(mat==='CARBONO'?'#ch-carbono-t':'#ch-inox-t');
+    const cor   = mat==='CARBONO'?'#304F7E':'#007D77';
+    const acum=[], delta=[], acumT=[], deltaT=[];
+    sems.forEach((s,i)=>{
+      const rows = emps.map(id=>S.resumo.find(x=>x.empresa_id==id&&x.semana===s&&
+                    x.escopo==='TUBULACAO'&&x.material===mat)).filter(Boolean);
+      if(!rows.length){ acum.push(null); delta.push(null); acumT.push(null); deltaT.push(null); return }
+      const W = rows.reduce((a,r)=>a+(r.peso_kg||0),0) || rows.length;
+      const v = rows.reduce((a,r)=>a+(r.peso_kg||1)*(avancoDe(r)||0),0)/W;
+      const t = rows.reduce((a,r)=>a+(tonDe(r)||0),0);
+      acum.push(v*100);  acumT.push(t);
+      delta.push(i>0&&acum[i-1]!=null ? v*100-acum[i-1] : null);
+      deltaT.push(i>0&&acumT[i-1]!=null ? t-acumT[i-1] : null);
+    });
+
+    if(!acum.some(v=>v!=null)){
+      elPct.innerHTML='<div class="empty">Sem itens de '+mat.toLowerCase()+'.</div>';
+      elTon.innerHTML='<div class="empty">Sem itens de '+mat.toLowerCase()+'.</div>';
+      return;
+    }
+    // percentual (gráfico original)
+    elPct.innerHTML = comboChart(sems.map(semanaLabel), delta, acum, cor, elPct, {lineMax:100});
+    bindTip(elPct, sems, [{name:'Avanço da semana',color:cor,values:delta},
+                          {name:'Acumulado',color:'#8a95a6',values:acum}], v=>nf2.format(v)+'%');
+    // toneladas
+    const maxT = Math.max(...acumT.filter(v=>v!=null),1);
+    elTon.innerHTML = comboChart(sems.map(semanaLabel), deltaT, acumT, cor, elTon,
+      {lineMax: niceMax(maxT*1.05), lineFmt:v=>nf0.format(v)+' t', barFmt:v=>nf1.format(v)+' t'});
+    bindTip(elTon, sems, [{name:'Executado na semana',color:cor,values:deltaT},
+                          {name:'Acumulado',color:'#8a95a6',values:acumT}], v=>nf1.format(v)+' t');
+  });
+
+  /* ── 5. tabela ───────────────────────────────────────────────── */
   let rows='';
   sems.slice().reverse().forEach(s=>{
-    empresasVisiveis().forEach(id=>{
+    emps.forEach(id=>{
       const r=resumoDe(id,s); if(!r) return;
       const i=sems.indexOf(s), a=i>0?resumoDe(id,sems[i-1]):null;
-      const d=a?(r.avanco_total-a.avanco_total)*100:null;
+      const d=a?(avancoDe(r)-avancoDe(a))*100:null;
+      const t=tonDe(r), dT=a? t-tonDe(a) : null;
       const m=S.memoriais.find(x=>x.empresa_id==id&&x.semana===s);
       rows+=`<tr>
         <td class="mono">${dBR(s)}</td>
@@ -1062,9 +1235,13 @@ function renderSemanal(){
         <td class="num">${pc(r.avanco_fab)}</td>
         <td class="num">${pc(r.avanco_mont)}</td>
         <td class="num">${pc(r.avanco_pint)}</td>
-        <td>${pbar(r.avanco_total)}</td>
+        <td>${pbar(avancoDe(r))}</td>
         <td class="num" style="font-weight:700;color:${d==null?'var(--text-mute)':(d>0?'var(--green)':'var(--text-mute)')}">
           ${d==null?'—':(d>=0?'+':'')+nf2.format(d)+' p.p.'}</td>
+        <td class="num" style="font-weight:700">${t==null?'—':nf1.format(t)}</td>
+        <td class="num" style="font-weight:700;color:${dT==null?'var(--text-mute)':(dT>0?'var(--green)':'var(--text-mute)')}">
+          ${dT==null?'—':(dT>=0?'+':'')+nf1.format(dT)}</td>
+        <td class="num">${nf1.format(pesoRef(r)/1000)}</td>
         <td class="num">${nf0.format(r.qtd_itens||0)}</td>
         <td>${m&&m.revisao?esc(m.revisao):'—'}</td>
       </tr>`;
@@ -1073,19 +1250,22 @@ function renderSemanal(){
   $('#tb-semanal').innerHTML=`<thead><tr>
       <th class="nosort">Semana</th><th class="nosort">Empresa</th>
       <th class="num nosort">Fabricação</th><th class="num nosort">Montagem</th><th class="num nosort">Pintura</th>
-      <th class="nosort">Acumulado</th><th class="num nosort">No período</th>
+      <th class="nosort">Acumulado${sufixo}</th><th class="num nosort">No período</th>
+      <th class="num nosort">Exec. (t)</th><th class="num nosort">Δ t</th>
+      <th class="num nosort">Escopo (t)</th>
       <th class="num nosort">Itens</th><th class="nosort">Rev.</th>
-    </tr></thead><tbody>${rows||'<tr><td colspan="9" class="empty">Sem dados.</td></tr>'}</tbody>`;
+    </tr></thead><tbody>${rows||'<tr><td colspan="12" class="empty">Sem dados.</td></tr>'}</tbody>`;
 }
 
-function groupedBars(labels, series, sel){
+function groupedBars(labels, series, sel, yFmt){
+  yFmt = yFmt || (v=>nf1.format(v));
   const el=document.querySelector(sel);
   const W=Math.max(420, el.clientWidth||760), H=250, x0=46,x1=W-12,y0=14,y1=H-30;
   const vals=series.flatMap(s=>s.values.filter(v=>v!=null));
-  const max=Math.max(1, Math.ceil(Math.max(...vals,0)*1.15));
+  const max=niceMax(Math.max(...vals,0)*1.08);
   const gw=(x1-x0)/Math.max(1,labels.length), bw=Math.min(26,(gw-8)/Math.max(1,series.length));
   const Y=v=>y1-(y1-y0)*(v/max);
-  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,max,v=>nf1.format(v));
+  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,max,yFmt);
   labels.forEach((l,i)=>{
     const cx=x0+gw*i+gw/2;
     if(!(labels.length>14 && i%Math.ceil(labels.length/12)))
@@ -1100,14 +1280,18 @@ function groupedBars(labels, series, sel){
   return s+'</svg>';
 }
 
-function comboChart(labels, bars, line, cor, el){
-  const W=Math.max(360, el.clientWidth||520), H=240, x0=42,x1=W-40,y0=14,y1=H-30;
-  const maxB=Math.max(1, Math.max(...bars.filter(v=>v!=null),0)*1.2);
+function comboChart(labels, bars, line, cor, el, opt){
+  opt = opt || {};
+  const lineMax = opt.lineMax!=null ? opt.lineMax : niceMax(Math.max(...line.filter(v=>v!=null),0)*1.05);
+  const lineFmt = opt.lineFmt || (v=>nf0.format(v)+'%');
+  const barFmt  = opt.barFmt  || (v=>nf1.format(v));
+  const W=Math.max(360, el.clientWidth||520), H=240, x0=42,x1=W-46,y0=14,y1=H-30;
+  const maxB=niceMax(Math.max(...bars.filter(v=>v!=null),0)*1.1);
   const gw=(x1-x0)/Math.max(1,labels.length), bw=Math.min(30, gw*0.55);
-  const YB=v=>y1-(y1-y0)*(v/maxB), YL=v=>y1-(y1-y0)*(v/100);
-  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,maxB,v=>nf1.format(v));
+  const YB=v=>y1-(y1-y0)*(v/maxB), YL=v=>y1-(y1-y0)*(v/lineMax);
+  let s=svgEl(W,H)+eixoY(x0,x1,y0,y1,maxB,barFmt);
   for(let i=0;i<=5;i++){ const y=y1-(y1-y0)*(i/5);
-    s+=`<text x="${x1+6}" y="${y+3.5}" font-size="9" fill="#8a95a6">${i*20}%</text>` }
+    s+=`<text x="${x1+6}" y="${y+3.5}" font-size="9" fill="#8a95a6">${lineFmt(lineMax*i/5)}</text>` }
   labels.forEach((l,i)=>{
     const cx=x0+gw*i+gw/2;
     if(bars[i]!=null){
@@ -1142,6 +1326,10 @@ function itensFiltrados(){
     return true;
   });
 }
+// kg executados de um item, conforme a etapa selecionada
+function pesoExecItem(i){
+  return (i[CAMPO_ITEM[S.f.etapa]]||0) * (i.peso_kg||0);
+}
 function renderItens(){
   const etapas=[...new Set(S.itens.map(i=>i.etapa_grupo).filter(Boolean))];
   const sel=$('#f-etapa'), cur=sel.value;
@@ -1150,18 +1338,23 @@ function renderItens(){
 
   const rows=itensFiltrados().sort((a,b)=>{
     const k=S.sortItens.k, d=S.sortItens.dir;
-    const va=a[k], vb=b[k];
+    const va = k==='peso_exec_calc'?pesoExecItem(a):a[k];
+    const vb = k==='peso_exec_calc'?pesoExecItem(b):b[k];
     if(typeof va==='number'||typeof vb==='number') return ((va||0)-(vb||0))*d;
     return String(va||'').localeCompare(String(vb||''))*d;
   });
+  const tExec = rows.reduce((a,i)=>a+pesoExecItem(i),0)/1000;
+  const tEsc  = rows.reduce((a,i)=>a+((S.f.etapa==='pint')?(i.peso_pint_kg||0):(i.peso_kg||0)),0)/1000;
   $('#itens-sub').textContent = nf0.format(rows.length)+' itens · semana '+dBR(S.f.semana)+
-    (S.f.empresa?' · '+nomeEmp(S.f.empresa):' · todas as empresas');
+    (S.f.empresa?' · '+nomeEmp(S.f.empresa):' · todas as empresas')+
+    ' · '+nf1.format(tExec)+' t de '+nf1.format(tEsc)+' t'+(S.f.etapa?' ('+LABEL_ETAPA[S.f.etapa]+')':'');
 
   const head=[['linha_raw','Line number / TAG',''],['empresa_id','Empresa',''],
     ['escopo','Escopo',''],['material','Material',''],['diametro','Ø',''],
     ['etapa_grupo','Etapa',''],['peso_kg','Peso (kg)','num'],['pct_projeto','% projeto','num'],
     ['pct_fab','Fabricação','num'],['pct_mont','Montagem','num'],['pct_pint','Pintura','num'],
-    ['pct_total','Avanço','']];
+    ['peso_exec_calc','Exec. (kg)','num'],
+    [CAMPO_ITEM[S.f.etapa],'Avanço'+(S.f.etapa?' · '+LABEL_ETAPA[S.f.etapa]:''),'']];
   const th=head.map(([k,l,c])=>`<th class="${c}" data-k="${k}">${l}${S.sortItens.k===k?(S.sortItens.dir>0?' ▲':' ▼'):''}</th>`).join('');
   const body = rows.slice(0,3000).map(i=>`<tr>
       <td class="mono" style="font-size:10.5px">${esc(i.linha_raw)}</td>
@@ -1176,9 +1369,10 @@ function renderItens(){
       <td class="num">${pc(i.pct_fab)}</td>
       <td class="num">${pc(i.pct_mont)}</td>
       <td class="num">${i.tem_pintura?pc(i.pct_pint):'—'}</td>
-      <td>${pbar(i.pct_total)}</td>
+      <td class="num">${nf1.format(pesoExecItem(i))}</td>
+      <td>${pbar(i[CAMPO_ITEM[S.f.etapa]])}</td>
     </tr>`).join('');
-  $('#tb-itens').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${body||'<tr><td colspan="12" class="empty">Nenhum item.</td></tr>'}</tbody>`;
+  $('#tb-itens').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${body||'<tr><td colspan="13" class="empty">Nenhum item.</td></tr>'}</tbody>`;
   $$('#tb-itens thead th').forEach(th=>th.addEventListener('click',()=>{
     const k=th.dataset.k; if(!k) return;
     S.sortItens = {k, dir: S.sortItens.k===k ? -S.sortItens.dir : -1};
@@ -1320,35 +1514,66 @@ let rz; window.addEventListener('resize',()=>{ clearTimeout(rz);
    IMPORTAÇÃO DE MEMORIAL
    ══════════════════════════════════════════════ */
 const CAMPOS = [
-  {k:'linha',     l:'Line number / TAG',        req:true,  hint:['linha','line','isometrico','isométrico','tag','descrição','descricao']},
-  {k:'grupo',     l:'Etapa / grupo',            hint:['etapa','grupo','sistema','area','área','frente']},
-  {k:'nivel',     l:'Nível / item',             hint:['nível','nivel','item','tópico','topico']},
-  {k:'material',  l:'Material (Carbono/Inox)',  hint:['material','tipo']},
+  {k:'linha',     l:'Line number / TAG',        req:true,
+   hint:['isométrico','isometrico','line number','linha','line','tag','descrição','descricao'],
+   evitar:['nº','n°','item']},
+  {k:'grupo',     l:'Etapa / grupo / área',
+   hint:['etapa','grupo','área','area','sistema','frente','local']},
+  {k:'nivel',     l:'Nível / item',             hint:['nível tópico','nível','nivel','tópico','topico','item']},
+  {k:'material',  l:'Material (Carbono/Inox)',  hint:['material','mat.','mat','tipo'], evitar:['massa','lista']},
   {k:'escopo',    l:'Escopo (Tubulação/Suporte)',hint:['escopo','disciplina']},
   {k:'metragem',  l:'Metragem projeto (m)',     hint:['metragem projeto','metragem','comprimento','extensão']},
-  {k:'peso',      l:'Peso projeto (kg)',        req:true,  hint:['peso projeto','peso (kg)','peso kg','peso']},
+  {k:'peso',      l:'Peso projeto (kg)',        req:true,
+   hint:['peso projeto','kg proporcional','massa lista','peso (kg)','peso kg','massa','peso'],
+   evitar:['dif','diferen','saldo','restante','executad','concluíd','concluid','avanço','avanco','%','pintura']},
   {k:'pct_ativ',  l:'% da atividade',           hint:['% da atividade','peso da atividade','% atividade']},
-  {k:'pct_proj',  l:'% do projeto',             hint:['% do projeto','% projeto','peso relativo','ponderação','ponderacao']},
-  {k:'peso_pint', l:'Peso pintura (kg)',        hint:['peso projeto pintura','peso pintura']},
+  {k:'pct_proj',  l:'% do projeto',             hint:['% do projeto','% projeto','peso relativo','ponderação','ponderacao'],
+   evitar:['pintura']},
+  {k:'peso_pint', l:'Peso pintura (kg)',        hint:['peso projeto pintura','peso pintura'], evitar:['dif','%']},
   {k:'cor',       l:'Cor de pintura',           hint:['cor']},
-  {k:'pct_fab',   l:'% Fabricação concluída',   hint:['fabricação concluída','fabricacao concluida','% fabricação','fabricação','fabricacao']},
-  {k:'pct_mont',  l:'% Montagem concluída',     hint:['montagem concluída','montagem concluida','% montagem','montagem']},
-  {k:'pct_pint',  l:'% Pintura concluída',      hint:['pintura concluída','pintura concluida','% pintura','pintura']},
-  {k:'pct_total', l:'% Total concluído',        hint:['% total concluída','% total concluido','total concluída','% total','avanço','avanco']},
+  {k:'pct_fab',   l:'% Fabricação concluída',
+   hint:['avanço fabricação','avanco fabricacao','fabricação concluída','fabricacao concluida','% fabricação','fabricação','fabricacao'],
+   evitar:['peso','massa','kg','metragem','prep','acopl','solda','qual']},
+  {k:'pct_mont',  l:'% Montagem concluída',
+   hint:['avanço montagem','avanco montagem','montagem concluída','montagem concluida','% montagem','montagem'],
+   evitar:['peso','massa','kg','metragem','içam','icam','acopl','solda','qual']},
+  {k:'pct_pint',  l:'% Pintura concluída',
+   hint:['avanço pintura','pintura concluída','pintura concluida','% pintura','pintura'],
+   evitar:['peso','massa','kg','cor']},
+  {k:'pct_total', l:'% Total concluído',
+   hint:['% total concluída','% total concluido','% total concluída','total concluído','total concluido','% total','avanço total','avanço geral'],
+   evitar:['peso','massa','kg','fabricação','montagem','pintura']},
   {k:'m_fab',     l:'Metragem fabricada',       hint:['metragem fabricada']},
   {k:'m_mont',    l:'Metragem montada',         hint:['metragem montada']},
-  {k:'peso_exec', l:'Peso executado (kg)',      hint:['peso total executado','peso executado']}
+  {k:'peso_exec', l:'Peso executado (kg)',      hint:['peso total executado','peso executado'], evitar:['%']}
 ];
-const IMP = {wb:null, arquivo:'', passo:1, perfil:null, aoa:null, headers:[], mapa:{}, itens:null, resumo:null, pesos:{}};
+const IMP = {wb:null, arquivo:'', passo:1, perfil:null, usarPerfil:false,
+             abas:null, abaBase:'', headers:[], mapa:{}, itens:null, resumo:null,
+             pesos:{}, avisosLeitura:[]};
 
 function abrirImport(){
   if(!PODE_EDITAR){ toast('Seu perfil não tem permissão para importar.','err'); return }
   if(!S.empresas.length){ toast('Cadastre a empresa antes de importar o memorial.','err'); abrirEmpresas(); return }
-  IMP.wb=null; IMP.passo=1; IMP.itens=null; IMP.mapa={};
+  resetImport();
   passoImport(1); $('#imp-next').disabled=true; $('#file').value='';
   $('#md-import').classList.add('open');
 }
 $('#btn-import').addEventListener('click',abrirImport);
+
+/* Zera tudo o que veio do arquivo anterior. Sem isso, a lista de abas e o
+   de-para do último memorial importado vazariam para o próximo. */
+function resetImport(){
+  IMP.wb=null; IMP.abas=null; IMP.abaBase=''; IMP.headers=[]; IMP.mapa={};
+  IMP.itens=null; IMP.resumo=null; IMP.perfil=null; IMP.usarPerfil=false;
+  IMP.avisosLeitura=[]; IMP.passo=1;
+  const d=$('#drop');
+  d.querySelector('.big').textContent='Clique aqui ou arraste o memorial';
+  d.querySelector('.sm').textContent='.xlsx · .xlsm · .xls';
+  ['#abas-list','#map-fields','#imp-detect','#imp-valid','#imp-kpis'].forEach(q=>{
+    const e=$(q); if(e) e.innerHTML='';
+  });
+  const sa=$('#m-aba'); if(sa) sa.innerHTML='';
+}
 
 function passoImport(n){
   IMP.passo=n;
@@ -1372,17 +1597,21 @@ drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over'
 fileEl.addEventListener('change',e=>{ if(e.target.files[0]) lerArquivo(e.target.files[0]) });
 
 function lerArquivo(f){
-  IMP.arquivo=f.name;
   const fr=new FileReader();
   fr.onload=ev=>{
     try{
+      resetImport();                       // <- descarta o arquivo anterior por completo
+      IMP.arquivo=f.name;
       IMP.wb = XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:false});
-      drop.querySelector('.big').textContent='✓ '+f.name;
-      drop.querySelector('.sm').textContent=IMP.wb.SheetNames.length+' aba(s) · clique para trocar';
       IMP.perfil = detectarPerfil(IMP.wb);
+      IMP.usarPerfil = !!IMP.perfil;
+      montarAbas();
+      drop.querySelector('.big').textContent='✓ '+f.name;
+      drop.querySelector('.sm').textContent =
+        IMP.wb.SheetNames.length+' aba(s) · '+IMP.abas.filter(a=>a.sel).length+' com dados · clique para trocar';
       $('#imp-next').disabled=false;
-      toast(IMP.perfil?'Padrão reconhecido automaticamente.':'Arquivo carregado — confira o mapeamento.','ok');
-    }catch(err){ toast('Não consegui ler o arquivo: '+err.message,'err') }
+      toast(IMP.perfil?'Padrão reconhecido automaticamente.':'Arquivo carregado — confira as abas e o de-para.','ok');
+    }catch(err){ console.error(err); toast('Não consegui ler o arquivo: '+err.message,'err') }
   };
   fr.readAsArrayBuffer(f);
 }
@@ -1397,7 +1626,13 @@ function detectarPerfil(wb){
   return null;
 }
 
-/* ---- leitura genérica ---- */
+/* ---- leitura genérica (multi-aba) ---------------------------------
+   Um memorial pode vir com o escopo espalhado em várias abas
+   (tubulação / suportes / equipamentos). Todas as abas marcadas entram
+   na MESMA foto da semana. O de-para de colunas é definido em uma aba
+   base e reaplicado nas demais casando o NOME da coluna; se o nome não
+   existir na outra aba, cai na mesma posição.                        */
+
 // SheetJS começa o array na primeira coluna usada da planilha; forçamos A1 para
 // que o índice do array bata sempre com a letra da coluna do Excel.
 function sheetAoA(ws){
@@ -1406,53 +1641,197 @@ function sheetAoA(ws){
   ref.s.c=0; ref.s.r=0;
   return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:true,range:ref});
 }
-function carregarAba(nome, headerRow){
-  const ws=IMP.wb.Sheets[nome];
-  const aoa=sheetAoA(ws);
-  IMP.aoa=aoa;
-  IMP.headers=(aoa[headerRow-1]||[]).map((h,i)=>({i, nome: h==null?'':String(h).trim(),
-    letra: XLSX.utils.encode_col(i)}));
-  return aoa;
-}
-function palpite(campo){
-  const hs=IMP.headers.map(h=>h.nome.toLowerCase());
-  for(const dica of campo.hint||[]){
-    const i=hs.findIndex(h=>h && h.indexOf(dica.toLowerCase())>=0);
-    if(i>=0) return i;
+
+/* Descobre onde está o cabeçalho: a linha com mais texto entre as 30
+   primeiras, estendida para baixo enquanto as linhas seguintes ainda
+   parecerem cabeçalho (texto, sem números de dado). */
+function detectHeader(aoa){
+  let best=0, bestScore=-1;
+  const lim=Math.min(aoa.length, 30);
+  for(let r=0;r<lim;r++){
+    const row=aoa[r]||[];
+    const txt  = row.filter(c=>typeof c==='string' && c.trim().length>1).length;
+    const nums = row.filter(c=>typeof c==='number' && Math.abs(c)>1.0001).length;
+    const score = txt - nums*0.8;
+    if(score>bestScore){ bestScore=score; best=r }
   }
-  return -1;
+  let fim=best;
+  for(let r=best+1;r<Math.min(aoa.length,best+6);r++){
+    const row=aoa[r]||[];
+    const txt  = row.filter(c=>c!=null && String(c).trim()!=='').length;
+    const nums = row.filter(c=>typeof c==='number' && Math.abs(c)>1.0001).length;
+    if(txt>=2 && nums===0) fim=r; else break;
+  }
+  return {ini:best+1, fim:fim+1};   // 1-based, igual ao Excel
 }
+
+/* Cabeçalhos podem estar quebrados em várias linhas e com células
+   mescladas — juntamos tudo num rótulo só por coluna. */
+function headersDe(ws, aoa, ini, fim){
+  const merges = (ws && ws['!merges']) || [];
+  const val = (r,c)=>{
+    let v=(aoa[r]||[])[c];
+    if(v!=null && String(v).trim()!=='') return v;
+    for(const m of merges){
+      if(r>=m.s.r && r<=m.e.r && c>=m.s.c && c<=m.e.c){
+        const t=(aoa[m.s.r]||[])[m.s.c];
+        if(t!=null && String(t).trim()!=='') return t;
+      }
+    }
+    return null;
+  };
+  const nCols = Math.max(0, ...aoa.slice(ini-1, fim).map(r=>(r||[]).length),
+                            ...aoa.slice(fim, fim+5).map(r=>(r||[]).length));
+  const out=[];
+  for(let c=0;c<nCols;c++){
+    const partes=[];
+    for(let r=ini-1;r<fim;r++){
+      let v=val(r,c);
+      if(v==null||String(v).trim()==='') continue;
+      if(typeof v==='number') v = (v>0 && v<1) ? Math.round(v*100)+'%' : String(v);
+      const t=String(v).trim().replace(/\s+/g,' ');
+      if(!partes.includes(t)) partes.push(t);
+    }
+    out.push({i:c, nome:partes.join(' · '), letra:XLSX.utils.encode_col(c)});
+  }
+  return out;
+}
+
+const normHdr = t => String(t||'').toUpperCase().replace(/\s+/g,' ').trim();
+
+function escopoDaAba(nome){
+  const n=nome.toUpperCase();
+  if(/SUPORT/.test(n)) return 'SUPORTE';
+  if(/EQUIPAMENT|CALDEIRAR|ESTRUTUR/.test(n)) return 'OUTRO';
+  return 'TUBULACAO';
+}
+function abaEhDado(nome, aoa){
+  const n=nome.toUpperCase();
+  if(/RESUMO|RESUMOO|CRONOGRAMA|PROJE[ÇC][ÃA]O|GR[ÁA]FICO|CAPA|BM$|RDO/.test(n)) return false;
+  return aoa.length > 8;
+}
+
+/* prepara IMP.abas a partir do arquivo carregado */
+function montarAbas(){
+  IMP.abas = IMP.wb.SheetNames.map(nome=>{
+    const ws=IMP.wb.Sheets[nome];
+    const aoa=sheetAoA(ws);
+    const h=detectHeader(aoa);
+    return {
+      nome, aoa, ws, ini:h.ini, fim:h.fim,
+      escopo: escopoDaAba(nome),
+      linhas: Math.max(0, aoa.length - h.fim),
+      sel: abaEhDado(nome, aoa)
+    };
+  });
+  // se nada foi marcado, marca a maior aba
+  if(!IMP.abas.some(a=>a.sel) && IMP.abas.length){
+    IMP.abas.slice().sort((a,b)=>b.linhas-a.linhas)[0].sel = true;
+  }
+  IMP.abaBase = (IMP.abas.find(a=>a.sel)||IMP.abas[0]).nome;
+}
+
+function abaPorNome(n){ return IMP.abas.find(a=>a.nome===n) }
+
+/* Escolhe a coluna mais provável para um campo. Pontua a semelhança com as
+   dicas (match exato vale mais que trecho, e dicas mais específicas vêm
+   primeiro) e descarta colunas com palavras proibidas — é o que evita, por
+   exemplo, mapear "peso" para uma coluna "DIF. PESO". */
+function palpite(campo, headers){
+  let best=-1, bestScore=0;
+  const hints=campo.hint||[], evitar=campo.evitar||[];
+  headers.forEach(h=>{
+    const n=String(h.nome||'').toLowerCase(); if(!n) return;
+    if(evitar.some(e=>n.indexOf(e)>=0)) return;
+    let sc=0;
+    hints.forEach((d,k)=>{
+      const dd=d.toLowerCase(), prio=hints.length-k;
+      if(n===dd)                 sc=Math.max(sc, 200+prio);
+      else if(n.indexOf(dd)>=0)  sc=Math.max(sc, 100+prio - Math.min(40, n.length/4));
+    });
+    if(sc>bestScore){ bestScore=sc; best=h.i }
+  });
+  return best;
+}
+
 function montarMapeamento(){
-  const wb=IMP.wb;
-  const sa=$('#m-aba');
-  if(!sa.dataset.done){
-    sa.innerHTML=wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join('');
-    sa.value = wb.SheetNames.includes('Memorial')?'Memorial':wb.SheetNames[0];
-    $('#m-header').value = IMP.perfil==='rangel_v1'?5:1;
-    sa.dataset.done='1';
+  if(!IMP.abas) montarAbas();
+
+  /* ── lista de abas ── */
+  $('#abas-list').innerHTML = IMP.abas.map((a,k)=>`
+    <div class="aba-row">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" data-aba="${k}" ${a.sel?'checked':''}>
+        <span><b>${esc(a.nome)}</b></span>
+      </label>
+      <select data-escopo="${k}">
+        <option value="TUBULACAO"${a.escopo==='TUBULACAO'?' selected':''}>Tubulação</option>
+        <option value="SUPORTE"${a.escopo==='SUPORTE'?' selected':''}>Suporte</option>
+        <option value="OUTRO"${a.escopo==='OUTRO'?' selected':''}>Outro escopo</option>
+      </select>
+      <input data-hdr="${k}" value="${a.ini}${a.fim>a.ini?'-'+a.fim:''}" title="linha(s) do cabeçalho">
+      <span class="aba-info">${nf0.format(a.linhas)} linhas</span>
+    </div>`).join('');
+
+  $$('#abas-list [data-aba]').forEach(c=>c.addEventListener('change',()=>{
+    IMP.abas[+c.dataset.aba].sel=c.checked; IMP.usarPerfil=false;
+    if(!abaPorNome(IMP.abaBase) || !abaPorNome(IMP.abaBase).sel){
+      const p=IMP.abas.find(a=>a.sel); IMP.abaBase = p?p.nome:IMP.abaBase;
+    }
+    IMP.mapa={}; montarMapeamento();
+  }));
+  $$('#abas-list [data-escopo]').forEach(c=>c.addEventListener('change',()=>{
+    IMP.abas[+c.dataset.escopo].escopo=c.value; IMP.usarPerfil=false;
+  }));
+  $$('#abas-list [data-hdr]').forEach(c=>c.addEventListener('change',()=>{
+    const a=IMP.abas[+c.dataset.hdr];
+    const m=String(c.value).match(/(\d+)\s*(?:[-–a]\s*(\d+))?/);
+    if(m){ a.ini=+m[1]; a.fim=m[2]?+m[2]:+m[1]; a.linhas=Math.max(0,a.aoa.length-a.fim) }
+    IMP.usarPerfil=false; IMP.mapa={}; montarMapeamento();
+  }));
+
+  /* ── aba base do de-para ── */
+  const sel=$('#m-aba');
+  sel.innerHTML = IMP.abas.filter(a=>a.sel).map(a=>`<option>${esc(a.nome)}</option>`).join('');
+  if(!IMP.abas.filter(a=>a.sel).some(a=>a.nome===IMP.abaBase)){
+    const p=IMP.abas.find(a=>a.sel); IMP.abaBase = p?p.nome:'';
   }
-  carregarAba(sa.value, +$('#m-header').value);
+  sel.value = IMP.abaBase;
+
+  const base = abaPorNome(IMP.abaBase);
+  if(!base){ $('#map-fields').innerHTML='<div class="note warn">Marque ao menos uma aba.</div>'; return }
+  IMP.headers = headersDe(base.ws, base.aoa, base.ini, base.fim);
+
   const opts = '<option value="">— não usar —</option>' +
     IMP.headers.map(h=>`<option value="${h.i}">${esc(h.letra)} · ${esc(h.nome||'(vazio)')}</option>`).join('');
   $('#map-fields').innerHTML = CAMPOS.map(c=>{
-    const g = IMP.mapa[c.k]!=null ? IMP.mapa[c.k] : palpite(c);
-    if(g>=0) IMP.mapa[c.k]=g;
+    if(IMP.mapa[c.k]==null){
+      const g=palpite(c, IMP.headers);
+      if(g>=0) IMP.mapa[c.k]={i:g, nome:IMP.headers[g].nome};
+    }
     return `<div class="fld"><label>${c.l}${c.req?' *':''}</label>
       <select data-campo="${c.k}">${opts}</select></div>`;
   }).join('');
   $$('#map-fields select').forEach(s=>{
-    s.value = IMP.mapa[s.dataset.campo]!=null ? IMP.mapa[s.dataset.campo] : '';
-    s.addEventListener('change',()=>{ IMP.mapa[s.dataset.campo]= s.value===''?null:+s.value });
+    const m=IMP.mapa[s.dataset.campo];
+    s.value = m ? m.i : '';
+    s.addEventListener('change',()=>{
+      IMP.usarPerfil=false;
+      IMP.mapa[s.dataset.campo] = s.value==='' ? null
+        : {i:+s.value, nome:(IMP.headers.find(h=>h.i==+s.value)||{}).nome};
+    });
   });
-  $('#imp-detect').innerHTML = IMP.perfil==='rangel_v1'
+
+  $('#imp-detect').innerHTML = (IMP.perfil==='rangel_v1' && IMP.usarPerfil!==false)
     ? `<div class="note ok"><strong>Padrão reconhecido: memorial tipo RANGEL.</strong>
-        Hierarquia por “Nível Tópico”, pesos de etapa no cabeçalho e colunas de fabricação/montagem/pintura já
-        identificados. Você pode ajustar qualquer coluna abaixo se precisar.</div>`
-    : `<div class="note warn"><strong>Padrão não reconhecido.</strong> Indique abaixo qual coluna corresponde a
-        cada informação. Esse de-para fica salvo no perfil da empresa e será reaproveitado nas próximas semanas.</div>`;
+        Hierarquia por “Nível Tópico”, pesos de etapa no cabeçalho e colunas de fabricação, montagem e
+        pintura já identificados. Se você mexer em qualquer campo abaixo, a leitura passa a usar o
+        de-para manual.</div>`
+    : `<div class="note warn"><strong>Padrão não reconhecido.</strong> Marque as abas que fazem parte do
+        memorial e indique qual coluna corresponde a cada informação. O de-para fica salvo no perfil da
+        empresa e é reaproveitado nas próximas semanas.</div>`;
 }
-$('#m-aba').addEventListener('change',()=>{IMP.mapa={};montarMapeamento()});
-$('#m-header').addEventListener('change',()=>{IMP.mapa={};montarMapeamento()});
+$('#m-aba').addEventListener('change',e=>{ IMP.abaBase=e.target.value; IMP.mapa={}; montarMapeamento() });
 
 /* ---- parser padrão RANGEL ---- */
 function parseRangel(){
@@ -1478,7 +1857,7 @@ function parseRangel(){
     if(!grupo) continue;
     const raw=String(linha).trim();
     let mat=C(r,4); mat=mat?String(mat).trim().toUpperCase():'';
-    mat = mat.indexOf('CARB')>=0?'CARBONO' : mat.indexOf('INOX')>=0?'INOX' : (escopo==='SUPORTE'?'OUTRO':'OUTRO');
+    mat = mat.indexOf('CARB')>=0?'CARBONO' : mat.indexOf('INOX')>=0?'INOX' : 'OUTRO';
     const pesoPint=num(C(r,10));
     const it={
       escopo, etapa_grupo:grupo, etapa_num:etapa, nivel_topico:sn, linha_raw:raw, material:mat,
@@ -1503,76 +1882,110 @@ function partirLinha(raw, escopo){
     if(m) return {line_number:m[1].trim(), diametro:m[2].replace(/\s/g,'')};
     return {line_number:raw, diametro:null};
   }
-  m = raw.match(/^\s*([\d./]+\s*")\s*[-\u2013\s]\s*(.+)$/);
+  m = raw.match(/^\s*([\d./]+\s*")\s*[-–\s]\s*(.+)$/);
   if(m) return {diametro:m[1].replace(/\s/g,''), line_number:m[2].trim()};
   return {line_number:raw, diametro:null};
 }
 
-/* ---- parser genérico ---- */
+/* ---- parser genérico (todas as abas marcadas) ---- */
 function parseGenerico(){
-  const hdr=+$('#m-header').value;
-  const aoa=IMP.aoa;
-  const g=k=>IMP.mapa[k];
   const pesos={ w_fab_cp:num($('#w-fab-cp').value), w_mont_cp:num($('#w-mont-cp').value),
                 w_pint_cp:num($('#w-pint-cp').value), w_fab_sp:num($('#w-fab-sp').value),
                 w_mont_sp:num($('#w-mont-sp').value) };
-  const cru=[];
-  for(let r=hdr;r<aoa.length;r++){
-    const row=aoa[r]; if(!row) continue;
-    const linha=g('linha')!=null?row[g('linha')]:null;
-    if(linha==null||String(linha).trim()==='') continue;
-    const peso=g('peso')!=null?num(row[g('peso')]):0;
-    if(!peso && !(g('pct_proj')!=null && num(row[g('pct_proj')]))) continue;
-    cru.push(row);
-  }
-  // detecta escala 0-1 vs 0-100
-  const escala={};
-  ['pct_fab','pct_mont','pct_pint','pct_total','pct_ativ','pct_proj'].forEach(k=>{
-    if(g(k)==null){escala[k]=1;return}
-    const mx=Math.max(...cru.map(r=>num(r[g(k)])),0);
-    escala[k]= mx>1.5?0.01:1;
+  const itens=[]; const avisos=[];
+
+  IMP.abas.filter(a=>a.sel).forEach(aba=>{
+    const aoa=aba.aoa;
+    const hdrs=headersDe(aba.ws, aoa, aba.ini, aba.fim);
+    // resolve o de-para desta aba: primeiro pelo nome da coluna, senão pela posição
+    const idx={};
+    Object.keys(IMP.mapa).forEach(k=>{
+      const m=IMP.mapa[k]; if(!m) return;
+      const porNome = m.nome ? hdrs.find(h=>normHdr(h.nome)===normHdr(m.nome)) : null;
+      idx[k] = porNome ? porNome.i : m.i;
+    });
+    const g=k=>idx[k];
+    const V=(row,k,def)=> g(k)!=null ? row[g(k)] : def;
+
+    const cru=[];
+    for(let r=aba.fim; r<aoa.length; r++){
+      const row=aoa[r]; if(!row) continue;
+      const linha = g('linha')!=null ? row[g('linha')] : null;
+      if(linha==null||String(linha).trim()==='') continue;
+      const txt=String(linha).trim();
+      if(/^(total|subtotal|soma)\b/i.test(txt)) continue;
+      const peso = g('peso')!=null ? num(row[g('peso')]) : 0;
+      const temProj = g('pct_proj')!=null && num(row[g('pct_proj')]);
+      if(!peso && !temProj) continue;
+      cru.push(row);
+    }
+    if(!cru.length){ avisos.push(`A aba <strong>${esc(aba.nome)}</strong> não devolveu nenhuma linha — confira a linha do cabeçalho.`); return }
+
+    // escala 0–1 vs 0–100, aferida dentro da própria aba
+    const escala={};
+    ['pct_fab','pct_mont','pct_pint','pct_total','pct_ativ','pct_proj'].forEach(k=>{
+      if(g(k)==null){ escala[k]=1; return }
+      const mx=Math.max(...cru.map(r=>num(r[g(k)])),0);
+      escala[k]= mx>1.5?0.01:1;
+    });
+
+    cru.forEach(row=>{
+      const grupo = String(V(row,'grupo','')||'').trim();
+      let escopo = String(V(row,'escopo','')||'').trim().toUpperCase();
+      escopo = escopo.indexOf('SUPORT')>=0 ? 'SUPORTE'
+             : escopo.indexOf('TUBUL')>=0  ? 'TUBULACAO'
+             : (/SUPORTE/i.test(grupo) ? 'SUPORTE' : aba.escopo);
+
+      let mat=String(V(row,'material','')||'').toUpperCase();
+      mat = mat.indexOf('CARB')>=0 ? 'CARBONO'
+          : (mat.indexOf('INOX')>=0||mat.indexOf('AISI')>=0||mat==='I') ? 'INOX'
+          : 'OUTRO';
+      // sem coluna de material, o nome da aba costuma dizer
+      if(mat==='OUTRO'){
+        if(/INOX/i.test(aba.nome)) mat='INOX';
+        else if(/CARBONO|CARB/i.test(aba.nome)) mat='CARBONO';
+      }
+
+      const raw=String(V(row,'linha','')).trim();
+      const pesoPint=num(V(row,'peso_pint',0));
+      const cor=V(row,'cor',null);
+      const temPint = pesoPint>0 || (cor && String(cor).trim()!=='0' && String(cor).trim()!=='');
+      const fab=num(V(row,'pct_fab',0))*escala.pct_fab;
+      const mon=num(V(row,'pct_mont',0))*escala.pct_mont;
+      const pin=num(V(row,'pct_pint',0))*escala.pct_pint;
+      let tot = g('pct_total')!=null ? num(V(row,'pct_total',0))*escala.pct_total : null;
+      if(tot==null) tot = temPint ? fab*pesos.w_fab_cp+mon*pesos.w_mont_cp+pin*pesos.w_pint_cp
+                                  : fab*pesos.w_fab_sp+mon*pesos.w_mont_sp;
+      const et=(grupo.match(/(\d+)\s*$/)||[])[1];
+      const it={
+        escopo,
+        etapa_grupo: grupo || aba.nome,
+        etapa_num: et?+et:null,
+        nivel_topico: g('nivel')!=null?String(V(row,'nivel','')):null,
+        linha_raw:raw, material:mat,
+        metragem_m:num(V(row,'metragem',0)), peso_kg:num(V(row,'peso',0)),
+        pct_atividade:num(V(row,'pct_ativ',0))*escala.pct_ativ,
+        pct_projeto:num(V(row,'pct_proj',0))*escala.pct_proj,
+        cor_pintura: cor&&String(cor)!=='0'?String(cor):null,
+        peso_pint_kg: pesoPint || (temPint?num(V(row,'peso',0)):0),
+        pct_projeto_pint:0, tem_pintura:!!temPint,
+        pct_fab:fab, pct_mont:mon, pct_pint:pin, pct_total:tot,
+        metragem_fab:num(V(row,'m_fab',0)), metragem_mont:num(V(row,'m_mont',0)),
+        peso_exec_kg:num(V(row,'peso_exec',0)),
+        aba: aba.nome
+      };
+      Object.assign(it, partirLinha(raw, escopo));
+      itens.push(it);
+    });
   });
-  const itens=cru.map(row=>{
-    const V=(k,def)=> g(k)!=null ? row[g(k)] : def;
-    const grupo = String(V('grupo','')||'').trim();
-    let escopo = String(V('escopo','')||'').trim().toUpperCase();
-    escopo = escopo.indexOf('SUPORT')>=0 ? 'SUPORTE'
-           : escopo.indexOf('TUBUL')>=0  ? 'TUBULACAO'
-           : (/SUPORTE/i.test(grupo) ? 'SUPORTE' : 'TUBULACAO');
-    let mat=String(V('material','')||'').toUpperCase();
-    mat = mat.indexOf('CARB')>=0?'CARBONO' : (mat.indexOf('INOX')>=0||mat.indexOf('AISI')>=0)?'INOX':'OUTRO';
-    const raw=String(V('linha','')).trim();
-    const pesoPint=num(V('peso_pint',0));
-    const cor=V('cor',null);
-    const temPint = pesoPint>0 || (cor && String(cor).trim()!=='0' && String(cor).trim()!=='');
-    const fab=num(V('pct_fab',0))*escala.pct_fab;
-    const mon=num(V('pct_mont',0))*escala.pct_mont;
-    const pin=num(V('pct_pint',0))*escala.pct_pint;
-    let tot = g('pct_total')!=null ? num(V('pct_total',0))*escala.pct_total : null;
-    if(tot==null) tot = temPint ? fab*pesos.w_fab_cp+mon*pesos.w_mont_cp+pin*pesos.w_pint_cp
-                                : fab*pesos.w_fab_sp+mon*pesos.w_mont_sp;
-    const m=(grupo.match(/(\d+)\s*$/)||[])[1];
-    const it={
-      escopo, etapa_grupo:grupo||null, etapa_num:m?+m:null,
-      nivel_topico: g('nivel')!=null?String(V('nivel','')):null,
-      linha_raw:raw, material:mat,
-      metragem_m:num(V('metragem',0)), peso_kg:num(V('peso',0)),
-      pct_atividade:num(V('pct_ativ',0))*escala.pct_ativ,
-      pct_projeto:num(V('pct_proj',0))*escala.pct_proj,
-      cor_pintura: cor&&String(cor)!=='0'?String(cor):null,
-      peso_pint_kg:pesoPint, pct_projeto_pint:0, tem_pintura:!!temPint,
-      pct_fab:fab, pct_mont:mon, pct_pint:pin, pct_total:tot,
-      metragem_fab:num(V('m_fab',0)), metragem_mont:num(V('m_mont',0)), peso_exec_kg:num(V('peso_exec',0))
-    };
-    Object.assign(it, partirLinha(raw, escopo));
-    return it;
-  });
-  // se não veio % do projeto, deriva do peso
+
+  // sem "% do projeto" no arquivo, deriva do peso
   const somaProj=itens.reduce((a,i)=>a+(i.pct_projeto||0),0);
   if(somaProj<0.5){
     const P=itens.reduce((a,i)=>a+(i.peso_kg||0),0)||1;
     itens.forEach(i=> i.pct_projeto=(i.peso_kg||0)/P);
   }
+  IMP.avisosLeitura = avisos;
   return {itens, pesos};
 }
 
@@ -1584,6 +1997,8 @@ function calcResumo(itens){
     escopo, material,
     qtd_itens: sel.length,
     peso_kg: W(sel),
+    // peso pintável do recorte — usado para converter o % de pintura em toneladas
+    peso_pint_kg: sel.reduce((a,i)=>a+(i.peso_pint_kg||0),0),
     peso_rel: sel.reduce((a,i)=>a+(i.pct_projeto||0),0),
     avanco_fab: media(sel,'pct_fab'), avanco_mont: media(sel,'pct_mont'),
     avanco_pint: media(sel,'pct_pint'), avanco_total: media(sel,'pct_total')
@@ -1600,18 +2015,31 @@ function calcResumo(itens){
 
 /* ---- conferência ---- */
 function montarConferencia(){
-  const usaRangel = IMP.perfil==='rangel_v1' && $('#m-aba').value==='Memorial' && +$('#m-header').value===5;
+  const usaRangel = IMP.perfil==='rangel_v1' && IMP.usarPerfil!==false;
   const {itens,pesos} = usaRangel ? parseRangel() : parseGenerico();
   IMP.itens=itens; IMP.pesos=pesos; IMP.resumo=calcResumo(itens);
   const tot=IMP.resumo.find(r=>r.escopo==='TOTAL');
   const alertas=[];
-  if(!itens.length) alertas.push(['err','Nenhum item foi lido. Revise a aba e a linha do cabeçalho.']);
+  (IMP.avisosLeitura||[]).forEach(a=>alertas.push(['warn',a]));
+  if(!itens.length) alertas.push(['err','Nenhum item foi lido. Revise as abas marcadas, a linha do cabeçalho '+
+    'e principalmente as colunas de <strong>line number</strong> e <strong>peso</strong>.']);
   const somaProj=itens.reduce((a,i)=>a+(i.pct_projeto||0),0);
   if(itens.length && Math.abs(somaProj-1)>0.02)
     alertas.push(['warn',`A soma do <strong>% do projeto</strong> deu ${nf2.format(somaProj*100)}% (esperado 100%). `+
       'O avanço será ponderado pelo peso em kg, que é o critério mais estável.']);
+  const pesoTot=itens.reduce((a,i)=>a+(i.peso_kg||0),0);
+  const neg=itens.filter(i=>(i.peso_kg||0)<0).length;
+  if(itens.length && neg > itens.length*0.1)
+    alertas.push(['err',`${neg} item(ns) com <strong>peso negativo</strong>. A coluna escolhida como peso `+
+      'provavelmente é uma diferença/saldo, não o peso do escopo — volte e escolha outra coluna.']);
+  else if(neg) alertas.push(['warn',`${neg} item(ns) com peso negativo.`]);
+  if(itens.length && pesoTot<=0)
+    alertas.push(['err','O peso total do escopo deu zero ou negativo. Revise a coluna de peso.']);
   const semPeso=itens.filter(i=>!i.peso_kg).length;
   if(semPeso) alertas.push(['warn',`${semPeso} item(ns) sem peso em kg — entram com peso zero na ponderação.`]);
+  const semAvanco = itens.length && itens.every(i=>!(i.pct_total>0));
+  if(semAvanco) alertas.push(['warn','Nenhum item veio com avanço maior que zero — confira as colunas de '+
+    'fabricação, montagem e pintura (ou a de % total).']);
   const dup={}; itens.forEach(i=>{const k=normLine(i.line_number);dup[k]=(dup[k]||0)+1});
   const nDup=Object.values(dup).filter(v=>v>1).length;
   if(nDup) alertas.push(['',`${nDup} line number(s) aparecem em mais de uma linha do memorial — normal quando o
@@ -1619,6 +2047,7 @@ function montarConferencia(){
   const fora=itens.filter(i=>(i.pct_total||0)<-0.001||(i.pct_total||0)>1.001).length;
   if(fora) alertas.push(['err',`${fora} item(ns) com avanço fora da faixa 0–100%.`]);
   if(!alertas.length) alertas.push(['ok','Leitura consistente: pesos, ponderação e avanços dentro do esperado.']);
+  IMP.temErro = alertas.some(a=>a[0]==='err');
   $('#imp-valid').innerHTML=alertas.map(([c,t])=>`<div class="note ${c==='ok'?'ok':c}">${t}</div>`).join('');
 
   const box=(l,v,s)=>`<div class="kpi"><div class="kpi-label">${l}</div><div class="kpi-val">${v}</div>
@@ -1626,7 +2055,9 @@ function montarConferencia(){
   const tb=IMP.resumo.find(r=>r.escopo==='TUBULACAO'&&r.material==='TOTAL');
   const sp=IMP.resumo.find(r=>r.escopo==='SUPORTE');
   $('#imp-kpis').innerHTML=[
-    box('Itens lidos', nf0.format(itens.length), (tb?nf0.format(tb.qtd_itens)+' tubulações · ':'')+(sp?nf0.format(sp.qtd_itens)+' suportes':'')),
+    box('Itens lidos', nf0.format(itens.length),
+        (usaRangel ? 'aba Memorial'
+         : IMP.abas.filter(a=>a.sel).map(a=>a.nome).join(' · ')) ),
     box('Peso total', nf1.format((tot?tot.peso_kg:0)/1000)+' t',''),
     box('Avanço total', pc(tot?tot.avanco_total:0,2),'ponderado por peso'),
     box('Fabricação', pc(tot?tot.avanco_fab:0),''),
@@ -1667,11 +2098,18 @@ $('#imp-next').addEventListener('click',async()=>{
   try{
     if(IMP.passo===1){ montarMapeamento(); passoImport(2); return }
     if(IMP.passo===2){
-      if(IMP.mapa.linha==null && IMP.perfil!=='rangel_v1'){ toast('Indique a coluna do line number.','err'); return }
+      const usaR = IMP.perfil==='rangel_v1' && IMP.usarPerfil!==false;
+      if(!usaR){
+        if(!IMP.abas || !IMP.abas.some(a=>a.sel)){ toast('Marque ao menos uma aba.','err'); return }
+        if(!IMP.mapa.linha){ toast('Indique a coluna do line number.','err'); return }
+        if(!IMP.mapa.peso && !IMP.mapa.pct_proj){
+          toast('Indique a coluna de peso (kg) ou a de % do projeto.','err'); return }
+      }
       montarConferencia(); passoImport(3); return;
     }
     if(IMP.passo===3){
       if(!IMP.itens||!IMP.itens.length){ toast('Nada para gravar.','err'); return }
+      if(IMP.temErro && !confirm('A conferência apontou erro na leitura. Gravar assim mesmo?')) return;
       montarGravacao(); passoImport(4); return;
     }
     await gravar();
@@ -1721,11 +2159,13 @@ async function gravar(){
       empresa_id, memorial_id:mem.id, semana}, r)), 'return=minimal');
 
     // salva o de-para para as próximas semanas
-    if(IMP.perfil!=='rangel_v1'){
+    if(!(IMP.perfil==='rangel_v1' && IMP.usarPerfil!==false)){
       try{
         await sbPost('tub_perfis_import?on_conflict=empresa_id,nome',[{
-          empresa_id, nome:'padrao', aba:$('#m-aba').value,
-          linha_header:+$('#m-header').value, mapa:IMP.mapa
+          empresa_id, nome:'padrao', aba:IMP.abaBase,
+          linha_header:(abaPorNome(IMP.abaBase)||{}).ini || 1,
+          mapa:{ campos:IMP.mapa,
+                 abas:IMP.abas.filter(a=>a.sel).map(a=>({nome:a.nome,escopo:a.escopo,ini:a.ini,fim:a.fim})) }
         }],'resolution=merge-duplicates,return=minimal');
       }catch(_){}
     }
@@ -1904,12 +2344,21 @@ function baixarCSV(nome, linhas){
   a.download=nome; a.click(); URL.revokeObjectURL(a.href);
 }
 $('#btn-export').addEventListener('click',()=>{
-  const l=[['Semana','Empresa','Escopo','Material','Itens','Peso (kg)','Peso rel.','Fabricação','Montagem','Pintura','Avanço total']];
-  S.resumo.filter(r=>!S.f.empresa||r.empresa_id==S.f.empresa).forEach(r=>l.push([
-    r.semana, nomeEmp(r.empresa_id), r.escopo, r.material, r.qtd_itens,
-    nf2.format(r.peso_kg||0), nf2.format((r.peso_rel||0)*100), nf2.format((r.avanco_fab||0)*100),
-    nf2.format((r.avanco_mont||0)*100), nf2.format((r.avanco_pint||0)*100), nf2.format((r.avanco_total||0)*100)
-  ]));
+  const l=[['Semana','Empresa','Escopo','Material','Itens','Peso (kg)','Peso rel.',
+            'Fabricação','Montagem','Pintura','Avanço total',
+            'Exec. fabricação (t)','Exec. montagem (t)','Exec. pintura (t)','Exec. total (t)']];
+  S.resumo.filter(r=>!S.f.empresa||r.empresa_id==S.f.empresa)
+    .sort((a,b)=> a.semana.localeCompare(b.semana) || a.escopo.localeCompare(b.escopo))
+    .forEach(r=>{
+      const P=(r.peso_kg||0)/1000, Pp=(r.peso_pint_kg||r.peso_kg||0)/1000;
+      l.push([
+        r.semana, nomeEmp(r.empresa_id), r.escopo, r.material, r.qtd_itens,
+        nf2.format(r.peso_kg||0), nf2.format((r.peso_rel||0)*100), nf2.format((r.avanco_fab||0)*100),
+        nf2.format((r.avanco_mont||0)*100), nf2.format((r.avanco_pint||0)*100), nf2.format((r.avanco_total||0)*100),
+        nf2.format((r.avanco_fab||0)*P), nf2.format((r.avanco_mont||0)*P),
+        nf2.format((r.avanco_pint||0)*Pp), nf2.format((r.avanco_total||0)*P)
+      ]);
+    });
   baixarCSV('tubulacoes_avanco_semanal.csv', l);
 });
 $('#btn-cob-exp').addEventListener('click',()=>{
