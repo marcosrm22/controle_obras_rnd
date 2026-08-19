@@ -236,7 +236,8 @@
         <h1 class="rep-title">Relatório Gerencial Semanal de Obra</h1>
       </div>
       <div class="rep-meta">
-        <label>Período / Semana<input id="m_periodo" placeholder="ex.: Semana 33 · 04–10/ago"></label>
+        <label>Semana (nº)<input id="m_semana" type="number" min="1" max="53" style="min-width:90px"></label>
+        <label>Ano<input id="m_ano" type="number" min="2024" max="2100" style="min-width:90px"></label>
         <label>Responsável<input id="m_resp" placeholder="Marcos R. Marcílio"></label>
         <label>Data<input id="m_data" type="date"></label>
       </div>
@@ -262,8 +263,8 @@
   <!-- 01 · 03 · 04 — DDS / Canteiro (5S) / Frentes de Serviço -->
   <section class="q" id="qtop">
     <div class="q-head">
-      <div class="q-num" style="width:auto;padding:0 9px;font-size:11px">01·03·04</div>
-      <div class="q-title">Segurança &amp; Organização<small>DDS por dia · Canteiro (5S) por empresa · Frentes de serviço (5S) por área</small></div>
+      <div class="q-num">01</div>
+      <div class="q-title">Segurança &amp; Organização<small>DDS por especialista · Canteiro (5S) por empresa nas últimas 4 semanas · Frentes de serviço (5S)</small></div>
       <div class="q-verdict vgroup">
         <span class="vitem"><b>DDS</b><span class="verdict neu" id="v1">—</span></span>
         <span class="vitem"><b>Canteiro</b><span class="verdict neu" id="v3">—</span></span>
@@ -273,19 +274,32 @@
     <div class="q-body">
       <div class="topgrid">
 
-        <!-- LEFT: matriz empresas (DDS + Canteiro) -->
+        <!-- LEFT: DDS por especialista + Canteiro (5S) por empresa -->
         <div class="topleft">
+          <h4>01 · DDS realizado — por especialista</h4>
           <div class="counts" id="c1"></div>
-          <div class="counts" id="c3" style="margin-top:-2px;margin-bottom:8px"></div>
           <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
-            <button class="btn mini" onclick="fillMatrix(1)">DDS: tudo ✓</button>
-            <button class="btn mini" onclick="fillMatrix(0)">DDS: limpar</button>
-            <button class="btn mini" id="editBtn" onclick="toggleEdit()">✎ Editar empresas</button>
-            <button class="btn mini" onclick="addComp()">＋ empresa</button>
+            <button class="btn mini" onclick="fillDds(1)">DDS: tudo ✓</button>
+            <button class="btn mini" onclick="fillDds(0)">DDS: limpar</button>
+            <button class="btn mini" id="editDdsBtn" onclick="toggleEditDds()">✎ Editar especialistas</button>
+            <button class="btn mini" onclick="addSpec()">＋ especialista</button>
           </div>
           <div class="matrix-scroll">
             <table class="mtx" id="ddsTable"></table>
           </div>
+
+          <h4 style="margin-top:16px">03 · Canteiro (5S) — por empresa · últimas 4 semanas</h4>
+          <div class="counts" id="c3"></div>
+          <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
+            <button class="btn mini" onclick="fill5s(1)">5S (semana atual): tudo ✓</button>
+            <button class="btn mini" onclick="fill5s(0)">limpar</button>
+            <button class="btn mini" id="edit5sBtn" onclick="toggleEdit5s()">✎ Editar empresas</button>
+            <button class="btn mini" onclick="addComp()">＋ empresa</button>
+          </div>
+          <div class="matrix-scroll">
+            <table class="mtx" id="s5Table"></table>
+          </div>
+
           <div class="legend">
             <span class="legchip"><span class="legbox neu"></span> Não avaliado</span>
             <span class="legchip"><span class="legbox ok"></span> Conforme (✓)</span>
@@ -294,7 +308,7 @@
           </div>
         </div>
 
-        <!-- RIGHT: frentes de serviço + ações -->
+        <!-- RIGHT: frentes de serviço -->
         <div class="topright">
           <h4>04 · Frentes de serviço (5S) — por área</h4>
           <div class="counts" id="c4"></div>
@@ -303,15 +317,6 @@
             <button class="btn mini" onclick="fillFrentes(0)">Limpar</button>
           </div>
           <div class="chipgrid" id="frentesGrid"></div>
-
-          <div class="acts">
-            <span class="acoes-lbl">Ações — DDS não realizado (item 01)</span>
-            <textarea class="acoes" id="a1" placeholder="Ação corretiva, responsável e prazo para os DDS em vermelho…"></textarea>
-            <span class="acoes-lbl">Ações — Canteiro não conforme (item 03)</span>
-            <textarea class="acoes" id="a3" placeholder="Ex.: EMPRESA X — segregar sobras no pátio Y até DD/MM (resp.: encarregado)…"></textarea>
-            <span class="acoes-lbl">Ações — Frentes não conformes (item 04)</span>
-            <textarea class="acoes" id="a4" placeholder="Ex.: Destilaria Fase II — retirar andaimes desmontados e organizar cabos até DD/MM…"></textarea>
-          </div>
         </div>
 
       </div>
@@ -460,8 +465,14 @@ const AREAS = ["Pátio e Recebimento","Ruas","Destilaria Fase I","Destilaria Fas
   "Manutenção","Prédios Administrativos","Biomassa e Stacker Reclaimer","ETE e Resíduos",
   "Tanques de Etanol e Óleo","Expedição de Etanol","Expedição de Óleo"];
 const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
-const PPC_SEED = ["Recebimento de Milho","Pavimentação","Vistoria dos Bombeiros","Sopragem da Caldeira","Vistoria da SEMA"];
+const PPC_SEED = ["Recebimento de Milho","Vistoria dos Bombeiros","Sopragem da Caldeira","Vistoria da SEMA"];
 const SYM = ["–","✓","✗"];
+const SPECIALISTS = ['Afonso','Davi','Diogo','Erick','Giumar','Henrique','Julio','Matheus','Nelson','Oliver','Phelipe','Wender','Wilsom'];
+function isoWeek(dt){const d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-ys)/86400000)+1)/7);}
+function curWeek(){return isoWeek(new Date());}
+function curSemana(){return parseInt(S.meta.semana)||curWeek();}
+function weekLabel(w){let n=w;if(n<1)n+=52;if(n>53)n-=53;return n;}
+function weekWindow(){const w=curSemana();const a=[];for(let k=3;k>=0;k--)a.push(w-k);return a;}
 
 /* ============ ESTADO ============ */
 const UNI = (typeof pcoUnidadeAtual==="function") ? pcoUnidadeAtual() : "RDN";
@@ -473,16 +484,19 @@ const KEY = "inpasa_rep_v2_" + UNI;
     if(antigo) localStorage.setItem(KEY, antigo);
   }
 }catch(_){} })();
-let editMode=false;
+let editDds=false, edit5s=false;
 let S = load() || defaultState();
 
 function defaultState(){
-  const st={meta:{periodo:"",resp:"",data:""},companies:[],frentes:{},a1:"",a3:"",a4:"",
+  const st={meta:{semana:curWeek(),ano:new Date().getFullYear(),resp:"",data:"",periodo:""},
+    companies:[],specialists:[],frentes:{},
     acid:[],rnc:[],ppc:[],marcos:[],contr:{},outros:[],fotos:[]};
-  SEED_COMPANIES.forEach(c=>st.companies.push({name:c[0],disc:c[1],dds:[0,0,0,0,0,0,0],cant:0}));
+  SEED_COMPANIES.forEach(c=>st.companies.push({name:c[0],disc:c[1],s5:{}}));
+  SPECIALISTS.forEach(n=>st.specialists.push({name:n,dds:[0,0,0,0,0,0,0]}));
   AREAS.forEach((_,i)=>st.frentes[i]=0);
   PPC_SEED.forEach(n=>st.ppc.push({nome:n,status:0,acao:""}));
   PPC_SEED.forEach(n=>{st.marcos.push({nome:n,weeks:[{s:"S1",p:"",r:""},{s:"S2",p:"",r:""},{s:"S3",p:"",r:""},{s:"S4",p:"",r:""}]});st.contr[n]=[];});
+  st.meta.periodo='Semana '+st.meta.semana+'/'+st.meta.ano;
   st.outros=seedOutros();
   return st;
 }
@@ -534,6 +548,24 @@ function load(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):nul
 /* migração: garante campos novos em estados salvos anteriormente */
 if(!S.outros){S.outros=seedOutros();save();}
 if(!S.fotos){S.fotos=[];save();}
+/* migração: modelo semanal (semana do ano) + DDS por especialista + 5S por semana */
+(function(){
+  let ch=false;
+  if(!S.meta.semana){ S.meta.semana=curWeek(); ch=true; }
+  if(!S.meta.ano){ S.meta.ano=new Date().getFullYear(); ch=true; }
+  S.meta.periodo='Semana '+S.meta.semana+'/'+S.meta.ano;
+  if(!Array.isArray(S.specialists)){ S.specialists=SPECIALISTS.map(n=>({name:n,dds:[0,0,0,0,0,0,0]})); ch=true; }
+  (S.companies||[]).forEach(c=>{
+    if(!c.s5){ c.s5={}; if(typeof c.cant==='number') c.s5[String(S.meta.semana)]=c.cant; ch=true; }
+    if('dds' in c){ delete c.dds; ch=true; }
+    if('cant' in c){ delete c.cant; ch=true; }
+  });
+  const nppc=(S.ppc||[]).filter(x=>!/pavimenta/i.test(x.nome||''));
+  if(nppc.length!==(S.ppc||[]).length){ S.ppc=nppc; ch=true; }
+  const nmar=(S.marcos||[]).filter(m=>!/pavimenta/i.test(m.nome||''));
+  if(nmar.length!==(S.marcos||[]).length){ S.marcos=nmar; ch=true; }
+  if(ch) save();
+})();
 /* migração: Contratações Pendentes + Outros Impactos (modelo de 6 colunas) */
 (function(){
   function parseAlcada(sit){
@@ -564,20 +596,75 @@ if(!S.fotos){S.fotos=[];save();}
   }
   if(!Array.isArray(S.impactos)){ S.impactos=[]; save(); }
 })();
+/* migração: coluna Responsável + Valor sem "Suprimentos" (Suprimentos vira Tipo de Fechamento) */
+(function(){
+  let ch=false;
+  [S.contr2,S.impactos].forEach(arr=>{ (arr||[]).forEach(r=>{
+    if(!('responsavel' in r)){ r.responsavel=''; ch=true; }
+    if(r.alcada && /^\s*suprimentos\s*$/i.test(r.alcada)){ if(!r.fechamento) r.fechamento='Suprimentos'; r.alcada=''; ch=true; }
+  }); });
+  if(ch) save();
+})();
 
 /* ============ RENDER ============ */
 function renderAll(){
-  m_periodo.value=S.meta.periodo; m_resp.value=S.meta.resp; m_data.value=S.meta.data;
-  a1.value=S.a1; a3.value=S.a3; a4.value=S.a4;
-  renderDDS(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
+  document.getElementById('m_semana').value=S.meta.semana||curWeek();
+  document.getElementById('m_ano').value=S.meta.ano||new Date().getFullYear();
+  m_resp.value=S.meta.resp; m_data.value=S.meta.data;
+  renderDDS(); render5S(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
   document.getElementById('genstamp').textContent=new Date().toLocaleString('pt-BR');
 }
 
-/* ---- DDS + Canteiro matrix ---- */
+/* ---- DDS realizado · por ESPECIALISTA ---- */
 function renderDDS(){
   const t=document.getElementById('ddsTable');
-  document.getElementById('editBtn').textContent=editMode?'✓ Concluir edição':'✎ Editar empresas';
-  if(editMode){
+  document.getElementById('editDdsBtn').textContent=editDds?'✓ Concluir edição':'✎ Editar especialistas';
+  if(editDds){
+    t.className='mtx edit';
+    let h=`<colgroup><col class="c-emp"><col class="c-del"></colgroup>
+      <thead><tr><th class="emp">Especialista</th><th></th></tr></thead><tbody>`;
+    S.specialists.forEach((sp,i)=>{
+      h+=`<tr><td class="emp"><input value="${esc(sp.name)}" onchange="updSpec(${i},this.value)"></td>
+        <td><button class="delrow" title="excluir" onclick="delSpec(${i})">×</button></td></tr>`;
+    });
+    h+=`</tbody>`; t.innerHTML=h; return;
+  }
+  t.className='mtx';
+  let cols=`<colgroup><col class="c-emp">`+DAYS.map(()=>`<col class="c-day">`).join('')+`</colgroup>`;
+  let h=cols+"<thead><tr><th class='emp'>Especialista</th>";
+  DAYS.forEach((d,di)=>h+=`<th class="day" onclick="toggleColDds(${di})" title="marca a coluna">${d}</th>`);
+  h+=`</tr></thead><tbody>`;
+  S.specialists.forEach((sp,i)=>{
+    h+=`<tr><td class='emp' title="${esc(sp.name)}">${esc(sp.name)}</td>`;
+    for(let d=0;d<7;d++){const v=sp.dds[d];h+=`<td><div class="cell s${v}" onclick="cycDds(${i},${d})">${SYM[v]}</div></td>`;}
+    h+=`</tr>`;
+  });
+  h+="</tbody>"; t.innerHTML=h; updDDSsummary();
+}
+function toggleEditDds(){editDds=!editDds;renderDDS();}
+function updSpec(i,v){S.specialists[i].name=v;save();}
+function delSpec(i){if(confirm('Excluir especialista "'+S.specialists[i].name+'"?')){S.specialists.splice(i,1);save();renderDDS();}}
+function addSpec(){S.specialists.push({name:'Novo especialista',dds:[0,0,0,0,0,0,0]});save();editDds=true;renderDDS();}
+function cycDds(i,d){S.specialists[i].dds[d]=(S.specialists[i].dds[d]+1)%3;save();renderDDS();}
+function toggleColDds(d){const anyNeu=S.specialists.some(s=>s.dds[d]===0);S.specialists.forEach(s=>s.dds[d]=anyNeu?1:0);save();renderDDS();}
+function fillDds(v){S.specialists.forEach(s=>{for(let d=0;d<7;d++)s.dds[d]=v;});save();renderDDS();}
+function updDDSsummary(){
+  let ok=0,nc=0,neu=0;
+  S.specialists.forEach(s=>s.dds.forEach(v=>{v===1?ok++:v===2?nc++:neu++;}));
+  document.getElementById('c1').innerHTML=
+    `<span style="font-weight:700;color:var(--brand)">DDS ·</span>`+
+    `<span><span class="dot ok"></span><b>${ok}</b> realizados</span>`+
+    `<span><span class="dot nc"></span><b>${nc}</b> não realizados</span>`+
+    `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
+  setVerdict('v1', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} falha(s)`:(ok>0?'Sim':'—'));
+}
+
+/* ---- Canteiro (5S) · por EMPRESA · últimas 4 semanas ---- */
+function s5get(c,w){ return (c.s5 && c.s5[String(w)]!=null) ? c.s5[String(w)] : 0; }
+function render5S(){
+  const t=document.getElementById('s5Table');
+  document.getElementById('edit5sBtn').textContent=edit5s?'✓ Concluir edição':'✎ Editar empresas';
+  if(edit5s){
     t.className='mtx edit';
     let h=`<colgroup><col class="c-emp"><col class="c-emp"><col class="c-del"></colgroup>
       <thead><tr><th class="emp">Empresa</th><th class="emp">Disciplina</th><th></th></tr></thead><tbody>`;
@@ -586,47 +673,33 @@ function renderDDS(){
         <td class="emp"><input value="${esc(c.disc)}" onchange="updComp(${i},'disc',this.value)"></td>
         <td><button class="delrow" title="excluir" onclick="delComp(${i})">×</button></td></tr>`;
     });
-    h+=`</tbody>`;
-    t.innerHTML=h;
-    return;
+    h+=`</tbody>`; t.innerHTML=h; return;
   }
   t.className='mtx';
-  let cols=`<colgroup><col class="c-emp">`+DAYS.map(()=>`<col class="c-day">`).join('')+`<col class="c-cant"></colgroup>`;
+  const wins=weekWindow();
+  let cols=`<colgroup><col class="c-emp">`+wins.map(()=>`<col class="c-day">`).join('')+`</colgroup>`;
   let h=cols+"<thead><tr><th class='emp'>Empresa</th>";
-  DAYS.forEach((d,di)=>h+=`<th class="day" onclick="toggleCol(${di})" title="marca a coluna">${d}</th>`);
-  h+=`<th class="cant" onclick="toggleCantCol()" title="marca a coluna">Canteiro<br><span style="font-weight:500;font-size:8px;opacity:.85">(5S)</span></th></tr></thead><tbody>`;
+  wins.forEach(w=>h+=`<th class="day" onclick="toggleWeek5s(${w})" title="marca a coluna">S${weekLabel(w)}</th>`);
+  h+=`</tr></thead><tbody>`;
   S.companies.forEach((c,i)=>{
     h+=`<tr><td class='emp' title="${esc(c.name)}">${esc(c.name)}<span class='disc'> · ${esc(c.disc)}</span></td>`;
-    for(let d=0;d<7;d++){const s=c.dds[d];h+=`<td><div class="cell s${s}" onclick="cycMtx(${i},${d})">${SYM[s]}</div></td>`;}
-    h+=`<td class="cantcell"><div class="cell s${c.cant}" onclick="cycCant(${i})">${SYM[c.cant]}</div></td></tr>`;
+    wins.forEach(w=>{const v=s5get(c,w);h+=`<td><div class="cell s${v}" onclick="cyc5s(${i},${w})">${SYM[v]}</div></td>`;});
+    h+=`</tr>`;
   });
-  h+="</tbody>";
-  t.innerHTML=h;
-  updDDSsummary(); updCantSummary();
+  h+="</tbody>"; t.innerHTML=h; updCantSummary();
 }
-function toggleEdit(){editMode=!editMode;renderDDS();}
+function toggleEdit5s(){edit5s=!edit5s;render5S();}
 function updComp(i,k,v){S.companies[i][k]=v;save();}
-function delComp(i){if(confirm('Excluir "'+S.companies[i].name+'"?')){S.companies.splice(i,1);save();renderDDS();}}
-function addComp(){S.companies.push({name:'Nova empresa',disc:'',dds:[0,0,0,0,0,0,0],cant:0});save();editMode=true;renderDDS();}
-function cycMtx(i,d){S.companies[i].dds[d]=(S.companies[i].dds[d]+1)%3;save();renderDDS();}
-function cycCant(i){S.companies[i].cant=(S.companies[i].cant+1)%3;save();renderDDS();}
-function toggleCol(d){const anyNeu=S.companies.some(c=>c.dds[d]===0);S.companies.forEach(c=>c.dds[d]=anyNeu?1:0);save();renderDDS();}
-function toggleCantCol(){const anyNeu=S.companies.some(c=>c.cant===0);S.companies.forEach(c=>c.cant=anyNeu?1:0);save();renderDDS();}
-function fillMatrix(v){S.companies.forEach(c=>{for(let d=0;d<7;d++)c.dds[d]=v;});save();renderDDS();}
-function updDDSsummary(){
-  let ok=0,nc=0,neu=0;
-  S.companies.forEach(c=>c.dds.forEach(v=>{v===1?ok++:v===2?nc++:neu++;}));
-  document.getElementById('c1').innerHTML=
-    `<span style="font-weight:700;color:var(--brand)">DDS ·</span>`+
-    `<span><span class="dot ok"></span><b>${ok}</b> realizados</span>`+
-    `<span><span class="dot nc"></span><b>${nc}</b> não realizados</span>`+
-    `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
-  setVerdict('v1', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} falha(s)`:(ok>0?'Sim':'—'));
-}
+function delComp(i){if(confirm('Excluir "'+S.companies[i].name+'"?')){S.companies.splice(i,1);save();render5S();}}
+function addComp(){S.companies.push({name:'Nova empresa',disc:'',s5:{}});save();edit5s=true;render5S();}
+function cyc5s(i,w){const c=S.companies[i];if(!c.s5)c.s5={};const k=String(w);c.s5[k]=((c.s5[k]||0)+1)%3;save();render5S();}
+function toggleWeek5s(w){const k=String(w);const anyNeu=S.companies.some(c=>!(c.s5&&c.s5[k]));S.companies.forEach(c=>{if(!c.s5)c.s5={};c.s5[k]=anyNeu?1:0;});save();render5S();}
+function fill5s(v){const k=String(curSemana());S.companies.forEach(c=>{if(!c.s5)c.s5={};c.s5[k]=v;});save();render5S();}
 function updCantSummary(){
-  let ok=0,nc=0,neu=0;S.companies.forEach(c=>{c.cant===1?ok++:c.cant===2?nc++:neu++;});
+  const w=curSemana();let ok=0,nc=0,neu=0;
+  S.companies.forEach(c=>{const v=s5get(c,w);v===1?ok++:v===2?nc++:neu++;});
   document.getElementById('c3').innerHTML=
-    `<span style="font-weight:700;color:var(--accent)">Canteiro ·</span>`+
+    `<span style="font-weight:700;color:var(--accent)">Canteiro (S${weekLabel(w)}) ·</span>`+
     `<span><span class="dot ok"></span><b>${ok}</b> conformes</span>`+
     `<span><span class="dot nc"></span><b>${nc}</b> não conformes</span>`+
     `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
@@ -763,7 +836,7 @@ function daysTo(dstr){if(!dstr)return null;const d=new Date(dstr+'T00:00:00');co
 function urgCls(n){if(n===null)return'';return n<0?'urg late':n<=14?'urg soon':'urg ok';}
 function urgTxt(n){if(n===null)return'';return n<0?`venc. ${-n}d`:n===0?'hoje':`${n}d`;}
 /* ============ Contratações Pendentes / Outros Impactos (6 colunas, filtráveis) ============ */
-const ALCADAS = ['>1MM','<1MM','Suprimentos'];
+const ALCADAS = ['<1MM','>1MM'];
 const DISCS = ['Civil','Montagem','Elétrica','Instrumentação','EIA','Automação','Rotativos','Isolamento','Válvulas'];
 const FECHOPTS = ['Suprimentos','E-mail de Fechamento'];
 let editLinkKey = null;
@@ -814,6 +887,7 @@ function ctRowHtml(t,r,i){
     <td><input value="${esc(r.escopo)}" title="${esc(r.escopo)}" onchange="updRow('${t}',${i},'escopo',this.value)"></td>
     <td><select class="sel" onchange="updRow('${t}',${i},'disciplina',this.value)">${discOpts}</select></td>
     <td><select class="sel" onchange="updRow('${t}',${i},'alcada',this.value)">${alcOpts}</select></td>
+    <td><input value="${esc(r.responsavel||'')}" onchange="updRow('${t}',${i},'responsavel',this.value)"></td>
     <td><input value="${esc(r.status)}" onchange="updRow('${t}',${i},'status',this.value)"></td>
     ${linkCell}
     <td><select class="sel" onchange="updRow('${t}',${i},'fechamento',this.value)">${fechOpts}</select></td>
@@ -823,7 +897,7 @@ function ctRowHtml(t,r,i){
 
 function renderTbl(t){
   const data = ctData(t); const listEl = document.getElementById(ctListId(t)); if(!listEl) return;
-  const alcFilter = ['<option value="">Alçada (todas)</option>'].concat(ALCADAS.map(a=>`<option>${a}</option>`)).join('');
+  const alcFilter = ['<option value="">Valor (todos)</option>'].concat(ALCADAS.map(a=>`<option>${a}</option>`)).join('');
   const uniq = (key,base) => { const pres=[...new Set(data.map(r=>r[key]).filter(Boolean))]; return base.concat(pres.filter(v=>!base.some(b=>b.toLowerCase()===v.toLowerCase()))); };
   const discFilter = ['<option value="">Disciplina (todas)</option>'].concat(uniq('disciplina',DISCS).map(d=>`<option>${esc(d)}</option>`)).join('');
   const fechFilter = ['<option value="">Fechamento (todos)</option>'].concat(uniq('fechamento',FECHOPTS).map(d=>`<option>${esc(d)}</option>`)).join('');
@@ -835,14 +909,16 @@ function renderTbl(t){
     <table class="ct flt">
       <thead>
         <tr>
-          <th style="width:38%">Escopo</th><th style="width:12%">Disciplina</th>
-          <th style="width:10%">Alçada</th><th style="width:18%">Status</th>
-          <th style="width:64px">Link do Supria</th><th style="width:13%">Tipo de Fechamento</th><th style="width:22px"></th>
+          <th style="width:30%">Escopo</th><th style="width:11%">Disciplina</th>
+          <th style="width:8%">Valor</th><th style="width:12%">Responsável</th>
+          <th style="width:16%">Observação</th>
+          <th style="width:64px">Link do Supria</th><th style="width:12%">Tipo de Fechamento</th><th style="width:22px"></th>
         </tr>
         <tr class="frow no-print">
           <th><input class="fin" data-c="escopo" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
           <th><select class="fin" data-c="disciplina" onchange="filterTbl('${t}')">${discFilter}</select></th>
           <th><select class="fin" data-c="alcada" onchange="filterTbl('${t}')">${alcFilter}</select></th>
+          <th><input class="fin" data-c="responsavel" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
           <th><input class="fin" data-c="status" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
           <th></th>
           <th><select class="fin" data-c="fechamento" onchange="filterTbl('${t}')">${fechFilter}</select></th>
@@ -871,15 +947,16 @@ function filterTbl(t){
     if(filt.escopo     && !val(0).includes(filt.escopo))     show=false;
     if(show && filt.disciplina && val(1)!==filt.disciplina)  show=false;
     if(show && filt.alcada     && val(2)!==filt.alcada)      show=false;
-    if(show && filt.status     && !val(3).includes(filt.status))     show=false;
-    if(show && filt.fechamento && val(5)!==filt.fechamento)  show=false;
+    if(show && filt.responsavel && !val(3).includes(filt.responsavel)) show=false;
+    if(show && filt.status     && !val(4).includes(filt.status))     show=false;
+    if(show && filt.fechamento && val(6)!==filt.fechamento)  show=false;
     tr.style.display = show ? '' : 'none';
   });
 }
 
 function renderContr(){ renderTbl('C'); }
 function renderImpactos(){ renderTbl('I'); }
-function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',status:'',link:'',fechamento:''}); save(); renderTbl(t); }
+function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',responsavel:'',status:'',link:'',fechamento:''}); save(); renderTbl(t); }
 function updRow(t,i,k,v){ ctData(t)[i][k]=v; save(); if(k==='link') renderTbl(t); }
 function delRow(t,i){ ctData(t).splice(i,1); save(); renderTbl(t); }
 
@@ -938,16 +1015,17 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function escq(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 
 /* ---- meta + textareas ---- */
-['m_periodo','m_resp','m_data'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{
-  S.meta[id==='m_periodo'?'periodo':id==='m_resp'?'resp':'data']=e.target.value;save();}));
-['a1','a3','a4'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{S[id]=e.target.value;save();}));
+document.getElementById('m_semana').addEventListener('change',e=>{S.meta.semana=parseInt(e.target.value)||curWeek();S.meta.periodo='Semana '+S.meta.semana+'/'+(S.meta.ano||'');save();renderDDS();render5S();});
+document.getElementById('m_ano').addEventListener('change',e=>{S.meta.ano=parseInt(e.target.value)||new Date().getFullYear();S.meta.periodo='Semana '+(S.meta.semana||'')+'/'+S.meta.ano;save();render5S();});
+['m_resp','m_data'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{S.meta[id==='m_resp'?'resp':'data']=e.target.value;save();}));
+
 
 /* ============ EXPORT ============ */
 function exportJSON(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   dl(blob,`relatorio_semanal_${(S.meta.periodo||'RND').replace(/[^\w]+/g,'_')}.json`);}
 function importJSON(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{S=JSON.parse(r.result);save();renderAll();alert('Backup carregado.');}catch(e){alert('Arquivo inválido.');}};r.readAsText(f);}
-function resetAll(){if(confirm('Limpar todos os dados deste relatório?')){S=defaultState();editMode=false;save();renderAll();}}
+  r.onload=()=>{try{S=JSON.parse(r.result);migrateState();save();renderAll();alert('Backup carregado.');}catch(e){alert('Arquivo inválido.');}};r.readAsText(f);}
+function resetAll(){if(confirm('Limpar todos os dados deste relatório?')){S=defaultState();editDds=false;edit5s=false;save();renderAll();}}
 function dl(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 
 function exportExcel(){
@@ -960,10 +1038,13 @@ function exportExcel(){
   h+=`<table><tr><td colspan="9" style="font-size:15px;font-weight:bold;color:#0f3a54">INPASA · Relatório Gerencial Semanal — Rondonópolis/MT</td></tr>`;
   h+=`<tr><td>Período:</td><td>${esc(S.meta.periodo)}</td><td>Responsável:</td><td>${esc(S.meta.resp)}</td><td>Data:</td><td>${esc(S.meta.data)}</td></tr></table><br>`;
 
-  h+=`<table><tr><td colspan="9" ${th}>01 · DDS realizado + 03 · Canteiro (5S)</td></tr><tr><th ${th}>Empresa</th>${DAYS.map(d=>`<th ${th}>${d}</th>`).join('')}<th ${tc}>Cant. 5S</th></tr>`;
-  S.companies.forEach(c=>{h+=`<tr><td ${td}>${esc(c.name)}</td>${c.dds.map(s=>`<td ${td} style="text-align:center;border:1px solid #ccc;${fill(s)}">${SYM[s]}</td>`).join('')}<td ${td} style="text-align:center;border:1px solid #ccc;${fill(c.cant)}">${SYM[c.cant]}</td></tr>`;});
-  h+=`<tr><td ${td}><b>Ação DDS</b></td><td ${td} colspan="8">${esc(S.a1)}</td></tr>`;
-  h+=`<tr><td ${td}><b>Ação Canteiro</b></td><td ${td} colspan="8">${esc(S.a3)}</td></tr></table><br>`;
+  h+=`<table><tr><td colspan="8" ${th}>01 · DDS realizado — por especialista</td></tr><tr><th ${th}>Especialista</th>${DAYS.map(d=>`<th ${th}>${d}</th>`).join('')}</tr>`;
+  S.specialists.forEach(sp=>{h+=`<tr><td ${td}>${esc(sp.name)}</td>${sp.dds.map(s=>`<td ${td} style="text-align:center;border:1px solid #ccc;${fill(s)}">${SYM[s]}</td>`).join('')}</tr>`;});
+  h+=`</table><br>`;
+  const wk=weekWindow();
+  h+=`<table><tr><td colspan="${wk.length+1}" ${th}>03 · Canteiro (5S) — por empresa · últimas ${wk.length} semanas</td></tr><tr><th ${th}>Empresa</th>${wk.map(w=>`<th ${tc}>S${weekLabel(w)}</th>`).join('')}</tr>`;
+  S.companies.forEach(c=>{h+=`<tr><td ${td}>${esc(c.name)}</td>${wk.map(w=>{const v=s5get(c,w);return `<td ${td} style="text-align:center;border:1px solid #ccc;${fill(v)}">${SYM[v]}</td>`;}).join('')}</tr>`;});
+  h+=`</table><br>`;
 
   h+=`<table><tr><td colspan="5" ${th}>02 · Acidente / incidente?</td></tr>`;
   if(S.acid.length===0)h+=`<tr><td ${td} colspan="5">Sem acidentes/incidentes no período.</td></tr>`;
@@ -974,7 +1055,7 @@ function exportExcel(){
   h+=`<table><tr><td colspan="3" ${th}>04 · Frente de serviço (5S)?</td></tr>`;
   AREAS.forEach((a,i)=>{if(i%3===0)h+='<tr>';h+=`<td ${td} style="${fill(S.frentes[i])};border:1px solid #ccc">${SYM[S.frentes[i]]} ${esc(a)}</td>`;if(i%3===2)h+='</tr>';});
   if(AREAS.length%3!==0)h+='</tr>';
-  h+=`<tr><td ${td}><b>Ações</b></td><td ${td} colspan="2">${esc(S.a4)}</td></tr></table><br>`;
+  h+=`</table><br>`;
 
   h+=`<table><tr><td colspan="4" ${th}>05 · Não conformidade executiva?</td></tr>`;
   if(S.rnc.length===0)h+=`<tr><td ${td} colspan="4">Sem RNC executiva no período.</td></tr>`;
@@ -993,14 +1074,14 @@ function exportExcel(){
     h+=`<tr><td ${td}>Real. %</td>${m.weeks.map(w=>`<td ${td}>${esc(w.r)}</td>`).join('')}</tr>`;});
   h+=`</table><br>`;
 
-  const colsCI=`<tr><th ${th}>Escopo</th><th ${th}>Disciplina</th><th ${th}>Alçada</th><th ${th}>Status</th><th ${th}>Link do Supria</th><th ${th}>Tipo de Fechamento</th></tr>`;
-  const rowCI=r=>`<tr><td ${td}>${esc(r.escopo)}</td><td ${td}>${esc(r.disciplina)}</td><td ${td}>${esc(r.alcada)}</td><td ${td}>${esc(r.status)}</td><td ${td}>${esc(r.link)}</td><td ${td}>${esc(r.fechamento)}</td></tr>`;
-  h+=`<table><tr><td colspan="6" ${th}>08 · Contratações pendentes</td></tr>`+colsCI;
-  if(!(S.contr2||[]).length)h+=`<tr><td ${td} colspan="6">Sem pendências.</td></tr>`;
+  const colsCI=`<tr><th ${th}>Escopo</th><th ${th}>Disciplina</th><th ${th}>Valor</th><th ${th}>Responsável</th><th ${th}>Observação</th><th ${th}>Link do Supria</th><th ${th}>Tipo de Fechamento</th></tr>`;
+  const rowCI=r=>`<tr><td ${td}>${esc(r.escopo)}</td><td ${td}>${esc(r.disciplina)}</td><td ${td}>${esc(r.alcada)}</td><td ${td}>${esc(r.responsavel||'')}</td><td ${td}>${esc(r.status)}</td><td ${td}>${esc(r.link)}</td><td ${td}>${esc(r.fechamento)}</td></tr>`;
+  h+=`<table><tr><td colspan="7" ${th}>08 · Contratações pendentes</td></tr>`+colsCI;
+  if(!(S.contr2||[]).length)h+=`<tr><td ${td} colspan="7">Sem pendências.</td></tr>`;
   (S.contr2||[]).forEach(r=>h+=rowCI(r));
   h+=`</table><br>`;
-  h+=`<table><tr><td colspan="6" ${th}>Outros Impactos</td></tr>`+colsCI;
-  if(!(S.impactos||[]).length)h+=`<tr><td ${td} colspan="6">Sem itens.</td></tr>`;
+  h+=`<table><tr><td colspan="7" ${th}>Outros Impactos</td></tr>`+colsCI;
+  if(!(S.impactos||[]).length)h+=`<tr><td ${td} colspan="7">Sem itens.</td></tr>`;
   (S.impactos||[]).forEach(r=>h+=rowCI(r));
   h+=`</table><br>`;
 
@@ -1108,8 +1189,7 @@ async function sbCarregarNuvem(){
     const json = await ungzB64(rows[0].dados);
     const novo = JSON.parse(json);
     S = novo;
-    if(!S.outros) S.outros = seedOutros();
-    if(!S.fotos)  S.fotos  = [];
+    migrateState();
     save();
     renderAll();
     sbSetStatus('\u2601 carregado da nuvem', 'var(--ok)');
@@ -1120,7 +1200,34 @@ async function sbCarregarNuvem(){
 }
 
 
-renderAll();
+function migrateState(){
+  if(!S.meta) S.meta={};
+  if(!S.outros) S.outros=seedOutros();
+  if(!S.fotos) S.fotos=[];
+  if(!S.meta.semana) S.meta.semana=curWeek();
+  if(!S.meta.ano) S.meta.ano=new Date().getFullYear();
+  S.meta.periodo='Semana '+S.meta.semana+'/'+S.meta.ano;
+  if(!Array.isArray(S.specialists)) S.specialists=SPECIALISTS.map(n=>({name:n,dds:[0,0,0,0,0,0,0]}));
+  if(!Array.isArray(S.companies)) S.companies=[];
+  S.companies.forEach(c=>{
+    if(!c.s5){ c.s5={}; if(typeof c.cant==='number') c.s5[String(S.meta.semana)]=c.cant; }
+    if('dds' in c) delete c.dds;
+    if('cant' in c) delete c.cant;
+  });
+  if(!S.frentes) S.frentes={};
+  S.ppc=(S.ppc||[]).filter(x=>!/pavimenta/i.test(x.nome||''));
+  S.marcos=(S.marcos||[]).filter(m=>!/pavimenta/i.test(m.nome||''));
+  if(!Array.isArray(S.contr2)) S.contr2=[];
+  if(!Array.isArray(S.impactos)) S.impactos=[];
+  const canon=(v,list)=>{ if(!v) return v; const m=list.find(o=>o.toLowerCase()===String(v).toLowerCase()); return m||v; };
+  [S.contr2,S.impactos].forEach(arr=>arr.forEach(r=>{
+    if(!('responsavel' in r)) r.responsavel='';
+    if(r.alcada && /^\s*suprimentos\s*$/i.test(r.alcada)){ if(!r.fechamento) r.fechamento='Suprimentos'; r.alcada=''; }
+    r.disciplina=canon(r.disciplina,DISCS);
+    r.fechamento=canon(r.fechamento,FECHOPTS);
+  }));
+}
+migrateState(); renderAll();
 if(typeof pcoRenderSwitcher==='function') pcoRenderSwitcher('unidade-switcher');
 sbRefreshStatus();
 initCollapse();
