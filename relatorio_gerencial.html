@@ -866,6 +866,7 @@ function ctListId(t){ return t==='I' ? 'impactosList' : 'contratacoesList'; }
 function ctBodyId(t){ return t==='I' ? 'ctBodyI' : 'ctBodyC'; }
 
 function ctRowHtml(t,r,i){
+  if(t==='I') return impRowHtml(r,i);
   const discOpts = optList(r.disciplina, DISCS);
   const alcOpts  = optList(r.alcada, ALCADAS);
   const fechOpts = optList(r.fechamento, FECHOPTS);
@@ -895,6 +896,56 @@ function ctRowHtml(t,r,i){
   </tr>`;
 }
 
+/* ---- Outros Impactos: linha reduzida (Tema · Disciplina · Responsável · Observação · Anexo PDF) ---- */
+const ANEXO_BUCKET = 'impactos_anexos';
+function anexoUrl(a){ return (a&&a.path) ? (SB_URL + '/storage/v1/object/public/' + ANEXO_BUCKET + '/' + a.path) : ''; }
+function impRowHtml(r,i){
+  const discOpts = optList(r.disciplina, DISCS);
+  const a = r.anexo;
+  let anexoCell;
+  if(a && a.path){
+    anexoCell = `<td class="lnkcell"><a class="lbtn open" href="${esc(anexoUrl(a))}" target="_blank" rel="noopener" title="${esc(a.nome||'PDF')}">📄</a>`+
+      `<button class="lbtn cancel no-print" title="remover anexo" onclick="removeAnexo(${i})">🗑</button></td>`;
+  } else {
+    anexoCell = `<td class="lnkcell"><label class="lbtn edit no-print" title="anexar PDF" style="cursor:pointer;margin:0">📎<input type="file" accept="application/pdf,.pdf" style="display:none" onchange="uploadAnexo(${i},this)"></label>`+
+      `<span class="lbtn open dis" title="sem anexo">📄</span></td>`;
+  }
+  return `<tr>
+    <td><input value="${esc(r.escopo)}" title="${esc(r.escopo)}" onchange="updRow('I',${i},'escopo',this.value)"></td>
+    <td><select class="sel" onchange="updRow('I',${i},'disciplina',this.value)">${discOpts}</select></td>
+    <td><input value="${esc(r.responsavel||'')}" onchange="updRow('I',${i},'responsavel',this.value)"></td>
+    <td><input value="${esc(r.status)}" onchange="updRow('I',${i},'status',this.value)"></td>
+    ${anexoCell}
+    <td><button class="del no-print" onclick="delRow('I',${i})">×</button></td>
+  </tr>`;
+}
+async function uploadAnexo(i, input){
+  const f = input.files && input.files[0]; if(!f){ return; }
+  const isPdf = (f.type==='application/pdf') || /\.pdf$/i.test(f.name);
+  if(!isPdf){ alert('Anexe um arquivo PDF.'); input.value=''; return; }
+  if(f.size > 15*1024*1024){ alert('PDF muito grande (máximo 15 MB).'); input.value=''; return; }
+  if(!SB_URL || !SB_KEY){ alert('config.js ausente — sem conexão com o Supabase Storage.'); input.value=''; return; }
+  const safe = f.name.replace(/[^\w.\-]+/g,'_');
+  const path = sbUnidade() + '/' + Date.now() + '_' + safe;
+  try{
+    const res = await fetch(SB_URL + '/storage/v1/object/' + ANEXO_BUCKET + '/' + path, {
+      method:'POST',
+      headers: sbHeaders({ 'Content-Type': f.type||'application/pdf', 'x-upsert':'true' }),
+      body: f
+    });
+    if(!res.ok){ const tx=await res.text().catch(()=> ''); alert('Falha no upload ('+res.status+'). Verifique o bucket "'+ANEXO_BUCKET+'" no Supabase. '+tx); input.value=''; return; }
+    ctData('I')[i].anexo = { nome: f.name, path: path };
+    save(); renderTbl('I');
+  }catch(e){ alert('Erro no upload: '+e.message); }
+  input.value='';
+}
+async function removeAnexo(i){
+  const a = ctData('I')[i].anexo; if(!a) return;
+  if(!confirm('Remover o anexo "'+(a.nome||'')+'"?')) return;
+  try{ if(a.path) await fetch(SB_URL + '/storage/v1/object/' + ANEXO_BUCKET + '/' + a.path, { method:'DELETE', headers: sbHeaders() }); }catch(e){}
+  ctData('I')[i].anexo = null; save(); renderTbl('I');
+}
+
 function renderTbl(t){
   const data = ctData(t); const listEl = document.getElementById(ctListId(t)); if(!listEl) return;
   const alcFilter = ['<option value="">Valor (todos)</option>'].concat(ALCADAS.map(a=>`<option>${a}</option>`)).join('');
@@ -903,11 +954,7 @@ function renderTbl(t){
   const fechFilter = ['<option value="">Fechamento (todos)</option>'].concat(uniq('fechamento',FECHOPTS).map(d=>`<option>${esc(d)}</option>`)).join('');
   const rotulo = t==='I' ? 'Impactos' : 'Pendências';
   const addLbl = t==='I' ? 'impacto' : 'pendência';
-  let h = `<div class="ct-block full">
-    <div class="ct-head"><span>${rotulo} <span style="font-weight:500;color:var(--muted);font-size:10.5px">(${data.length})</span></span>
-      <button class="btn mini no-print" onclick="addRow('${t}')">＋ ${addLbl}</button></div>
-    <table class="ct flt">
-      <thead>
+  const headC = `
         <tr>
           <th style="width:30%">Escopo</th><th style="width:11%">Disciplina</th>
           <th style="width:8%">Valor</th><th style="width:12%">Responsável</th>
@@ -923,8 +970,27 @@ function renderTbl(t){
           <th></th>
           <th><select class="fin" data-c="fechamento" onchange="filterTbl('${t}')">${fechFilter}</select></th>
           <th></th>
+        </tr>`;
+  const headI = `
+        <tr>
+          <th style="width:34%">Tema</th><th style="width:14%">Disciplina</th>
+          <th style="width:16%">Responsável</th><th style="width:24%">Observação</th>
+          <th style="width:74px">Anexo (PDF)</th><th style="width:22px"></th>
         </tr>
-      </thead>
+        <tr class="frow no-print">
+          <th><input class="fin" data-c="escopo" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><select class="fin" data-c="disciplina" onchange="filterTbl('${t}')">${discFilter}</select></th>
+          <th><input class="fin" data-c="responsavel" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th><input class="fin" data-c="status" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
+          <th></th>
+          <th></th>
+        </tr>`;
+  const headHtml = t==='I' ? headI : headC;
+  let h = `<div class="ct-block full">
+    <div class="ct-head"><span>${rotulo} <span style="font-weight:500;color:var(--muted);font-size:10.5px">(${data.length})</span></span>
+      <button class="btn mini no-print" onclick="addRow('${t}')">＋ ${addLbl}</button></div>
+    <table class="ct flt">
+      <thead>${headHtml}</thead>
       <tbody id="${ctBodyId(t)}">`;
   data.forEach((r,i)=>h+=ctRowHtml(t,r,i));
   h += `</tbody></table>`;
@@ -944,19 +1010,26 @@ function filterTbl(t){
   [...body.rows].forEach(tr=>{
     const val = idx => { const el = tr.cells[idx] && tr.cells[idx].querySelector('input,select'); return el ? (el.value||'').toLowerCase() : ''; };
     let show = true;
-    if(filt.escopo     && !val(0).includes(filt.escopo))     show=false;
-    if(show && filt.disciplina && val(1)!==filt.disciplina)  show=false;
-    if(show && filt.alcada     && val(2)!==filt.alcada)      show=false;
-    if(show && filt.responsavel && !val(3).includes(filt.responsavel)) show=false;
-    if(show && filt.status     && !val(4).includes(filt.status))     show=false;
-    if(show && filt.fechamento && val(6)!==filt.fechamento)  show=false;
+    if(t==='I'){
+      if(filt.escopo     && !val(0).includes(filt.escopo))     show=false;
+      if(show && filt.disciplina  && val(1)!==filt.disciplina)          show=false;
+      if(show && filt.responsavel && !val(2).includes(filt.responsavel))show=false;
+      if(show && filt.status      && !val(3).includes(filt.status))     show=false;
+    } else {
+      if(filt.escopo     && !val(0).includes(filt.escopo))     show=false;
+      if(show && filt.disciplina && val(1)!==filt.disciplina)  show=false;
+      if(show && filt.alcada     && val(2)!==filt.alcada)      show=false;
+      if(show && filt.responsavel && !val(3).includes(filt.responsavel)) show=false;
+      if(show && filt.status     && !val(4).includes(filt.status))     show=false;
+      if(show && filt.fechamento && val(6)!==filt.fechamento)  show=false;
+    }
     tr.style.display = show ? '' : 'none';
   });
 }
 
 function renderContr(){ renderTbl('C'); }
 function renderImpactos(){ renderTbl('I'); }
-function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',responsavel:'',status:'',link:'',fechamento:''}); save(); renderTbl(t); }
+function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',responsavel:'',status:'',link:'',fechamento:'',anexo:null}); save(); renderTbl(t); }
 function updRow(t,i,k,v){ ctData(t)[i][k]=v; save(); if(k==='link') renderTbl(t); }
 function delRow(t,i){ ctData(t).splice(i,1); save(); renderTbl(t); }
 
@@ -1080,9 +1153,11 @@ function exportExcel(){
   if(!(S.contr2||[]).length)h+=`<tr><td ${td} colspan="7">Sem pendências.</td></tr>`;
   (S.contr2||[]).forEach(r=>h+=rowCI(r));
   h+=`</table><br>`;
-  h+=`<table><tr><td colspan="7" ${th}>Outros Impactos</td></tr>`+colsCI;
-  if(!(S.impactos||[]).length)h+=`<tr><td ${td} colspan="7">Sem itens.</td></tr>`;
-  (S.impactos||[]).forEach(r=>h+=rowCI(r));
+  const colsIMP=`<tr><th ${th}>Tema</th><th ${th}>Disciplina</th><th ${th}>Responsável</th><th ${th}>Observação</th><th ${th}>Anexo (PDF)</th></tr>`;
+  const rowIMP=r=>`<tr><td ${td}>${esc(r.escopo)}</td><td ${td}>${esc(r.disciplina)}</td><td ${td}>${esc(r.responsavel||'')}</td><td ${td}>${esc(r.status)}</td><td ${td}>${esc(r.anexo?anexoUrl(r.anexo):'')}</td></tr>`;
+  h+=`<table><tr><td colspan="5" ${th}>Outros Impactos</td></tr>`+colsIMP;
+  if(!(S.impactos||[]).length)h+=`<tr><td ${td} colspan="5">Sem itens.</td></tr>`;
+  (S.impactos||[]).forEach(r=>h+=rowIMP(r));
   h+=`</table><br>`;
 
   if((S.fotos||[]).length){
@@ -1222,6 +1297,7 @@ function migrateState(){
   const canon=(v,list)=>{ if(!v) return v; const m=list.find(o=>o.toLowerCase()===String(v).toLowerCase()); return m||v; };
   [S.contr2,S.impactos].forEach(arr=>arr.forEach(r=>{
     if(!('responsavel' in r)) r.responsavel='';
+    if(!('anexo' in r)) r.anexo=null;
     if(r.alcada && /^\s*suprimentos\s*$/i.test(r.alcada)){ if(!r.fechamento) r.fechamento='Suprimentos'; r.alcada=''; }
     r.disciplina=canon(r.disciplina,DISCS);
     r.fechamento=canon(r.fechamento,FECHOPTS);
