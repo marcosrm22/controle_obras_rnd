@@ -225,6 +225,7 @@
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -272,21 +273,9 @@
     <div class="q-body">
       <div class="topgrid">
 
-        <!-- LEFT: DDS por especialista + Canteiro (5S) por empresa -->
+        <!-- ESQUERDA: 5S dos canteiros por empresa (últimas 4 semanas) -->
         <div class="topleft">
-          <h4>01 · DDS realizado — por especialista</h4>
-          <div class="counts" id="c1"></div>
-          <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
-            <button class="btn mini" onclick="fillDds(1)">DDS: tudo ✓</button>
-            <button class="btn mini" onclick="fillDds(0)">DDS: limpar</button>
-            <button class="btn mini" id="editDdsBtn" onclick="toggleEditDds()">✎ Editar especialistas</button>
-            <button class="btn mini" onclick="addSpec()">＋ especialista</button>
-          </div>
-          <div class="matrix-scroll">
-            <table class="mtx" id="ddsTable"></table>
-          </div>
-
-          <h4 style="margin-top:16px">03 · Canteiro (5S) — por empresa · últimas 4 semanas</h4>
+          <h4>03 · Canteiro (5S) — por empresa · últimas 4 semanas</h4>
           <div class="counts" id="c3"></div>
           <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
             <button class="btn mini" onclick="fill5s(1)">5S (semana atual): tudo ✓</button>
@@ -297,7 +286,6 @@
           <div class="matrix-scroll">
             <table class="mtx" id="s5Table"></table>
           </div>
-
           <div class="legend">
             <span class="legchip"><span class="legbox neu"></span> Não avaliado</span>
             <span class="legchip"><span class="legbox ok"></span> Conforme (✓)</span>
@@ -306,9 +294,17 @@
           </div>
         </div>
 
-        <!-- RIGHT: frentes de serviço -->
+        <!-- DIREITA: gráfico previsto × realizado (DDS) + frentes de serviço -->
         <div class="topright">
-          <h4>04 · Frentes de serviço (5S) — por área</h4>
+          <h4>01 · DDS — previsto × realizado (semana)</h4>
+          <div class="counts" id="c1"></div>
+          <div style="position:relative;height:190px;margin:2px 0 4px"><canvas id="ddsResumoChart"></canvas></div>
+          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin:0 0 16px">
+            Realização importada do MS Forms. Detalhe por empresa em
+            <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.
+          </div>
+
+          <h4 style="margin-top:6px">04 · Frentes de serviço (5S) — por área</h4>
           <div class="counts" id="c4"></div>
           <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
             <button class="btn mini" onclick="fillFrentes(1)">Marcar tudo ✓</button>
@@ -599,52 +595,43 @@ function renderAll(){
   document.getElementById('m_semana').value=S.meta.semana||curWeek();
   document.getElementById('m_ano').value=S.meta.ano||new Date().getFullYear();
   m_resp.value=S.meta.resp; m_data.value=S.meta.data;
-  renderDDS(); render5S(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
+  renderDDSResumo(); render5S(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
   document.getElementById('genstamp').textContent=new Date().toLocaleString('pt-BR');
 }
 
-/* ---- DDS realizado · por ESPECIALISTA ---- */
-function renderDDS(){
-  const t=document.getElementById('ddsTable');
-  document.getElementById('editDdsBtn').textContent=editDds?'✓ Concluir edição':'✎ Editar especialistas';
-  if(editDds){
-    t.className='mtx edit';
-    let h=`<colgroup><col class="c-emp"><col class="c-del"></colgroup>
-      <thead><tr><th class="emp">Especialista</th><th></th></tr></thead><tbody>`;
-    S.specialists.forEach((sp,i)=>{
-      h+=`<tr><td class="emp"><input value="${esc(sp.name)}" onchange="updSpec(${i},this.value)"></td>
-        <td><button class="delrow" title="excluir" onclick="delSpec(${i})">×</button></td></tr>`;
-    });
-    h+=`</tbody>`; t.innerHTML=h; return;
+/* ---- DDS · resumo previsto × realizado (dados do MS Forms via Supabase) ---- */
+let DDS_PREV=0, DDS_REAL=0, ddsChart=null;
+function isoWeekYear(dt){const d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);return d.getUTCFullYear();}
+async function renderDDSResumo(){
+  const sem=curSemana(), ano=parseInt(S.meta.ano)||new Date().getFullYear();
+  let especialistas=13, dias=6, realizado=0;
+  try{
+    if(SB_URL && SB_KEY){
+      const cfgRes=await fetch(SB_URL+'/rest/v1/'+sbComUnidade('dds_config?select=especialistas,dias_semana&limit=1'),{headers:sbHeaders()});
+      const cfg=await cfgRes.json().catch(()=>[]);
+      if(Array.isArray(cfg)&&cfg.length){ especialistas=cfg[0].especialistas??13; dias=cfg[0].dias_semana??6; }
+      const rRes=await fetch(SB_URL+'/rest/v1/'+sbComUnidade('dds_respostas?select=data'),{headers:sbHeaders({'Range-Unit':'items','Range':'0-99999'})});
+      const rows=await rRes.json().catch(()=>[]);
+      if(Array.isArray(rows)){
+        realizado=rows.filter(r=>{ if(!r.data) return false; const d=new Date(r.data+'T00:00:00'); return !isNaN(d)&&isoWeek(d)===sem&&isoWeekYear(d)===ano; }).length;
+      }
+    }
+  }catch(e){ /* offline / tabela ausente: mantém zeros */ }
+  const previsto=especialistas*dias;
+  DDS_PREV=previsto; DDS_REAL=realizado;
+  const ader = previsto>0 ? Math.round(realizado/previsto*100) : 0;
+  const c1=document.getElementById('c1');
+  if(c1) c1.innerHTML=`<span style="font-weight:700;color:var(--brand)">DDS (S${weekLabel(sem)}) ·</span>`+
+    `<span><span class="dot ok"></span>previsto <b>${previsto}</b></span>`+
+    `<span><span class="dot nc"></span>realizado <b>${realizado}</b></span>`+
+    `<span>aderência <b>${ader}%</b></span>`;
+  setVerdict('v1', ader>=100?'sim':(ader>=70?'neu':'nao'), previsto>0?`${ader}% (${realizado}/${previsto})`:'\u2014');
+  const cv=document.getElementById('ddsResumoChart');
+  if(cv && typeof Chart!=='undefined'){
+    if(ddsChart) ddsChart.destroy();
+    ddsChart=new Chart(cv,{type:'bar',data:{labels:['Previsto','Realizado'],datasets:[{data:[previsto,realizado],backgroundColor:['#0f3a54','#c9922b'],borderRadius:8}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
   }
-  t.className='mtx';
-  let cols=`<colgroup><col class="c-emp">`+DAYS.map(()=>`<col class="c-day">`).join('')+`</colgroup>`;
-  let h=cols+"<thead><tr><th class='emp'>Especialista</th>";
-  DAYS.forEach((d,di)=>h+=`<th class="day" onclick="toggleColDds(${di})" title="marca a coluna">${d}</th>`);
-  h+=`</tr></thead><tbody>`;
-  S.specialists.forEach((sp,i)=>{
-    h+=`<tr><td class='emp' title="${esc(sp.name)}">${esc(sp.name)}</td>`;
-    for(let d=0;d<7;d++){const v=sp.dds[d];h+=`<td><div class="cell s${v}" onclick="cycDds(${i},${d})">${SYM[v]}</div></td>`;}
-    h+=`</tr>`;
-  });
-  h+="</tbody>"; t.innerHTML=h; updDDSsummary();
-}
-function toggleEditDds(){editDds=!editDds;renderDDS();}
-function updSpec(i,v){S.specialists[i].name=v;save();}
-function delSpec(i){if(confirm('Excluir especialista "'+S.specialists[i].name+'"?')){S.specialists.splice(i,1);save();renderDDS();}}
-function addSpec(){S.specialists.push({name:'Novo especialista',dds:[0,0,0,0,0,0,0]});save();editDds=true;renderDDS();}
-function cycDds(i,d){S.specialists[i].dds[d]=(S.specialists[i].dds[d]+1)%3;save();renderDDS();}
-function toggleColDds(d){const anyNeu=S.specialists.some(s=>s.dds[d]===0);S.specialists.forEach(s=>s.dds[d]=anyNeu?1:0);save();renderDDS();}
-function fillDds(v){S.specialists.forEach(s=>{for(let d=0;d<7;d++)s.dds[d]=v;});save();renderDDS();}
-function updDDSsummary(){
-  let ok=0,nc=0,neu=0;
-  S.specialists.forEach(s=>s.dds.forEach(v=>{v===1?ok++:v===2?nc++:neu++;}));
-  document.getElementById('c1').innerHTML=
-    `<span style="font-weight:700;color:var(--brand)">DDS ·</span>`+
-    `<span><span class="dot ok"></span><b>${ok}</b> realizados</span>`+
-    `<span><span class="dot nc"></span><b>${nc}</b> não realizados</span>`+
-    `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
-  setVerdict('v1', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} falha(s)`:(ok>0?'Sim':'—'));
 }
 
 /* ---- Canteiro (5S) · por EMPRESA · últimas 4 semanas ---- */
@@ -1073,8 +1060,8 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function escq(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 
 /* ---- meta + textareas ---- */
-document.getElementById('m_semana').addEventListener('change',e=>{S.meta.semana=parseInt(e.target.value)||curWeek();S.meta.periodo='Semana '+S.meta.semana+'/'+(S.meta.ano||'');save();renderDDS();render5S();});
-document.getElementById('m_ano').addEventListener('change',e=>{S.meta.ano=parseInt(e.target.value)||new Date().getFullYear();S.meta.periodo='Semana '+(S.meta.semana||'')+'/'+S.meta.ano;save();render5S();});
+document.getElementById('m_semana').addEventListener('change',e=>{S.meta.semana=parseInt(e.target.value)||curWeek();S.meta.periodo='Semana '+S.meta.semana+'/'+(S.meta.ano||'');save();renderDDSResumo();render5S();});
+document.getElementById('m_ano').addEventListener('change',e=>{S.meta.ano=parseInt(e.target.value)||new Date().getFullYear();S.meta.periodo='Semana '+(S.meta.semana||'')+'/'+S.meta.ano;save();renderDDSResumo();render5S();});
 ['m_resp','m_data'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{S.meta[id==='m_resp'?'resp':'data']=e.target.value;save();}));
 
 
@@ -1096,8 +1083,10 @@ function exportExcel(){
   h+=`<table><tr><td colspan="9" style="font-size:15px;font-weight:bold;color:#0f3a54">INPASA · Relatório Gerencial Semanal — Rondonópolis/MT</td></tr>`;
   h+=`<tr><td>Período:</td><td>${esc(S.meta.periodo)}</td><td>Responsável:</td><td>${esc(S.meta.resp)}</td><td>Data:</td><td>${esc(S.meta.data)}</td></tr></table><br>`;
 
-  h+=`<table><tr><td colspan="8" ${th}>01 · DDS realizado — por especialista</td></tr><tr><th ${th}>Especialista</th>${DAYS.map(d=>`<th ${th}>${d}</th>`).join('')}</tr>`;
-  S.specialists.forEach(sp=>{h+=`<tr><td ${td}>${esc(sp.name)}</td>${sp.dds.map(s=>`<td ${td} style="text-align:center;border:1px solid #ccc;${fill(s)}">${SYM[s]}</td>`).join('')}</tr>`;});
+  h+=`<table><tr><td colspan="2" ${th}>01 · DDS — previsto × realizado (MS Forms)</td></tr>`;
+  h+=`<tr><td ${td}>Previsto (semana)</td><td ${td} style="text-align:center">${DDS_PREV}</td></tr>`;
+  h+=`<tr><td ${td}>Realizado (semana)</td><td ${td} style="text-align:center">${DDS_REAL}</td></tr>`;
+  h+=`<tr><td ${td}>Aderência</td><td ${td} style="text-align:center">${DDS_PREV>0?Math.round(DDS_REAL/DDS_PREV*100):0}%</td></tr>`;
   h+=`</table><br>`;
   const wk=weekWindow();
   h+=`<table><tr><td colspan="${wk.length+1}" ${th}>03 · Canteiro (5S) — por empresa · últimas ${wk.length} semanas</td></tr><tr><th ${th}>Empresa</th>${wk.map(w=>`<th ${tc}>S${weekLabel(w)}</th>`).join('')}</tr>`;
