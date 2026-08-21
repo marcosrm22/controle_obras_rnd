@@ -247,8 +247,6 @@
   <div class="toolbar no-print">
     <a class="btn ghost" href="index.html" style="text-decoration:none">← Painel PCO</a>
     <span id="unidade-switcher" style="display:inline-flex;align-items:center;padding:0 6px"></span>
-    <button class="btn" onclick="sbSalvarNuvem(this)">☁ Salvar na nuvem</button>
-    <button class="btn" onclick="sbCarregarNuvem()">⤵ Carregar da nuvem</button>
     <button class="btn" onclick="secAll(false)">⊞ Expandir tudo</button>
     <button class="btn" onclick="secAll(true)">⊟ Minimizar tudo</button>
     <button class="btn primary" onclick="exportExcel()">⤓ Exportar para Excel</button>
@@ -257,7 +255,7 @@
     <label class="btn ghost" style="cursor:pointer">📂 Carregar backup<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
     <button class="btn" onclick="resetAll()">↺ Limpar tudo</button>
     <span id="sbStatus" style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">☁ Nuvem: verificando…</span>
-    <span style="font-size:11px;color:var(--muted);align-self:center;opacity:.65">· salvo neste navegador</span>
+    <span style="font-size:11px;color:var(--muted);align-self:center;opacity:.65">· salvamento automático · colaborativo</span>
   </div>
 
   <!-- 01 · 03 · 04 — DDS / Canteiro (5S) / Frentes de Serviço -->
@@ -367,16 +365,16 @@
   <section class="q" id="q6">
     <div class="q-head">
       <div class="q-num">06</div>
-      <div class="q-title">PPC atendido?<small>Resumo dos PPCs acompanhados</small></div>
+      <div class="q-title">Aderência aos marcos?<small>Sinalize se cada marco está aderente</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v6">—</span></div>
     </div>
     <div class="q-body">
-      <p class="hint">Clique no status para alternar: <b>Atendido</b> → <b>Não atendido</b> → <b>Pendente</b>. Preencha a ação quando não atendido.</p>
+      <p class="hint">Clique no status para alternar: <b>Aderente</b> → <b>Não aderente</b> → <b>Pendente</b>. Preencha a ação quando não aderente.</p>
       <table class="grid" id="ppcTable">
-        <thead><tr><th style="width:34%">Item de PPC</th><th style="width:14%">Status</th><th>Ação (se não atendido)</th></tr></thead>
+        <thead><tr><th style="width:34%">Marco</th><th style="width:14%">Status</th><th>Ação (se não aderente)</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button class="btn mini no-print" style="margin-top:10px" onclick="addPpc()">＋ Adicionar item de PPC</button>
+      <button class="btn mini no-print" style="margin-top:10px" onclick="addPpc()">＋ Adicionar marco</button>
     </div>
   </section>
 
@@ -384,24 +382,13 @@
   <section class="q" id="q7">
     <div class="q-head">
       <div class="q-num">07</div>
-      <div class="q-title">Aderência aos MARCOS?<small>Curva de aderência por LPS / marco</small></div>
+      <div class="q-title">PPC · Percentual do Plano Concluído?<small>PPC semanal por pacote / frente</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v7">—</span></div>
     </div>
     <div class="q-body">
-      <details class="tips no-print">
-        <summary>💡 Como montar a curva de aderência de cada LPS (dicas)</summary>
-        <ul>
-          <li><b>O que a curva mostra:</b> por marco/LPS, duas linhas ao longo das semanas — <b>% Previsto</b> (baseline) e <b>% Realizado</b>. A distância entre elas é o desvio de aderência.</li>
-          <li><b>Dado mínimo por semana (3 números):</b> semana, % acumulado previsto e % acumulado realizado. Já basta para desenhar a curva ao lado.</li>
-          <li><b>De onde tirar:</b> previsto = acumulado da baseline no MS Project filtrando as tarefas do marco; realizado = seu apontamento (RDO/RSO). Desvio: <code>Realizado − Previsto</code> (negativo = atrasado).</li>
-          <li><b>Aderência (%) da semana:</b> <code>Realizado ÷ Previsto</code>. Meta usual ≥ 85–90%. O card calcula e pinta verde/âmbar/vermelho.</li>
-          <li><b>Escopo do "LPS":</b> comece com 1 curva por marco (os 5 do PPC já entram). Se faz pull planning por pacote, use 1 curva/pacote e o marco = agregação.</li>
-          <li><b>Complemento:</b> registre a <b>causa raiz de não cumprimento</b> por semana (material · mão de obra → item 08 · projeto · clima · interface) e monte um Pareto.</li>
-          <li><b>Automação:</b> como você já parseia o XML timephased, dá para extrair o previsto acumulado por marco direto da baseline e alimentar as semanas sem digitar.</li>
-        </ul>
-      </details>
+      <p class="hint">Informe o <b>PPC (%)</b> de cada semana por pacote/frente. O gráfico mostra a curva do PPC semanal. Meta usual ≥ 85%.</p>
       <div id="marcosList"></div>
-      <button class="btn mini no-print" style="margin-top:12px" onclick="addMarco()">＋ Adicionar marco / LPS</button>
+      <button class="btn mini no-print" style="margin-top:12px" onclick="addMarco()">＋ Adicionar item / pacote</button>
     </div>
   </section>
 
@@ -495,7 +482,7 @@ function defaultState(){
   SPECIALISTS.forEach(n=>st.specialists.push({name:n,dds:[0,0,0,0,0,0,0]}));
   AREAS.forEach((_,i)=>st.frentes[i]=0);
   PPC_SEED.forEach(n=>st.ppc.push({nome:n,status:0,acao:""}));
-  PPC_SEED.forEach(n=>{st.marcos.push({nome:n,weeks:[{s:"S1",p:"",r:""},{s:"S2",p:"",r:""},{s:"S3",p:"",r:""},{s:"S4",p:"",r:""}]});st.contr[n]=[];});
+  PPC_SEED.forEach(n=>{st.marcos.push({nome:n,weeks:[{s:"S1",ppc:""},{s:"S2",ppc:""},{s:"S3",ppc:""},{s:"S4",ppc:""}]});st.contr[n]=[];});
   st.meta.periodo='Semana '+st.meta.semana+'/'+st.meta.ano;
   st.outros=seedOutros();
   return st;
@@ -543,7 +530,8 @@ function seedOutros(){
   WD.forEach(r=>out.push({desc:r[0],emp:r[1],sit:r[2],data:"",org:"wd"}));
   return out;
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true;}catch(e){return false;}}
+let BOOTED=false;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} scheduleLiveSave(); return true;}
 function load(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):null;}catch(e){return null;}}
 /* migração: garante campos novos em estados salvos anteriormente */
 if(!S.outros){S.outros=seedOutros();save();}
@@ -766,7 +754,7 @@ function delRnc(i){S.rnc.splice(i,1);save();renderRnc();}
 function renderPpc(){
   const tb=document.querySelector('#ppcTable tbody');let h="";
   S.ppc.forEach((p,i)=>{
-    const lbl=['Pendente','Atendido','Não atendido'][p.status];
+    const lbl=['Pendente','Aderente','Não aderente'][p.status];
     h+=`<tr>
       <td><input class="inline" value="${esc(p.nome)}" onchange="updPpc(${i},'nome',this.value)"></td>
       <td><button class="stbtn s${p.status}" onclick="cycPpc(${i})">${lbl}</button></td>
@@ -774,7 +762,7 @@ function renderPpc(){
     </tr>`;});
   tb.innerHTML=h;
   const nc=S.ppc.filter(p=>p.status===2).length, ok=S.ppc.filter(p=>p.status===1).length;
-  setVerdict('v6', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} pendência(s)`:(ok>0?'Sim':'—'));
+  setVerdict('v6', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} não aderente(s)`:(ok>0?'Sim':'—'));
 }
 function cycPpc(i){S.ppc[i].status=(S.ppc[i].status+1)%3;save();renderPpc();}
 function updPpc(i,k,v){S.ppc[i][k]=v;save();if(k!=='acao')renderPpc();}
@@ -785,9 +773,8 @@ function renderMarcos(){
   const box=document.getElementById('marcosList');let h="";
   S.marcos.forEach((m,mi)=>{
     const last=m.weeks[m.weeks.length-1]||{};
-    let adh=null;const p=parseFloat(last.p),r=parseFloat(last.r);
-    if(!isNaN(p)&&p>0&&!isNaN(r))adh=Math.round(r/p*100);
-    const cls=adh===null?'':(adh>=90?'urg ok':adh>=75?'urg soon':'urg late');
+    const lv=parseFloat(last.ppc);
+    const cls=isNaN(lv)?'':(lv>=85?'urg ok':lv>=70?'urg soon':'urg late');
     h+=`<div class="lps-card"><div class="lps-head">
       <input class="name" value="${esc(m.nome)}" onchange="updMarcoName(${mi},this.value)">
       <button class="btn mini no-print" onclick="addWeek(${mi})">＋ sem.</button>
@@ -796,17 +783,16 @@ function renderMarcos(){
       <div><table class="wk-table"><thead><tr><th>Sem.</th>${m.weeks.map(w=>`<th>${esc(w.s)}</th>`).join('')}</tr></thead>
       <tbody>
         <tr><th style="text-align:left">Sem.</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.s)}" onchange="updWeek(${mi},${wi},'s',this.value)"></td>`).join('')}</tr>
-        <tr><th style="text-align:left">Prev.%</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.p)}" onchange="updWeek(${mi},${wi},'p',this.value)"></td>`).join('')}</tr>
-        <tr><th style="text-align:left">Real.%</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.r)}" onchange="updWeek(${mi},${wi},'r',this.value)"></td>`).join('')}</tr>
+        <tr><th style="text-align:left">PPC %</th>${m.weeks.map((w,wi)=>`<td><input value="${esc(w.ppc)}" onchange="updWeek(${mi},${wi},'ppc',this.value)"></td>`).join('')}</tr>
       </tbody></table>
-      <div class="adh">Aderência atual: <b class="${cls}">${adh===null?'—':adh+'%'}</b></div></div>
+      <div class="adh">PPC atual: <b class="${cls}">${isNaN(lv)?'—':lv+'%'}</b></div></div>
       <div class="chartbox">${curveSVG(m.weeks)}</div>
     </div></div>`;
   });
   box.innerHTML=h;
   let bad=false,has=false;
-  S.marcos.forEach(m=>{const l=m.weeks[m.weeks.length-1]||{};const p=parseFloat(l.p),r=parseFloat(l.r);if(!isNaN(p)&&p>0&&!isNaN(r)){has=true;if(r/p*100<90)bad=true;}});
-  setVerdict('v7', bad?'nao':(has?'sim':'neu'), bad?'Não · desvio':(has?'Sim':'—'));
+  S.marcos.forEach(m=>{const l=m.weeks[m.weeks.length-1]||{};const v=parseFloat(l.ppc);if(!isNaN(v)){has=true;if(v<85)bad=true;}});
+  setVerdict('v7', bad?'nao':(has?'sim':'neu'), bad?'Não · PPC baixo':(has?'Sim':'—'));
 }
 function curveSVG(weeks){
   const W=210,H=130,pad=22;
@@ -821,14 +807,13 @@ function curveSVG(weeks){
   };
   let grid="";[0,50,100].forEach(g=>{const y=yy(g);grid+=`<line x1="${pad}" y1="${y}" x2="${W-6}" y2="${y}" stroke="#eef2f5"/><text x="2" y="${y+3}" font-size="7.5" fill="#9aa8b3">${g}</text>`;});
   const xl=weeks.map((w,i)=>`<text x="${xs[i]}" y="${H-7}" font-size="7.5" fill="#9aa8b3" text-anchor="middle">${esc(w.s)}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${xl}${line('p','#12557a')}${line('r','#1f8a4c')}
-    <g font-size="7.5"><rect x="${W-84}" y="4" width="9" height="3" fill="#12557a"/><text x="${W-72}" y="8" fill="#3a4b59">Previsto</text>
-    <rect x="${W-84}" y="13" width="9" height="3" fill="#1f8a4c"/><text x="${W-72}" y="17" fill="#3a4b59">Realizado</text></g></svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${xl}${line('ppc','#12557a')}
+    <g font-size="7.5"><rect x="${W-64}" y="4" width="9" height="3" fill="#12557a"/><text x="${W-52}" y="8" fill="#3a4b59">PPC %</text></g></svg>`;
 }
 function updMarcoName(i,v){S.marcos[i].nome=v;save();syncContrKeys();}
 function updWeek(mi,wi,k,v){S.marcos[mi].weeks[wi][k]=v;save();renderMarcos();}
-function addWeek(mi){const n=S.marcos[mi].weeks.length+1;S.marcos[mi].weeks.push({s:'S'+n,p:'',r:''});save();renderMarcos();}
-function addMarco(){const nm='Novo marco '+(S.marcos.length+1);S.marcos.push({nome:nm,weeks:[{s:'S1',p:'',r:''},{s:'S2',p:'',r:''}]});if(!S.contr[nm])S.contr[nm]=[];save();renderMarcos();renderContr();}
+function addWeek(mi){const n=S.marcos[mi].weeks.length+1;S.marcos[mi].weeks.push({s:'S'+n,ppc:''});save();renderMarcos();}
+function addMarco(){const nm='Novo item '+(S.marcos.length+1);S.marcos.push({nome:nm,weeks:[{s:'S1',ppc:''},{s:'S2',ppc:''}]});if(!S.contr[nm])S.contr[nm]=[];save();renderMarcos();renderContr();}
 function delMarco(i){if(confirm('Excluir marco "'+S.marcos[i].nome+'"?')){S.marcos.splice(i,1);save();renderMarcos();syncContrKeys();}}
 
 /* ---- CONTRATAÇÕES ---- */
@@ -1274,6 +1259,64 @@ async function sbCarregarNuvem(){
   }
 }
 
+/* ===== Autosave + colaboração (quase tempo real, por unidade) ===== */
+const SB_LIVE = 'relatorio_gerencial_live';
+let LIVE_REV = 0, _saveTimer = null, PENDING_REMOTE = null;
+function clientNome(){ return sessionStorage.getItem('pco_nome') || sessionStorage.getItem('pco_email') || (S.meta && S.meta.resp) || 'Alguém'; }
+function hhmm(){ return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function liveStatus(txt,cor){ const el=document.getElementById('sbStatus'); if(el){ el.textContent='\u2601 '+txt; el.style.color=cor||'var(--muted)'; } }
+function scheduleLiveSave(){ if(!BOOTED||!SB_URL||!SB_KEY) return; liveStatus('salvando\u2026','var(--muted)'); clearTimeout(_saveTimer); _saveTimer=setTimeout(pushLive,800); }
+async function pushLive(){
+  if(!SB_URL||!SB_KEY) return;
+  const rev=Date.now(); LIVE_REV=rev;                 /* otimista: o poll não repuxa o próprio save */
+  try{
+    const dados=await gzB64(JSON.stringify(S));
+    const body=[ sbComTag({ dados, rev, atualizado_por:clientNome(), atualizado_em:new Date().toISOString() }) ];
+    const res=await fetch(SB_URL+'/rest/v1/'+SB_LIVE+'?on_conflict=unidade',{
+      method:'POST', headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify(body)
+    });
+    if(res.ok) liveStatus('salvo '+hhmm(),'var(--ok)');
+    else liveStatus('falha ao salvar','var(--nc)');
+  }catch(e){ liveStatus('offline \u2014 salvo só neste navegador','var(--amber)'); }
+}
+async function loadLive(){
+  if(!SB_URL||!SB_KEY){ liveStatus('config.js ausente','var(--amber)'); return; }
+  try{
+    const path=sbComUnidade(SB_LIVE+'?select=dados,rev,atualizado_por&limit=1');
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:sbHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    if(Array.isArray(rows)&&rows.length&&rows[0].dados){
+      const novo=JSON.parse(await ungzB64(rows[0].dados));
+      S=novo; migrateState(); try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+      LIVE_REV=rows[0].rev||0; renderAll();
+      liveStatus('sincronizado \u00b7 '+sbUnidadeNome(),'var(--brand-2)');
+    } else {
+      liveStatus('iniciando na nuvem\u2026','var(--muted)'); await pushLive();
+    }
+  }catch(e){ liveStatus('offline','var(--amber)'); }
+}
+function remoteApply(novo, rev, por){
+  const ae=document.activeElement;
+  const editing = ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName||'');
+  if(editing){ PENDING_REMOTE={novo,rev,por}; liveStatus('alteração de '+(por||'outro')+' \u2014 sai do campo p/ aplicar','var(--amber)'); return; }
+  S=novo; migrateState(); try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} LIVE_REV=rev; renderAll();
+  liveStatus('atualizado por '+(por||'outro')+' \u00b7 '+hhmm(),'var(--brand-2)');
+}
+async function pollLive(){
+  if(!SB_URL||!SB_KEY) return;
+  try{
+    const path=sbComUnidade(SB_LIVE+'?select=dados,rev,atualizado_por&limit=1');
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:sbHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    if(Array.isArray(rows)&&rows.length){
+      const r=rows[0];
+      if((r.rev||0)>LIVE_REV && r.dados){ remoteApply(JSON.parse(await ungzB64(r.dados)), r.rev, r.atualizado_por); }
+    }
+  }catch(e){}
+}
+document.addEventListener('focusout',()=>{ if(PENDING_REMOTE){ const q=PENDING_REMOTE; PENDING_REMOTE=null; setTimeout(()=>remoteApply(q.novo,q.rev,q.por),60); } });
+
 
 function migrateState(){
   if(!S.meta) S.meta={};
@@ -1302,10 +1345,12 @@ function migrateState(){
     r.disciplina=canon(r.disciplina,DISCS);
     r.fechamento=canon(r.fechamento,FECHOPTS);
   }));
+  (S.marcos||[]).forEach(m=>(m.weeks||[]).forEach(w=>{ if(!('ppc' in w)) w.ppc = (w.r!==undefined && w.r!==null && w.r!=='') ? w.r : ''; }));
 }
 migrateState(); renderAll();
 if(typeof pcoRenderSwitcher==='function') pcoRenderSwitcher('unidade-switcher');
-sbRefreshStatus();
+loadLive().finally(()=>{ BOOTED=true; });
+setInterval(pollLive, 5000);
 initCollapse();
 </script>
 </body>
