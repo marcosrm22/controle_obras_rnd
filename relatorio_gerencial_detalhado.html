@@ -107,7 +107,7 @@
     <h3>Respostas da semana <span class="pill" id="respCount">0</span></h3>
     <div class="tablewrap">
       <table class="data">
-        <thead><tr><th style="width:34%">Especialista</th><th style="width:22%">Data</th><th>Empresa</th></tr></thead>
+        <thead><tr><th style="width:28%">Especialista</th><th style="width:18%">Data</th><th style="width:20%">Disciplina</th><th>Empresa</th></tr></thead>
         <tbody id="respBody"></tbody>
       </table>
     </div>
@@ -137,14 +137,17 @@ function normHeader(s){
 }
 /* mapeia a linha de cabeçalho do Forms -> índices das colunas úteis */
 function mapColumns(headerRow){
-  const idx={id:-1,especialista:-1,data:-1,empresa:-1};
+  const idx={id:-1,especialista:-1,data:-1,disciplina:-1,empresas:[]};
   (headerRow||[]).forEach((h,i)=>{
     const n=normHeader(h);
     if(idx.id<0 && (n==='id')) idx.id=i;
     if(idx.especialista<0 && n.includes('especialista')) idx.especialista=i;
-    if(idx.data<0 && n.includes('data') && n.includes('realiza')) idx.data=i;
-    if(idx.data<0 && n.includes('data') && n.includes(' dds')) idx.data=i;
-    if(idx.empresa<0 && n.includes('empresa')) idx.empresa=i;
+    if(idx.data<0 && n.includes('data') && (n.includes('realiza')||n.includes(' dds'))) idx.data=i;
+    if(idx.disciplina<0 && n.includes('disciplina')) idx.disciplina=i;
+    if(n.includes('empresa')){
+      const m=String(h).match(/\(([^)]+)\)/);   // rótulo da disciplina entre parênteses, ex.: "(Civil)"
+      idx.empresas.push({ i, disc: m ? m[1].trim() : '' });
+    }
   });
   // fallback: qualquer coluna com "data"
   if(idx.data<0)(headerRow||[]).forEach((h,i)=>{ if(idx.data<0 && normHeader(h).includes('data')) idx.data=i; });
@@ -173,15 +176,23 @@ function parseFormRows(aoa){
     const row=aoa[r]; if(!row||!row.length) continue;
     const esp=idx.especialista>=0?row[idx.especialista]:'';
     const dt =idx.data>=0?row[idx.data]:'';
-    const emp=idx.empresa>=0?row[idx.empresa]:'';
+    // empresa = 1ª coluna de empresa preenchida; disciplina vem do rótulo dessa coluna
+    let emp='', discCol='';
+    for(const e of (idx.empresas||[])){
+      const v=row[e.i];
+      if(v!=null && String(v).trim()!==''){ emp=String(v).trim(); discCol=e.disc; break; }
+    }
+    let disc = idx.disciplina>=0 && row[idx.disciplina]!=null ? String(row[idx.disciplina]).trim() : '';
+    if(!disc) disc = discCol;                       // fallback: rótulo da coluna de empresa
     const fid=idx.id>=0?row[idx.id]:null;
     const data=toISODate(dt);
-    if(!esp && !data && !emp) continue;           // linha vazia
+    if(!esp && !data && !emp) continue;             // linha vazia
     out.push({
       form_id: (fid==null||fid==='')?null:Number(fid),
       especialista: (esp==null?'':String(esp)).trim(),
       data: data,
-      empresa: (emp==null?'':String(emp)).trim()
+      disciplina: disc,
+      empresa: emp
     });
   }
   return out;
@@ -249,7 +260,7 @@ async function sbGetAll(path){
 }
 async function fetchRespostas(){
   if(!SB_URL||!SB_KEY) return [];
-  const path=sbComUnidade('dds_respostas?select=form_id,especialista,data,empresa&order=data.desc');
+  const path=sbComUnidade('dds_respostas?select=form_id,especialista,data,disciplina,empresa&order=data.desc');
   try{ return await sbGetAll(path); }catch(e){ return []; }
 }
 async function fetchConfig(){
@@ -345,7 +356,7 @@ function render(){
   const tb=document.getElementById('respBody'); tb.innerHTML='';
   wkRows.slice().sort((a,b)=>(a.data<b.data?1:-1)).forEach(r=>{
     const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(r.especialista)+'</td><td>'+esc(fmtBR(r.data))+'</td><td>'+esc(r.empresa||'(não informado)')+'</td>';
+    tr.innerHTML='<td>'+esc(r.especialista)+'</td><td>'+esc(fmtBR(r.data))+'</td><td>'+esc(r.disciplina||'—')+'</td><td>'+esc(r.empresa||'(não informado)')+'</td>';
     tb.appendChild(tr);
   });
   document.getElementById('respCount').textContent=realizado;
