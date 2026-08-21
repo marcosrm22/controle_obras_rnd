@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório Gerencial — Detalhado · DDS por Empresa — INPASA RND</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#12212e; --ink-2:#3a4b59; --muted:#6b7c8a;
+    --line:#dfe5ea; --line-2:#eef2f5; --paper:#fff; --bg:#eef1f4;
+    --brand:#0f3a54; --brand-2:#12557a; --accent:#c9922b; --accent-bg:#fbf1dc;
+    --ok:#1f8a4c; --ok-bg:#e3f4ea; --nc:#c0392b; --nc-bg:#fbe6e3;
+    --neu:#9aa8b3; --amber:#b45309;
+    --azul:#304F7E; --ouro:#EAA239;
+    --shadow:0 1px 2px rgba(16,33,46,.06),0 8px 24px rgba(16,33,46,.06);
+    --sans:"Montserrat","Segoe UI",Roboto,-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px}
+  .wrap{max-width:1280px;margin:0 auto;padding:18px 16px 80px}
+  a{color:inherit}
+  .toolbar{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border:1px solid var(--line);
+    border-radius:12px;padding:9px 12px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-family:inherit;
+    font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:var(--brand-2);color:var(--brand-2)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:#0c2f45}
+  .btn.gold{background:var(--ouro);border-color:var(--ouro);color:#3b2b06}
+  .btn.danger{color:var(--nc)}
+  .spacer{flex:1}
+  .field{display:flex;flex-direction:column;gap:2px;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .field input{width:74px;border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-family:inherit;font-size:13px;color:var(--ink)}
+  .sbstatus{font-size:11px;color:var(--muted);margin-left:auto}
+  h1{font-size:18px;margin:2px 0 2px}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .lab{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600}
+  .kpi .val{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1;margin-top:4px}
+  .kpi.prev .val{color:var(--brand)} .kpi.real .val{color:var(--accent)} .kpi.ader .val{color:var(--ok)}
+  .kpi small{font-size:11px;color:var(--muted);font-weight:500}
+  .grid2{display:grid;grid-template-columns:1.3fr .9fr;gap:16px;margin-bottom:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+  .panel h3{margin:0 0 10px;font-size:13px;color:var(--brand)}
+  .chartbox{position:relative;height:300px}
+  .chartbox.small{height:240px}
+  table.data{width:100%;border-collapse:collapse;font-size:12px}
+  table.data th,table.data td{border-bottom:1px solid var(--line-2);padding:6px 8px;text-align:left}
+  table.data th{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);background:#fafbfc;position:sticky;top:0}
+  .tablewrap{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .pill{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--accent-bg);color:#8a6d1f}
+  .empty{padding:26px;text-align:center;color:var(--muted);font-size:12px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <a class="btn" href="index.html">← Painel PCO</a>
+    <div id="switcher"></div>
+    <a class="btn" href="relatorio_gerencial.html">↥ Relatório Gerencial</a>
+    <div class="field">Semana<input id="f_semana" type="number" min="1" max="53"></div>
+    <div class="field">Ano<input id="f_ano" type="number" min="2024" max="2100"></div>
+    <div class="field">Especialistas<input id="f_esp" type="number" min="0" max="200"></div>
+    <div class="field">Dias/semana<input id="f_dias" type="number" min="1" max="7"></div>
+    <label class="btn gold" style="cursor:pointer">⬆ Subir respostas (Excel do Forms)
+      <input id="fileInput" type="file" accept=".xlsx,.xls" class="hidden"></label>
+    <button class="btn" onclick="refresh()">↻ Atualizar</button>
+    <button class="btn danger" onclick="limparTudo()">🗑 Limpar respostas</button>
+  </div>
+
+  <h1>Relatório Gerencial — Detalhado</h1>
+  <div class="sub">Realização de DDS por empresa · dados do formulário MS Forms. Previsto = 1 DDS por especialista por dia.
+    <span class="sbstatus" id="sbStatus">☁ …</span></div>
+
+  <div class="kpis">
+    <div class="kpi prev"><div class="lab">Previsto (semana)</div><div class="val" id="kPrev">—</div><small id="kPrevSub">especialistas × dias</small></div>
+    <div class="kpi real"><div class="lab">Realizado (semana)</div><div class="val" id="kReal">—</div><small id="kRealSub">DDS registrados</small></div>
+    <div class="kpi ader"><div class="lab">Aderência</div><div class="val" id="kAder">—</div><small>realizado ÷ previsto</small></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Realizado por empresa <span class="pill" id="semLbl"></span></h3>
+      <div class="chartbox"><canvas id="chartEmpresa"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Previsto × Realizado (total)</h3>
+      <div class="chartbox small"><canvas id="chartTotal"></canvas></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Este é o gráfico-resumo que aparece no Relatório Gerencial.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Respostas da semana <span class="pill" id="respCount">0</span></h3>
+    <div class="tablewrap">
+      <table class="data">
+        <thead><tr><th style="width:34%">Especialista</th><th style="width:22%">Data</th><th>Empresa</th></tr></thead>
+        <tbody id="respBody"></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="respEmpty">Sem respostas nesta semana. Suba a exportação do Forms no botão acima.</div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   Funções puras (testáveis no Node) — parse do Forms, semana ISO,
+   agregação e previsto. Sem dependência de DOM.
+   ============================================================ */
+function isoWeek(dt){
+  const d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));
+  const day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function isoWeekYear(dt){
+  const d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));
+  const day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  return d.getUTCFullYear();
+}
+function normHeader(s){
+  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+/* mapeia a linha de cabeçalho do Forms -> índices das colunas úteis */
+function mapColumns(headerRow){
+  const idx={id:-1,especialista:-1,data:-1,empresa:-1};
+  (headerRow||[]).forEach((h,i)=>{
+    const n=normHeader(h);
+    if(idx.id<0 && (n==='id')) idx.id=i;
+    if(idx.especialista<0 && n.includes('especialista')) idx.especialista=i;
+    if(idx.data<0 && n.includes('data') && n.includes('realiza')) idx.data=i;
+    if(idx.data<0 && n.includes('data') && n.includes(' dds')) idx.data=i;
+    if(idx.empresa<0 && n.includes('empresa')) idx.empresa=i;
+  });
+  // fallback: qualquer coluna com "data"
+  if(idx.data<0)(headerRow||[]).forEach((h,i)=>{ if(idx.data<0 && normHeader(h).includes('data')) idx.data=i; });
+  return idx;
+}
+function excelToDate(serial){
+  // sistema de datas 1900 do Excel (epoch 1899-12-30)
+  const ms=Math.round(serial)*86400000 + Date.UTC(1899,11,30);
+  return new Date(ms);
+}
+function toISODate(v){
+  if(v==null||v==='') return '';
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v==='number' && isFinite(v)){ const d=excelToDate(v); return isNaN(d)?'':d.toISOString().slice(0,10); }
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/); // dd/mm/yyyy
+  if(m){ let y=m[3]; if(y.length===2)y='20'+y; const mo=('0'+m[2]).slice(-2),da=('0'+m[1]).slice(-2); return y+'-'+mo+'-'+da; }
+  const d=new Date(s); return isNaN(d)?'':d.toISOString().slice(0,10);
+}
+/* aoa = array-of-arrays (linha 0 = cabeçalho) -> registros normalizados */
+function parseFormRows(aoa){
+  if(!aoa||!aoa.length) return [];
+  const idx=mapColumns(aoa[0]); const out=[];
+  for(let r=1;r<aoa.length;r++){
+    const row=aoa[r]; if(!row||!row.length) continue;
+    const esp=idx.especialista>=0?row[idx.especialista]:'';
+    const dt =idx.data>=0?row[idx.data]:'';
+    const emp=idx.empresa>=0?row[idx.empresa]:'';
+    const fid=idx.id>=0?row[idx.id]:null;
+    const data=toISODate(dt);
+    if(!esp && !data && !emp) continue;           // linha vazia
+    out.push({
+      form_id: (fid==null||fid==='')?null:Number(fid),
+      especialista: (esp==null?'':String(esp)).trim(),
+      data: data,
+      empresa: (emp==null?'':String(emp)).trim()
+    });
+  }
+  return out;
+}
+function inWeek(isoDate, semana, ano){
+  if(!isoDate) return false;
+  const d=new Date(isoDate+'T00:00:00');
+  if(isNaN(d)) return false;
+  return isoWeek(d)===Number(semana) && isoWeekYear(d)===Number(ano);
+}
+function filterWeek(rows, semana, ano){ return (rows||[]).filter(r=>inWeek(r.data,semana,ano)); }
+function aggByEmpresa(rows){
+  const m={};
+  (rows||[]).forEach(r=>{ const k=(r.empresa&&r.empresa.trim())?r.empresa.trim():'(não informado)'; m[k]=(m[k]||0)+1; });
+  return Object.keys(m).map(k=>({empresa:k,qtd:m[k]})).sort((a,b)=>b.qtd-a.qtd);
+}
+function computePrevisto(especialistas, dias){ return (Number(especialistas)||0)*(Number(dias)||0); }
+
+if(typeof module!=='undefined') module.exports={
+  isoWeek,isoWeekYear,normHeader,mapColumns,excelToDate,toISODate,parseFormRows,inWeek,filterWeek,aggByEmpresa,computePrevisto
+};
+</script>
+
+<script>
+/* ============================================================
+   Integração Supabase + UI (roda no navegador)
+   ============================================================ */
+const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+function sbUnidade(){ return (typeof pcoUnidadeAtual==='function') ? pcoUnidadeAtual() : 'RDN'; }
+function sbUnidadeNome(){ return (typeof pcoUnidadeInfo==='function') ? pcoUnidadeInfo(sbUnidade()).nome : sbUnidade(); }
+function sbHeaders(extra){ return Object.assign({ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY }, extra||{}); }
+function sbComUnidade(path){
+  if(typeof pcoComUnidade==='function') return pcoComUnidade(path);
+  return path + (path.includes('?')?'&':'?') + 'unidade=eq.'+encodeURIComponent(sbUnidade());
+}
+function sbComTag(obj){
+  if(typeof pcoComTag==='function') return pcoComTag(obj);
+  return Object.assign({ unidade: sbUnidade() }, obj);
+}
+function sbSetStatus(txt,cor){ const el=document.getElementById('sbStatus'); if(el){el.textContent=txt;el.style.color=cor||'var(--muted)';} }
+
+/* estado local */
+let ALL=[];               // todas as respostas da unidade
+let CFG={especialistas:13,dias_semana:6};
+let chartEmpresa=null, chartTotal=null;
+
+function curWeek(){ return isoWeek(new Date()); }
+function selSemana(){ return Number(document.getElementById('f_semana').value)||curWeek(); }
+function selAno(){ return Number(document.getElementById('f_ano').value)||new Date().getFullYear(); }
+
+/* ---- Supabase: leituras/gravações ---- */
+async function sbGetAll(path){
+  // paginação por Range (limite silencioso de 1000)
+  const out=[]; let from=0; const step=1000;
+  while(true){
+    const res=await fetch(SB_URL+'/rest/v1/'+path, {headers:sbHeaders({'Range-Unit':'items','Range':from+'-'+(from+step-1)})});
+    const rows=await res.json().catch(()=>[]);
+    if(!Array.isArray(rows)||!rows.length) break;
+    out.push(...rows);
+    if(rows.length<step) break;
+    from+=step;
+  }
+  return out;
+}
+async function fetchRespostas(){
+  if(!SB_URL||!SB_KEY) return [];
+  const path=sbComUnidade('dds_respostas?select=form_id,especialista,data,empresa&order=data.desc');
+  try{ return await sbGetAll(path); }catch(e){ return []; }
+}
+async function fetchConfig(){
+  if(!SB_URL||!SB_KEY) return {especialistas:13,dias_semana:6};
+  try{
+    const path=sbComUnidade('dds_config?select=especialistas,dias_semana&limit=1');
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:sbHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    if(Array.isArray(rows)&&rows.length) return {especialistas:rows[0].especialistas??13, dias_semana:rows[0].dias_semana??6};
+  }catch(e){}
+  return {especialistas:13,dias_semana:6};
+}
+async function saveConfig(){
+  CFG.especialistas=Number(document.getElementById('f_esp').value)||0;
+  CFG.dias_semana=Number(document.getElementById('f_dias').value)||0;
+  if(!SB_URL||!SB_KEY){ render(); return; }
+  try{
+    await fetch(SB_URL+'/rest/v1/dds_config?on_conflict=unidade',{
+      method:'POST',
+      headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify([ sbComTag({especialistas:CFG.especialistas, dias_semana:CFG.dias_semana, atualizado_em:new Date().toISOString()}) ])
+    });
+  }catch(e){}
+  render();
+}
+async function upsertRespostas(rows){
+  if(!rows.length){ alert('Nenhuma linha válida encontrada na planilha.'); return; }
+  if(!SB_URL||!SB_KEY){ alert('config.js ausente — sem conexão com o Supabase.'); return; }
+  const body=rows.map(r=>sbComTag(r));
+  // envia em lotes p/ evitar payloads grandes
+  const CH=500; let ok=0;
+  for(let i=0;i<body.length;i+=CH){
+    const slice=body.slice(i,i+CH);
+    const res=await fetch(SB_URL+'/rest/v1/dds_respostas?on_conflict=unidade,form_id',{
+      method:'POST',
+      headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify(slice)
+    });
+    if(res.ok) ok+=slice.length;
+    else { const t=await res.text().catch(()=> ''); console.error('upsert falhou',res.status,t); }
+  }
+  sbSetStatus('☁ '+ok+' resposta(s) sincronizada(s)','var(--ok)');
+}
+async function limparTudo(){
+  if(!confirm('Excluir TODAS as respostas de DDS desta unidade ('+sbUnidadeNome()+')? Esta ação não pode ser desfeita.')) return;
+  if(!SB_URL||!SB_KEY) return;
+  try{
+    await fetch(SB_URL+'/rest/v1/'+sbComUnidade('dds_respostas'),{method:'DELETE',headers:sbHeaders({'Prefer':'return=minimal'})});
+    await refresh();
+    sbSetStatus('☁ respostas apagadas','var(--amber)');
+  }catch(e){ sbSetStatus('☁ falha ao apagar','var(--nc)'); }
+}
+
+/* ---- Upload do Excel do Forms ---- */
+function handleFile(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+      const rows=parseFormRows(aoa);
+      await upsertRespostas(rows);
+      await refresh();
+    }catch(err){ console.error(err); alert('Falha ao ler a planilha: '+err.message); }
+    ev.target.value='';
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+/* ---- Render ---- */
+function render(){
+  const sem=selSemana(), ano=selAno();
+  document.getElementById('semLbl').textContent='S'+sem+'/'+ano;
+  const wkRows=filterWeek(ALL,sem,ano);
+  const realizado=wkRows.length;
+  const previsto=computePrevisto(CFG.especialistas,CFG.dias_semana);
+  const ader = previsto>0 ? Math.round(realizado/previsto*100) : 0;
+
+  document.getElementById('kPrev').textContent=previsto;
+  document.getElementById('kPrevSub').textContent=CFG.especialistas+' esp. × '+CFG.dias_semana+' dias';
+  document.getElementById('kReal').textContent=realizado;
+  document.getElementById('kAder').textContent=ader+'%';
+  document.getElementById('kAder').style.color = ader>=100?'var(--ok)':(ader>=70?'var(--amber)':'var(--nc)');
+
+  // gráfico por empresa
+  const agg=aggByEmpresa(wkRows);
+  drawEmpresa(agg);
+  // gráfico total previsto x realizado
+  drawTotal(previsto,realizado);
+  // tabela
+  const tb=document.getElementById('respBody'); tb.innerHTML='';
+  wkRows.slice().sort((a,b)=>(a.data<b.data?1:-1)).forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(r.especialista)+'</td><td>'+esc(fmtBR(r.data))+'</td><td>'+esc(r.empresa||'(não informado)')+'</td>';
+    tb.appendChild(tr);
+  });
+  document.getElementById('respCount').textContent=realizado;
+  document.getElementById('respEmpty').classList.toggle('hidden', realizado>0);
+}
+function drawEmpresa(agg){
+  const ctx=document.getElementById('chartEmpresa'); if(!ctx||typeof Chart==='undefined') return;
+  const labels=agg.map(a=>a.empresa), data=agg.map(a=>a.qtd);
+  if(chartEmpresa) chartEmpresa.destroy();
+  chartEmpresa=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'DDS realizados',data,backgroundColor:'#c9922b',borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+function drawTotal(previsto,realizado){
+  const ctx=document.getElementById('chartTotal'); if(!ctx||typeof Chart==='undefined') return;
+  if(chartTotal) chartTotal.destroy();
+  chartTotal=new Chart(ctx,{type:'bar',data:{labels:['Previsto','Realizado'],
+    datasets:[{data:[previsto,realizado],backgroundColor:['#0f3a54','#c9922b'],borderRadius:8}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtBR(iso){ if(!iso)return''; const p=iso.split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
+
+/* ---- Boot / eventos ---- */
+async function refresh(){
+  sbSetStatus('☁ carregando…','var(--muted)');
+  CFG=await fetchConfig();
+  document.getElementById('f_esp').value=CFG.especialistas;
+  document.getElementById('f_dias').value=CFG.dias_semana;
+  ALL=await fetchRespostas();
+  render();
+  sbSetStatus('☁ '+sbUnidadeNome()+' · '+ALL.length+' resposta(s) na base','var(--brand-2)');
+}
+function initSwitcher(){ if(typeof pcoRenderSwitcher==='function') pcoRenderSwitcher('switcher'); }
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('f_semana').value=curWeek();
+  document.getElementById('f_ano').value=new Date().getFullYear();
+  initSwitcher();
+  document.getElementById('fileInput').addEventListener('change',handleFile);
+  ['f_semana','f_ano'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+  ['f_esp','f_dias'].forEach(id=>document.getElementById(id).addEventListener('change',saveConfig));
+  refresh();
+});
+</script>
+</body>
+</html>
