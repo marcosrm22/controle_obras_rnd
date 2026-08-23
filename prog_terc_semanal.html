@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Programação Semanal · Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+.ppc-badge{font-family:var(--mono);font-size:15px;font-weight:800;padding:3px 10px;border:1px solid}
+.ppc-badge.g{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
+.ppc-badge.y{background:var(--gold-soft);color:#7c4a00;border-color:#f0c87a}
+.ppc-badge.r{background:var(--red-soft);color:#8c2b1f;border-color:#e8b4ac}
+.ppc-badge.n{background:#f3f4f6;color:#4b5563;border-color:#d1d5db}
+.causa-row{display:grid;grid-template-columns:250px 1fr 46px;gap:12px;align-items:center;
+  padding:6px 0;border-bottom:1px solid var(--border-2);font-size:11.5px}
+.causa-row .cb{background:#eef1f4;height:15px}
+.causa-row .cb i{display:block;height:100%;background:var(--terracota)}
+.causa-row .cv{font-family:var(--mono);font-weight:700;text-align:right}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <button class="btn sm" id="wkPrev">← Semana anterior</button>
+    <input type="date" class="f" id="wkBase" style="max-width:160px">
+    <button class="btn sm" id="wkNext">Próxima semana →</button>
+    <button class="btn sm" id="wkHoje">Semana atual</button>
+    <span class="small muted" id="wkInfo" style="margin-right:auto"></span>
+    <select class="f" id="fArea"><option value="">Todas as áreas</option></select>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <button class="btn solid" id="btnNovo">+ Novo card</button>
+    <button class="btn" id="btnHerdar">⟳ Herdar semana anterior</button>
+    <button class="btn" id="btnXls">⤓ Excel</button>
+    <button class="btn" onclick="window.print()">⎙ PDF</button>
+  </div>
+
+  <div class="notice" id="hint">
+    Arraste os cards entre as colunas conforme a semana avança. Ao mover para
+    <b>Não concluída</b>, o sistema pede a <b>causa</b> — é essa informação que alimenta
+    o Pareto e mostra o que precisa mudar no processo. O <b>PPC</b> (Percentual de Programação
+    Concluída) é calculado sobre tudo o que foi programado na semana. A maioria dos cards
+    chega aqui pelo botão <b>▶</b> do Lookahead.
+  </div>
+
+  <div id="lanes"><div class="loading-line">Carregando…</div></div>
+
+  <div id="paretoWrap" class="hide">
+    <div class="section-label">Causas de não cumprimento · semana</div>
+    <div id="parCausas"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL CARD ===== -->
+<div class="modal" id="mC"><div class="modal-box wide">
+  <div class="modal-head">
+    <div><h3 id="mTitle">Novo card</h3><div class="mh-sub" id="mSub"></div></div>
+    <button class="modal-close" onclick="PT.closeModal('mC')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Atividade do cronograma (opcional)</label>
+      <select id="cAtiv"></select>
+      <div class="hint">Selecionar puxa descrição, empresa e área da atividade da terceira.</div>
+    </div></div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>O que será feito nesta semana *</label>
+      <input id="cDesc" placeholder="Ex.: Montagem dos anéis 3 e 4 do costado do tanque TQ-01">
+    </div></div>
+    <div class="frow">
+      <div class="field"><label>Empresa *</label><input id="cEmp" list="empresas"><datalist id="empresas"></datalist></div>
+      <div class="field"><label>Área / frente</label><input id="cArea" placeholder="Área"></div>
+      <div class="field"><label>Disciplina</label><select id="cDisc"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Responsável</label><input id="cResp" placeholder="Encarregado / líder"></div>
+      <div class="field"><label>Equipe / turma</label><input id="cEquipe" placeholder="Ex.: Equipe A"></div>
+      <div class="field"><label>Coluna</label><select id="cCol"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Qtd programada</label><input id="cQtdP" placeholder="120"></div>
+      <div class="field"><label>Qtd realizada</label><input id="cQtdR" placeholder="80"></div>
+      <div class="field"><label>Unidade</label><input id="cUn" placeholder="m · kg · pç"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Semana</label><input type="date" id="cSem"></div>
+      <div class="field" id="causaRow" style="grid-column:2/-1"><label>Causa (se não concluída)</label><select id="cCausa"></select></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Observações</label><textarea id="cObs"></textarea></div></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
+    <span class="spacer"></span>
+    <button class="btn" onclick="PT.closeModal('mC')">Cancelar</button>
+    <button class="btn solid" id="mSave">Salvar card</button>
+  </div>
+</div></div>
+
+<!-- ===== MODAL CAUSA (drop em Não concluída) ===== -->
+<div class="modal" id="mCausa"><div class="modal-box">
+  <div class="modal-head">
+    <div><h3>Por que não foi concluída?</h3><div class="mh-sub" id="causaSub"></div></div>
+    <button class="modal-close" onclick="PT.closeModal('mCausa')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Causa do não cumprimento *</label><select id="qCausa"></select></div></div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Detalhe (opcional)</label><textarea id="qObs" placeholder="O que impediu a conclusão?"></textarea></div></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" id="qCancel">Cancelar</button>
+    <span class="spacer"></span>
+    <button class="btn solid" id="qOk">Confirmar</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'semanal',
+  title:'Programação Semanal das Terceiras',
+  subtitle:'Kanban do compromisso semanal por empresa contratada — o curto prazo do Last Planner System'
+});
+
+var EDIT = L.canEdit();
+var CARDS = [], ATIV = [], editando = null;
+var BASE = L.mondayOf(), pendingDrop = null;
+$('wkBase').value = BASE;
+
+/* ================= CARGA ================= */
+function load(){
+  return Promise.all([
+    L.loadAtividades(false),
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&order=ordem.asc,id.asc'))
+  ]).then(function(r){
+    ATIV = r[0].atividades; CARDS = r[1];
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('lanes').innerHTML = '<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+  });
+}
+
+function ativLabel(a){
+  return (a.empresa ? a.empresa + ' · ' : '') + a.nome + (a.wbs ? ' (WBS ' + a.wbs + ')' : '');
+}
+
+function fillSelects(){
+  $('cDisc').innerHTML = '<option value=""></option>'
+    + L.DISCIPLINAS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('cCol').innerHTML = L.KB_COLS.map(function(c){
+    return '<option value="'+c.key+'">'+esc(c.label)+'</option>'; }).join('');
+  var causas = '<option value=""></option>'
+    + L.CAUSAS_PPC.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+  $('cCausa').innerHTML = causas;
+  $('qCausa').innerHTML = causas;
+
+  var ord = ATIV.slice().sort(function(a,b){
+    return (a.empresa||'').localeCompare(b.empresa||'','pt-BR') || (a.nome||'').localeCompare(b.nome||'','pt-BR');
+  });
+  $('cAtiv').innerHTML = '<option value="">— card avulso —</option>'
+    + ord.map(function(a){ return '<option value="'+esc(a.aid)+'">'+esc(ativLabel(a)).slice(0,120)+'</option>'; }).join('');
+
+  var emps = [];
+  ATIV.forEach(function(a){ if(a.empresa && emps.indexOf(a.empresa) < 0) emps.push(a.empresa); });
+  CARDS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cur = $('fEmpresa').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===cur?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  $('empresas').innerHTML = emps.map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
+
+  var areas = [];
+  ATIV.forEach(function(a){ if(a.area && areas.indexOf(a.area) < 0) areas.push(a.area); });
+  CARDS.forEach(function(c){ if(c.area && areas.indexOf(c.area) < 0) areas.push(c.area); });
+  areas.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var ca = $('fArea').value;
+  $('fArea').innerHTML = '<option value="">Todas as áreas</option>'
+    + areas.map(function(e){ return '<option'+(e===ca?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+}
+
+/* ================= SELEÇÃO DA SEMANA ================= */
+function daSemana(wk){
+  var fa = $('fArea').value, fe = $('fEmpresa').value;
+  return CARDS.filter(function(c){
+    if(String(c.semana).slice(0,10) !== wk) return false;
+    if(fa && c.area !== fa) return false;
+    if(fe && c.empresa !== fe) return false;
+    return true;
+  });
+}
+function ppcDe(list){
+  if(!list.length) return null;
+  var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
+  return Math.round(done / list.length * 100);
+}
+function ppcCls(p){ return p == null ? 'n' : (p >= 85 ? 'g' : (p >= 70 ? 'y' : 'r')); }
+
+/* ================= RENDER ================= */
+function render(){
+  var wk = BASE;
+  var list = daSemana(wk);
+  $('wkInfo').innerHTML = 'Semana <b>' + L.weekLabel(wk) + '</b> · '
+    + L.fmtBr(wk) + ' a ' + L.fmtBr(L.addDays(wk,6));
+
+  renderKpis(list);
+
+  var g = {};
+  list.forEach(function(c){ var k = c.empresa || '(sem empresa)'; (g[k] = g[k] || []).push(c); });
+  var emps = Object.keys(g).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+
+  if(!emps.length){
+    $('lanes').innerHTML = '<div class="empty"><div class="big">▥</div>'
+      + 'Nenhum card programado para esta semana.'
+      + (EDIT ? '<br><span class="small">Use o botão <b>▶</b> do Lookahead, <b>+ Novo card</b> '
+        + 'ou <b>⟳ Herdar semana anterior</b>.</span>' : '') + '</div>';
+    $('paretoWrap').classList.add('hide');
+    return;
+  }
+
+  $('lanes').innerHTML = emps.map(function(emp){
+    var cs = g[emp];
+    var p = ppcDe(cs);
+    var done = cs.filter(function(c){ return c.coluna === 'concluida'; }).length;
+    return '<div class="kb-lane">'
+      + '<div class="kb-lane-head">'
+        + '<div><div class="ln">'+esc(emp)+'</div>'
+        + '<div class="lm">'+cs.length+' cards · '+done+' concluídos</div></div>'
+        + '<div><span class="lm" style="margin-right:8px">PPC</span>'
+        + '<span class="ppc-badge '+ppcCls(p)+'">'+(p==null?'—':p+'%')+'</span></div>'
+      + '</div>'
+      + '<div class="kb-cols">'
+        + L.KB_COLS.map(function(col){
+            var items = cs.filter(function(c){ return c.coluna === col.key; });
+            return '<div class="kb-col '+col.cls+'" data-col="'+col.key+'">'
+              + '<div class="kb-col-head"><span>'+esc(col.label)+'</span><span>'+items.length+'</span></div>'
+              + (items.length ? items.map(cardHtml).join('') : '<div class="kb-empty">vazio</div>')
+              + '</div>';
+          }).join('')
+      + '</div></div>';
+  }).join('');
+
+  wireDnD();
+  renderPareto(list);
+}
+
+function cardHtml(c){
+  var col = L.KB_COLS.filter(function(x){ return x.key === c.coluna; })[0] || L.KB_COLS[0];
+  var pct = (c.qtd_prog && c.qtd_real != null)
+    ? Math.round(Math.min(100, (c.qtd_real / c.qtd_prog) * 100)) : null;
+  var origem = (c.cronograma_id != null && c.terceira_uid != null) ? 'do cronograma' : 'avulso';
+  return '<div class="kb-card '+col.cls+'" draggable="'+(EDIT?'true':'false')+'" data-id="'+c.id+'">'
+    + '<div class="kc-title">'+esc(c.descricao)+'</div>'
+    + '<div class="kc-meta">'
+      + (c.area ? '<span class="tag b">'+esc(c.area)+'</span> ' : '')
+      + (c.responsavel ? esc(c.responsavel) : '')
+      + (c.equipe ? ' · ' + esc(c.equipe) : '')
+    + '</div>'
+    + (c.qtd_prog ? '<div class="kc-meta mono">'+nf(c.qtd_real||0,0)+' / '+nf(c.qtd_prog,0)
+        + ' ' + esc(c.un||'') + (pct!=null?' · '+pct+'%':'') + '</div>' : '')
+    + (c.causa ? '<div class="kc-meta" style="color:var(--terracota);font-weight:700">⚠ '+esc(c.causa)+'</div>' : '')
+    + '<div class="kc-foot">'
+      + '<span class="small muted">'+origem+(c.terceira_wbs?(' · WBS '+esc(c.terceira_wbs)):'')+'</span>'
+      + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'">✎</button>' : '')
+    + '</div></div>';
+}
+
+function renderKpis(list){
+  var p = ppcDe(list);
+  var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
+  var fail = list.filter(function(c){ return c.coluna === 'nao_concluida'; }).length;
+  var exec = list.filter(function(c){ return c.coluna === 'execucao'; }).length;
+  var prog = list.filter(function(c){ return c.coluna === 'programada'; }).length;
+
+  var hist = [];
+  for(var i = 4; i >= 1; i--){
+    var w = L.addDays(BASE, -7*i);
+    var lw = CARDS.filter(function(c){ return String(c.semana).slice(0,10) === w; });
+    if(lw.length) hist.push(ppcDe(lw));
+  }
+  var media = hist.length ? Math.round(hist.reduce(function(a,b){ return a+b; },0)/hist.length) : null;
+
+  $('kpis').innerHTML =
+    '<div class="kpi static b-blue"><div class="num">'+(p==null?'—':p+'%')+'</div>'
+      + '<div class="label">PPC da semana</div><div class="sub">'+done+' de '+list.length+' concluídos</div></div>' +
+    kpi('b-gray', prog, 'Programadas', 'ainda não iniciadas') +
+    kpi('b-violet', exec, 'Em execução', 'em andamento') +
+    kpi('b-green', done, 'Concluídas', 'compromisso cumprido') +
+    kpi('b-red', fail, 'Não concluídas', 'com causa registrada') +
+    kpi('b-gold', (media==null?'—':media+'%'), 'PPC médio', 'últimas ' + hist.length + ' semanas');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+/* ================= PARETO DE CAUSAS ================= */
+function renderPareto(list){
+  var fails = list.filter(function(c){ return c.coluna === 'nao_concluida'; });
+  if(!fails.length){ $('paretoWrap').classList.add('hide'); return; }
+  $('paretoWrap').classList.remove('hide');
+  var g = {};
+  fails.forEach(function(c){ var k = c.causa || '(causa não informada)'; g[k] = (g[k] || 0) + 1; });
+  var arr = Object.keys(g).map(function(k){ return { k:k, n:g[k] }; })
+    .sort(function(a,b){ return b.n - a.n; });
+  var max = arr[0].n;
+  $('parCausas').innerHTML = arr.map(function(o){
+    return '<div class="causa-row"><div>'+esc(o.k)+'</div>'
+      + '<div class="cb"><i style="width:'+(o.n/max*100)+'%"></i></div>'
+      + '<div class="cv">'+o.n+'</div></div>';
+  }).join('');
+}
+
+/* ================= DRAG & DROP ================= */
+function wireDnD(){
+  document.querySelectorAll('.kb-card').forEach(function(el){
+    el.addEventListener('dragstart', function(ev){
+      if(!EDIT) return;
+      ev.dataTransfer.setData('text/plain', el.dataset.id);
+      ev.dataTransfer.effectAllowed = 'move';
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', function(){ el.classList.remove('dragging'); });
+  });
+  document.querySelectorAll('.kb-col').forEach(function(col){
+    col.addEventListener('dragover', function(ev){
+      if(!EDIT) return;
+      ev.preventDefault(); ev.dataTransfer.dropEffect = 'move';
+      col.classList.add('drag');
+    });
+    col.addEventListener('dragleave', function(){ col.classList.remove('drag'); });
+    col.addEventListener('drop', function(ev){
+      ev.preventDefault(); col.classList.remove('drag');
+      if(!EDIT) return;
+      var id = parseInt(ev.dataTransfer.getData('text/plain'), 10);
+      mover(id, col.dataset.col);
+    });
+  });
+  document.querySelectorAll('button[data-ed]').forEach(function(b){
+    b.addEventListener('click', function(ev){ ev.stopPropagation(); abrir(+b.dataset.ed); });
+  });
+}
+
+function mover(id, coluna){
+  var c = CARDS.filter(function(x){ return x.id === id; })[0];
+  if(!c || c.coluna === coluna) return;
+  if(coluna === 'nao_concluida'){
+    pendingDrop = { id:id, card:c };
+    $('causaSub').textContent = c.descricao;
+    $('qCausa').value = c.causa || '';
+    $('qObs').value = '';
+    L.openModal('mCausa');
+    return;
+  }
+  var body = { coluna:coluna, causa:null, atualizado_em:new Date().toISOString() };
+  if(coluna === 'concluida' && c.qtd_prog && c.qtd_real == null) body.qtd_real = c.qtd_prog;
+  aplicar(id, body);
+}
+function aplicar(id, body){
+  L.sb('PATCH','prog_terc_programacao?id=eq.'+id, body)
+    .then(function(){ return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+}
+
+$('qOk').addEventListener('click', function(){
+  if(!pendingDrop) return;
+  var causa = $('qCausa').value;
+  if(!causa) return L.toast('Selecione a causa do não cumprimento.','warn');
+  var obs = $('qObs').value.trim();
+  var atual = pendingDrop.card.obs || '';
+  aplicar(pendingDrop.id, {
+    coluna:'nao_concluida', causa:causa,
+    obs: obs ? (atual ? atual + '\n' + obs : obs) : (atual || null),
+    atualizado_em:new Date().toISOString()
+  });
+  pendingDrop = null;
+  L.closeModal('mCausa');
+});
+$('qCancel').addEventListener('click', function(){
+  pendingDrop = null; L.closeModal('mCausa'); render();
+});
+
+/* ================= HERDAR SEMANA ANTERIOR ================= */
+$('btnHerdar').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var ant = L.addDays(BASE, -7);
+  var pend = CARDS.filter(function(c){
+    return String(c.semana).slice(0,10) === ant
+        && (c.coluna === 'nao_concluida' || c.coluna === 'execucao' || c.coluna === 'programada');
+  });
+  if(!pend.length) return L.toast('Nada pendente na semana de ' + L.fmtBr(ant) + '.','warn');
+  if(!confirm('Trazer ' + pend.length + ' card(s) não concluído(s) da semana de '
+      + L.fmtBr(ant) + ' para a semana de ' + L.fmtBr(BASE) + '?')) return;
+
+  var novos = pend.map(function(c){
+    return L.comTag({
+      semana: BASE, cronograma_id: c.cronograma_id, terceira_uid: c.terceira_uid,
+      terceira_wbs: c.terceira_wbs, descricao: c.descricao,
+      area: c.area, empresa: c.empresa, disciplina: c.disciplina,
+      responsavel: c.responsavel, equipe: c.equipe,
+      qtd_prog: c.qtd_prog == null ? null : Math.max(0, (+c.qtd_prog||0) - (+c.qtd_real||0)),
+      un: c.un, coluna: 'programada',
+      obs: c.causa ? ('Reprogramado — causa anterior: ' + c.causa) : null,
+      criado_por: L.userNome()
+    });
+  });
+  L.sbInsertChunked('prog_terc_programacao', novos, 100)
+    .then(function(){ L.toast(novos.length + ' card(s) reprogramado(s).','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= MODAL CARD ================= */
+$('cAtiv').addEventListener('change', function(){
+  var a = L.atividadePorAid($('cAtiv').value);
+  if(!a) return;
+  if(!$('cDesc').value) $('cDesc').value = a.nome;
+  if(!$('cEmp').value && a.empresa) $('cEmp').value = a.empresa;
+  if(!$('cArea').value && a.area) $('cArea').value = a.area;
+  if(!$('cDisc').value && a.disciplina) $('cDisc').value = a.disciplina;
+});
+$('cCol').addEventListener('change', function(){
+  $('causaRow').classList.toggle('hide', this.value !== 'nao_concluida');
+});
+
+function abrir(id){
+  editando = id ? CARDS.filter(function(c){ return c.id === id; })[0] : null;
+  $('mTitle').textContent = editando ? 'Editar card' : 'Novo card';
+  $('mSub').textContent = 'Semana de ' + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
+  $('mDel').style.display = editando ? '' : 'none';
+  var c = editando || {};
+  $('cAtiv').value = (c.cronograma_id != null && c.terceira_uid != null) ? L.aidOf(c.cronograma_id, c.terceira_uid) : '';
+  $('cDesc').value = c.descricao || '';
+  $('cEmp').value = c.empresa || '';
+  $('cArea').value = c.area || '';
+  $('cDisc').value = c.disciplina || '';
+  $('cResp').value = c.responsavel || '';
+  $('cEquipe').value = c.equipe || '';
+  $('cQtdP').value = c.qtd_prog == null ? '' : L.nf(c.qtd_prog,2);
+  $('cQtdR').value = c.qtd_real == null ? '' : L.nf(c.qtd_real,2);
+  $('cUn').value = c.un || '';
+  $('cCol').value = c.coluna || 'programada';
+  $('cSem').value = c.semana ? String(c.semana).slice(0,10) : BASE;
+  $('cCausa').value = c.causa || '';
+  $('cObs').value = c.obs || '';
+  $('causaRow').classList.toggle('hide', $('cCol').value !== 'nao_concluida');
+  L.openModal('mC');
+}
+
+$('mSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var d = $('cDesc').value.trim();
+  if(!d) return L.toast('Descreva o que será feito.','warn');
+  if(!$('cEmp').value.trim()) return L.toast('Informe a empresa responsável.','warn');
+  var col = $('cCol').value;
+  if(col === 'nao_concluida' && !$('cCausa').value)
+    return L.toast('Cards não concluídos precisam de uma causa.','warn');
+
+  var a = L.atividadePorAid($('cAtiv').value);
+  var body = {
+    semana: L.mondayOf($('cSem').value || BASE),
+    cronograma_id: a ? a.cronograma_id : (editando ? editando.cronograma_id : null),
+    terceira_uid: a ? String(a.uid) : (editando ? editando.terceira_uid : null),
+    terceira_wbs: a ? (a.wbs || null) : (editando ? editando.terceira_wbs : null),
+    descricao: d,
+    area: $('cArea').value.trim() || null,
+    empresa: $('cEmp').value.trim(),
+    disciplina: $('cDisc').value || null,
+    responsavel: $('cResp').value.trim() || null,
+    equipe: $('cEquipe').value.trim() || null,
+    qtd_prog: $('cQtdP').value.trim() ? L.parseNum($('cQtdP').value) : null,
+    qtd_real: $('cQtdR').value.trim() ? L.parseNum($('cQtdR').value) : null,
+    un: $('cUn').value.trim() || null,
+    coluna: col,
+    causa: col === 'nao_concluida' ? $('cCausa').value : null,
+    obs: $('cObs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+
+  var p = editando
+    ? L.sb('PATCH','prog_terc_programacao?id=eq.'+editando.id, body)
+    : L.sb('POST','prog_terc_programacao', L.comTag(Object.assign(body,{criado_por:L.userNome()})));
+  p.then(function(){ L.closeModal('mC'); L.toast('Card salvo.','ok'); return load(); })
+   .catch(function(e){
+     if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para criar as tabelas.','warn');
+     else L.toast('Erro ao salvar: '+e.message,'warn');
+   });
+});
+
+$('mDel').addEventListener('click', function(){
+  if(!editando || !EDIT) return;
+  if(!confirm('Excluir o card "'+editando.descricao+'"?')) return;
+  L.sb('PATCH','prog_terc_programacao?id=eq.'+editando.id,{ativo:false})
+    .then(function(){ L.closeModal('mC'); L.toast('Card excluído.','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var list = daSemana(BASE);
+  var head = ['Empresa','Coluna','O que será feito','Área','Disciplina','Responsável','Equipe',
+              'Qtd prog','Qtd real','Un.','Causa','WBS terceira','Observações'];
+  var aoa = [head];
+  var colLabel = {};
+  L.KB_COLS.forEach(function(c){ colLabel[c.key] = c.label; });
+  list.forEach(function(c){
+    aoa.push([c.empresa, colLabel[c.coluna]||c.coluna, c.descricao, c.area, c.disciplina,
+      c.responsavel, c.equipe, c.qtd_prog==null?'':Number(c.qtd_prog),
+      c.qtd_real==null?'':Number(c.qtd_real), c.un, c.causa, c.terceira_wbs, c.obs]);
+  });
+  L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa,
+    cols:[{wch:20},{wch:14},{wch:50},{wch:12},{wch:16},{wch:18},{wch:14},
+          {wch:10},{wch:10},{wch:7},{wch:26},{wch:14},{wch:30}] }],
+    'ProgTerc_semana_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+['fArea','fEmpresa'].forEach(function(id){ $(id).addEventListener('change', render); });
+$('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+$('btnNovo').addEventListener('click', function(){ abrir(null); });
+L.wireModal('mC'); L.wireModal('mCausa');
+if(!EDIT){ $('btnNovo').style.display='none'; $('btnHerdar').style.display='none'; }
+
+load();
+})();
+</script>
+</body>
+</html>

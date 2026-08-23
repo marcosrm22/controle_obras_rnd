@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lookahead · Programação Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+  .src-note{font-size:11px}
+  .src-note b{color:var(--blue-dark)}
+  td.act-name .wbs{font-family:var(--mono);font-size:10px;color:var(--text-mute)}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <div class="search"><input type="text" id="q" placeholder="Buscar atividade, WBS, empresa, escopo…"></div>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fArea"><option value="">Todas as áreas</option></select>
+    <select class="f" id="fEscopo">
+      <option value="foco" selected>Foco: atrasadas + janela</option>
+      <option value="janela">Só a janela do horizonte</option>
+      <option value="atras">Só atrasadas</option>
+      <option value="todas">Todas as atividades</option>
+    </select>
+    <select class="f" id="fRestr">
+      <option value="">Restrições: todas</option>
+      <option value="com">Só com restrição aberta</option>
+      <option value="sem">Só liberadas</option>
+    </select>
+    <button class="btn" id="btnXls">⤓ Excel</button>
+    <button class="btn" onclick="window.print()">⎙ PDF</button>
+  </div>
+
+  <div class="toolbar no-print" style="margin-top:-4px">
+    <button class="btn sm" id="wkPrev">← Semana anterior</button>
+    <input type="date" class="f" id="wkBase" style="max-width:160px">
+    <button class="btn sm" id="wkNext">Próxima semana →</button>
+    <button class="btn sm" id="wkHoje">Semana atual</button>
+    <select class="f" id="nWeeks">
+      <option value="4">Horizonte: 4 semanas</option>
+      <option value="6" selected>Horizonte: 6 semanas</option>
+      <option value="8">Horizonte: 8 semanas</option>
+      <option value="12">Horizonte: 12 semanas</option>
+    </select>
+    <span class="small muted" id="wkInfo"></span>
+  </div>
+
+  <div class="notice src-note">
+    As atividades vêm direto dos <b>cronogramas enviados pelas terceiras</b> (última revisão de cada
+    contrato validado). O lookahead peneira o que está <b>atrasado</b> ou <b>entra nas próximas
+    <span id="hz-lbl">6</span> semanas</b>, passa pela análise de restrições e alimenta a programação
+    semanal. Use <b>▶</b> para levar a atividade à semana-base e <b>⚑</b> para registrar uma restrição.
+  </div>
+
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr id="headRow"></tr></thead>
+      <tbody id="tb"><tr><td colspan="8" class="loading-line">Carregando cronogramas das terceiras…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="small muted" style="margin-top:10px" id="foot"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'lookahead',
+  title:'Lookahead das Terceiras',
+  subtitle:'Médio prazo — atividades dos cronogramas das contratadas, peneiradas pelas restrições antes de entrar na programação semanal'
+});
+
+var EDIT = L.canEdit();
+var ATIV = [], RESTR = [], PROG = [];
+var BASE = L.mondayOf(), NW = 6;
+$('wkBase').value = BASE;
+
+/* ================= CARGA ================= */
+function load(){
+  $('tb').innerHTML = '<tr><td colspan="8" class="loading-line">Carregando cronogramas das terceiras…</td></tr>';
+  return Promise.all([
+    L.loadAtividades(true),
+    L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=id,num,descricao,categoria,status,cronograma_id,terceira_uid,area,responsavel,data_necessidade&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true'))
+  ]).then(function(r){
+    ATIV = r[0].atividades; RESTR = r[1]; PROG = r[2];
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+  }).catch(function(err){
+    // as tabelas do módulo podem não existir ainda — mostra aviso, mas segue
+    // renderizando as atividades (que vêm de val_*), se essas carregaram.
+    if(L.isMissingTable(err)){
+      RESTR = []; PROG = [];
+      L.loadAtividades(false).then(function(c){
+        ATIV = c.atividades; L.setupNotice('setup', err);
+        fillSelects(); render();
+      }).catch(function(e2){ fail(e2); });
+    } else { fail(err); }
+  });
+}
+function fail(err){
+  L.setupNotice('setup', err);
+  $('tb').innerHTML = '<tr><td colspan="8" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+}
+
+function fillSelects(){
+  var emps = [], areas = [];
+  ATIV.forEach(function(a){
+    if(a.empresa && emps.indexOf(a.empresa) < 0) emps.push(a.empresa);
+    if(a.area && areas.indexOf(a.area) < 0) areas.push(a.area);
+  });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  areas.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var ce = $('fEmpresa').value, ca = $('fArea').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===ce?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  $('fArea').innerHTML = '<option value="">Todas as áreas</option>'
+    + areas.map(function(e){ return '<option'+(e===ca?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+}
+
+/* ================= SEMANAS ================= */
+function weeks(){
+  var out = [];
+  for(var i = 0; i < NW; i++){
+    var ini = L.addDays(BASE, i*7);
+    out.push({ ini:ini, fim:L.addDays(ini,6), label:L.weekLabel(ini), rng:L.weekRangeLabel(ini) });
+  }
+  return out;
+}
+function fimJanela(){ return L.addDays(BASE, NW*7 - 1); }
+
+function restrDe(a){
+  return RESTR.filter(function(r){
+    return r.cronograma_id === a.cronograma_id
+        && String(r.terceira_uid) === String(a.uid)
+        && (r.status === 'Aberta' || r.status === 'Em tratativa');
+  });
+}
+function naJanela(a){
+  var fj = fimJanela();
+  return !!(a.inicio && a.termino && !(a.termino < BASE || a.inicio > fj));
+}
+function jaProgramada(a){
+  return PROG.some(function(p){
+    return p.cronograma_id === a.cronograma_id
+        && String(p.terceira_uid) === String(a.uid)
+        && String(p.semana).slice(0,10) === BASE;
+  });
+}
+
+/* ================= FILTRO ================= */
+function visiveis(){
+  var q = L.deacc($('q').value), fe = $('fEmpresa').value, fa = $('fArea').value,
+      escP = $('fEscopo').value, fr = $('fRestr').value;
+  return ATIV.filter(function(a){
+    if(a.execStatus === 'concluida' && escP !== 'todas') return false;
+    if(fe && a.empresa !== fe) return false;
+    if(fa && a.area !== fa) return false;
+
+    if(escP === 'atras'  && !a.atrasada) return false;
+    if(escP === 'janela' && !naJanela(a)) return false;
+    if(escP === 'foco'   && !(a.atrasada || naJanela(a))) return false;
+
+    var rs = restrDe(a);
+    if(fr === 'com' && !rs.length) return false;
+    if(fr === 'sem' && rs.length) return false;
+
+    if(!q) return true;
+    return L.deacc([a.nome,a.wbs,a.empresa,a.escopo,a.area,a.recursos].join(' ')).indexOf(q) > -1;
+  });
+}
+
+/* ================= RENDER ================= */
+function render(){
+  $('hz-lbl').textContent = NW;
+  var wks = weeks();
+  var hoje = L.mondayOf();
+
+  var head = ['<th class="act-name" style="min-width:280px">Atividade</th>',
+    '<th style="min-width:120px">Empresa</th>',
+    '<th style="min-width:96px">Área</th>',
+    '<th class="ctr" style="min-width:92px">Início</th>',
+    '<th class="ctr" style="min-width:92px">Término</th>',
+    '<th class="ctr" style="min-width:96px">Avanço</th>',
+    '<th class="ctr" style="min-width:84px">Restrições</th>'];
+  wks.forEach(function(w){
+    head.push('<th class="ctr la-wk la-week-hd'+(w.ini===hoje?' cur':'')+'">'
+      + w.label + '<small>' + w.rng + '</small></th>');
+  });
+  if(EDIT) head.push('<th class="ctr no-print" style="width:70px"></th>');
+  $('headRow').innerHTML = head.join('');
+
+  var vis = visiveis();
+  renderKpis(wks);
+
+  var ncols = 7 + wks.length + (EDIT?1:0);
+  $('tb').innerHTML = vis.map(function(a){
+    var rs = restrDe(a);
+    var cells = wks.map(function(w){
+      var on = a.inicio && a.termino && !(a.termino < w.ini || a.inicio > w.fim);
+      if(!on) return '<td class="la-cell"></td>';
+      var cls = a.execStatus === 'concluida' ? 'done'
+              : (a.atrasada ? 'late' : (a.execStatus === 'execucao' ? 'wip' : 'plan'));
+      return '<td class="la-cell"><span class="la-blk '+cls+'">'
+        + (a.execStatus === 'concluida' ? '✓' : (rs.length ? '⚑' : '')) + '</span></td>';
+    }).join('');
+
+    return '<tr>'
+      + '<td class="act-name"><b>'+esc(a.nome)+'</b>'
+        + (a.wbs ? '<div class="wbs">WBS '+esc(a.wbs)+(a.escopo?(' · '+esc(a.escopo)):'')+'</div>' : '')
+        + '<div class="small">'+statusPill(a)+'</div></td>'
+      + '<td class="small">'+esc(a.empresa||'—')+'</td>'
+      + '<td>'+(a.area ? '<span class="tag b">'+esc(a.area)+'</span>' : '<span class="muted">—</span>')+'</td>'
+      + '<td class="ctr">'+L.fmtBrDash(a.inicio)+'</td>'
+      + '<td class="ctr'+(a.atrasada?'" style="color:var(--terracota);font-weight:700':'')+'">'+L.fmtBrDash(a.termino)+'</td>'
+      + '<td class="ctr"><div class="barline"><div class="bar"><span class="s-'
+        + (a.execStatus==='concluida'?'g':(a.atrasada?'r':'b'))+'" style="width:'+(+a.pct||0)+'%"></span></div>'
+        + '<span class="pct">'+nf(+a.pct||0,0)+'%</span></div></td>'
+      + '<td class="ctr">'+(rs.length
+          ? '<span class="pill '+(rs.length>2?'r':'y')+'" title="'
+            + esc(rs.map(function(r){return r.descricao;}).join(' | ')) + '">⚑ '+rs.length+'</span>'
+          : '<span class="pill g">livre</span>')+'</td>'
+      + cells
+      + (EDIT ? '<td class="ctr no-print nowrap">'
+          + '<button class="btn sm" data-restr="'+esc(a.aid)+'" title="Registrar restrição">⚑</button> '
+          + '<button class="btn sm" data-prog="'+esc(a.aid)+'" title="Programar na semana-base"'
+          + (jaProgramada(a)?' disabled':'')+'>▶</button></td>' : '')
+      + '</tr>';
+  }).join('') || '<tr><td colspan="'+ncols+'" class="empty"><div class="big">▶</div>'
+      + 'Nenhuma atividade nesse recorte.'
+      + '<br><span class="small">Ajuste o horizonte, o filtro de escopo ou verifique se há revisões enviadas na tela de Validação de Cronogramas.</span>'
+      + '</td></tr>';
+
+  document.querySelectorAll('button[data-prog]').forEach(function(b){
+    b.addEventListener('click', function(){ programar(b.dataset.prog); });
+  });
+  document.querySelectorAll('button[data-restr]').forEach(function(b){
+    b.addEventListener('click', function(){
+      window.location.href = 'prog_terc_restricoes.html?aid=' + encodeURIComponent(b.dataset.restr);
+    });
+  });
+
+  $('wkInfo').innerHTML = 'Janela: <b>' + L.fmtBr(BASE) + '</b> a <b>'
+    + L.fmtBr(wks[wks.length-1].fim) + '</b>';
+  $('foot').innerHTML = vis.length + ' atividade(s) exibida(s) · '
+    + '⚑ marca semanas de atividades com restrição aberta · fonte: última revisão de cada cronograma';
+}
+
+function statusPill(a){
+  if(a.execStatus === 'concluida') return '<span class="pill g">Concluída</span>';
+  if(a.atrasada) return '<span class="pill r">Atrasada</span>';
+  if(a.execStatus === 'execucao') return '<span class="pill b">Em execução</span>';
+  if(naJanela(a)) return '<span class="pill v">Na janela</span>';
+  return '<span class="pill n">Futura</span>';
+}
+
+function renderKpis(wks){
+  var fj = fimJanela();
+  var naJan = ATIV.filter(function(a){ return a.execStatus!=='concluida' && naJanela(a); });
+  var atrasadas = ATIV.filter(function(a){ return a.atrasada; });
+  var comRestr = naJan.filter(function(a){ return restrDe(a).length; });
+  var atrasComRestr = atrasadas.filter(function(a){ return restrDe(a).length; });
+  var alvo = {};
+  naJan.concat(atrasadas).forEach(function(a){ alvo[a.aid]=a; });
+  var alvoArr = Object.keys(alvo).map(function(k){return alvo[k];});
+  var comR = alvoArr.filter(function(a){ return restrDe(a).length; }).length;
+  var livres = alvoArr.length - comR;
+  var prontidao = alvoArr.length ? Math.round(livres / alvoArr.length * 100) : 0;
+  var empresas = {}; ATIV.forEach(function(a){ if(a.empresa) empresas[a.empresa]=1; });
+
+  $('kpis').innerHTML =
+    kpi('b-blue', Object.keys(empresas).length, 'Terceiras', ATIV.length + ' atividades no total') +
+    kpi('b-violet', naJan.length, 'Na janela', NW + ' semanas à frente') +
+    kpi('b-red', atrasadas.length, 'Atrasadas', atrasComRestr.length + ' com restrição') +
+    kpi('b-gold', comR, 'Com restrição', 'no foco (atrasadas + janela)') +
+    kpi('b-green', livres, 'Livres', 'prontas para programar') +
+    kpi('b-gray', prontidao + '%', 'Prontidão', 'do foco do lookahead');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+/* ================= PROGRAMAR NA SEMANA ================= */
+function programar(aid){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var a = L.atividadePorAid(aid);
+  if(!a) return;
+  var rs = restrDe(a);
+  if(rs.length && !confirm('Esta atividade tem ' + rs.length + ' restrição(ões) aberta(s):\n\n'
+      + rs.map(function(r){ return '• ' + r.descricao; }).join('\n')
+      + '\n\nNo LPS, o correto é remover a restrição antes de programar.\nProgramar mesmo assim?')) return;
+
+  L.sb('POST','prog_terc_programacao', L.comTag({
+    semana: BASE,
+    cronograma_id: a.cronograma_id,
+    terceira_uid: String(a.uid),
+    terceira_wbs: a.wbs || null,
+    descricao: a.nome,
+    area: a.area || null, empresa: a.empresa || null, disciplina: a.disciplina || null,
+    coluna: 'programada', criado_por: L.userNome()
+  })).then(function(){
+    L.toast('Atividade programada na semana de ' + L.fmtBr(BASE) + '.','ok');
+    return load();
+  }).catch(function(e){
+    if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para habilitar a programação.','warn');
+    else L.toast('Erro: '+e.message,'warn');
+  });
+}
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var wks = weeks();
+  var head = ['Empresa','Escopo','Atividade','WBS','Área','Status','Início','Término',
+              'Início real','Término real','Avanço %','Restrições abertas'];
+  wks.forEach(function(w){ head.push(w.label + ' (' + w.rng + ')'); });
+  var aoa = [head];
+  visiveis().forEach(function(a){
+    var rs = restrDe(a);
+    var st = a.execStatus==='concluida'?'Concluída':(a.atrasada?'Atrasada':(a.execStatus==='execucao'?'Em execução':(naJanela(a)?'Na janela':'Futura')));
+    var row = [a.empresa,a.escopo,a.nome,a.wbs,a.area,st,
+      L.fmtBr(a.inicio),L.fmtBr(a.termino),L.fmtBr(a.inicioReal),L.fmtBr(a.terminoReal),
+      +a.pct||0, rs.length];
+    wks.forEach(function(w){
+      var on = a.inicio && a.termino && !(a.termino < w.ini || a.inicio > w.fim);
+      row.push(on ? 'X' : '');
+    });
+    aoa.push(row);
+  });
+  L.exportXlsx([{ nome:'Lookahead Terceiras', aoa:aoa,
+    cols:[{wch:20},{wch:22},{wch:52},{wch:14},{wch:12},{wch:13},{wch:11},{wch:11},
+          {wch:11},{wch:11},{wch:9},{wch:15}] }],
+    'ProgTerc_lookahead_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+$('q').addEventListener('input', render);
+['fEmpresa','fArea','fEscopo','fRestr'].forEach(function(id){
+  $(id).addEventListener('change', render);
+});
+$('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
+$('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+
+load();
+})();
+</script>
+</body>
+</html>
