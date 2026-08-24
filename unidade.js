@@ -55,9 +55,11 @@ function pcoSetUnidade(codigo){
 /* ── Permissão de ADM por página, por unidade ─────────────────
    pco_perms.admin_paginas = { "analise_cronograma": ["RDN","RVD"], ... }
    perfil='admin' sempre pode administrar qualquer página/unidade. */
+function pcoEhProprietario(){ return sessionStorage.getItem('pco_proprietario') === 'true'; }
 function pcoPodeAdministrar(chavePagina){
   const perfil = sessionStorage.getItem('pco_perfil') || '';
   if(perfil === 'admin') return true;
+  if(pcoEhProprietario()) return true;
   try{
     const perms = JSON.parse(sessionStorage.getItem('pco_perms') || '{}');
     const escopo = (perms.admin_paginas || {})[chavePagina] || [];

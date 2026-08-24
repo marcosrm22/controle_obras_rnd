@@ -339,8 +339,13 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
       <select id="edit-perfil">
         <option value="viewer">Viewer — só visualiza</option>
         <option value="editor">Editor — pode editar elementos</option>
-        <option value="admin">Admin — acesso total</option>
+        <option value="admin" id="opt-admin">Admin — acesso total</option>
       </select>
+    </div>
+
+    <div class="modal-field" id="field-prop" style="display:none">
+      <label>Nível Proprietário</label>
+      <label class="perm-item" style="margin-top:4px"><input type="checkbox" id="edit-prop"/> 👑 Proprietário — concede/remove admin e vê o Controle Orçado</label>
     </div>
 
     <div class="modal-section">Acesso às ferramentas</div>
@@ -413,9 +418,10 @@ const TOKEN   = sessionStorage.getItem('pco_token') || SB_KEY;
 const MY_ID   = sessionStorage.getItem('pco_user_id');
 const MY_NOME = sessionStorage.getItem('pco_nome') || 'Admin';
 const MY_PERF = sessionStorage.getItem('pco_perfil') || 'admin';
+const MY_PROP = sessionStorage.getItem('pco_proprietario') === 'true';
 
 /* Guard: only admins */
-if(MY_PERF !== 'admin' && sessionStorage.getItem('pco_token')){
+if(MY_PERF !== 'admin' && !MY_PROP && sessionStorage.getItem('pco_token')){
   alert('Acesso restrito a administradores.');
   window.location.href = 'index.html';
 }
@@ -532,7 +538,7 @@ function renderTodos(users){
       <td>${esc(u.empresa||'—')}</td>
       <td style="color:var(--text-dim)">${esc(u.cargo||'—')}</td>
       <td>${statusBadge(u.status)}</td>
-      <td>${perfilBadge(u.perfil)}</td>
+      <td>${perfilBadge(u.perfil)}${u.proprietario?' <span class="perfil-badge" style="background:#fef3c7;color:#92400e;border-color:#d97706">👑 Prop</span>':''}</td>
       <td style="font-size:10px">${permLabel(u.permissoes)}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute)">${fmtDate(u.criado_em)}</td>
       <td><div class="actions">${actionBtns(u)}</div></td>
@@ -673,6 +679,9 @@ function openEdit(id){
   document.getElementById('modal-edit-sub').textContent = u.nome + ' · ' + u.email;
   document.getElementById('edit-status').value = u.status || 'pendente';
   document.getElementById('edit-perfil').value = u.perfil  || 'viewer';
+  document.getElementById('edit-prop').checked = !!u.proprietario;
+  document.getElementById('field-prop').style.display = MY_PROP ? '' : 'none';
+  { const oa=document.getElementById('opt-admin'); if(oa) oa.disabled = !MY_PROP; }
   const p = u.permissoes || {};
   document.getElementById('perm-drenagem').checked   = !!p.drenagem;
   document.getElementById('perm-terra').checked      = !!p.terraplanagem;
@@ -701,11 +710,13 @@ async function saveUserEdit(){
   };
   const unidades_acesso = Array.from(document.querySelectorAll('.chk-unidade:checked')).map(chk=>chk.value);
 
-  await updateUser(editingId, {
+  const _upd = {
     status, perfil, permissoes,
     unidades_acesso: unidades_acesso.length ? unidades_acesso : ['RDN'],
     atualizado_em: new Date().toISOString(),
-  });
+  };
+  if(MY_PROP) _upd.proprietario = document.getElementById('edit-prop').checked;
+  await updateUser(editingId, _upd);
   closeModal();
   toast('Usuário atualizado ✓', 'ok');
   loadUsers();

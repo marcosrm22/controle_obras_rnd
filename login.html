@@ -259,7 +259,7 @@ async function doLogin(){
     const unidadesAcesso = Array.isArray(profile.unidades_acesso) && profile.unidades_acesso.length
       ? profile.unidades_acesso
       : ['RDN'];
-    const podeQualquerUnidade = profile.perfil === 'admin';
+    const podeQualquerUnidade = profile.perfil === 'admin' || profile.proprietario === true;
 
     if(!podeQualquerUnidade && !unidadesAcesso.includes(unidadeEscolhida)){
       showMsg('Você não tem acesso à unidade selecionada. Contate o administrador.');
@@ -272,6 +272,7 @@ async function doLogin(){
     sessionStorage.setItem('pco_email',    user.email);
     sessionStorage.setItem('pco_nome',     profile.nome || user.email);
     sessionStorage.setItem('pco_perfil',   profile.perfil || 'viewer');
+    sessionStorage.setItem('pco_proprietario', profile.proprietario ? 'true' : 'false');
     sessionStorage.setItem('pco_perms',    JSON.stringify(profile.permissoes || {}));
     sessionStorage.setItem('pco_unidade',  unidadeEscolhida);
     sessionStorage.setItem('pco_unidades_acesso', JSON.stringify(
