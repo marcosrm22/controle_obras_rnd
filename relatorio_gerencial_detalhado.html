@@ -120,6 +120,7 @@
       <div class="field">Data do snapshot<input id="orcDate" type="date"></div>
       <label class="btn gold" style="cursor:pointer">⬆ Subir planilha (aba RDN)<input id="orcFile" type="file" accept=".xlsx,.xls" class="hidden"></label>
       <span id="orcStatus" style="font-size:11px;color:var(--muted)"></span>
+        <div id="orcExcl" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;width:100%;margin-top:4px;font-size:11px;color:var(--muted)"></div>
     </div>
     <div class="chartbox" style="height:300px"><canvas id="orcChart"></canvas></div>
     <div class="tablewrap" style="margin-top:12px">
@@ -430,10 +431,15 @@ function initSwitcher(){ if(typeof pcoRenderSwitcher==='function') pcoRenderSwit
 
 /* ===== Controle Orçado x Compromissado (só proprietário) ===== */
 const ORC_DISC=['Civil','Metal','EIA'];
-const ORC_COR={Civil:'#0f3a54',Metal:'#c9922b',EIA:'#1f8a4c'};
+const ORC_COR={Civil:'#0f3a54',Metal:'#c9922b',EIA:'#1f8a4c',Terminal:'#7e57c2'};
+const ORC_PALETTE=['#7e57c2','#e07a5f','#3d84a8','#8d6e63','#c2185b','#00897b','#5d4037'];
 const ORC_TOT_COR='#1a2332';
-let orcChartObj=null, ORC_SNAPS=[], ORC_LAST=null;
+let orcChartObj=null, ORC_SNAPS=[], ORC_LAST=null, ORC_EXCL=new Set();
 function orcNorm(x){ return String(x==null?'':x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+function ORC_EXCL_KEY(){ return 'orc_excl_'+(typeof pcoUnidadeAtual==='function'?pcoUnidadeAtual():'RDN'); }
+function orcAllDisc(){ const set=new Set(); (ORC_SNAPS||[]).forEach(s=>Object.keys(s.disc||{}).forEach(d=>set.add(d))); const arr=[...set];
+  return [...ORC_DISC.filter(d=>arr.includes(d)), ...arr.filter(d=>!ORC_DISC.includes(d)).sort()]; }
+function orcColor(d){ if(ORC_COR[d]) return ORC_COR[d]; const extra=orcAllDisc().filter(x=>!ORC_COR[x]); const i=extra.indexOf(d); return ORC_PALETTE[(i<0?0:i)%ORC_PALETTE.length]; }
 function parseOrcado(aoa){
   let hr=-1;
   for(let i=0;i<(aoa||[]).length;i++){ const row=(aoa[i]||[]).map(orcNorm);
@@ -452,7 +458,8 @@ function parseOrcado(aoa){
   }
   return { disc, pac };
 }
-function orcTot(disc){ const t={inicial:0,atual:0,compromissado:0,disponivel:0}; Object.values(disc||{}).forEach(a=>{ t.inicial+=a.inicial||0; t.atual+=a.atual||0; t.compromissado+=a.compromissado||0; t.disponivel+=a.disponivel||0; }); return t; }
+function orcTot(disc){ const t={inicial:0,atual:0,compromissado:0,disponivel:0};
+  Object.keys(disc||{}).forEach(d=>{ if(ORC_EXCL.has(d)) return; const a=disc[d]; t.inicial+=a.inicial||0; t.atual+=a.atual||0; t.compromissado+=a.compromissado||0; t.disponivel+=a.disponivel||0; }); return t; }
 function orcMM(v){ return (Number(v||0)/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}); }
 function orcPct(c,a){ return (a>0? (c/a*100):0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
 function orcFmtBR(iso){ if(!iso)return''; const p=String(iso).slice(0,10).split('-'); return p.length===3?(p[2]+'/'+p[1]):iso; }
@@ -488,44 +495,59 @@ function orcUpload(input){
   };
   rd.readAsArrayBuffer(f);
 }
+function orcBuildExcl(){
+  const box=document.getElementById('orcExcl'); if(!box) return;
+  const all=orcAllDisc();
+  if(!all.length){ box.innerHTML=''; return; }
+  box.innerHTML='<span style="font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:9.5px">Somar no Total:</span>'+
+    all.map(d=>`<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" ${ORC_EXCL.has(d)?'':'checked'} onchange="orcToggleExcl('${d.replace(/'/g,"\\'")}')"> ${d}</label>`).join('');
+}
+function orcToggleExcl(d){ if(ORC_EXCL.has(d)) ORC_EXCL.delete(d); else ORC_EXCL.add(d);
+  try{ localStorage.setItem(ORC_EXCL_KEY(), JSON.stringify([...ORC_EXCL])); }catch(e){} orcRender(); }
 async function orcRender(){
   ORC_SNAPS=await orcFetch();
   ORC_LAST=ORC_SNAPS[ORC_SNAPS.length-1]||null;
+  const discList=orcAllDisc();
   const cv=document.getElementById('orcChart');
   if(cv && typeof Chart!=='undefined'){
     const labels=ORC_SNAPS.map(s=>orcFmtBR(s.data)); const ds=[];
-    ORC_DISC.forEach(d=>{
-      ds.push({label:d+' \u00b7 Atual',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).atual||0)/1e6),borderColor:ORC_COR[d],backgroundColor:ORC_COR[d],tension:.25,pointRadius:3,borderWidth:2});
-      ds.push({label:d+' \u00b7 Inicial',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).inicial||0)/1e6),borderColor:ORC_COR[d],backgroundColor:ORC_COR[d],borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:1.5});
+    discList.forEach(d=>{ const cor=orcColor(d);
+      ds.push({label:d+' \u00b7 Atual',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).atual||0)/1e6),borderColor:cor,backgroundColor:cor,tension:.25,pointRadius:3,borderWidth:2});
+      ds.push({label:d+' \u00b7 Inicial',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).inicial||0)/1e6),borderColor:cor,backgroundColor:cor,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:1.5});
     });
     ds.push({label:'Total \u00b7 Atual',data:ORC_SNAPS.map(s=>orcTot(s.disc).atual/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,tension:.25,pointRadius:3,borderWidth:3});
     ds.push({label:'Total \u00b7 Inicial',data:ORC_SNAPS.map(s=>orcTot(s.disc).inicial/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,borderDash:[6,4],tension:.25,pointRadius:0,borderWidth:2});
     if(orcChartObj) orcChartObj.destroy();
     orcChartObj=new Chart(cv,{type:'line',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
-      plugins:{legend:{labels:{boxWidth:12,font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+': R$ '+c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' MM'}}},
+      plugins:{legend:{labels:{usePointStyle:true,pointStyle:'line',boxWidth:26,font:{size:10}}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': R$ '+c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' MM'}}},
       scales:{y:{title:{display:true,text:'R$ milhões'}}}}});
   }
+  orcBuildExcl();
   const tb=document.getElementById('orcTable');
   if(tb){
     if(!ORC_LAST){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#6b7c8a;padding:14px">Sem dados. Suba a planilha (aba RDN).</td></tr>'; return; }
-    const disc=ORC_LAST.disc||{}, presentes=Object.keys(disc);
-    const ordem=[...ORC_DISC.filter(d=>presentes.includes(d)), ...presentes.filter(d=>!ORC_DISC.includes(d)).sort()];
+    const disc=ORC_LAST.disc||{};
+    const ordem=discList.filter(d=>disc[d]);
     const tdc='padding:5px 8px;border-bottom:1px solid #eef2f5';
-    const linha=(nome,a,total)=>{ const delta=(a.atual||0)-(a.inicial||0); const pos=(a.atual||0)<=(a.inicial||0);
-      const plusKey= total?'__TOTAL__':nome;
-      const nomeCell = `<button onclick="orcOpenPac('${plusKey}')" title="Ver pacotes" style="border:1px solid #c1c9d3;background:#fff;border-radius:6px;width:20px;height:20px;line-height:1;cursor:pointer;font-weight:700;color:#0f3a54;margin-right:7px">+</button>${nome}`;
-      const bg= total?'background:#f4f7fa;font-weight:700':'';
-      return `<tr style="${bg}"><td style="${tdc}${total?';font-weight:700':';font-weight:600'}">${nomeCell}</td>`+
-        `<td style="${tdc};text-align:right">${orcMM(a.inicial)}</td>`+
-        `<td style="${tdc};text-align:right">${orcMM(a.atual)}</td>`+
-        `<td style="${tdc};text-align:right;font-weight:600;color:${delta>0?'#c0392b':'#1f8a4c'}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
-        `<td style="${tdc};text-align:right">${orcMM(a.compromissado)}</td>`+
-        `<td style="${tdc};text-align:right">${orcPct(a.compromissado||0,a.atual||0)}</td>`+
-        `<td style="${tdc}"><b style="color:${pos?'#1f8a4c':'#c0392b'}">${pos?'Desvio Positivo':'Desvio Negativo'}</b></td></tr>`;
+    const linha=(nome,a,opt)=>{ opt=opt||{}; const delta=(a.atual||0)-(a.inicial||0); const pos=(a.atual||0)<=(a.inicial||0);
+      const plusKey= opt.total?'__TOTAL__':nome;
+      const mute= opt.excl?'color:#9aa8b3;':'';
+      const nomeCell = `<button onclick="orcOpenPac('${plusKey}')" title="Ver pacotes" style="border:1px solid #c1c9d3;background:#fff;border-radius:6px;width:20px;height:20px;line-height:1;cursor:pointer;font-weight:700;color:#0f3a54;margin-right:7px">+</button>${nome}${opt.excl?' <span style="color:#c0392b;font-size:9px;font-weight:600">(fora do Total)</span>':''}`;
+      const bg= opt.total?'background:#f4f7fa;font-weight:700':'';
+      return `<tr style="${bg}"><td style="${tdc};${mute}${opt.total?'font-weight:700':'font-weight:600'}">${nomeCell}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.inicial)}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.atual)}</td>`+
+        `<td style="${tdc};text-align:right;font-weight:600;color:${opt.excl?'#9aa8b3':(delta>0?'#c0392b':'#1f8a4c')}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.compromissado)}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcPct(a.compromissado||0,a.atual||0)}</td>`+
+        `<td style="${tdc}"><b style="color:${opt.excl?'#9aa8b3':(pos?'#1f8a4c':'#c0392b')}">${pos?'Desvio Positivo':'Desvio Negativo'}</b></td></tr>`;
     };
-    let h=''; ordem.forEach(d=>{ h+=linha(d, disc[d]||{inicial:0,atual:0,compromissado:0,disponivel:0}, false); });
-    h+=linha('Total', orcTot(disc), true);
+    let h=''; ordem.forEach(d=>{ h+=linha(d, disc[d], {excl:ORC_EXCL.has(d)}); });
+    const excl=[...ORC_EXCL].filter(d=>disc[d]);
+    const totNome = 'Total'+(excl.length?' <span style="font-weight:500;color:#6b7c8a;font-size:10px">(sem '+excl.join(', ')+')</span>':'');
+    h+=linha(totNome, orcTot(disc), {total:true});
     tb.innerHTML=h;
   }
 }
@@ -555,6 +577,7 @@ function orcCloseModal(){ const m=document.getElementById('orcModal'); if(m) m.s
 function orcInit(){
   if(typeof pcoEhProprietario!=='function' || !pcoEhProprietario()) return;   /* gate: só proprietário */
   const sec=document.getElementById('qorc'); if(sec) sec.style.display='';
+  try{ ORC_EXCL=new Set(JSON.parse(localStorage.getItem(ORC_EXCL_KEY())||'[]')); }catch(e){ ORC_EXCL=new Set(); }
   const di=document.getElementById('orcDate'); if(di && !di.value) di.value=new Date().toISOString().slice(0,10);
   const fi=document.getElementById('orcFile'); if(fi && !fi.dataset.b){ fi.dataset.b='1'; fi.addEventListener('change',()=>orcUpload(fi)); }
   orcRender();
