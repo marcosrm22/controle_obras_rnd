@@ -274,25 +274,12 @@
     <div class="q-body">
       <div class="topgrid">
 
-        <!-- ESQUERDA: 5S dos canteiros por empresa (últimas 4 semanas) -->
+        <!-- ESQUERDA: resumo do 5S dos canteiros (edição no Detalhado) -->
         <div class="topleft">
-          <h4>03 · Canteiro (5S) — por empresa · últimas 4 semanas</h4>
+          <h4>03 · Canteiro (5S) — não conformes por semana · últimas 4 semanas</h4>
           <div class="counts" id="c3"></div>
-          <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
-            <button class="btn mini" onclick="fill5s(1)">5S (semana atual): tudo ✓</button>
-            <button class="btn mini" onclick="fill5s(0)">limpar</button>
-            <button class="btn mini" id="edit5sBtn" onclick="toggleEdit5s()">✎ Editar empresas</button>
-            <button class="btn mini" onclick="addComp()">＋ empresa</button>
-          </div>
-          <div class="matrix-scroll">
-            <table class="mtx" id="s5Table"></table>
-          </div>
-          <div class="legend">
-            <span class="legchip"><span class="legbox neu"></span> Não avaliado</span>
-            <span class="legchip"><span class="legbox ok"></span> Conforme (✓)</span>
-            <span class="legchip"><span class="legbox nc"></span> Não conforme (✗)</span>
-            <span class="legchip" style="font-size:10px">Clique no cabeçalho da coluna p/ marcar tudo</span>
-          </div>
+          <div id="cant5sResumo" style="font-size:12.5px;line-height:1.65;margin-top:4px"></div>
+          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin-top:12px">Edição completa da tabela em <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.</div>
         </div>
 
         <!-- DIREITA: gráfico previsto × realizado (DDS) + frentes de serviço -->
@@ -678,32 +665,54 @@ async function renderDDSResumo(){
 
 /* ---- Canteiro (5S) · por EMPRESA · últimas 4 semanas ---- */
 function s5get(c,w){ return (c.s5 && c.s5[String(w)]!=null) ? c.s5[String(w)] : 0; }
+let CANT5=null;
+async function cant5sLoad(){
+  if(SB_URL&&SB_KEY){
+    try{
+      const res=await fetch(SB_URL+'/rest/v1/'+sbComUnidade('canteiro_5s?select=dados&limit=1'),{headers:sbHeaders()});
+      const rows=await res.json().catch(()=>[]);
+      if(Array.isArray(rows)&&rows.length&&rows[0].dados){ CANT5=(typeof rows[0].dados==='string'?JSON.parse(rows[0].dados):rows[0].dados)||[]; }
+      else if(Array.isArray(S.companies)&&S.companies.length){        /* semeia 1x a partir do estado atual */
+        CANT5=S.companies;
+        try{ await fetch(SB_URL+'/rest/v1/canteiro_5s?on_conflict=unidade',{method:'POST',headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify([ sbComTag({dados:JSON.stringify(S.companies),atualizado_por:(sessionStorage.getItem('pco_nome')||'\u2014'),atualizado_em:new Date().toISOString()}) ])}); }catch(e){}
+      } else CANT5=[];
+    }catch(e){ CANT5=S.companies||[]; }
+  } else CANT5=S.companies||[];
+  render5S();
+}
 function render5S(){
-  const t=document.getElementById('s5Table');
-  document.getElementById('edit5sBtn').textContent=edit5s?'✓ Concluir edição':'✎ Editar empresas';
-  if(edit5s){
-    t.className='mtx edit';
-    let h=`<colgroup><col class="c-emp"><col class="c-emp"><col class="c-del"></colgroup>
-      <thead><tr><th class="emp">Empresa</th><th class="emp">Disciplina</th><th></th></tr></thead><tbody>`;
-    S.companies.forEach((c,i)=>{
-      h+=`<tr><td class="emp"><input value="${esc(c.name)}" onchange="updComp(${i},'name',this.value)"></td>
-        <td class="emp"><input value="${esc(c.disc)}" onchange="updComp(${i},'disc',this.value)"></td>
-        <td><button class="delrow" title="excluir" onclick="delComp(${i})">×</button></td></tr>`;
-    });
-    h+=`</tbody>`; t.innerHTML=h; return;
-  }
-  t.className='mtx';
+  const box=document.getElementById('cant5sResumo'); if(!box) return;
+  const comps=CANT5||S.companies||[];
   const wins=weekWindow();
-  let cols=`<colgroup><col class="c-emp">`+wins.map(()=>`<col class="c-day">`).join('')+`</colgroup>`;
-  let h=cols+"<thead><tr><th class='emp'>Empresa</th>";
-  wins.forEach(w=>h+=`<th class="day" onclick="toggleWeek5s(${w})" title="marca a coluna">S${weekLabel(w)}</th>`);
-  h+=`</tr></thead><tbody>`;
-  S.companies.forEach((c,i)=>{
-    h+=`<tr><td class='emp' title="${esc(c.name)}">${esc(c.name)}<span class='disc'> · ${esc(c.disc)}</span></td>`;
-    wins.forEach(w=>{const v=s5get(c,w);h+=`<td><div class="cell s${v}" onclick="cyc5s(${i},${w})">${SYM[v]}</div></td>`;});
-    h+=`</tr>`;
+  const neg=[],conf=[],naoAval=[];
+  comps.forEach(c=>{ let hasNeg=false,hasPos=false;
+    wins.forEach(w=>{const v=s5get(c,w); if(v===2)hasNeg=true; else if(v===1)hasPos=true;});
+    if(hasNeg) neg.push(c); else if(hasPos) conf.push(c.name); else naoAval.push(c.name);
   });
-  h+="</tbody>"; t.innerHTML=h; updCantSummary();
+  const _th='padding:5px 7px;border-bottom:2px solid #dfe5ea;font-size:9.5px;text-transform:uppercase;color:#6b7c8a';
+  const _td='padding:4px 7px;border-bottom:1px solid #eef2f5';
+  let tbl;
+  if(neg.length){
+    tbl=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="${_th};text-align:left">Empresa</th>`+
+      wins.map(w=>`<th style="${_th};text-align:center">S${weekLabel(w)}</th>`).join('')+`</tr></thead><tbody>`+
+      neg.map(c=>`<tr><td style="${_td}">${esc(c.name)}${c.disc?`<span style="color:#9aa8b3;font-size:11px"> · ${esc(c.disc)}</span>`:''}</td>`+
+        wins.map(w=>{const v=s5get(c,w);const col=v===1?'#1f8a4c':v===2?'#c0392b':'#9aa8b3';const bg=v===1?'#e8f5ec':v===2?'#fdeaea':'#f4f6f8';
+          return `<td style="${_td};text-align:center"><span style="display:inline-block;width:24px;height:22px;line-height:22px;border-radius:5px;font-weight:700;color:${col};background:${bg}">${SYM[v]}</span></td>`;}).join('')+`</tr>`).join('')+
+      `</tbody></table>`;
+  } else {
+    tbl='<div style="color:#1f8a4c;font-weight:600;padding:2px 0">Nenhuma empresa com não conformidade nas últimas 4 semanas 👍</div>';
+  }
+  box.innerHTML = tbl +
+    `<div style="margin-top:10px"><span style="font-weight:700;color:#1f8a4c">Conformes:</span> ${conf.length?conf.map(esc).join(', '):'<span style="color:#9aa8b3">—</span>'}</div>`+
+    `<div style="margin-top:4px"><span style="font-weight:700;color:#6b7c8a">Não avaliadas:</span> ${naoAval.length?naoAval.map(esc).join(', '):'<span style="color:#9aa8b3">—</span>'}</div>`;
+  const w=curSemana();let ok=0,nc=0,neu=0;
+  comps.forEach(c=>{const v=s5get(c,w);v===1?ok++:v===2?nc++:neu++;});
+  const c3=document.getElementById('c3'); if(c3) c3.innerHTML=
+    `<span style="font-weight:700;color:var(--accent)">Canteiro (S${weekLabel(w)}) ·</span>`+
+    `<span><span class="dot ok"></span><b>${ok}</b> conformes</span>`+
+    `<span><span class="dot nc"></span><b>${nc}</b> não conformes</span>`+
+    `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
+  setVerdict('v3', neg.length>0?'nao':(conf.length>0?'sim':'neu'), neg.length>0?`Não · ${neg.length} c/ NC`:(conf.length>0?'Sim':'—'));
 }
 function toggleEdit5s(){edit5s=!edit5s;render5S();}
 function updComp(i,k,v){S.companies[i][k]=v;save();}
@@ -1132,7 +1141,7 @@ function exportExcel(){
   h+=`</table><br>`;
   const wk=weekWindow();
   h+=`<table><tr><td colspan="${wk.length+1}" ${th}>03 · Canteiro (5S) — por empresa · últimas ${wk.length} semanas</td></tr><tr><th ${th}>Empresa</th>${wk.map(w=>`<th ${tc}>S${weekLabel(w)}</th>`).join('')}</tr>`;
-  S.companies.forEach(c=>{h+=`<tr><td ${td}>${esc(c.name)}</td>${wk.map(w=>{const v=s5get(c,w);return `<td ${td} style="text-align:center;border:1px solid #ccc;${fill(v)}">${SYM[v]}</td>`;}).join('')}</tr>`;});
+  (CANT5||S.companies).forEach(c=>{h+=`<tr><td ${td}>${esc(c.name)}</td>${wk.map(w=>{const v=s5get(c,w);return `<td ${td} style="text-align:center;border:1px solid #ccc;${fill(v)}">${SYM[v]}</td>`;}).join('')}</tr>`;});
   h+=`</table><br>`;
 
   h+=`<table><tr><td colspan="5" ${th}>02 · Acidente / incidente?</td></tr>`;
@@ -1538,6 +1547,7 @@ loadLive().finally(()=>{ BOOTED=true; });
 setInterval(pollLive, 5000);
 initCollapse();
 orcInit();
+cant5sLoad();
 </script>
 </body>
 </html>
