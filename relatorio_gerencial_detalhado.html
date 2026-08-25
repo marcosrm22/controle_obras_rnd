@@ -137,7 +137,7 @@
     </div>
     <div class="chartbox" style="height:300px"><canvas id="orcChart"></canvas></div>
     <div class="tablewrap" style="margin-top:12px">
-      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Disciplina</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Inicial (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Atual (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Δ (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Compromissado (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">% Comp.</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Situação</th></tr></thead><tbody id="orcTable"></tbody></table>
+      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Disciplina</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Inicial (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Atual (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Δ (MM)</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Situação</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a;border-left:2px solid #cfd8df">Compromissado (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">% Comp.</th></tr></thead><tbody id="orcTable"></tbody></table>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:8px">Linha cheia = Orçamento Atual · tracejada = Orçamento Inicial. Valores em R$ milhões.</div>
       <div id="orcModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,30,.5);z-index:99999;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)orcCloseModal()">
@@ -564,9 +564,9 @@ async function orcRender(){
         `<td style="${tdc};text-align:right;${mute}">${orcMM(a.inicial)}</td>`+
         `<td style="${tdc};text-align:right;${mute}">${orcMM(a.atual)}</td>`+
         `<td style="${tdc};text-align:right;font-weight:600;color:${opt.excl?'#9aa8b3':(delta>0?'#c0392b':'#1f8a4c')}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.compromissado)}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcPct(a.compromissado||0,a.atual||0)}</td>`+
-        `<td style="${tdc}"><b style="color:${opt.excl?'#9aa8b3':(pos?'#1f8a4c':'#c0392b')}">${pos?'Desvio Positivo':'Desvio Negativo'}</b></td></tr>`;
+        `<td style="${tdc}"><b style="color:${opt.excl?'#9aa8b3':(pos?'#1f8a4c':'#c0392b')}">${pos?'Desvio Positivo':'Desvio Negativo'}</b></td>`+
+        `<td style="${tdc};text-align:right;${mute};border-left:2px solid #cfd8df">${orcMM(a.compromissado)}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcPct(a.compromissado||0,a.atual||0)}</td></tr>`;
     };
     let h=''; ordem.forEach(d=>{ h+=linha(d, disc[d], {excl:ORC_EXCL.has(d)}); });
     const excl=[...ORC_EXCL].filter(d=>disc[d]);
