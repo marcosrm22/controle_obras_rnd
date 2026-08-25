@@ -107,11 +107,24 @@
     <h3>Respostas da semana <span class="pill" id="respCount">0</span></h3>
     <div class="tablewrap">
       <table class="data">
-        <thead><tr><th style="width:28%">Especialista</th><th style="width:18%">Data</th><th style="width:20%">Disciplina</th><th>Empresa</th></tr></thead>
+        <thead><tr><th style="width:24%">Especialista</th><th style="width:14%">Data</th><th style="width:16%">Disciplina</th><th>Empresa</th><th style="width:96px">Ações</th></tr></thead>
         <tbody id="respBody"></tbody>
       </table>
     </div>
     <div class="empty hidden" id="respEmpty">Sem respostas nesta semana. Suba a exportação do Forms no botão acima.</div>
+  </div>
+
+  <div class="panel">
+    <h3>Canteiro (5S) — por empresa <span class="pill">últimas 4 semanas</span></h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+      <button class="btn" onclick="cantFill(1)">Semana atual: tudo ✓</button>
+      <button class="btn" onclick="cantFill(0)">limpar</button>
+      <button class="btn" id="cantEditBtn" onclick="cantToggleEdit()">✎ Editar empresas</button>
+      <button class="btn gold" onclick="cantAdd()">＋ empresa</button>
+      <span id="cantStatus" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="tablewrap"><table style="width:100%;border-collapse:collapse;font-size:12.5px" id="cantTable"></table></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">– não avaliado · ✓ conforme · ✗ não conforme. Clique na célula para alternar; no cabeçalho da semana para marcar a coluna toda.</div>
   </div>
 
   <div class="panel" id="qorc" style="display:none">
@@ -391,8 +404,19 @@ function render(){
   // tabela
   const tb=document.getElementById('respBody'); tb.innerHTML='';
   wkRows.slice().sort((a,b)=>(a.data<b.data?1:-1)).forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(r.especialista)+'</td><td>'+esc(fmtBR(r.data))+'</td><td>'+esc(r.disciplina||'—')+'</td><td>'+esc(r.empresa||'(não informado)')+'</td>';
+    const tr=document.createElement('tr'); const fid=r.form_id;
+    if(fid!=null && String(fid)===String(DDS_EDIT)){
+      tr.innerHTML='<td><input id="de_esp" value="'+esc(r.especialista)+'" style="width:100%"></td>'+
+        '<td><input id="de_data" type="date" value="'+esc((r.data||'').slice(0,10))+'"></td>'+
+        '<td><input id="de_disc" value="'+esc(r.disciplina||'')+'" style="width:100%"></td>'+
+        '<td><input id="de_emp" value="'+esc(r.empresa||'')+'" style="width:100%"></td>'+
+        '<td><button class="btn gold" style="padding:3px 8px;font-size:11px" onclick="ddsSave('+fid+')">salvar</button> <button class="btn" style="padding:3px 8px;font-size:11px" onclick="ddsCancel()">×</button></td>';
+    } else {
+      const acoes = fid!=null
+        ? '<button class="btn" style="padding:3px 8px;font-size:11px" title="editar" onclick="ddsEdit('+fid+')">✎</button> <button class="btn" style="padding:3px 8px;font-size:11px" title="excluir" onclick="ddsDel('+fid+')">×</button>'
+        : '<span style="color:var(--muted)">—</span>';
+      tr.innerHTML='<td>'+esc(r.especialista)+'</td><td>'+esc(fmtBR(r.data))+'</td><td>'+esc(r.disciplina||'—')+'</td><td>'+esc(r.empresa||'(não informado)')+'</td><td>'+acoes+'</td>';
+    }
     tb.appendChild(tr);
   });
   document.getElementById('respCount').textContent=realizado;
@@ -414,7 +438,7 @@ function drawTotal(previsto,realizado){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
 }
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtBR(iso){ if(!iso)return''; const p=iso.split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
 
 /* ---- Boot / eventos ---- */
@@ -582,15 +606,82 @@ function orcInit(){
   const fi=document.getElementById('orcFile'); if(fi && !fi.dataset.b){ fi.dataset.b='1'; fi.addEventListener('change',()=>orcUpload(fi)); }
   orcRender();
 }
+
+/* ===== Edição/exclusão de respostas de DDS ===== */
+let DDS_EDIT=null;
+function _v(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+function ddsEdit(fid){ DDS_EDIT=String(fid); render(); }
+function ddsCancel(){ DDS_EDIT=null; render(); }
+async function ddsSave(fid){
+  const upd={ especialista:_v('de_esp'), data:_v('de_data')||null, disciplina:_v('de_disc'), empresa:_v('de_emp') };
+  const rec=ALL.find(r=>String(r.form_id)===String(fid)); if(rec) Object.assign(rec,upd);
+  DDS_EDIT=null; render();
+  if(SB_URL&&SB_KEY){ try{ await fetch(SB_URL+'/rest/v1/'+sbComUnidade('dds_respostas?form_id=eq.'+encodeURIComponent(fid)),{method:'PATCH',headers:sbHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify(upd)}); sbSetStatus('\u2601 resposta atualizada','var(--ok)'); }catch(e){ sbSetStatus('\u2601 falha ao salvar','var(--nc)'); } }
+}
+async function ddsDel(fid){
+  if(!confirm('Excluir esta resposta?')) return;
+  ALL=ALL.filter(r=>String(r.form_id)!==String(fid)); render();
+  if(SB_URL&&SB_KEY){ try{ await fetch(SB_URL+'/rest/v1/'+sbComUnidade('dds_respostas?form_id=eq.'+encodeURIComponent(fid)),{method:'DELETE',headers:sbHeaders({'Prefer':'return=minimal'})}); sbSetStatus('\u2601 resposta excluída','var(--amber)'); }catch(e){ sbSetStatus('\u2601 falha ao excluir','var(--nc)'); } }
+}
+
+/* ===== Canteiro 5S (compartilhado via canteiro_5s) ===== */
+const SYM5=['\u2013','\u2713','\u2717'];
+let CANT=[], EDIT5S=false, _cantTimer=null;
+function wLbl(w){ let n=w; if(n<1)n+=52; if(n>53)n-=53; return n; }
+function wWin(){ const w=selSemana(); const a=[]; for(let k=3;k>=0;k--) a.push(w-k); return a; }
+function s5g(c,w){ return (c.s5 && c.s5[String(w)]!=null)?c.s5[String(w)]:0; }
+async function cantLoad(){
+  if(SB_URL&&SB_KEY){ try{
+    const res=await fetch(SB_URL+'/rest/v1/'+sbComUnidade('canteiro_5s?select=dados&limit=1'),{headers:sbHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    CANT=(Array.isArray(rows)&&rows.length&&rows[0].dados)?((typeof rows[0].dados==='string'?JSON.parse(rows[0].dados):rows[0].dados)||[]):[];
+  }catch(e){ CANT=[]; } } else CANT=[];
+  render5s();
+}
+function cantSchedule(){ const st=document.getElementById('cantStatus'); if(st) st.textContent='salvando\u2026'; clearTimeout(_cantTimer); _cantTimer=setTimeout(cantSave,600); }
+async function cantSave(){
+  if(!SB_URL||!SB_KEY) return;
+  try{ const body=[ sbComTag({dados:JSON.stringify(CANT), atualizado_por:(sessionStorage.getItem('pco_nome')||'\u2014'), atualizado_em:new Date().toISOString()}) ];
+    const res=await fetch(SB_URL+'/rest/v1/canteiro_5s?on_conflict=unidade',{method:'POST',headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(body)});
+    const st=document.getElementById('cantStatus'); if(st) st.textContent=res.ok?'\u2601 salvo':'falha ao salvar';
+  }catch(e){ const st=document.getElementById('cantStatus'); if(st) st.textContent='offline'; }
+}
+function render5s(){
+  const t=document.getElementById('cantTable'); if(!t) return;
+  const btn=document.getElementById('cantEditBtn'); if(btn) btn.textContent=EDIT5S?'\u2713 Concluir edição':'\u270e Editar empresas';
+  const th='padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a';
+  const td='padding:4px 8px;border-bottom:1px solid #eef2f5';
+  if(EDIT5S){
+    let h=`<thead><tr><th style="${th};text-align:left">Empresa</th><th style="${th};text-align:left">Disciplina</th><th style="${th}"></th></tr></thead><tbody>`;
+    CANT.forEach((c,i)=>{ h+=`<tr><td style="${td}"><input value="${esc(c.name)}" onchange="cantUpd(${i},'name',this.value)" style="width:100%"></td><td style="${td}"><input value="${esc(c.disc||'')}" onchange="cantUpd(${i},'disc',this.value)" style="width:100%"></td><td style="${td};text-align:center"><button class="btn" style="padding:2px 8px;font-size:11px" onclick="cantDel(${i})">×</button></td></tr>`; });
+    h+='</tbody>'; t.innerHTML=h; return;
+  }
+  const wins=wWin();
+  let h=`<thead><tr><th style="${th};text-align:left">Empresa</th>`+wins.map(w=>`<th style="${th};cursor:pointer" onclick="cantToggleWeek(${w})" title="marcar coluna toda">S${wLbl(w)}</th>`).join('')+'</tr></thead><tbody>';
+  if(!CANT.length){ h+=`<tr><td colspan="${wins.length+1}" style="${td};text-align:center;color:#6b7c8a;padding:14px">Sem empresas. Use "＋ empresa" para começar.</td></tr>`; }
+  CANT.forEach((c,i)=>{ h+=`<tr><td style="${td}">${esc(c.name)}${c.disc?`<span style="color:#9aa8b3"> · ${esc(c.disc)}</span>`:''}</td>`+
+    wins.map(w=>{const v=s5g(c,w);const col=v===1?'#1f8a4c':v===2?'#c0392b':'#9aa8b3';const bg=v===1?'#e8f5ec':v===2?'#fdeaea':'#f4f6f8';
+      return `<td style="${td};text-align:center"><span onclick="cantCyc(${i},${w})" style="display:inline-block;width:28px;height:24px;line-height:24px;border-radius:6px;cursor:pointer;font-weight:700;color:${col};background:${bg}">${SYM5[v]}</span></td>`;}).join('')+'</tr>'; });
+  h+='</tbody>'; t.innerHTML=h;
+}
+function cantToggleEdit(){ EDIT5S=!EDIT5S; render5s(); }
+function cantUpd(i,k,v){ CANT[i][k]=v; cantSchedule(); }
+function cantDel(i){ if(confirm('Excluir "'+CANT[i].name+'"?')){ CANT.splice(i,1); render5s(); cantSchedule(); } }
+function cantAdd(){ CANT.push({name:'Nova empresa',disc:'',s5:{}}); EDIT5S=true; render5s(); cantSchedule(); }
+function cantCyc(i,w){ const c=CANT[i]; if(!c.s5)c.s5={}; const k=String(w); c.s5[k]=((c.s5[k]||0)+1)%3; render5s(); cantSchedule(); }
+function cantToggleWeek(w){ const k=String(w); const anyNeu=CANT.some(c=>!(c.s5&&c.s5[k])); CANT.forEach(c=>{if(!c.s5)c.s5={}; c.s5[k]=anyNeu?1:0;}); render5s(); cantSchedule(); }
+function cantFill(v){ const k=String(selSemana()); CANT.forEach(c=>{if(!c.s5)c.s5={}; c.s5[k]=v;}); render5s(); cantSchedule(); }
+
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('f_semana').value=curWeek();
   document.getElementById('f_ano').value=new Date().getFullYear();
   initSwitcher();
   document.getElementById('fileInput').addEventListener('change',handleFile);
-  ['f_semana','f_ano'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+  ['f_semana','f_ano'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{render();render5s();}));
   ['f_esp','f_dias'].forEach(id=>document.getElementById(id).addEventListener('change',saveConfig));
   refresh();
   orcInit();
+  cantLoad();
 });
 </script>
 </body>
