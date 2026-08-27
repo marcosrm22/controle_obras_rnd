@@ -748,7 +748,7 @@ function renderAcid(){
     h+=`<div class="occ">
       <div class="occ2">
         <div class="fld"><label>Tipo</label><select onchange="updAcid(${i},'tipo',this.value)">
-          ${['Acidente com perda','Acidente sem perda','Incidente','Quase-acidente'].map(t=>`<option ${o.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
+          ${['Acidente com perda','Acidente sem perda','Incidente','Quase-acidente','SIF','Acidente com Afastamento','Acidente sem Afastamento','Primeiros Socorros','Processo','Danos Materiais'].map(t=>`<option ${o.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
         <div class="fld"><label>Data</label><input type="date" value="${o.data||''}" onchange="updAcid(${i},'data',this.value)"></div>
       </div>
       <div class="fld"><label>Local / empresa</label><input value="${esc(o.local)}" onchange="updAcid(${i},'local',this.value)"></div>
