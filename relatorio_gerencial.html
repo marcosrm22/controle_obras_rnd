@@ -276,10 +276,10 @@
 
         <!-- ESQUERDA: resumo do 5S dos canteiros (edição no Detalhado) -->
         <div class="topleft">
-          <h4>03 · Canteiro (5S) — não conformes por semana · últimas 4 semanas</h4>
+          <h4>03 · Canteiro (5S) — status por semana (conformes × não conformes × não avaliadas)</h4>
           <div class="counts" id="c3"></div>
-          <div id="cant5sResumo" style="font-size:12.5px;line-height:1.65;margin-top:4px"></div>
-          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin-top:12px">Edição completa da tabela em <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.</div>
+          <div style="position:relative;height:240px;margin-top:6px"><canvas id="cant5sChart"></canvas></div>
+          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin-top:12px">Tabela detalhada por empresa (com pendências) em <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.</div>
         </div>
 
         <!-- DIREITA: gráfico previsto × realizado (DDS) + frentes de serviço -->
@@ -665,7 +665,7 @@ async function renderDDSResumo(){
 
 /* ---- Canteiro (5S) · por EMPRESA · últimas 4 semanas ---- */
 function s5get(c,w){ return (c.s5 && c.s5[String(w)]!=null) ? c.s5[String(w)] : 0; }
-let CANT5=null;
+let CANT5=null, cant5sChartObj=null;
 async function cant5sLoad(){
   if(SB_URL&&SB_KEY){
     try{
@@ -681,30 +681,21 @@ async function cant5sLoad(){
   render5S();
 }
 function render5S(){
-  const box=document.getElementById('cant5sResumo'); if(!box) return;
   const comps=CANT5||S.companies||[];
   const wins=weekWindow();
-  const neg=[],conf=[],naoAval=[];
-  comps.forEach(c=>{ let hasNeg=false,hasPos=false;
-    wins.forEach(w=>{const v=s5get(c,w); if(v===2)hasNeg=true; else if(v===1)hasPos=true;});
-    if(hasNeg) neg.push(c); else if(hasPos) conf.push(c.name); else naoAval.push(c.name);
-  });
-  const _th='padding:5px 7px;border-bottom:2px solid #dfe5ea;font-size:9.5px;text-transform:uppercase;color:#6b7c8a';
-  const _td='padding:4px 7px;border-bottom:1px solid #eef2f5';
-  let tbl;
-  if(neg.length){
-    tbl=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="${_th};text-align:left">Empresa</th>`+
-      wins.map(w=>`<th style="${_th};text-align:center">S${weekLabel(w)}</th>`).join('')+`</tr></thead><tbody>`+
-      neg.map(c=>`<tr><td style="${_td}">${esc(c.name)}${c.disc?`<span style="color:#9aa8b3;font-size:11px"> · ${esc(c.disc)}</span>`:''}</td>`+
-        wins.map(w=>{const v=s5get(c,w);const col=v===1?'#1f8a4c':v===2?'#c0392b':'#9aa8b3';const bg=v===1?'#e8f5ec':v===2?'#fdeaea':'#f4f6f8';
-          return `<td style="${_td};text-align:center"><span style="display:inline-block;width:24px;height:22px;line-height:22px;border-radius:5px;font-weight:700;color:${col};background:${bg}">${SYM[v]}</span></td>`;}).join('')+`</tr>`).join('')+
-      `</tbody></table>`;
-  } else {
-    tbl='<div style="color:#1f8a4c;font-weight:600;padding:2px 0">Nenhuma empresa com não conformidade nas últimas 4 semanas 👍</div>';
+  const conf=[],ncf=[],nav=[];
+  wins.forEach(w=>{ let c1=0,c2=0,c0=0; comps.forEach(c=>{const v=s5get(c,w); v===1?c1++:v===2?c2++:c0++;}); conf.push(c1);ncf.push(c2);nav.push(c0); });
+  const cv=document.getElementById('cant5sChart');
+  if(cv && typeof Chart!=='undefined'){
+    if(cant5sChartObj) cant5sChartObj.destroy();
+    cant5sChartObj=new Chart(cv,{type:'bar',data:{labels:wins.map(w=>'S'+weekLabel(w)),datasets:[
+      {label:'Conformes',data:conf,backgroundColor:'#1f8a4c'},
+      {label:'Não conformes',data:ncf,backgroundColor:'#c0392b'},
+      {label:'Não avaliadas',data:nav,backgroundColor:'#c9ccd1'}
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:12,font:{size:10}}},tooltip:{mode:'index',intersect:false}},
+      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0},title:{display:true,text:'nº de empresas'}}}}});
   }
-  box.innerHTML = tbl +
-    `<div style="margin-top:10px"><span style="font-weight:700;color:#1f8a4c">Conformes:</span> ${conf.length?conf.map(esc).join(', '):'<span style="color:#9aa8b3">—</span>'}</div>`+
-    `<div style="margin-top:4px"><span style="font-weight:700;color:#6b7c8a">Não avaliadas:</span> ${naoAval.length?naoAval.map(esc).join(', '):'<span style="color:#9aa8b3">—</span>'}</div>`;
   const w=curSemana();let ok=0,nc=0,neu=0;
   comps.forEach(c=>{const v=s5get(c,w);v===1?ok++:v===2?nc++:neu++;});
   const c3=document.getElementById('c3'); if(c3) c3.innerHTML=
@@ -712,7 +703,7 @@ function render5S(){
     `<span><span class="dot ok"></span><b>${ok}</b> conformes</span>`+
     `<span><span class="dot nc"></span><b>${nc}</b> não conformes</span>`+
     `<span><span class="dot neu"></span><b>${neu}</b> não avaliados</span>`;
-  setVerdict('v3', neg.length>0?'nao':(conf.length>0?'sim':'neu'), neg.length>0?`Não · ${neg.length} c/ NC`:(conf.length>0?'Sim':'—'));
+  setVerdict('v3', nc>0?'nao':(ok>0?'sim':'neu'), nc>0?`Não · ${nc} NC`:(ok>0?'Sim':'—'));
 }
 function toggleEdit5s(){edit5s=!edit5s;render5S();}
 function updComp(i,k,v){S.companies[i][k]=v;save();}
