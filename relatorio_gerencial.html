@@ -1472,7 +1472,7 @@ async function orcRender(){
     const linha=(nome,a,opt)=>{ opt=opt||{};
       const at=(a.atual||0), comp=(a.compromissado||0), delta=comp-at;
       const pnc= at>0 ? (delta/at*100) : 0;
-      let situ,cor; if(pnc>0){situ='Estourou';cor='#c0392b';} else if(pnc>=-5){situ='No limite (≤5%)';cor='#c9922b';} else {situ='Dentro';cor='#1f8a4c';}
+      let situ,cor; if(pnc>0){situ='Estourou';cor='#c0392b';} else if(pnc>=-5){situ='No limite (≤5%)';cor='#c9922b';} else {situ='Desvio Positivo';cor='#1f8a4c';}
       const cc= opt.excl?'#9aa8b3':cor;
       const plusKey= opt.total?'__TOTAL__':nome;
       const mute= opt.excl?'color:#9aa8b3;':'';
