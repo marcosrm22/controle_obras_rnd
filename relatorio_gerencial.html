@@ -263,42 +263,32 @@
   <!-- 01 · 03 · 04 — DDS / Canteiro (5S) / Frentes de Serviço -->
   <section class="q" id="qtop">
     <div class="q-head">
-      <div class="q-num">01</div>
-      <div class="q-title">Segurança &amp; Organização<small>DDS por especialista · Canteiro (5S) por empresa nas últimas 4 semanas · Frentes de serviço (5S)</small></div>
+      <div class="q-title" style="margin-left:2px">Segurança &amp; Organização<small>DDS · Canteiro (5S) por empresa nas últimas 4 semanas</small></div>
       <div class="q-verdict vgroup">
         <span class="vitem"><b>DDS</b><span class="verdict neu" id="v1">—</span></span>
         <span class="vitem"><b>Canteiro</b><span class="verdict neu" id="v3">—</span></span>
-        <span class="vitem"><b>Frentes</b><span class="verdict neu" id="v4">—</span></span>
       </div>
     </div>
     <div class="q-body">
       <div class="topgrid">
 
-        <!-- ESQUERDA: resumo do 5S dos canteiros (edição no Detalhado) -->
+        <!-- ESQUERDA: DDS previsto × realizado (item 01) -->
         <div class="topleft">
-          <h4>03 · Canteiro (5S) — status por semana (conformes × não conformes × não avaliadas)</h4>
-          <div class="counts" id="c3"></div>
-          <div style="position:relative;height:240px;margin-top:6px"><canvas id="cant5sChart"></canvas></div>
-          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin-top:12px">Tabela detalhada por empresa (com pendências) em <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.</div>
-        </div>
-
-        <!-- DIREITA: gráfico previsto × realizado (DDS) + frentes de serviço -->
-        <div class="topright">
           <h4>01 · DDS — previsto × realizado (semana)</h4>
           <div class="counts" id="c1"></div>
-          <div style="position:relative;height:190px;margin:2px 0 4px"><canvas id="ddsResumoChart"></canvas></div>
-          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin:0 0 16px">
+          <div style="position:relative;height:230px;margin:2px 0 4px"><canvas id="ddsResumoChart"></canvas></div>
+          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin:0 0 4px">
             Realização importada do MS Forms. Detalhe por empresa em
             <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.
           </div>
+        </div>
 
-          <h4 style="margin-top:6px">04 · Frentes de serviço (5S) — por área</h4>
-          <div class="counts" id="c4"></div>
-          <div class="toolbar no-print" style="position:static;margin:0 0 8px;padding:0">
-            <button class="btn mini" onclick="fillFrentes(1)">Marcar tudo ✓</button>
-            <button class="btn mini" onclick="fillFrentes(0)">Limpar</button>
-          </div>
-          <div class="chipgrid" id="frentesGrid"></div>
+        <!-- DIREITA: Canteiro (5S) status por semana (item 02) -->
+        <div class="topright">
+          <h4>02 · Canteiro (5S) — status por semana (conformes × não conformes × não avaliadas)</h4>
+          <div class="counts" id="c3"></div>
+          <div style="position:relative;height:230px;margin-top:6px"><canvas id="cant5sChart"></canvas></div>
+          <div class="no-print" style="font-size:10.5px;color:var(--muted);margin-top:12px">Tabela detalhada por empresa (com pendências) em <a href="relatorio_gerencial_detalhado.html" style="color:var(--brand-2);font-weight:600">Relatório Gerencial — Detalhado ↗</a>.</div>
         </div>
 
       </div>
@@ -318,7 +308,7 @@
   <!-- 02 Acidente -->
   <section class="q" id="q2">
     <div class="q-head">
-      <div class="q-num">02</div>
+      <div class="q-num">03</div>
       <div class="q-title">Acidente / incidente (com ou sem perda)?<small>Registro de ocorrências de segurança no período</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v2">—</span></div>
     </div>
@@ -332,7 +322,7 @@
   <!-- 05 RNC -->
   <section class="q" id="q5">
     <div class="q-head">
-      <div class="q-num">05</div>
+      <div class="q-num">04</div>
       <div class="q-title">Não conformidade executiva?<small>RNC de execução no período</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v5">—</span></div>
     </div>
@@ -348,7 +338,7 @@
   <!-- 06 PPC -->
   <section class="q" id="q6">
     <div class="q-head">
-      <div class="q-num">06</div>
+      <div class="q-num">05</div>
       <div class="q-title">Aderência aos marcos?<small>Sinalize se cada marco está aderente</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v6">—</span></div>
     </div>
@@ -365,7 +355,7 @@
   <!-- 07 Marcos -->
   <section class="q" id="q7">
     <div class="q-head">
-      <div class="q-num">07</div>
+      <div class="q-num">06</div>
       <div class="q-title">PPC · Percentual do Plano Concluído?<small>PPC semanal por pacote / frente</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v7">—</span></div>
     </div>
@@ -379,7 +369,7 @@
   <!-- 08 Contratações -->
   <section class="q" id="q8">
     <div class="q-head">
-      <div class="q-num">08</div>
+      <div class="q-num">07</div>
       <div class="q-title">Contratações pendentes?<small>Escopo · disciplina · alçada · status · link do Supria · tipo de fechamento</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v8">—</span></div>
     </div>
@@ -392,7 +382,7 @@
   <!-- 08B Outros Impactos -->
   <section class="q" id="qimp">
     <div class="q-head">
-      <div class="q-num" style="width:auto;padding:0 9px;font-size:11px">8B</div>
+      <div class="q-num" style="width:auto;padding:0 9px;font-size:11px">7B</div>
       <div class="q-title">Outros Impactos<small>Mesmas categorias · itens que impactam prazo/escopo fora das contratações</small></div>
       <div class="q-verdict"><span class="verdict neu" id="v8b">—</span></div>
     </div>
@@ -406,8 +396,8 @@
   <!-- 09 Controle Orçado x Compromissado (só proprietário) -->
   <section class="q" id="qorc" style="display:none">
     <div class="q-head">
-      <div class="q-num">09</div>
-      <div class="q-title">Controle Orçado x Compromissado<small>Proprietário · variação de Orçamento Inicial × Atual por disciplina</small></div>
+      <div class="q-num">08</div>
+      <div class="q-title">Controle Orçado x Compromissado<small>Proprietário · Orçamento Atual × Compromissado por disciplina</small></div>
       <div class="q-verdict"><span class="verdict neu" id="vorc">Proprietário</span></div>
     </div>
     <div class="q-body">
@@ -418,8 +408,8 @@
         <div id="orcExcl" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;width:100%;margin-top:4px;font-size:11px;color:var(--muted)"></div>
       </div>
       <div style="position:relative;height:300px;margin-bottom:12px"><canvas id="orcChart"></canvas></div>
-      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Disciplina</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Inicial (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Atual (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Δ (MM)</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Situação</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a;border-left:2px solid #cfd8df">Compromissado (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">% Comp.</th></tr></thead><tbody id="orcTable"></tbody></table>
-      <p class="hint no-print" style="margin-top:8px">Linha cheia = Orçamento Atual · linha tracejada = Orçamento Inicial. Valores em R$ milhões. Suba a planilha a cada dia para acompanhar as realocações entre disciplinas.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Disciplina</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Atual (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Compromissado (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Delta (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">% Não Comp.</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Situação</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a;border-left:2px solid #cfd8df">% Comp.</th></tr></thead><tbody id="orcTable"></tbody></table>
+      <p class="hint no-print" style="margin-top:8px">Linha cheia = Orçamento Atual · tracejada = Compromissado. A Situação compara Atual × Compromissado. Valores em R$ milhões.</p>
       <div id="orcModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,30,.5);z-index:99999;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)orcCloseModal()">
         <div style="background:#fff;border-radius:14px;max-width:940px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eef2f5;position:sticky;top:0;background:#fff">
@@ -624,7 +614,7 @@ function renderAll(){
   document.getElementById('m_semana').value=S.meta.semana||curWeek();
   document.getElementById('m_ano').value=S.meta.ano||new Date().getFullYear();
   m_resp.value=S.meta.resp; m_data.value=S.meta.data;
-  renderDDSResumo(); render5S(); renderFrentes(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
+  renderDDSResumo(); render5S(); renderAcid(); renderRnc(); renderPpc(); renderMarcos(); renderContr(); renderImpactos(); renderFotos();
   document.getElementById('genstamp').textContent=new Date().toLocaleString('pt-BR');
 }
 
@@ -1141,10 +1131,6 @@ function exportExcel(){
     S.acid.forEach(o=>h+=`<tr><td ${td}>${esc(o.tipo)}</td><td ${td}>${esc(o.data)}</td><td ${td}>${esc(o.local)}</td><td ${td}>${esc(o.desc)}</td><td ${td}>${esc(o.acoes)}</td></tr>`);}
   h+=`</table><br>`;
 
-  h+=`<table><tr><td colspan="3" ${th}>04 · Frente de serviço (5S)?</td></tr>`;
-  AREAS.forEach((a,i)=>{if(i%3===0)h+='<tr>';h+=`<td ${td} style="${fill(S.frentes[i])};border:1px solid #ccc">${SYM[S.frentes[i]]} ${esc(a)}</td>`;if(i%3===2)h+='</tr>';});
-  if(AREAS.length%3!==0)h+='</tr>';
-  h+=`</table><br>`;
 
   h+=`<table><tr><td colspan="4" ${th}>05 · Não conformidade executiva?</td></tr>`;
   if(S.rnc.length===0)h+=`<tr><td ${td} colspan="4">Sem RNC executiva no período.</td></tr>`;
@@ -1465,10 +1451,10 @@ async function orcRender(){
     const labels=ORC_SNAPS.map(s=>orcFmtBR(s.data)); const ds=[];
     discList.forEach(d=>{ const cor=orcColor(d);
       ds.push({label:d+' \u00b7 Atual',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).atual||0)/1e6),borderColor:cor,backgroundColor:cor,tension:.25,pointRadius:3,borderWidth:2});
-      ds.push({label:d+' \u00b7 Inicial',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).inicial||0)/1e6),borderColor:cor,backgroundColor:cor,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:1.5});
+      ds.push({label:d+' \u00b7 Compromissado',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).compromissado||0)/1e6),borderColor:cor,backgroundColor:cor,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:1.5});
     });
     ds.push({label:'Total \u00b7 Atual',data:ORC_SNAPS.map(s=>orcTot(s.disc).atual/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,tension:.25,pointRadius:3,borderWidth:3});
-    ds.push({label:'Total \u00b7 Inicial',data:ORC_SNAPS.map(s=>orcTot(s.disc).inicial/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,borderDash:[6,4],tension:.25,pointRadius:0,borderWidth:2});
+    ds.push({label:'Total \u00b7 Compromissado',data:ORC_SNAPS.map(s=>orcTot(s.disc).compromissado/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,borderDash:[6,4],tension:.25,pointRadius:0,borderWidth:2});
     if(orcChartObj) orcChartObj.destroy();
     orcChartObj=new Chart(cv,{type:'line',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
@@ -1483,18 +1469,23 @@ async function orcRender(){
     const disc=ORC_LAST.disc||{};
     const ordem=discList.filter(d=>disc[d]);
     const tdc='padding:5px 8px;border-bottom:1px solid #eef2f5';
-    const linha=(nome,a,opt)=>{ opt=opt||{}; const delta=(a.atual||0)-(a.inicial||0); const pos=(a.atual||0)<=(a.inicial||0);
+    const linha=(nome,a,opt)=>{ opt=opt||{};
+      const at=(a.atual||0), comp=(a.compromissado||0), delta=comp-at;
+      const pnc= at>0 ? (delta/at*100) : 0;
+      let situ,cor; if(pnc>0){situ='Estourou';cor='#c0392b';} else if(pnc>=-5){situ='No limite (≤5%)';cor='#c9922b';} else {situ='Dentro';cor='#1f8a4c';}
+      const cc= opt.excl?'#9aa8b3':cor;
       const plusKey= opt.total?'__TOTAL__':nome;
       const mute= opt.excl?'color:#9aa8b3;':'';
       const nomeCell = `<button onclick="orcOpenPac('${plusKey}')" title="Ver pacotes" style="border:1px solid #c1c9d3;background:#fff;border-radius:6px;width:20px;height:20px;line-height:1;cursor:pointer;font-weight:700;color:#0f3a54;margin-right:7px">+</button>${nome}${opt.excl?' <span style="color:#c0392b;font-size:9px;font-weight:600">(fora do Total)</span>':''}`;
       const bg= opt.total?'background:#f4f7fa;font-weight:700':'';
+      const pncTxt=(pnc>=0?'+':'')+pnc.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
       return `<tr style="${bg}"><td style="${tdc};${mute}${opt.total?'font-weight:700':'font-weight:600'}">${nomeCell}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.inicial)}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.atual)}</td>`+
-        `<td style="${tdc};text-align:right;font-weight:600;color:${opt.excl?'#9aa8b3':(delta>0?'#c0392b':'#1f8a4c')}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
-        `<td style="${tdc}"><b style="color:${opt.excl?'#9aa8b3':(pos?'#1f8a4c':'#c0392b')}">${pos?'Desvio Positivo':'Desvio Negativo'}</b></td>`+
-        `<td style="${tdc};text-align:right;${mute};border-left:2px solid #cfd8df">${orcMM(a.compromissado)}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcPct(a.compromissado||0,a.atual||0)}</td></tr>`;
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(at)}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(comp)}</td>`+
+        `<td style="${tdc};text-align:right;font-weight:600;color:${cc}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
+        `<td style="${tdc};text-align:right;color:${cc}">${pncTxt}</td>`+
+        `<td style="${tdc}"><b style="color:${cc}">${situ}</b></td>`+
+        `<td style="${tdc};text-align:right;${mute};border-left:2px solid #cfd8df">${orcPct(comp,at)}</td></tr>`;
     };
     let h=''; ordem.forEach(d=>{ h+=linha(d, disc[d], {excl:ORC_EXCL.has(d)}); });
     const excl=[...ORC_EXCL].filter(d=>disc[d]);
