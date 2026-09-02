@@ -114,30 +114,10 @@ header{display:flex;justify-content:space-between;align-items:flex-end;padding-b
 .canvas-viewport.mode-pipe{cursor:crosshair}
 .canvas-viewport.mode-box{cursor:cell}
 
-/* ── TELA CHEIA (map-stage = ferramentas + canvas + painel de edição) ── */
-#map-stage:fullscreen,
-#map-stage:-webkit-full-screen{
-  background:var(--bg); padding:12px;
-  display:flex; flex-direction:column; gap:10px; overflow:auto;
-}
-#map-stage:fullscreen .layout,
-#map-stage:-webkit-full-screen .layout{ flex:1 1 auto; min-height:0; align-items:stretch; }
-#map-stage:fullscreen .map-wrap,
-#map-stage:-webkit-full-screen .map-wrap{ height:100%; }
-#map-stage:fullscreen .canvas-viewport,
-#map-stage:-webkit-full-screen .canvas-viewport{ min-height:0; }
-#map-stage:fullscreen .side,
-#map-stage:-webkit-full-screen .side{ overflow:auto; }
-body.fs-on #btn-fullscreen{ background:var(--inpasa-blue); color:#fff; border-color:var(--inpasa-blue); }
-#btn-lock-fs{ display:none; }
-body.fs-on #btn-lock-fs{ display:inline-flex; }
-body.fs-on.unlocked #btn-lock-fs{ background:var(--green); border-color:var(--green); color:#fff; }
-
 /* The actual large SVG canvas inside the viewport */
 #drain-svg{
   position:absolute;top:0;left:0;
-  overflow:visible;            /* canvas infinito: nada é recortado fora da caixa */
-  /* world de referência = 8000×10000 px; o grid é redesenhado dinamicamente p/ cobrir a área visível */
+  /* world size = 8000×5000 px; viewport will be scaled/translated via transform */
 }
 
 /* Grid lines via SVG pattern — drawn inside SVG */
@@ -164,22 +144,6 @@ body.fs-on.unlocked #btn-lock-fs{ background:var(--green); border-color:var(--gr
 
 .handle{fill:var(--inpasa-gold);stroke:#fff;stroke-width:1.5;cursor:grab}
 .draw-preview{stroke:var(--inpasa-blue);stroke-linecap:round;stroke-dasharray:12 8;opacity:.6;pointer-events:none}
-.draw-preview.locked{stroke:var(--inpasa-gold);stroke-dasharray:none;opacity:.85}
-.draw-ghost-box{fill:none;stroke:var(--inpasa-gold);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
-.draw-tip{font-family:'JetBrains Mono',monospace;font-weight:700;fill:var(--inpasa-blue);paint-order:stroke;stroke:#fff;stroke-width:3;stroke-linejoin:round;pointer-events:none}
-
-/* ── LENGTH INPUT (estilo CAD) ── */
-#len-input-wrap{position:absolute;display:none;z-index:40;background:var(--inpasa-blue);color:#fff;
-  border:1px solid var(--inpasa-blue-dark);box-shadow:var(--shadow-lg);padding:8px 10px;min-width:172px}
-#len-input-wrap.visible{display:block}
-.len-input-title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;opacity:.85;margin-bottom:5px}
-.len-input-row{display:flex;align-items:center;gap:6px}
-#len-input{flex:1;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
-  border:none;outline:2px solid var(--inpasa-gold);background:#fff;color:var(--text);padding:5px 8px;width:90px}
-#len-input::-webkit-outer-spin-button,#len-input::-webkit-inner-spin-button{opacity:1}
-.len-input-unit{font-size:12px;font-weight:700;opacity:.9}
-.len-input-hint{font-size:8px;margin-top:5px;opacity:.75;letter-spacing:.5px}
-.len-input-hint kbd{background:rgba(255,255,255,.2);padding:1px 4px;border-radius:2px;font-family:'JetBrains Mono',monospace}
 
 /* ── SIDE PANEL ── */
 .side{background:var(--panel);border:1px solid var(--border);padding:14px;height:fit-content;position:sticky;top:14px;box-shadow:var(--shadow)}
@@ -213,6 +177,15 @@ select.input{cursor:pointer}
 .textarea:focus{border-color:var(--inpasa-blue)}
 .delete-btn{width:100%;margin-top:8px;justify-content:center;color:var(--red)}
 .delete-btn:hover{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.autosave-hint{font-size:9px;color:var(--text-mute);letter-spacing:.5px;text-transform:uppercase;margin-top:8px;text-align:center;font-weight:600}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--accent-soft)}
+.filter-field{display:flex;flex-direction:column;gap:3px;min-width:130px}
+.filter-field label{font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.filter-field input,.filter-field select{font-family:'Montserrat',sans-serif;font-size:11px;padding:5px 8px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text);outline:none}
+.filter-field input:focus,.filter-field select:focus{border-color:var(--inpasa-blue)}
+.filter-clear{margin-left:auto}
 
 /* ── TABLE SECTION ── */
 .table-section{margin-top:20px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow)}
@@ -272,40 +245,6 @@ body.locked .textarea{pointer-events:none;opacity:.4}
 body.locked .handle{display:none!important}
 body.locked #btn-delete-el{pointer-events:none;opacity:.4}
 body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:#fff}
-
-/* ── ÁREA / EMPRESA · controles do mapa ── */
-.mapbar{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin-bottom:8px;padding:7px 10px;
-  background:var(--accent-soft);border:1px solid var(--border);}
-.mapbar-group{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.chip-btn{background:var(--bg-2);color:var(--text-dim);border:1px solid var(--border-2);padding:5px 11px;
-  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;cursor:pointer;border-radius:14px;transition:.15s}
-.chip-btn:hover{border-color:var(--inpasa-blue);color:var(--inpasa-blue)}
-.chip-btn.active{background:var(--inpasa-blue);border-color:var(--inpasa-blue);color:#fff}
-/* ── Painéis de indicadores ── */
-.ind-panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-@media(max-width:1100px){.ind-panels{grid-template-columns:1fr}}
-.ind-card{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column}
-.ind-head{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);
-  font-size:11px;font-weight:800;color:var(--text)}
-.ind-count{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--text-mute)}
-.ind-table-wrap{overflow-x:auto;max-height:230px;overflow-y:auto}
-.ind-table{width:100%;border-collapse:collapse;font-size:11px}
-.ind-table th{position:sticky;top:0;background:var(--bg);text-align:left;padding:6px 10px;font-size:8px;
-  letter-spacing:.6px;text-transform:uppercase;color:var(--text-mute);font-weight:700;border-bottom:1px solid var(--border);z-index:1}
-.ind-table th.num,.ind-table td.num{text-align:right}
-.ind-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);white-space:nowrap}
-.ind-row{cursor:pointer;transition:background .12s}
-.ind-row:hover{background:var(--accent-soft)}
-.ind-row.active{background:#fbf0d9;box-shadow:inset 3px 0 0 var(--inpasa-gold)}
-.ind-name{font-weight:700;color:var(--text)}
-.ind-name .none{font-weight:500;color:var(--text-mute);font-style:italic}
-.ind-empty{text-align:center;color:var(--text-mute);padding:16px;font-style:italic}
-.emp-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;
-  border:1px solid rgba(0,0,0,.15)}
-.mini-bar{display:inline-block;width:46px;height:7px;background:var(--bg);border:1px solid var(--border);
-  border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:5px}
-.mini-bar>span{display:block;height:100%;background:var(--green)}
-.mini-pct{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--text-dim)}
 </style>
 <script src="config.js"></script>
 </head>
@@ -340,7 +279,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     <div class="kpi-sub" id="kpi-pipes-m">0 m lineares</div>
   </div>
   <div class="kpi" data-color="green">
-    <div class="kpi-label">Caixas</div>
+    <div class="kpi-label">Caixas PV</div>
     <div class="kpi-value" id="kpi-boxes">0</div>
     <div class="kpi-sub">Poços de visita</div>
   </div>
@@ -367,40 +306,16 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-pipes"></div></div>
 </div>
 <div class="macro-progress" style="margin-top:-6px">
-  <div class="macro-head"><span>Avanço — Caixas</span><strong id="macro-text-boxes">0 / 0</strong></div>
+  <div class="macro-head"><span>Avanço — Caixas PV</span><strong id="macro-text-boxes">0 / 0</strong></div>
   <div class="macro-bar"><div class="macro-fill" id="macro-fill-boxes"></div></div>
 </div>
 
 <!-- LEGEND -->
 <div class="legend-wrap">
-  <div class="legend-title">Legenda — Status e Tipos de Caixa</div>
+  <div class="legend-title">Legenda — Diâmetros e Status</div>
   <div class="legend-grid" id="legend-grid"></div>
 </div>
 
-<!-- INDICADORES POR ÁREA / EMPRESA -->
-<div class="ind-panels">
-  <div class="ind-card">
-    <div class="ind-head"><span>📍 Avanço por Área</span><span class="ind-count" id="ind-area-count">—</span></div>
-    <div class="ind-table-wrap">
-      <table class="ind-table">
-        <thead><tr><th>Área</th><th class="num">Trechos</th><th class="num">Tubulação</th><th class="num">Metros</th><th class="num">Caixas</th><th class="num">Instaladas</th></tr></thead>
-        <tbody id="ind-area-body"></tbody>
-      </table>
-    </div>
-  </div>
-  <div class="ind-card">
-    <div class="ind-head"><span>🏢 Avanço por Empresa</span><span class="ind-count" id="ind-emp-count">—</span></div>
-    <div class="ind-table-wrap">
-      <table class="ind-table">
-        <thead><tr><th>Empresa</th><th class="num">Elem.</th><th class="num">Trechos</th><th class="num">Caixas</th><th class="num">Avanço</th></tr></thead>
-        <tbody id="ind-emp-body"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- MAP STAGE (área que vai para tela cheia: ferramentas + canvas + painel) -->
-<div id="map-stage">
 <!-- TOOLBAR -->
 <div class="toolbar">
   <div class="toolbar-section">
@@ -415,10 +330,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 8h12" stroke-linecap="round"/></svg>Traçar Tubo
     </button>
     <button class="tool-btn" id="btn-box" onclick="setTool('box')">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa
-    </button>
-    <button class="tool-btn" id="btn-selectall" onclick="selectAll()" title="Selecionar tudo para mover em conjunto (Ctrl+A)">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="2.5 1.8"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/></svg>Selecionar Tudo
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="8" height="8"/></svg>Caixa PV
     </button>
   </div>
   <div class="toolbar-section">
@@ -431,29 +343,15 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       <option value="1200" selected>Ø 1200 mm</option>
       <option value="1500">Ø 1500 mm</option>
     </select>
-    <span class="toolbar-label">Tipo de Caixa</span>
-    <select class="diam-select" id="box-type-default" title="Tipo da caixa a inserir (também usado na caixa de fim do trecho)">
-      <option value="PV" selected>PV · Poço de Visita</option>
-      <option value="BL">BL · Boca de Lobo</option>
-      <option value="CP">CP · Caixa de Passagem</option>
-    </select>
-    <span class="toolbar-label">Área</span>
-    <input class="diam-select" id="area-default" list="areas-list" placeholder="Pátio do Posto" style="width:145px" title="Área padrão aplicada aos próximos elementos desenhados"/>
-    <span class="toolbar-label">Empresa</span>
-    <input class="diam-select" id="empresa-default" list="empresas-list" placeholder="Executora" style="width:130px" title="Empresa padrão aplicada aos próximos elementos desenhados"/>
     <div class="toolbar-sep"></div>
     <button class="tool-btn danger" onclick="clearAll()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>Limpar Tudo
-    </button>
-    <button class="tool-btn" id="btn-lock-fs" onclick="toggleLock()" title="Liberar / Trancar edição">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
-      <span id="lock-label-fs">Liberar</span>
     </button>
   </div>
 </div>
 
 <!-- HINTS -->
-<div class="map-hint" id="hint-pipe">✏ <b>1)</b> Clique numa caixa PV · <b>2)</b> aponte a direção com o mouse (<kbd>Shift</kbd> trava em 45°) · <b>3)</b> clique p/ travar · <b>4)</b> digite o comprimento + <kbd>Enter</kbd> → caixa PV de fim é criada · <kbd>Esc</kbd> cancela</div>
+<div class="map-hint" id="hint-pipe">✏ Clique e arraste para traçar um trecho · <kbd>Esc</kbd> cancela</div>
 <div class="map-hint" id="hint-box">✏ Clique para posicionar uma caixa PV · <kbd>Esc</kbd> cancela</div>
 <div class="map-hint" id="hint-pan" style="background:#f0fbf0;border-color:var(--green);color:var(--green)">🖐 Clique e arraste para mover o canvas · Scroll do mouse = zoom</div>
 
@@ -470,27 +368,11 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
           <button class="zoom-btn" onclick="zoom(0.8)" title="Zoom out">−</button>
           <button class="zoom-btn" onclick="zoomFit()" title="Encaixar tudo" style="font-size:11px;font-weight:800;width:auto;padding:0 6px">⊞</button>
           <button class="zoom-btn" onclick="zoomReset()" title="100%%" style="font-size:10px;width:auto;padding:0 6px">1:1</button>
-          <button class="zoom-btn" id="btn-fullscreen" onclick="toggleFullscreen()" title="Tela cheia" style="width:auto;padding:0 7px;font-size:14px">⛶</button>
         </div>
       </div>
     </div>
-    <div class="mapbar">
-      <div class="mapbar-group">
-        <span class="toolbar-label">Colorir por</span>
-        <button class="chip-btn active" id="cb-status" onclick="setColorMode('status')">Status</button>
-        <button class="chip-btn" id="cb-empresa" onclick="setColorMode('empresa')">Empresa</button>
-      </div>
-      <div class="mapbar-group">
-        <span class="toolbar-label">Filtrar</span>
-        <select class="diam-select" id="filtro-area" onchange="setFiltroArea(this.value)"><option value="">Área: todas</option></select>
-        <select class="diam-select" id="filtro-empresa" onchange="setFiltroEmpresa(this.value)"><option value="">Empresa: todas</option></select>
-        <button class="tool-btn" id="btn-limpar-filtro" style="display:none" onclick="limparFiltros()">✕ Limpar filtro</button>
-      </div>
-    </div>
-    <datalist id="areas-list"></datalist>
-    <datalist id="empresas-list"></datalist>
     <div class="canvas-viewport" id="canvas-viewport">
-      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="10000">
+      <svg id="drain-svg" xmlns="http://www.w3.org/2000/svg" width="8000" height="5000">
         <defs>
           <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e4e7ec" stroke-width="0.5"/>
@@ -500,18 +382,10 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
             <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#d4d8e0" stroke-width="1"/>
           </pattern>
         </defs>
-        <rect id="grid-bg" x="-2000" y="-2000" width="12000" height="14000" fill="url(#grid)"/>
+        <rect width="8000" height="5000" fill="url(#grid)"/>
         <g id="elements-layer"></g>
         <g id="preview-layer"></g>
       </svg>
-      <div id="len-input-wrap">
-        <div class="len-input-title">Comprimento do trecho</div>
-        <div class="len-input-row">
-          <input id="len-input" type="text" inputmode="decimal" placeholder="metros" autocomplete="off"/>
-          <span class="len-input-unit">m</span>
-        </div>
-        <div class="len-input-hint"><kbd>Enter</kbd> confirma · <kbd>Esc</kbd> cancela</div>
-      </div>
     </div>
   </div>
 
@@ -549,35 +423,26 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
         <span class="field-label">Comprimento (m)</span>
         <input type="number" class="input" id="op-len" min="0" step="0.5" placeholder="ex.: 50"/>
       </div>
-      <div class="field" id="field-boxtype" style="display:none">
-        <span class="field-label">Tipo de Caixa</span>
-        <select class="input" id="op-boxtype" onchange="setBoxType(this.value)">
-          <option value="PV">PV · Poço de Visita</option>
-          <option value="BL">BL · Boca de Lobo</option>
-          <option value="CP">CP · Caixa de Passagem</option>
-        </select>
-      </div>
       <div class="field" id="field-pvnum" style="display:none">
-        <span class="field-label">Número (1–500)</span>
+        <span class="field-label">Número PV (1–500)</span>
         <input type="number" class="input" id="op-pvnum" min="1" max="500" step="1" placeholder="1–500"/>
       </div>
-      <div class="field" id="field-area">
-        <span class="field-label">Área</span>
-        <input class="input" id="op-area" list="areas-list" placeholder="ex.: Pátio do Posto" onchange="setArea(this.value)"/>
+      <div class="field">
+        <span class="field-label">Empresa Executora</span>
+        <input type="text" class="input" id="op-empresa" list="empresa-list" placeholder="Nome da empresa"/>
+        <datalist id="empresa-list"></datalist>
       </div>
-      <div class="field" id="field-empresa">
-        <span class="field-label">Empresa executora</span>
-        <input class="input" id="op-empresa" list="empresas-list" placeholder="ex.: Construtora X" onchange="setEmpresa(this.value)"/>
+      <div class="field">
+        <span class="field-label">Data de Conclusão</span>
+        <input type="date" class="input" id="op-completed"/>
       </div>
       <div class="field">
         <span class="field-label">Observações / Impedimentos</span>
         <textarea class="textarea" id="op-note" placeholder="Informe pendências, datas, observações..."></textarea>
       </div>
+      <div class="autosave-hint">✓ Alterações salvas automaticamente</div>
       <div class="btn-row">
-        <button class="tool-btn primary" onclick="saveSelected()">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9l4 4 8-8"/></svg>Salvar
-        </button>
-        <button class="tool-btn" onclick="deselect()">Fechar</button>
+        <button class="tool-btn" onclick="deselect()" style="flex:1;justify-content:center">Fechar</button>
       </div>
       <button class="tool-btn danger delete-btn" id="btn-delete-el" onclick="deleteSelected()">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>
@@ -586,7 +451,6 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
     </div>
   </div>
 </div>
-</div><!-- /map-stage -->
 
 <!-- TABLE SECTION -->
 <div class="table-section">
@@ -603,16 +467,42 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
       </button>
     </div>
   </div>
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <div class="filter-field">
+      <label>Empresa</label>
+      <select id="filter-empresa" onchange="applyFilters()">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Conclusão · De</label>
+      <input type="date" id="filter-date-from" onchange="applyFilters()"/>
+    </div>
+    <div class="filter-field">
+      <label>Conclusão · Até</label>
+      <input type="date" id="filter-date-to" onchange="applyFilters()"/>
+    </div>
+    <div class="filter-field">
+      <label>Status</label>
+      <select id="filter-status" onchange="applyFilters()">
+        <option value="">Todos</option>
+        <option value="done">✔ Concluído</option>
+        <option value="pend">⏳ Pendente</option>
+      </select>
+    </div>
+    <button class="tool-btn filter-clear" onclick="clearFilters()">Limpar filtros</button>
+  </div>
   <div class="table-wrap">
     <table class="data-table" id="data-table">
       <thead>
         <tr>
           <th>ID</th><th>Tipo</th><th>Ø / PV Nº</th>
-          <th class="num">Compr. (m)</th><th>Status</th><th>Área</th><th>Empresa</th><th>Observações</th>
+          <th class="num">Compr. (m)</th><th>Empresa</th><th>Data Conclusão</th><th>Status</th><th>Observações</th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>
+        <tr><td colspan="8" style="text-align:center;color:var(--text-mute);padding:18px;font-style:italic">Nenhum elemento cadastrado</td></tr>
       </tbody>
     </table>
   </div>
@@ -650,7 +540,7 @@ body.unlocked #btn-lock{background:var(--green);border-color:var(--green);color:
 <div class="modal-overlay" id="modal-import">
   <div class="modal-box wide">
     <h3>Importar CSV</h3>
-    <p>Selecione ou arraste um arquivo <strong>.csv</strong> previamente exportado deste sistema. As colunas <code>id</code>, <code>tipo</code>, <code>diametro_mm</code>, <code>pv_numero</code>, <code>comprimento_m</code>, <code>status</code> e <code>observacoes</code> serão lidas. As posições no canvas serão mantidas — apenas os dados de campo são atualizados.</p>
+    <p>Selecione ou arraste um arquivo <strong>.csv</strong> previamente exportado deste sistema. As colunas <code>id</code>, <code>tipo</code>, <code>diametro_mm</code>, <code>pv_numero</code>, <code>comprimento_m</code>, <code>status</code>, <code>empresa</code>, <code>data_conclusao</code> e <code>observacoes</code> serão lidas. As posições no canvas serão mantidas — apenas os dados de campo são atualizados.</p>
     <div class="import-area" id="import-area" onclick="document.getElementById('import-file-input').click()">
       <p>🗂 <strong>Clique para selecionar</strong> ou arraste um arquivo CSV aqui</p>
     </div>
@@ -679,18 +569,10 @@ const SB_KEY = (window.PCO_CONFIG||{supabase:{}}).supabase.key || '';           
 const TABLE  = 'drain_elements';
 const SVG_NS        = 'http://www.w3.org/2000/svg';
 const WORLD_W       = 8000;
-const WORLD_H       = 10000;
+const WORLD_H       = 5000;
 const SNAP          = 20;
 const PV_SIZE       = 40;
 const MIN_PIPE      = 30;
-
-/* ── ESCALA REAL (estilo CAD) ──
-   Quantos pixels-do-mundo equivalem a 1 metro. Configurável via config.js
-   (PCO_CONFIG.system.pxPorMetro). Padrão = 10 px/m  →  grade de 20px = 2 m. */
-const PX_PER_M = Number((window.PCO_CONFIG||{system:{}}).system.pxPorMetro) || 10;
-/* Se o fim do trecho cair a até este raio (px) do centro de uma caixa
-   já existente, conecta nela (vira nó) em vez de criar caixa nova. */
-const BOX_JUNCTION_SNAP = PV_SIZE; // 40 px
 
 /* Espessura visual da linha por diâmetro (em SVG units) */
 const PIPE_TH = {400:10,600:14,800:18,1000:22,1200:26,1500:32};
@@ -706,44 +588,16 @@ const DIAM_C = {
 };
 const DIAMS = [400,600,800,1000,1200,1500];
 
-/* ── COR DO TUBO POR STATUS (sem código por diâmetro) ──
-   O diâmetro continua existindo (controle + espessura do traço),
-   só a COR passa a ser: cinza = pendente · verde = concluído. */
-const PIPE_DONE        = '#609346';  // verde concluído
-const PIPE_PEND        = '#aab2bd';  // cinza pendente
-const PIPE_DONE_STROKE = '#4c7637';
-const PIPE_PEND_STROKE = '#7c8694';
-
-/* Translucidez dos PENDENTES (cinza) — quanto menor, mais "apagado" fica o
-   pendente, fazendo o concluído (verde/azul) se destacar ao tirar o zoom. */
-const PEND_PIPE_OPACITY = 0.4;
-const PEND_BOX_OPACITY  = 0.55;
-
-/* ── TIPOS DE CAIXA ──
-   Todos com a MESMA função: ponto de partida e de interligação de ramais.
-   No indicador do topo todos contam como "Caixas". */
-const BOX_TYPES = {
-  PV: { label:'PV', name:'Poço de Visita' },
-  BL: { label:'BL', name:'Boca de Lobo' },
-  CP: { label:'CP', name:'Caixa de Passagem' },
-};
-const BOX_TYPE_KEYS = ['PV','BL','CP'];
-function boxLabel(el){ const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return t.label + (el.pvNum||'?'); }
-function boxName(el){  const t=BOX_TYPES[el.boxType||'PV']||BOX_TYPES.PV; return t.name + ' ' + (el.pvNum||'?'); }
-
 /* ================================================================
    STATE
    ================================================================ */
 let elements   = [];
 let selectedId = null;
-let selectedIds = new Set();   // seleção múltipla (para mover em conjunto)
 let tool       = 'select';
 let isUnlocked = false;
 let modalCb    = null;
 let pendingCsv = null;   // rows parsed from CSV before confirm
-let colorMode     = 'status';   // 'status' | 'empresa'
-let filtroArea    = null;       // área filtrada (null = todas)
-let filtroEmpresa = null;       // empresa filtrada (null = todas)
+let filters    = { empresa:'', dateFrom:'', dateTo:'', status:'' };
 
 /* Viewport / pan-zoom */
 let vpScale = 1;
@@ -751,35 +605,41 @@ let vpTx    = 0;
 let vpTy    = 0;
 
 /* ================================================================
-   UID / SNAP
+   UID / SNAP / DATE
    ================================================================ */
 function uid(){ return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,6) }
 function snapV(v){ return Math.round(v/SNAP)*SNAP }
+function todayISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 
 /* ================================================================
    LEGEND BUILD
    ================================================================ */
 function buildLegend(){
   const g = document.getElementById('legend-grid');
-  const titEl = document.querySelector('.legend-title');
-  if(colorMode==='empresa'){
-    if(titEl) titEl.textContent='Legenda — Empresa executora';
-    const emps=empresasList();
-    let html=`<div class="legend-item"><span class="legend-swatch" style="background:#c1c9d3"></span>Sem empresa</div>`;
-    html+=emps.map(e=>`<div class="legend-item"><span class="legend-swatch" style="background:${empresaColor(e)}"></span>${escHtml(e)}</div>`).join('');
-    html+=`<div class="legend-item" style="opacity:.75;font-weight:500">Tracejado / apagado = pendente</div>`;
-    g.innerHTML=html;
-    return;
-  }
-  if(titEl) titEl.textContent='Legenda — Status e Tipos de Caixa';
-  g.innerHTML = `
-    <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_PEND}"></span>Tubo pendente</div>
-    <div class="legend-item"><span class="legend-swatch" style="background:${PIPE_DONE}"></span>Tubo concluído</div>
-    <div class="legend-item"><div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente</div>
-    <div class="legend-item"><div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída</div>
-    <div class="legend-item" style="opacity:.8;font-weight:500">PV · Poço de Visita</div>
-    <div class="legend-item" style="opacity:.8;font-weight:500">BL · Boca de Lobo</div>
-    <div class="legend-item" style="opacity:.8;font-weight:500">CP · Caixa de Passagem</div>`;
+  g.innerHTML = '';
+  DIAMS.forEach(d => {
+    const c = DIAM_C[d];
+    g.innerHTML += `
+      <div class="legend-item">
+        <span class="legend-swatch" style="background:${c.done}"></span>Ø${d} concluído
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch pend" style="background:${c.pend};border-color:${c.done}"></span>Ø${d} pendente
+      </div>`;
+  });
+  g.innerHTML += `
+    <div class="legend-item">
+      <div class="legend-box" style="background:#e5e7eb;color:#374151">PV</div> Caixa pendente
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background:#304F7E;color:#fff">PV</div> Caixa concluída
+    </div>`;
 }
 
 /* ================================================================
@@ -815,54 +675,74 @@ async function sbFetch(path, opts={}){
 
 /* Objeto interno → linha do banco */
 function toRow(el){
-  const base = { id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'',
-                 area: normStr(el.area)||null, empresa: normStr(el.empresa)||null };
+  const base = {
+    id: el.id, kind: el.kind, status: el.status||'pend', note: el.note||'',
+    empresa: el.empresa||'', data_conclusao: el.completedDate||null
+  };
   if(el.kind === 'pipe')
     return { ...base, diam: el.diam, length_m: el.lengthM||0,
              x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2,
-             from_box: el.fromBox||null, to_box: el.toBox||null,
-             box_type: null,
              pv_num: null, pv_x: null, pv_y: null };
   else
     return { ...base, pv_num: el.pvNum, pv_x: el.x, pv_y: el.y,
-             box_type: el.boxType||'PV',
-             from_box: null, to_box: null,
              diam: null, length_m: null, x1: null, y1: null, x2: null, y2: null };
 }
 
 /* Linha do banco → objeto interno */
 function fromRow(r){
+  const common = {
+    id:r.id, status:r.status||'pend', note:r.note||'',
+    empresa:r.empresa||'', completedDate:r.data_conclusao||''
+  };
   if(r.kind === 'pipe')
-    return { id:r.id, kind:'pipe', status:r.status, note:r.note||'',
-             area:r.area||'', empresa:r.empresa||'',
+    return { ...common, kind:'pipe',
              diam:r.diam, lengthM:Number(r.length_m)||0,
-             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2),
-             fromBox:r.from_box||null, toBox:r.to_box||null };
+             x1:Number(r.x1), y1:Number(r.y1), x2:Number(r.x2), y2:Number(r.y2) };
   else
-    return { id:r.id, kind:'box', status:r.status, note:r.note||'',
-             area:r.area||'', empresa:r.empresa||'',
-             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y),
-             boxType:r.box_type||'PV' };
+    return { ...common, kind:'box',
+             pvNum:r.pv_num, x:Number(r.pv_x), y:Number(r.pv_y) };
 }
 
 /* ================================================================
    STORAGE  (Supabase + localStorage como fallback offline)
    ================================================================ */
+let saveInFlight = false;
+let savePending  = false;
+
 async function save(){
+  // coalesce saves: se já está salvando, marca pendente e sai
+  if(saveInFlight){ savePending = true; return; }
+  saveInFlight = true;
+
   setSyncStatus('Salvando...', 'saving');
-  // salva também local como cache offline
+  // salva sempre local primeiro como cache offline (não perde dados)
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)) }catch(_){}
+
   try {
-    await sbFetch(TABLE + '?on_conflict=id', {
-      method: 'POST',
-      prefer: 'resolution=merge-duplicates,return=minimal',
-      body: JSON.stringify(elements.map(toRow)),
-    });
+    // se elements está vazio, não faz POST (evita erro do PostgREST com body vazio)
+    if(elements.length > 0){
+      await sbFetch(TABLE + '?on_conflict=id', {
+        method: 'POST',
+        prefer: 'resolution=merge-duplicates,return=minimal',
+        body: JSON.stringify(elements.map(toRow)),
+      });
+    }
     setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
   } catch(e){
     setSyncStatus('Erro ao salvar', 'error');
     toast('Supabase: ' + e.message, true);
+  } finally {
+    saveInFlight = false;
+    // se algo mudou enquanto salvava, dispara mais uma rodada
+    if(savePending){ savePending = false; save(); }
   }
+}
+
+/* Salva com debounce para inputs de texto (evita rajada) */
+let saveTimer = null;
+function saveDebounced(delay=400){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ save(); }, delay);
 }
 
 async function deleteFromDB(id){
@@ -873,16 +753,35 @@ async function loadData(){
   setSyncStatus('Conectando...', 'saving');
   try {
     const rows = await sbFetch(TABLE + '?order=created_at.asc');
-    elements = (rows||[]).map(fromRow);
-    setSyncStatus('Online ✓', 'ok');
-    // atualiza cache local
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)) }catch(_){}
+    // ATENÇÃO: nunca sobrescreva o cache local com um array vazio vindo do banco
+    // se localmente tem dados — pode ser um estado transitório do banco.
+    // Só aceita o resultado se tiver linhas, ou se local também está vazio.
+    let cacheData = [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) cacheData = JSON.parse(raw) || [];
+    } catch(_){}
+
+    const remote = (rows||[]).map(fromRow);
+
+    if(remote.length === 0 && cacheData.length > 0){
+      // banco vazio mas cache tem dados — usa cache e faz push pro banco
+      elements = cacheData;
+      setSyncStatus('Cache local · sincronizando...', 'saving');
+      try { await save(); } catch(_){}
+      setSyncStatus('Online ✓', 'ok');
+    } else {
+      elements = remote;
+      setSyncStatus('Online ✓', 'ok');
+      // atualiza cache local só quando temos algo do banco (ou ambos vazios)
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)) }catch(_){}
+    }
   } catch(e){
     setSyncStatus('Offline — cache local', 'error');
     toast('Supabase indisponível · usando cache local', true);
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if(raw) elements = JSON.parse(raw);
+      if(raw) elements = JSON.parse(raw) || [];
     } catch(_){ elements = []; }
   }
 }
@@ -895,33 +794,6 @@ function applyTransform(){
   svg.style.transform = `translate(${vpTx}px,${vpTy}px) scale(${vpScale})`;
   svg.style.transformOrigin = '0 0';
   document.getElementById('zoom-label').textContent = Math.round(vpScale*100)+'%';
-  updateGridRect();
-}
-
-/* Grid infinito: reposiciona/redimensiona o <rect> do quadriculado para
-   sempre cobrir a área visível do viewport (em qualquer direção). O padrão
-   'url(#grid)' é userSpaceOnUse, ancorado na origem (0,0) do SVG, então as
-   linhas permanecem alinhadas mesmo com x/y negativos. */
-function updateGridRect(){
-  const grid = document.getElementById('grid-bg');
-  if(!grid) return;
-  const vp   = document.getElementById('canvas-viewport');
-  if(!vp) return;
-  const rect = vp.getBoundingClientRect();
-  const vw = rect.width  || window.innerWidth;
-  const vh = rect.height || window.innerHeight;
-  const tl = vpToWorld(0, 0);      // canto superior-esquerdo em coords do mundo
-  const br = vpToWorld(vw, vh);    // canto inferior-direito
-  const G = 100;                   // passo da grade (mantém alinhamento ao snap)
-  const margin = 600;              // folga em px de mundo p/ pan/scroll suave
-  const x1 = Math.floor((tl.x - margin) / G) * G;
-  const y1 = Math.floor((tl.y - margin) / G) * G;
-  const x2 = Math.ceil ((br.x + margin) / G) * G;
-  const y2 = Math.ceil ((br.y + margin) / G) * G;
-  grid.setAttribute('x', x1);
-  grid.setAttribute('y', y1);
-  grid.setAttribute('width',  Math.max(G, x2 - x1));
-  grid.setAttribute('height', Math.max(G, y2 - y1));
 }
 
 function zoom(factor, cx, cy){
@@ -969,42 +841,6 @@ function zoomReset(){
   applyTransform();
 }
 
-/* ================================================================
-   TELA CHEIA (visualização + edição do mapa)
-   ================================================================ */
-function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
-function toggleFullscreen(){
-  const stage = document.getElementById('map-stage');
-  if(!fsElement()){
-    const req = stage.requestFullscreen || stage.webkitRequestFullscreen || stage.msRequestFullscreen;
-    if(req) req.call(stage);
-    else toast('Tela cheia não suportada neste navegador', true);
-  } else {
-    const ex = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
-    if(ex) ex.call(document);
-  }
-}
-function onFullscreenChange(){
-  const on = !!fsElement();
-  document.body.classList.toggle('fs-on', on);
-  const stage = document.getElementById('map-stage');
-  // modais/toast precisam estar DENTRO do elemento em tela cheia para aparecerem
-  ['modal-confirm','modal-pwd','modal-import','toast'].forEach(id=>{
-    const elx = document.getElementById(id);
-    if(!elx) return;
-    if(on) stage.appendChild(elx); else document.body.appendChild(elx);
-  });
-  const btn = document.getElementById('btn-fullscreen');
-  if(btn){
-    btn.textContent = on ? '🗗' : '⛶';
-    btn.title = on ? 'Sair da tela cheia (Esc)' : 'Tela cheia';
-  }
-  // o viewport mudou de tamanho → reaplica a transformação (preserva a vista atual)
-  setTimeout(applyTransform, 60);
-}
-document.addEventListener('fullscreenchange', onFullscreenChange);
-document.addEventListener('webkitfullscreenchange', onFullscreenChange);
-
 /* Convert viewport pixel → world SVG coordinates */
 function vpToWorld(px, py){
   return { x:(px-vpTx)/vpScale, y:(py-vpTy)/vpScale };
@@ -1015,32 +851,6 @@ function evToWorld(ev){
   const vp   = document.getElementById('canvas-viewport');
   const rect = vp.getBoundingClientRect();
   return vpToWorld(ev.clientX - rect.left, ev.clientY - rect.top);
-}
-
-/* Convert world SVG coords → viewport pixel (relativo ao .canvas-viewport) */
-function worldToVp(wx, wy){
-  return { x: wx*vpScale + vpTx, y: wy*vpScale + vpTy };
-}
-
-/* Centro de uma caixa (PV) em coordenadas do mundo */
-function boxCenter(b){ return { x: b.x + PV_SIZE/2, y: b.y + PV_SIZE/2 }; }
-
-/* Caixa sob o ponto (wx,wy) — usado p/ iniciar trecho clicando na caixa */
-function findBoxUnder(wx, wy){
-  return elements.find(e => e.kind==='box'
-    && wx >= e.x && wx <= e.x+PV_SIZE
-    && wy >= e.y && wy <= e.y+PV_SIZE);
-}
-
-/* Caixa cujo CENTRO está a até `thresh` px do ponto — usado p/ junção no fim */
-function findBoxNear(wx, wy, thresh, exceptId){
-  let best=null, bestD=Infinity;
-  elements.forEach(e=>{
-    if(e.kind!=='box' || e.id===exceptId) return;
-    const c=boxCenter(e); const d=Math.hypot(c.x-wx, c.y-wy);
-    if(d<=thresh && d<bestD){ best=e; bestD=d; }
-  });
-  return best;
 }
 
 /* ================================================================
@@ -1072,14 +882,12 @@ function updateLockUI(){
   document.body.classList.toggle('locked',!isUnlocked);
   document.body.classList.toggle('unlocked',isUnlocked);
   document.getElementById('lock-label').textContent=isUnlocked?'Edição liberada · Trancar':'Bloqueado · Liberar';
-  const l2=document.getElementById('lock-label-fs'); if(l2) l2.textContent=isUnlocked?'Trancar':'Liberar';
 }
 
 /* ================================================================
    TOOLS
    ================================================================ */
 function setTool(t){
-  if(typeof cancelLine==='function') cancelLine();   // encerra desenho em andamento
   tool=t;
   ['select','pan','pipe','box'].forEach(k=>{
     document.getElementById('btn-'+k)?.classList.toggle('active',t===k);
@@ -1092,159 +900,52 @@ function setTool(t){
 }
 
 /* ================================================================
-   DRAW — TRECHO  (estilo CAD: caixa → direção → comprimento → caixa)
-   ================================================================
-   Máquina de estados do desenho (variável `line`):
-     null         → ocioso, aguardando 1º clique numa caixa PV (origem)
-     'direction'  → origem definida; o mouse define a direção; 2º clique trava
-     'length'     → direção travada; aguardando o comprimento digitado (Enter) */
-let line = null;   // { state, fromBoxId, ox, oy, dirX, dirY, angle }
+   DRAW — PIPE
+   ================================================================ */
+let pipeStart = null;
 
-function drawLayer(){ return document.getElementById('preview-layer'); }
-function clearLinePreview(){
-  ['pipe-prev','line-tip','line-ghost'].forEach(id=>document.getElementById(id)?.remove());
-}
-
-/* 1º clique — inicia o trecho a partir de uma caixa existente */
-function startLineFromBox(box){
+function startPipe(ev){
   if(!isUnlocked) return;
-  const c = boxCenter(box);
-  line = { state:'direction', fromBoxId:box.id, ox:c.x, oy:c.y, dirX:1, dirY:0, angle:0 };
-  const ln = document.createElementNS(SVG_NS,'line');
-  ln.id='pipe-prev'; ln.setAttribute('class','draw-preview');
-  ln.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
-  ln.setAttribute('x1',c.x); ln.setAttribute('y1',c.y);
-  ln.setAttribute('x2',c.x); ln.setAttribute('y2',c.y);
-  drawLayer().appendChild(ln);
-}
-
-/* ângulo origem→cursor (snap de 45° com Shift) */
-function aimFromEvent(ev){
   const w = evToWorld(ev);
-  let ang = Math.atan2(w.y-line.oy, w.x-line.ox);
-  if(ev.shiftKey){ const step=Math.PI/4; ang = Math.round(ang/step)*step; }
-  return { angle:ang, dirX:Math.cos(ang), dirY:Math.sin(ang),
-           dist:Math.hypot(w.x-line.ox, w.y-line.oy) };
+  pipeStart = {x:snapV(w.x), y:snapV(w.y)};
+  // preview line
+  const layer = document.getElementById('preview-layer');
+  const line  = document.createElementNS(SVG_NS,'line');
+  line.id='pipe-prev';
+  line.setAttribute('class','draw-preview');
+  line.setAttribute('stroke-width', PIPE_TH[getDiam()]||18);
+  line.setAttribute('x1',pipeStart.x); line.setAttribute('y1',pipeStart.y);
+  line.setAttribute('x2',pipeStart.x); line.setAttribute('y2',pipeStart.y);
+  layer.appendChild(line);
+  ev.preventDefault();
 }
 
-/* fase de direção — estica o preview até o cursor */
-function moveLineDir(ev){
-  if(!line || line.state!=='direction') return;
-  const a = aimFromEvent(ev);
+function movePipe(ev){
+  if(!pipeStart) return;
+  const w = evToWorld(ev);
   const prev = document.getElementById('pipe-prev');
-  if(prev){ prev.setAttribute('x2', line.ox + a.dirX*a.dist);
-            prev.setAttribute('y2', line.oy + a.dirY*a.dist); }
-  line.dirX=a.dirX; line.dirY=a.dirY; line.angle=a.angle;
+  if(prev){ prev.setAttribute('x2',snapV(w.x)); prev.setAttribute('y2',snapV(w.y)); }
 }
 
-/* 2º clique — trava a direção e abre o campo de comprimento */
-function lockLineDirection(ev){
-  const a = aimFromEvent(ev);
-  if(a.dist < 4){ toast('Afaste o cursor para definir a direção'); return; }
-  line.dirX=a.dirX; line.dirY=a.dirY; line.angle=a.angle; line.state='length';
-  document.getElementById('pipe-prev')?.classList.add('locked');
-  openLengthInput();
-  updateLineLengthPreview();
-}
-
-/* campo flutuante de comprimento */
-function openLengthInput(){
-  const wrap = document.getElementById('len-input-wrap');
-  const inp  = document.getElementById('len-input');
-  const p = worldToVp(line.ox, line.oy);
-  const vp = document.getElementById('canvas-viewport');
-  const maxL = vp.clientWidth - 185, maxT = vp.clientHeight - 80;
-  wrap.style.left = Math.min(maxL, Math.max(6, p.x + 14)) + 'px';
-  wrap.style.top  = Math.min(maxT, Math.max(6, p.y + 14)) + 'px';
-  wrap.classList.add('visible');
-  inp.value=''; setTimeout(()=>inp.focus(),30);
-}
-function closeLengthInput(){ document.getElementById('len-input-wrap')?.classList.remove('visible'); }
-
-function currentLengthM(){
-  const raw = String(document.getElementById('len-input').value).replace(',', '.').trim();
-  const v = parseFloat(raw);
-  return (!isNaN(v) && v>0) ? v : 0;
-}
-function lineEndpoint(){
-  const len = currentLengthM();
-  return { x: Math.round(line.ox + line.dirX*len*PX_PER_M),
-           y: Math.round(line.oy + line.dirY*len*PX_PER_M) };
-}
-
-/* atualiza preview do tubo + caixa-fantasma + rótulo enquanto digita */
-function updateLineLengthPreview(){
-  if(!line || line.state!=='length') return;
-  const len = currentLengthM();
-  const e   = lineEndpoint();
-  const layer = drawLayer();
-  const prev = document.getElementById('pipe-prev');
-  if(prev){ prev.setAttribute('x2',e.x); prev.setAttribute('y2',e.y); }
-
-  let ghost = document.getElementById('line-ghost');
-  if(!ghost){
-    ghost=document.createElementNS(SVG_NS,'rect'); ghost.id='line-ghost';
-    ghost.setAttribute('class','draw-ghost-box');
-    ghost.setAttribute('width',PV_SIZE); ghost.setAttribute('height',PV_SIZE);
-    layer.appendChild(ghost);
-  }
-  ghost.setAttribute('x', e.x-PV_SIZE/2); ghost.setAttribute('y', e.y-PV_SIZE/2);
-  ghost.style.display = len>0 ? '' : 'none';
-
-  let tip = document.getElementById('line-tip');
-  if(!tip){
-    tip=document.createElementNS(SVG_NS,'text'); tip.id='line-tip';
-    tip.setAttribute('class','draw-tip'); tip.setAttribute('font-size','13');
-    tip.setAttribute('text-anchor','middle'); layer.appendChild(tip);
-  }
-  tip.setAttribute('x',(line.ox+e.x)/2); tip.setAttribute('y',(line.oy+e.y)/2 - 10);
-  tip.textContent = len>0 ? (len.toLocaleString('pt-BR')+' m') : '';
-}
-
-/* confirma — cria o tubo + caixa de fim (ou conecta numa caixa existente = nó) */
-function commitLine(){
-  if(!line || line.state!=='length') return;
-  const len = currentLengthM();
-  if(len<=0){ toast('Informe um comprimento maior que zero', true); return; }
-  const e = lineEndpoint();
-
-  let endBox = findBoxNear(e.x, e.y, BOX_JUNCTION_SNAP, line.fromBoxId);
-  let endX, endY, toBoxId, novaCaixa=false;
-  if(endBox){
-    const c = boxCenter(endBox); endX=c.x; endY=c.y; toBoxId=endBox.id;
-  } else {
-    const bt = getBoxType();
-    endBox = { id:uid(), kind:'box', boxType:bt, x:e.x-PV_SIZE/2, y:e.y-PV_SIZE/2,
-               pvNum:nextBoxNum(bt), status:'pend', note:'',
-               area:getDefArea(), empresa:getDefEmpresa() };
-    elements.push(endBox); endX=e.x; endY=e.y; toBoxId=endBox.id; novaCaixa=true;
-  }
-
-  const pipe = {
+function endPipe(ev){
+  if(!pipeStart) return;
+  const w  = evToWorld(ev);
+  const x2 = snapV(w.x), y2 = snapV(w.y);
+  document.getElementById('pipe-prev')?.remove();
+  const dx=x2-pipeStart.x, dy=y2-pipeStart.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<MIN_PIPE){ toast('Trecho muito curto · descartado'); pipeStart=null; return; }
+  const el={
     id:uid(), kind:'pipe',
-    x1:line.ox, y1:line.oy, x2:endX, y2:endY,
-    diam:getDiam(), lengthM:len, status:'pend', note:'',
-    area:getDefArea(), empresa:getDefEmpresa(),
-    fromBox:line.fromBoxId, toBox:toBoxId
+    x1:pipeStart.x, y1:pipeStart.y, x2, y2,
+    diam:getDiam(), lengthM:0, status:'pend', note:'',
+    empresa:'', completedDate:''
   };
-  elements.push(pipe);
-  selectedId = pipe.id; selectedIds = new Set([pipe.id]);
-
-  cancelLine();
+  elements.push(el);
+  selectedId=el.id;
+  pipeStart=null;
   save(); render();
-  toast(novaCaixa ? `Trecho de ${len.toLocaleString('pt-BR')} m criado · nova caixa ${boxLabel(endBox)}`
-                  : `Trecho de ${len.toLocaleString('pt-BR')} m · conectado à caixa ${boxLabel(endBox)}`);
 }
-
-/* cancela / encerra o desenho em andamento */
-function cancelLine(){ line=null; clearLinePreview(); closeLengthInput(); }
-
-/* eventos do campo de comprimento */
-document.getElementById('len-input').addEventListener('input', updateLineLengthPreview);
-document.getElementById('len-input').addEventListener('keydown', ev=>{
-  if(ev.key==='Enter'){ ev.preventDefault(); ev.stopPropagation(); commitLine(); }
-  else if(ev.key==='Escape'){ ev.preventDefault(); ev.stopPropagation(); cancelLine(); }
-});
 
 /* ================================================================
    PLACE BOX (PV)
@@ -1253,20 +954,17 @@ function placeBox(ev){
   if(!isUnlocked) return;
   const w = evToWorld(ev);
   const x = snapV(w.x)-PV_SIZE/2, y = snapV(w.y)-PV_SIZE/2;
-  const bt = getBoxType();
-  const el={id:uid(), kind:'box', boxType:bt, x, y, pvNum:nextBoxNum(bt), status:'pend', note:'',
-            area:getDefArea(), empresa:getDefEmpresa()};
+  const el={id:uid(), kind:'box', x, y, pvNum:nextPvNum(), status:'pend', note:'',
+            empresa:'', completedDate:''};
   elements.push(el);
-  selectedId=el.id; selectedIds = new Set([el.id]);
+  selectedId=el.id;
   save(); render();
 }
 
 function getDiam(){ return Number(document.getElementById('diam-default').value)||1200 }
-function getBoxType(){ const v=document.getElementById('box-type-default')?.value; return BOX_TYPES[v]?v:'PV'; }
 
-/* próximo número livre POR TIPO (PV, BL e CP numerados de forma independente) */
-function nextBoxNum(type){
-  const used=elements.filter(e=>e.kind==='box' && (e.boxType||'PV')===type).map(e=>e.pvNum||0);
+function nextPvNum(){
+  const used=elements.filter(e=>e.kind==='box').map(e=>e.pvNum||0);
   let n=1; while(used.includes(n)) n++; return Math.min(n,500);
 }
 
@@ -1297,35 +995,11 @@ let dragging = null;
 function startDrag(ev,id){
   if(!isUnlocked) return;
   ev.stopPropagation();
+  selectEl(id);
   const w = evToWorld(ev);
-  // se o item clicado já faz parte de uma seleção múltipla, move o GRUPO
-  const groupMove = selectedIds.has(id) && selectedIds.size>1;
-  if(!groupMove) selectEl(id);          // clique simples → seleciona só ele
-  const ids  = groupMove ? [...selectedIds] : [id];
-  const orig = ids.map(i=>{ const el=elements.find(e=>e.id===i); return el?{id:i, snap:JSON.parse(JSON.stringify(el))}:null; }).filter(Boolean);
-  dragging = { group:groupMove, startW:{x:w.x,y:w.y}, orig };
+  const el = elements.find(e=>e.id===id);
+  dragging={id, startW:{x:w.x,y:w.y}, snap0:JSON.parse(JSON.stringify(el))};
   ev.preventDefault();
-}
-
-/* clique em um elemento (caixa ou tubo) na ferramenta Selecionar */
-function elementMouseDown(ev, el){
-  if(tool==='pipe') return;                       // ferramenta de trecho é tratada no viewport
-  if(tool!=='select'){ selectEl(el.id); return; }
-
-  const additive = ev.shiftKey || ev.ctrlKey || ev.metaKey;
-  if(additive){ ev.stopPropagation(); toggleInSelection(el.id); return; }
-
-  // já é parte de uma seleção múltipla → inicia arraste do grupo
-  if(selectedIds.has(el.id) && selectedIds.size>1){
-    if(isUnlocked) startDrag(ev, el.id);
-    else ev.stopPropagation();
-    return;
-  }
-
-  // seleção simples
-  const connectedPipe = el.kind==='pipe' && (el.fromBox||el.toBox);
-  if(connectedPipe || !isUnlocked){ ev.stopPropagation(); selectEl(el.id); }  // tubo conectado: seleciona, não arrasta sozinho
-  else { startDrag(ev, el.id); }                                              // caixa ou tubo livre: seleciona e arrasta
 }
 
 /* ================================================================
@@ -1339,16 +1013,7 @@ vp.addEventListener('mousedown', ev=>{
   if(tool==='pan'){ startPan(ev); return }
 
   if(tool==='pipe'){
-    if(!isUnlocked){ toast('Libere a edição primeiro', true); return; }
-    const w = evToWorld(ev);
-    if(!line){
-      const b = findBoxUnder(w.x, w.y);
-      if(b) startLineFromBox(b);
-      else  toast('Clique numa caixa PV para iniciar o trecho');
-    } else if(line.state==='direction'){
-      lockLineDirection(ev);
-    }
-    // se já está em 'length', o canvas é ignorado — use o campo de comprimento
+    if(isUnlocked && !onEl) startPipe(ev);
     return;
   }
   if(tool==='box'){
@@ -1356,47 +1021,24 @@ vp.addEventListener('mousedown', ev=>{
     return;
   }
   // select tool
-  if(!onEl && !(ev.shiftKey||ev.ctrlKey||ev.metaKey)) deselect();
+  if(!onEl) deselect();
 });
 
 window.addEventListener('mousemove', ev=>{
   if(panStart){ movePan(ev); return }
-  if(line && line.state==='direction'){ moveLineDir(ev); return }
+  if(pipeStart){ movePipe(ev); return }
   if(dragging){
-    const w   = evToWorld(ev);
-    const rdx = w.x - dragging.startW.x;
-    const rdy = w.y - dragging.startW.y;
-
-    if(dragging.group){
-      // translação rígida do grupo — delta arredondado ao passo da grade
-      const sdx = Math.round(rdx/SNAP)*SNAP, sdy = Math.round(rdy/SNAP)*SNAP;
-      dragging.orig.forEach(o=>{
-        const el=elements.find(e=>e.id===o.id); if(!el) return;
-        const s=o.snap;
-        if(el.kind==='box'){ el.x=s.x+sdx; el.y=s.y+sdy; }
-        else if(!s.fromBox && !s.toBox){            // tubo livre (sem caixas)
-          el.x1=s.x1+sdx; el.y1=s.y1+sdy; el.x2=s.x2+sdx; el.y2=s.y2+sdy;
-        }
-        // tubos conectados: geometria vem das caixas → resync abaixo
-      });
-      resyncConnectedPipes();
+    const w  = evToWorld(ev);
+    const dx = w.x - dragging.startW.x;
+    const dy = w.y - dragging.startW.y;
+    const el = elements.find(e=>e.id===dragging.id);
+    const s  = dragging.snap0;
+    if(!el) return;
+    if(el.kind==='pipe'){
+      el.x1=snapV(s.x1+dx); el.y1=snapV(s.y1+dy);
+      el.x2=snapV(s.x2+dx); el.y2=snapV(s.y2+dy);
     } else {
-      // arraste individual (comportamento original)
-      const o=dragging.orig[0]; const el=o&&elements.find(e=>e.id===o.id); const s=o&&o.snap;
-      if(el){
-        if(el.kind==='pipe'){
-          el.x1=snapV(s.x1+rdx); el.y1=snapV(s.y1+rdy);
-          el.x2=snapV(s.x2+rdx); el.y2=snapV(s.y2+rdy);
-        } else {
-          el.x=snapV(s.x+rdx); el.y=snapV(s.y+rdy);
-          const c = boxCenter(el);
-          elements.forEach(p=>{
-            if(p.kind!=='pipe') return;
-            if(p.fromBox===el.id){ p.x1=c.x; p.y1=c.y; }
-            if(p.toBox===el.id){ p.x2=c.x; p.y2=c.y; }
-          });
-        }
-      }
+      el.x=snapV(s.x+dx); el.y=snapV(s.y+dy);
     }
     renderSVG();
   }
@@ -1404,6 +1046,7 @@ window.addEventListener('mousemove', ev=>{
 
 window.addEventListener('mouseup', ev=>{
   if(panStart){ endPan(); return }
+  if(pipeStart){ endPipe(ev); return }
   if(dragging){ dragging=null; save(); render() }
 });
 
@@ -1420,60 +1063,31 @@ vp.addEventListener('wheel', ev=>{
 /* ================================================================
    SELECT
    ================================================================ */
-function selectEl(id){ selectedId=id; selectedIds = new Set(id!=null?[id]:[]); render() }
-function deselect(){ selectedId=null; selectedIds.clear(); render() }
-
-/* adiciona/remove um elemento da seleção (Shift/Ctrl+clique) */
-function toggleInSelection(id){
-  if(selectedIds.has(id)){
-    selectedIds.delete(id);
-    if(selectedId===id) selectedId = selectedIds.size ? [...selectedIds][selectedIds.size-1] : null;
-  } else {
-    selectedIds.add(id);
-    selectedId = id;
-  }
-  render();
-}
-
-/* seleciona TODOS os elementos (para mover o desenho inteiro) */
-function selectAll(){
-  if(!elements.length){ toast('Nada para selecionar'); return; }
-  if(tool!=='select') setTool('select');
-  selectedIds = new Set(elements.map(e=>e.id));
-  selectedId = elements[elements.length-1].id;
-  render();
-  toast(`${selectedIds.size} elementos selecionados · arraste qualquer um para mover em conjunto`);
-}
-
-/* realinha as pontas dos tubos conectados ao centro de suas caixas */
-function resyncConnectedPipes(){
-  elements.forEach(p=>{
-    if(p.kind!=='pipe') return;
-    if(p.fromBox){ const b=elements.find(e=>e.id===p.fromBox); if(b){ const c=boxCenter(b); p.x1=c.x; p.y1=c.y; } }
-    if(p.toBox){  const b=elements.find(e=>e.id===p.toBox);  if(b){ const c=boxCenter(b); p.x2=c.x; p.y2=c.y; } }
-  });
-}
+function selectEl(id){ selectedId=id; render() }
+function deselect(){ selectedId=null; render() }
 
 /* ================================================================
    DELETE
    ================================================================ */
 function deleteSelected(){
   if(!isUnlocked){ toast('Libere a edição primeiro',true); return }
-  const ids = selectedIds.size ? [...selectedIds] : (selectedId!=null?[selectedId]:[]);
-  if(!ids.length){ toast('Selecione um elemento primeiro'); return }
-  const label = ids.length===1
-    ? (()=>{ const el=elements.find(e=>e.id===ids[0]); return el?(el.kind==='pipe'?`Trecho Ø${el.diam} mm`:boxName(el)):'elemento'; })()
-    : `${ids.length} elementos`;
-  openModal('Excluir', 'Confirmar exclusão: '+label+'?', async ()=>{
-    elements = elements.filter(e => !ids.includes(e.id));
-    selectedId = null; selectedIds.clear();
+  if(selectedId==null){ toast('Selecione um elemento primeiro'); return }
+  const el=elements.find(e=>e.id===selectedId);
+  if(!el){ toast('Elemento não encontrado',true); return }
+  const idToDelete = selectedId; // captura AGORA antes de qualquer render
+  const name=el.kind==='pipe'?`Trecho Ø${el.diam} mm`:`Caixa PV Nº ${el.pvNum||'?'}`;
+  openModal('Excluir elemento','Confirmar exclusão: '+name+'?', async ()=>{
+    elements = elements.filter(e => e.id !== idToDelete);
+    selectedId = null;
     render();
-    let errCount=0;
-    for(const id of ids){
-      try { await deleteFromDB(id); } catch(e){ errCount++; }
+    // remove no banco primeiro, depois salva o estado restante
+    try {
+      await deleteFromDB(idToDelete);
+      toast('Elemento excluído ✓');
+    } catch(e){
+      toast('Removido localmente · erro no banco: ' + e.message, true);
     }
-    if(errCount) toast(`Removidos localmente · ${errCount} erro(s) no banco`, true);
-    else toast(ids.length===1?'Elemento excluído ✓':`${ids.length} elementos excluídos ✓`);
+    // salva o array atualizado (upsert dos restantes)
     if(elements.length > 0) await save();
     else setSyncStatus('Salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
   });
@@ -1484,7 +1098,7 @@ function clearAll(){
   if(elements.length===0) return;
   openModal('Limpar tudo',`Remover todos os ${elements.length} elementos? Não pode ser desfeito.`, async ()=>{
     const ids = elements.map(e => e.id);
-    elements=[]; selectedId=null; selectedIds.clear(); render();
+    elements=[]; selectedId=null; render();
     try {
       // deleta todos pelo array de IDs
       await sbFetch(TABLE + '?id=in.(' + ids.map(i=>`"${i}"`).join(',') + ')', { method:'DELETE' });
@@ -1500,7 +1114,11 @@ function clearAll(){
 /* ================================================================
    RENDER
    ================================================================ */
-function render(){ refreshDatalists(); renderSVG(); renderKPIs(); renderIndicators(); renderTable(); renderDetail(); updateEmptyMsg() }
+function render(){
+  renderSVG(); renderKPIs();
+  refreshEmpresaLists();
+  renderTable(); renderDetail(); updateEmptyMsg();
+}
 
 function renderSVG(){
   const layer = document.getElementById('elements-layer');
@@ -1512,23 +1130,18 @@ function renderSVG(){
   document.getElementById('map-count').textContent=`${elements.length} elemento${elements.length!==1?'s':''}`;
 }
 
-function colorOf(diam,status){ return status==='done'?PIPE_DONE:PIPE_PEND }
-function strokeOf(diam,status){ return status==='done'?PIPE_DONE_STROKE:PIPE_PEND_STROKE }
+function colorOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.done:c.pend }
+function strokeOf(diam,status){ const c=DIAM_C[diam]||DIAM_C[1200]; return status==='done'?c.stroke:'#9ca3af' }
 
 function renderPipe(layer,el){
-  const sel = selectedIds.has(el.id);
+  const sel = el.id===selectedId;
   const th  = PIPE_TH[el.diam]||18;
-  const emp = colorMode==='empresa';
-  const eCol= normStr(el.empresa)?empresaColor(el.empresa):'#c1c9d3';
-  const fill= emp ? eCol : colorOf(el.diam,el.status);
-  const strk= emp ? eCol : strokeOf(el.diam,el.status);
+  const fill= colorOf(el.diam,el.status);
+  const strk= strokeOf(el.diam,el.status);
 
   const g = document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pipe-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
-  let _op = (el.status!=='done') ? PEND_PIPE_OPACITY : 1;
-  if((filtroArea||filtroEmpresa) && !elMatchesFiltro(el)) _op = Math.min(_op, 0.10);
-  if(!sel && _op<1) g.setAttribute('opacity', _op);
 
   // hit area
   const hit=document.createElementNS(SVG_NS,'line');
@@ -1574,7 +1187,7 @@ function renderPipe(layer,el){
   g.appendChild(lbl);
 
   // handles
-  if(sel && isUnlocked && selectedIds.size===1){
+  if(sel && isUnlocked){
     [{x:el.x1,y:el.y1},{x:el.x2,y:el.y2}].forEach(pt=>{
       const c=document.createElementNS(SVG_NS,'circle');
       c.setAttribute('class','handle'); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.setAttribute('r',9);
@@ -1582,25 +1195,20 @@ function renderPipe(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>elementMouseDown(ev,el));
+  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else { selectEl(el.id); } });
   layer.appendChild(g);
 }
 
 function renderBox(layer,el){
-  const sel  = selectedIds.has(el.id);
-  const emp  = colorMode==='empresa';
-  const eCol = normStr(el.empresa)?empresaColor(el.empresa):'#c1c9d3';
-  const fill = emp ? eCol : (el.status==='done'?'#304F7E':'#e5e7eb');
-  const tc   = emp ? (normStr(el.empresa)?'#fff':'#374151') : (el.status==='done'?'#fff':'#374151');
-  const lbl  = boxLabel(el);
+  const sel  = el.id===selectedId;
+  const fill = el.status==='done'?'#304F7E':'#e5e7eb';
+  const tc   = el.status==='done'?'#fff':'#374151';
+  const lbl  = String(el.pvNum||'?');
 
   const g=document.createElementNS(SVG_NS,'g');
   g.setAttribute('class','pv-group'+(sel?' selected':''));
   g.setAttribute('data-id',el.id);
   g.setAttribute('transform',`translate(${el.x},${el.y})`);
-  let _op = (el.status!=='done') ? PEND_BOX_OPACITY : 1;
-  if((filtroArea||filtroEmpresa) && !elMatchesFiltro(el)) _op = Math.min(_op, 0.10);
-  if(!sel && _op<1) g.setAttribute('opacity', _op);
 
   const rect=document.createElementNS(SVG_NS,'rect');
   rect.setAttribute('class','pv-rect');
@@ -1615,11 +1223,11 @@ function renderBox(layer,el){
   txt.setAttribute('class','pv-label');
   txt.setAttribute('x',PV_SIZE/2); txt.setAttribute('y',PV_SIZE/2);
   txt.setAttribute('fill',tc);
-  txt.setAttribute('font-size',lbl.length<=2?'13':lbl.length<=3?'11':'9');
+  txt.setAttribute('font-size',lbl.length>2?'10':'13');
   txt.textContent=lbl;
   g.appendChild(txt);
 
-  if(sel && isUnlocked && selectedIds.size===1){
+  if(sel && isUnlocked){
     [[0,0],[PV_SIZE,0],[PV_SIZE,PV_SIZE],[0,PV_SIZE]].forEach(([cx,cy])=>{
       const c=document.createElementNS(SVG_NS,'circle');
       c.setAttribute('class','handle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',7);
@@ -1627,7 +1235,7 @@ function renderBox(layer,el){
     });
   }
 
-  g.addEventListener('mousedown',ev=>elementMouseDown(ev,el));
+  g.addEventListener('mousedown',ev=>{ if(tool==='select') startDrag(ev,el.id); else selectEl(el.id); });
   layer.appendChild(g);
 }
 
@@ -1662,38 +1270,113 @@ function renderKPIs(){
 }
 
 /* ================================================================
+   EMPRESA LISTS (datalist do painel + filtro)
+   ================================================================ */
+function uniqueEmpresas(){
+  const set = new Set();
+  elements.forEach(e => { if(e.empresa && e.empresa.trim()) set.add(e.empresa.trim()); });
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function refreshEmpresaLists(){
+  const empresas = uniqueEmpresas();
+  // datalist do painel
+  const dl = document.getElementById('empresa-list');
+  if(dl){
+    dl.innerHTML = empresas.map(e=>`<option value="${escAttr(e)}"></option>`).join('');
+  }
+  // dropdown do filtro (preserva seleção)
+  const sel = document.getElementById('filter-empresa');
+  if(sel){
+    const cur = filters.empresa;
+    sel.innerHTML = '<option value="">Todas</option>' +
+      empresas.map(e=>`<option value="${escAttr(e)}"${e===cur?' selected':''}>${escHtml(e)}</option>`).join('');
+  }
+}
+
+/* ================================================================
+   FILTERS
+   ================================================================ */
+function applyFilters(){
+  filters.empresa  = document.getElementById('filter-empresa').value || '';
+  filters.dateFrom = document.getElementById('filter-date-from').value || '';
+  filters.dateTo   = document.getElementById('filter-date-to').value || '';
+  filters.status   = document.getElementById('filter-status').value || '';
+  renderTable();
+}
+function clearFilters(){
+  filters = { empresa:'', dateFrom:'', dateTo:'', status:'' };
+  document.getElementById('filter-empresa').value = '';
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  document.getElementById('filter-status').value = '';
+  renderTable();
+}
+function filteredElements(){
+  return elements.filter(el=>{
+    if(filters.status && (el.status||'pend') !== filters.status) return false;
+    if(filters.empresa && (el.empresa||'') !== filters.empresa) return false;
+    const dc = el.completedDate || '';
+    if(filters.dateFrom){
+      if(!dc || dc < filters.dateFrom) return false;
+    }
+    if(filters.dateTo){
+      if(!dc || dc > filters.dateTo) return false;
+    }
+    return true;
+  });
+}
+
+/* ================================================================
    TABLE
    ================================================================ */
 function renderTable(){
   const tbody=document.getElementById('table-body');
-  document.getElementById('table-count').textContent=`${elements.length} registros`;
-  if(!elements.length){
-    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">Nenhum elemento cadastrado</td></tr>';
+  const list = filteredElements();
+  const total = elements.length;
+  const shown = list.length;
+  const countTxt = (shown === total)
+    ? `${total} registro${total!==1?'s':''}`
+    : `${shown} de ${total} registro${total!==1?'s':''}`;
+  document.getElementById('table-count').textContent = countTxt;
+  if(!list.length){
+    const msg = total === 0 ? 'Nenhum elemento cadastrado' : 'Nenhum resultado para o filtro';
+    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text-mute);padding:16px;font-style:italic">${msg}</td></tr>`;
     return;
   }
   tbody.innerHTML='';
-  elements.forEach(el=>{
+  list.forEach(el=>{
     const isPipe=el.kind==='pipe';
     const st=el.status||'pend';
+    const c=DIAM_C[el.diam]||DIAM_C[1200];
     const diamCell=isPipe
-      ?`<span class="diam-chip" style="background:#eef2f8;color:#304F7E;border:1px solid #cdd6e4">Ø${el.diam} mm</span>`
-      :`<strong>${boxLabel(el)}</strong>`;
+      ?`<span class="diam-chip" style="background:${c.done};color:#fff">Ø${el.diam} mm</span>`
+      :`<strong>Nº ${String(el.pvNum||'?').padStart(3,'0')}</strong>`;
     const lenCell=isPipe?(el.lengthM?el.lengthM+' m':'—'):'—';
+    const dataConc = el.completedDate ? formatBrDate(el.completedDate) : '—';
+    const empresaCell = el.empresa ? escHtml(el.empresa) : '<span style="color:var(--text-mute)">—</span>';
     const tr=document.createElement('tr');
     tr.dataset.id=el.id;
-    if(selectedIds.has(el.id)) tr.classList.add('selected');
+    if(el.id===selectedId) tr.classList.add('selected');
     tr.innerHTML=`
       <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute)">${el.id}</td>
-      <td style="font-weight:700">${isPipe?'Tubulação':BOX_TYPES[el.boxType||'PV'].name}</td>
+      <td style="font-weight:700">${isPipe?'Tubulação':'Caixa PV'}</td>
       <td>${diamCell}</td>
       <td class="num">${lenCell}</td>
+      <td style="font-size:10px">${empresaCell}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px">${dataConc}</td>
       <td><span class="inline-badge ${st}">${st==='done'?'✔ Concluído':'⏳ Pendente'}</span></td>
-      <td style="font-size:10px;color:var(--text-dim)">${el.area?escHtml(el.area):'—'}</td>
-      <td style="font-size:10px;color:var(--text-dim)">${el.empresa?`<span class="emp-dot" style="background:${empresaColor(el.empresa)}"></span>${escHtml(el.empresa)}`:'—'}</td>
       <td style="font-size:10px;max-width:200px;color:var(--text-dim)">${el.note?escHtml(el.note):'—'}</td>`;
     tr.addEventListener('click',()=>selectEl(el.id));
     tbody.appendChild(tr);
   });
+}
+
+function formatBrDate(iso){
+  // iso: YYYY-MM-DD → DD/MM/YYYY (evita new Date que aplica timezone)
+  if(!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return String(iso);
+  return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
 /* ================================================================
@@ -1702,43 +1385,19 @@ function renderTable(){
 function renderDetail(){
   const empty  = document.getElementById('side-empty');
   const detail = document.getElementById('detail-panel');
-  const emsg   = document.getElementById('empty-msg');
-  // 2+ selecionados → painel de grupo
-  if(selectedIds.size>1){
-    detail.classList.remove('active'); empty.style.display='block';
-    emsg.innerHTML =
-      `<strong>${selectedIds.size} elementos selecionados</strong>`+
-      `<div style="margin:12px 0;text-align:left">`+
-        `<span class="field-label">Aplicar Área a todos</span>`+
-        `<div style="display:flex;gap:6px;margin-bottom:9px">`+
-          `<input class="input" id="bulk-area" list="areas-list" placeholder="ex.: Pátio do Posto" style="flex:1"/>`+
-          `<button class="tool-btn" onclick="applyBulkArea()">Aplicar</button>`+
-        `</div>`+
-        `<span class="field-label">Aplicar Empresa a todos</span>`+
-        `<div style="display:flex;gap:6px">`+
-          `<input class="input" id="bulk-empresa" list="empresas-list" placeholder="Executora" style="flex:1"/>`+
-          `<button class="tool-btn" onclick="applyBulkEmpresa()">Aplicar</button>`+
-        `</div>`+
-      `</div>`+
-      `<span style="font-size:11px;color:var(--text-mute)">Arraste qualquer um p/ mover todos juntos · Shift+clique adiciona/remove · Del exclui</span>`;
-    return;
-  }
   if(selectedId==null){
-    empty.style.display='block'; detail.classList.remove('active');
-    if(elements.length>0)
-      emsg.innerHTML='<strong>Nenhum elemento selecionado</strong><br>Clique para selecionar · Shift+clique para vários · "Selecionar Tudo" move o desenho inteiro.';
-    return;
+    empty.style.display='block'; detail.classList.remove('active'); return;
   }
   const el=elements.find(e=>e.id===selectedId);
   if(!el){ deselect(); return; }
   empty.style.display='none'; detail.classList.add('active');
 
   const isPipe=el.kind==='pipe';
-  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA';
-  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:boxLabel(el);
+  document.getElementById('detail-type').textContent=isPipe?'TRECHO DE TUBULAÇÃO':'CAIXA PV';
+  document.getElementById('detail-name').textContent=isPipe?`Ø${el.diam} mm`:`Caixa PV · Nº ${el.pvNum||'?'}`;
   document.getElementById('detail-sub').textContent=isPipe
     ?(el.lengthM?el.lengthM+' metros':'Comprimento não informado')
-    :(BOX_TYPES[el.boxType||'PV'].name+' · Nº '+(el.pvNum||'?'));
+    :'Poço de Visita';
 
   const st=el.status||'pend';
   const badge=document.getElementById('detail-badge');
@@ -1749,57 +1408,79 @@ function renderDetail(){
 
   document.getElementById('field-diam').style.display=isPipe?'block':'none';
   document.getElementById('field-len').style.display=isPipe?'block':'none';
-  document.getElementById('field-boxtype').style.display=!isPipe?'block':'none';
   document.getElementById('field-pvnum').style.display=!isPipe?'block':'none';
 
   if(isPipe){
     document.getElementById('op-diam').value=el.diam;
     document.getElementById('op-len').value=el.lengthM||'';
   } else {
-    document.getElementById('op-boxtype').value=el.boxType||'PV';
     document.getElementById('op-pvnum').value=el.pvNum||'';
   }
   document.getElementById('op-note').value=el.note||'';
-  document.getElementById('op-area').value=el.area||'';
   document.getElementById('op-empresa').value=el.empresa||'';
+  document.getElementById('op-completed').value=el.completedDate||'';
 }
 
 function setStatus(s){
   const el=elements.find(e=>e.id===selectedId); if(!el) return;
-  el.status=s; render();
+  el.status=s;
+  // auto-preenche data de conclusão ao marcar como concluído (se ainda estiver vazia)
+  if(s==='done' && !el.completedDate){
+    el.completedDate = todayISO();
+  }
+  // limpa data ao voltar para pendente
+  if(s==='pend'){
+    el.completedDate = '';
+  }
+  save(); render();
 }
 function setDiam(d){
   const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='pipe') return;
-  el.diam=Number(d); renderSVG(); renderDetail();
+  el.diam=Number(d); save(); renderSVG(); renderDetail(); renderTable();
 }
-function setBoxType(v){
+
+/* Handlers dos inputs do painel — todos autosalvam */
+function onLenChange(){
+  const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='pipe') return;
+  el.lengthM = Number(document.getElementById('op-len').value)||0;
+  saveDebounced();
+  renderSVG(); renderKPIs(); renderTable();
+  // atualiza sub
+  document.getElementById('detail-sub').textContent = el.lengthM?el.lengthM+' metros':'Comprimento não informado';
+}
+function onPvNumChange(){
   const el=elements.find(e=>e.id===selectedId); if(!el||el.kind!=='box') return;
-  if(!BOX_TYPES[v]) return;
-  if((el.boxType||'PV')!==v){
-    el.boxType=v;
-    // renumera para o próximo número livre do novo tipo (evita duplicar)
-    const used=elements.filter(e=>e.kind==='box'&&e.id!==el.id&&(e.boxType||'PV')===v).map(e=>e.pvNum||0);
-    let n=1; while(used.includes(n)) n++; el.pvNum=Math.min(500,n);
-  }
-  renderSVG(); renderDetail();
+  const v = Number(document.getElementById('op-pvnum').value)||1;
+  el.pvNum = Math.min(500, Math.max(1, v));
+  saveDebounced();
+  renderSVG(); renderTable();
+  document.getElementById('detail-name').textContent = `Caixa PV · Nº ${el.pvNum||'?'}`;
 }
-function saveSelected(){
+function onNoteChange(){
   const el=elements.find(e=>e.id===selectedId); if(!el) return;
-  if(el.kind==='pipe'){
-    el.lengthM=Number(document.getElementById('op-len').value)||0;
-  } else {
-    el.pvNum=Math.min(500,Math.max(1,Number(document.getElementById('op-pvnum').value)||1));
-  }
-  el.note=document.getElementById('op-note').value;
-  el.area=normStr(document.getElementById('op-area')?.value);
-  el.empresa=normStr(document.getElementById('op-empresa')?.value);
-  save(); render(); toast('Salvo ✓');
+  el.note = document.getElementById('op-note').value;
+  saveDebounced();
+  renderTable();
 }
+function onEmpresaChange(){
+  const el=elements.find(e=>e.id===selectedId); if(!el) return;
+  el.empresa = document.getElementById('op-empresa').value.trim();
+  saveDebounced();
+  refreshEmpresaLists();
+  renderTable();
+}
+function onCompletedChange(){
+  const el=elements.find(e=>e.id===selectedId); if(!el) return;
+  el.completedDate = document.getElementById('op-completed').value || '';
+  saveDebounced();
+  renderTable();
+}
+
 function updateEmptyMsg(){
   const msg=document.getElementById('empty-msg');
   if(elements.length===0){
     msg.innerHTML=isUnlocked
-      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa" para começar a desenhar a rede.'
+      ?'<strong>Planta vazia</strong><br>Use "Traçar Tubo" ou "Caixa PV" para começar a desenhar a rede.'
       :'<strong>Planta vazia</strong><br>Libere a edição com a senha para cadastrar elementos.';
   }
 }
@@ -1817,25 +1498,30 @@ function csvEsc(v){
 
 function exportCSV(){
   const SEP = ';'; // ponto-e-vírgula para Excel brasileiro
-  const cols = ['id','tipo','tipo_caixa','diametro_mm','pv_numero','comprimento_m','status','area','empresa','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
+  const cols = ['id','tipo','diametro_mm','pv_numero','comprimento_m','status','empresa','data_conclusao','observacoes','x1','y1','x2','y2','pv_x','pv_y'];
   const header = cols.join(SEP);
-  const rows = elements.map(el => {
+  // exporta o que estiver filtrado se houver filtro ativo, senão tudo
+  const activeFilter = filters.empresa || filters.dateFrom || filters.dateTo || filters.status;
+  const source = activeFilter ? filteredElements() : elements;
+  const rows = source.map(el => {
     let vals;
     if(el.kind==='pipe'){
       vals = [
-        el.id, 'tubulacao', '', el.diam, '', el.lengthM||0, el.status, el.area||'', el.empresa||'', el.note||'',
+        el.id, 'tubulacao', el.diam, '', el.lengthM||0, el.status,
+        el.empresa||'', el.completedDate||'', el.note||'',
         el.x1, el.y1, el.x2, el.y2, '', ''
       ];
     } else {
       vals = [
-        el.id, 'caixa', el.boxType||'PV', '', el.pvNum||'', 0, el.status, el.area||'', el.empresa||'', el.note||'',
+        el.id, 'caixa_pv', '', el.pvNum||'', 0, el.status,
+        el.empresa||'', el.completedDate||'', el.note||'',
         '', '', '', '', el.x, el.y
       ];
     }
     return vals.map(csvEsc).join(SEP);
   });
   // BOM UTF-8 para Excel reconhecer acentos + sep=; hint
-  const csv = '\uFEFF' + 'sep=;\n' + header + '\n' + rows.join('\n');
+  const csv = '﻿' + 'sep=;\n' + header + '\n' + rows.join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -1891,7 +1577,7 @@ function readCsvFile(file){
 
 function parseCSV(text){
   // Remove BOM and sep= hint line
-  text=text.replace(/^\uFEFF/,'').replace(/^sep=.+\n/i,'');
+  text=text.replace(/^﻿/,'').replace(/^sep=.+\n/i,'');
   const lines=text.split('\n').map(l=>l.trimEnd()).filter(l=>l.length);
   if(lines.length<2) return [];
   // Auto-detect separator: semicolon or comma
@@ -1928,8 +1614,14 @@ function confirmImport(){
     if(row['status']==='done'||row['status']==='pend') el.status=row['status'];
     const obs=row['observacoes']||row['observações']||'';
     el.note=obs;
-    if(row['area']!==undefined) el.area=normStr(row['area']);
-    if(row['empresa']!==undefined) el.empresa=normStr(row['empresa']);
+    const emp = row['empresa']||row['empresa_executora']||'';
+    if(emp) el.empresa = emp;
+    const dc = row['data_conclusao']||row['data_conclusão']||'';
+    if(dc){
+      // aceita YYYY-MM-DD ou DD/MM/YYYY
+      const m = dc.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      el.completedDate = m ? `${m[3]}-${m[2]}-${m[1]}` : dc;
+    }
     if(el.kind==='pipe'){
       const d=Number(row['diametro_mm']);
       if(DIAMS.includes(d)) el.diam=d;
@@ -1938,8 +1630,6 @@ function confirmImport(){
     } else {
       const pv=parseInt(row['pv_numero']);
       if(!isNaN(pv)&&pv>=1&&pv<=500) el.pvNum=pv;
-      const bt=(row['tipo_caixa']||'').trim().toUpperCase();
-      if(BOX_TYPES[bt]) el.boxType=bt;
     }
     updated++;
   });
@@ -1980,214 +1670,7 @@ function toast(msg,err=false){
    HTML ESCAPE
    ================================================================ */
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
-
-/* ================================================================
-   ÁREA / EMPRESA — helpers, indicadores, filtros e coloração
-   ================================================================ */
-const SEM_AREA    = '— sem área —';
-const SEM_EMPRESA = '— sem empresa —';
-
-/* Paleta estável (verde e roxo primeiro, conforme padrão pedido) */
-const EMPRESA_PALETTE = ['#2E9E4F','#7C3AED','#0369A1','#B45309','#0F766E',
-  '#BE185D','#4D7C0F','#B91C1C','#5B21B6','#155E75','#9D174D','#065F46',
-  '#92400E','#3730A3','#A16207','#1E3A8A'];
-
-function normStr(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
-function keyStr(v){ return normStr(v).toUpperCase(); }
-function pct(a,b){ return b?Math.round(a/b*100):0; }
-function fmtN(n){ return n>0?Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1}):'0'; }
-
-/* Cor estável por hash do nome (não muda ao surgir novas empresas) */
-function empresaColor(nome){
-  const n=keyStr(nome); if(!n) return '#c1c9d3';
-  let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0;
-  return EMPRESA_PALETTE[h%EMPRESA_PALETTE.length];
-}
-
-/* Listas únicas derivadas dos elementos */
-function areasList(){
-  const m=new Map();
-  elements.forEach(el=>{ const n=normStr(el.area); if(n) m.set(keyStr(n),n); });
-  return [...m.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-}
-function empresasList(){
-  const m=new Map();
-  elements.forEach(el=>{ const n=normStr(el.empresa); if(n) m.set(keyStr(n),n); });
-  return [...m.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-}
-
-function refreshDatalists(){
-  const da=document.getElementById('areas-list');
-  const de=document.getElementById('empresas-list');
-  if(da) da.innerHTML=areasList().map(a=>`<option value="${escHtml(a)}">`).join('');
-  if(de) de.innerHTML=empresasList().map(e=>`<option value="${escHtml(e)}">`).join('');
-}
-
-/* Defaults da toolbar aplicados aos próximos elementos desenhados */
-function getDefArea(){ return normStr(document.getElementById('area-default')?.value); }
-function getDefEmpresa(){ return normStr(document.getElementById('empresa-default')?.value); }
-
-/* ── FILTROS ── */
-function matchArea(el){
-  if(!filtroArea) return true;
-  const k=keyStr(el.area);
-  return filtroArea===SEM_AREA ? !k : k===keyStr(filtroArea);
-}
-function matchEmpresa(el){
-  if(!filtroEmpresa) return true;
-  const k=keyStr(el.empresa);
-  return filtroEmpresa===SEM_EMPRESA ? !k : k===keyStr(filtroEmpresa);
-}
-function elMatchesFiltro(el){ return matchArea(el)&&matchEmpresa(el); }
-
-function setFiltroArea(v){
-  v=normStr(v);
-  filtroArea = v ? v : null;
-  updateFiltroUI(); renderSVG(); renderIndicators();
-}
-function setFiltroEmpresa(v){
-  v=normStr(v);
-  filtroEmpresa = v ? v : null;
-  updateFiltroUI(); renderSVG(); renderIndicators();
-}
-function limparFiltros(){ filtroArea=null; filtroEmpresa=null; updateFiltroUI(); renderSVG(); renderIndicators(); }
-
-function updateFiltroUI(){
-  const any=!!(filtroArea||filtroEmpresa);
-  const btn=document.getElementById('btn-limpar-filtro'); if(btn) btn.style.display=any?'inline-flex':'none';
-  syncFiltroSelects();
-}
-function syncFiltroSelects(){
-  const fa=document.getElementById('filtro-area');
-  const fe=document.getElementById('filtro-empresa');
-  if(fa){
-    const opts=['<option value="">Área: todas</option>']
-      .concat(areasList().map(a=>`<option value="${escHtml(a)}">${escHtml(a)}</option>`));
-    if(elements.some(el=>!normStr(el.area))) opts.push(`<option value="${SEM_AREA}">${SEM_AREA}</option>`);
-    fa.innerHTML=opts.join(''); fa.value=filtroArea||'';
-  }
-  if(fe){
-    const opts=['<option value="">Empresa: todas</option>']
-      .concat(empresasList().map(e=>`<option value="${escHtml(e)}">${escHtml(e)}</option>`));
-    if(elements.some(el=>!normStr(el.empresa))) opts.push(`<option value="${SEM_EMPRESA}">${SEM_EMPRESA}</option>`);
-    fe.innerHTML=opts.join(''); fe.value=filtroEmpresa||'';
-  }
-}
-
-/* ── MODO DE COR ── */
-function setColorMode(m){
-  colorMode = (m==='empresa')?'empresa':'status';
-  document.getElementById('cb-status')?.classList.toggle('active',colorMode==='status');
-  document.getElementById('cb-empresa')?.classList.toggle('active',colorMode==='empresa');
-  renderSVG(); buildLegend();
-}
-
-/* ── APLICAÇÃO EM MASSA (grupo selecionado) ── */
-function applyBulkArea(){
-  const v=normStr(document.getElementById('bulk-area')?.value);
-  let n=0; elements.forEach(el=>{ if(selectedIds.has(el.id)){ el.area=v; n++; } });
-  save(); render(); toast(`Área aplicada a ${n} elemento(s) ✓`);
-}
-function applyBulkEmpresa(){
-  const v=normStr(document.getElementById('bulk-empresa')?.value);
-  let n=0; elements.forEach(el=>{ if(selectedIds.has(el.id)){ el.empresa=v; n++; } });
-  save(); render(); toast(`Empresa aplicada a ${n} elemento(s) ✓`);
-}
-
-/* ── EDIÇÃO IMEDIATA (elemento único) ── */
-function setArea(v){
-  const el=elements.find(e=>e.id===selectedId); if(!el) return;
-  el.area=normStr(v); renderSVG(); refreshDatalists(); syncFiltroSelects(); renderIndicators();
-}
-function setEmpresa(v){
-  const el=elements.find(e=>e.id===selectedId); if(!el) return;
-  el.empresa=normStr(v); renderSVG(); refreshDatalists(); syncFiltroSelects(); renderIndicators(); buildLegend();
-}
-
-/* ── ESTATÍSTICAS ── */
-function statsPorArea(){
-  const map=new Map();
-  const get=k=>{ if(!map.has(k)) map.set(k,{nome:k,pipes:0,pipesDone:0,m:0,mDone:0,boxes:0,boxesDone:0}); return map.get(k); };
-  elements.forEach(el=>{
-    const s=get(normStr(el.area)||SEM_AREA);
-    if(el.kind==='pipe'){ s.pipes++; s.m+=el.lengthM||0; if(el.status==='done'){ s.pipesDone++; s.mDone+=el.lengthM||0; } }
-    else { s.boxes++; if(el.status==='done') s.boxesDone++; }
-  });
-  return [...map.values()].sort((a,b)=> (a.nome===SEM_AREA)-(b.nome===SEM_AREA) || a.nome.localeCompare(b.nome,'pt-BR'));
-}
-function statsPorEmpresa(){
-  const map=new Map();
-  const get=k=>{ if(!map.has(k)) map.set(k,{nome:k,total:0,done:0,pipes:0,pipesDone:0,boxes:0,boxesDone:0}); return map.get(k); };
-  elements.forEach(el=>{
-    const s=get(normStr(el.empresa)||SEM_EMPRESA);
-    s.total++; if(el.status==='done') s.done++;
-    if(el.kind==='pipe'){ s.pipes++; if(el.status==='done') s.pipesDone++; }
-    else { s.boxes++; if(el.status==='done') s.boxesDone++; }
-  });
-  return [...map.values()].sort((a,b)=> (a.nome===SEM_EMPRESA)-(b.nome===SEM_EMPRESA) || a.nome.localeCompare(b.nome,'pt-BR'));
-}
-
-function barCell(p){
-  return `<span class="mini-bar"><span style="width:${p}%"></span></span><span class="mini-pct">${p}%</span>`;
-}
-
-/* ── INDICADORES ── */
-function renderIndicators(){
-  const areas=statsPorArea();
-  const emps=statsPorEmpresa();
-
-  const nA=areas.filter(s=>s.nome!==SEM_AREA).length;
-  const acEl=document.getElementById('ind-area-count');
-  if(acEl) acEl.textContent=nA+' área'+(nA!==1?'s':'');
-  const ab=document.getElementById('ind-area-body');
-  if(ab){
-    if(!areas.length){ ab.innerHTML='<tr><td colspan="6" class="ind-empty">Nenhum elemento</td></tr>'; }
-    else ab.innerHTML=areas.map(sm=>{
-      const isNone=sm.nome===SEM_AREA;
-      const tubP=pct(sm.pipesDone,sm.pipes), cxP=pct(sm.boxesDone,sm.boxes);
-      const active=filtroArea&&keyStr(filtroArea)===keyStr(sm.nome);
-      const nomeHTML=isNone?`<span class="none">${escHtml(sm.nome)}</span>`:escHtml(sm.nome);
-      return `<tr class="ind-row${active?' active':''}" data-nome="${escHtml(sm.nome)}">
-        <td class="ind-name">${nomeHTML}</td>
-        <td class="num">${sm.pipesDone}/${sm.pipes}</td>
-        <td class="num">${barCell(tubP)}</td>
-        <td class="num">${fmtN(sm.mDone)}/${fmtN(sm.m)}</td>
-        <td class="num">${sm.boxesDone}/${sm.boxes}</td>
-        <td class="num">${barCell(cxP)}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  const nE=emps.filter(s=>s.nome!==SEM_EMPRESA).length;
-  const ecEl=document.getElementById('ind-emp-count');
-  if(ecEl) ecEl.textContent=nE+' empresa'+(nE!==1?'s':'');
-  const eb=document.getElementById('ind-emp-body');
-  if(eb){
-    if(!emps.length){ eb.innerHTML='<tr><td colspan="5" class="ind-empty">Nenhum elemento</td></tr>'; }
-    else eb.innerHTML=emps.map(sm=>{
-      const isNone=sm.nome===SEM_EMPRESA;
-      const cor=isNone?'#c1c9d3':empresaColor(sm.nome);
-      const av=pct(sm.done,sm.total);
-      const active=filtroEmpresa&&keyStr(filtroEmpresa)===keyStr(sm.nome);
-      const nomeHTML=isNone?`<span class="none">${escHtml(sm.nome)}</span>`:escHtml(sm.nome);
-      return `<tr class="ind-row${active?' active':''}" data-nome="${escHtml(sm.nome)}">
-        <td class="ind-name"><span class="emp-dot" style="background:${cor}"></span>${nomeHTML}</td>
-        <td class="num">${sm.total}</td>
-        <td class="num">${sm.pipesDone}/${sm.pipes}</td>
-        <td class="num">${sm.boxesDone}/${sm.boxes}</td>
-        <td class="num">${barCell(av)}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  document.querySelectorAll('#ind-area-body .ind-row').forEach(tr=>{
-    tr.onclick=()=>{ const n=tr.dataset.nome; setFiltroArea(filtroArea&&keyStr(filtroArea)===keyStr(n)?'':n); };
-  });
-  document.querySelectorAll('#ind-emp-body .ind-row').forEach(tr=>{
-    tr.onclick=()=>{ const n=tr.dataset.nome; setFiltroEmpresa(filtroEmpresa&&keyStr(filtroEmpresa)===keyStr(n)?'':n); };
-  });
-  syncFiltroSelects();
-}
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;') }
 
 /* ================================================================
    KEYBOARD
@@ -2195,16 +1678,9 @@ function renderIndicators(){
 window.addEventListener('keydown',ev=>{
   const active=document.activeElement;
   const typing=active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT');
-  if(ev.key==='Escape'){
-    if(line){ cancelLine(); }            // cancela só o desenho em andamento, mantém ferramenta
-    else { setTool('select'); deselect(); }
-    document.getElementById('pipe-prev')?.remove();
-  }
-  if((ev.ctrlKey||ev.metaKey) && (ev.key==='a'||ev.key==='A') && !typing){
-    ev.preventDefault(); selectAll(); return;
-  }
+  if(ev.key==='Escape'){ setTool('select'); deselect(); pipeStart=null; document.getElementById('pipe-prev')?.remove() }
   if(!typing){
-    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedIds.size) deleteSelected() }
+    if(ev.key==='Delete'||ev.key==='Backspace'){ if(selectedId) deleteSelected() }
     if(ev.key==='p'||ev.key==='P') setTool('pipe');
     if(ev.key==='b'||ev.key==='B') setTool('box');
     if(ev.key==='v'||ev.key==='V') setTool('select');
@@ -2213,6 +1689,22 @@ window.addEventListener('keydown',ev=>{
     if(ev.key==='+'||ev.key==='=') zoom(1.2);
     if(ev.key==='-') zoom(0.83);
   }
+});
+
+/* ================================================================
+   BIND DOS INPUTS DE AUTOSAVE
+   ================================================================ */
+document.getElementById('op-len').addEventListener('input', onLenChange);
+document.getElementById('op-pvnum').addEventListener('input', onPvNumChange);
+document.getElementById('op-note').addEventListener('input', onNoteChange);
+document.getElementById('op-empresa').addEventListener('input', onEmpresaChange);
+document.getElementById('op-empresa').addEventListener('change', onEmpresaChange);
+document.getElementById('op-completed').addEventListener('change', onCompletedChange);
+
+/* Salva quando o usuário sai da página (fallback) */
+window.addEventListener('beforeunload', ()=>{
+  // dispara save imediato se ainda tem coisa em debounce
+  if(saveTimer){ clearTimeout(saveTimer); save(); }
 });
 
 /* ================================================================
