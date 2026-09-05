@@ -181,11 +181,15 @@ $('btnLer').addEventListener('click', function(){
   var msg = $('msgLer');
   msg.className='msg info'; msg.textContent='Lendo '+f.name+'...';
   CG.readWorkbookRows(f).then(function(res){
-    PARSED = CG.parseAtividades(res.rows, f.name);
+    PARSED = CG.parseAtividades(res.rows, f.name, res.areasNames);
     renderPreview();
     msg.className='msg ok';
-    msg.innerHTML = 'Aba lida: <b>'+res.sheetName+'</b>. '
-      + PARSED.atividades.length + ' atividades encontradas · '
+    var refInfo = res.areasNames
+      ? ' · aba <b>Áreas</b> encontrada ('+res.areasNames.length+' CWAs de referência) — mapeamento automático aplicado'
+      : ' · sem aba "Áreas" no arquivo — CWA gravado como digitado';
+    msg.innerHTML = 'Aba de atividades: <b>'+res.sheetName+'</b>' + refInfo + '. '
+      + PARSED.atividades.length + ' atividades · '
+      + PARSED.descartadas + ' resumos descartados (sem CWA) · '
       + PARSED.erros.length + ' com erro.';
   }).catch(function(e){
     msg.className='msg err'; msg.textContent='Falha: '+e.message;
@@ -217,7 +221,18 @@ function renderPreview(){
   ['EXECUCAO','PROJETO','FORNECIMENTO','COMISSIONAMENTO'].forEach(function(t){
     if(porTipo[t]) stats += '<div class="stat"><div class="lbl">'+labelTipo(t)+'</div><div class="val">'+porTipo[t]+'</div></div>';
   });
+  if(PARSED.descartadas) stats += '<div class="stat"><div class="lbl">Resumos descartados</div><div class="val">'+PARSED.descartadas+'</div></div>';
   if(PARSED.erros.length) stats += '<div class="stat err"><div class="lbl">Com erro</div><div class="val">'+PARSED.erros.length+'</div></div>';
+  // CWA — resumo do mapeamento (só quando havia aba Áreas)
+  var cr = PARSED.cwaResumo || {};
+  if(cr.total){
+    var okAuto = (cr.exato||0) + (cr['sem-paren']||0) + (cr.sinonimo||0) + (cr.fuzzy||0);
+    var revisar = (cr.palavras||0) + (cr.pai||0);
+    var semMatch = (cr['sem-match']||0);
+    stats += '<div class="stat"><div class="lbl">CWA · auto-mapeada</div><div class="val">'+okAuto+'</div></div>';
+    if(revisar)  stats += '<div class="stat warn"><div class="lbl">CWA · revisar</div><div class="val">'+revisar+'</div></div>';
+    if(semMatch) stats += '<div class="stat err"><div class="lbl">CWA · sem match</div><div class="val">'+semMatch+'</div></div>';
+  }
   $('stats').innerHTML = stats;
 
   $('cOk').textContent  = validos.length;
@@ -250,20 +265,35 @@ function drawTable(errosLinhas){
     } else {
       var a = row.a;
       var diag = (errosLinhas[a._linha] || []).join(' · ');
+      // Bloco extra da CWA: mostra o texto original quando o mapeamento mudou o valor
+      var cwaCell;
+      if(a._cwa_diag && a._cwa_raw && a.cwa && a._cwa_raw !== a.cwa){
+        cwaCell = '<div>'+CG.esc(a.cwa)+'</div>'
+          + '<div style="font-size:10px;color:var(--text-mute);margin-top:2px">'
+          + '<span title="método de mapeamento" style="text-transform:uppercase;letter-spacing:.5px">'+a._cwa_diag+'</span>'
+          + ' · <em>'+CG.esc(a._cwa_raw)+'</em></div>';
+      } else {
+        cwaCell = CG.esc(a.cwa || '—');
+      }
+      // Diag column: erros de linha OU alerta de CWA que precisa revisão
+      var diagBadge = '';
+      if(diag){ diagBadge = '<span class="err-cell">'+CG.esc(diag)+'</span>'; }
+      else if(a._cwa_diag === 'sem-match'){ diagBadge = '<span class="err-cell">CWA sem match</span>'; }
+      else if(a._cwa_diag === 'pai' || a._cwa_diag === 'palavras'){ diagBadge = '<span style="color:#a06714">revisar CWA</span>'; }
       tr.innerHTML = ''
         + '<td class="mono">'+a._linha+'</td>'
         + '<td class="mono">'+CG.esc(a.numero_topico)+'</td>'
         + '<td>'+CG.esc(a.nome)+'</td>'
         + '<td><span class="pill '+pillClsFase(a.fase)+'">'+labelFase(a.fase)+'</span></td>'
         + '<td><span class="pill '+pillClsTipo(a.tipo_pacote)+'">'+labelTipo(a.tipo_pacote)+'</span></td>'
-        + '<td>'+CG.esc(a.cwa || '—')+'</td>'
+        + '<td>'+cwaCell+'</td>'
         + '<td>'+CG.esc(a.cwp || '—')+'</td>'
         + '<td>'+CG.esc(a.empresa || '—')+'</td>'
         + '<td style="text-align:right" class="mono">'+(a.custo_lb==null?'—':CG.nfMoney(a.custo_lb))+'</td>'
         + '<td class="mono">'+(a.inicio_lb ? CG.fmtBr(a.inicio_lb) : '—')+'</td>'
         + '<td class="mono">'+(a.termino_lb ? CG.fmtBr(a.termino_lb) : '—')+'</td>'
         + '<td class="mono">'+CG.esc(a.pai_topico || '—')+'</td>'
-        + '<td class="'+(diag?'err-cell':'')+'">'+CG.esc(diag)+'</td>';
+        + '<td>'+diagBadge+'</td>';
     }
     frag.appendChild(tr);
   });
