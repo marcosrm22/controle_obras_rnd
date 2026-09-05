@@ -234,9 +234,12 @@
     if (_xlsxP) return _xlsxP;
     _xlsxP = new Promise(function (resolve, reject) {
       var s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.3/xlsx.full.min.js';
-      s.onload = function () { resolve(global.XLSX); };
-      s.onerror = function () { reject(new Error('Falha ao carregar SheetJS.')); };
+      // 0.18.5 é a última versão do SheetJS hospedada no cdnjs.
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload  = function () { resolve(global.XLSX); };
+      s.onerror = function () {
+        reject(new Error('Falha ao carregar SheetJS de https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js — cheque a conexão ou o bloqueio de CDN pela rede.'));
+      };
       document.head.appendChild(s);
     });
     return _xlsxP;
