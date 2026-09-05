@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cronograma Executivo Geral · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-dark:#223a60; --blue-soft:#eef2f8;
+  --teal:#007D77; --teal-soft:#e0f2f1;
+  --gold:#EAA239; --gold-soft:#fef3d5;
+  --red:#8a3822; --red-soft:#fdecea;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text);font-size:13px}
+.page{max-width:1600px;margin:0 auto;padding:24px 22px 60px}
+.head{border-bottom:3px solid var(--teal);padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.head .eyebrow{font-size:9px;color:var(--teal);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.head h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.head h1 span{color:var(--text-dim);font-weight:500}
+.head p{font-size:12px;color:var(--text-dim);margin-top:4px}
+.back{color:var(--text-dim);text-decoration:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:inline-flex;align-items:center;gap:6px;margin-bottom:10px}
+.back:hover{color:var(--teal)}
+
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn,button{font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn:hover,button:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn.primary:hover{background:#005f5a;border-color:#005f5a;color:#fff}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--teal);padding:10px 14px}
+.stat .lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700}
+.stat .val{font-size:20px;font-weight:800;color:var(--text);margin-top:2px}
+.stat .val.small{font-size:14px}
+
+.filters{background:var(--panel);border:1px solid var(--border);padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center}
+.filters input, .filters select{font:inherit;font-size:12px;padding:7px 10px;border:1px solid var(--border);background:var(--panel);color:var(--text);width:100%}
+.filters input:focus,.filters select:focus{outline:none;border-color:var(--teal)}
+.filters .clear{grid-column: -1}
+
+.table-wrap{overflow:auto;max-height:calc(100vh - 320px);border:1px solid var(--border);background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{position:sticky;top:0;background:var(--blue-soft);color:var(--text);font-weight:700;text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;cursor:pointer;user-select:none}
+thead th.right{text-align:right}
+thead th .arrow{color:var(--text-mute);margin-left:4px;font-size:9px}
+tbody td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tbody td.right{text-align:right}
+tbody tr:hover{background:#fafbfc}
+tbody tr.inativa td{color:var(--text-mute);text-decoration:line-through}
+.pill{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.pill.fase-i{background:#e0f2f1;color:#00695c}
+.pill.fase-ii{background:#fef3d5;color:#a06714}
+.pill.armazem{background:#e8efe1;color:#3d6027}
+.pill.posto{background:#fdecea;color:#8a3822}
+.pill.exec{background:#e0f2f1;color:#00695c}
+.pill.proj{background:#f0e6f8;color:#6b4fa0}
+.pill.forn{background:#fef3d5;color:#a06714}
+.pill.com{background:#e6f0f8;color:#304F7E}
+.pill.inativa{background:#eee;color:#666}
+.mono{font-family:'JetBrains Mono',monospace}
+.empty{text-align:center;color:var(--text-mute);padding:40px}
+.loading{text-align:center;color:var(--text-mute);padding:24px}
+.msg{padding:10px 14px;font-size:12px;border-left:3px solid;margin-bottom:12px}
+.msg.warn{background:var(--gold-soft);border-color:var(--gold);color:#a06714}
+.msg.err{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;padding:0 6px}
+label.chk input{accent-color:var(--teal)}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="cron_geral_core.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <a class="back" href="index.html">← Painel de Ferramentas</a>
+
+  <header class="head">
+    <div>
+      <div class="eyebrow">Cronograma Executivo Geral</div>
+      <h1>Atividades <span>· baseline pesado (AWP)</span></h1>
+      <p>Cronograma executivo geral por Fase · Tipo · CWA · CWP · Empresa. Alimenta o rateio de peso para o módulo de Terceiras.</p>
+    </div>
+    <div class="actions">
+      <span id="unidade-switcher"></span>
+      <button id="btnModelo">↓ Modelo</button>
+      <a class="btn primary" href="cron_geral_import.html">↥ Importar Excel</a>
+    </div>
+  </header>
+
+  <div id="msgBox"></div>
+
+  <!-- KPIs -->
+  <div class="stats" id="stats"></div>
+
+  <!-- FILTROS -->
+  <div class="filters">
+    <input id="fBusca" placeholder="Buscar por número, nome, CWA, CWP, empresa..."/>
+    <select id="fFase"><option value="">Todas as fases</option></select>
+    <select id="fTipo"><option value="">Todos os tipos</option></select>
+    <select id="fCwa"><option value="">Todos os CWAs</option></select>
+    <select id="fCwp"><option value="">Todos os CWPs</option></select>
+    <select id="fEmp"><option value="">Todas as empresas</option></select>
+    <label class="chk"><input type="checkbox" id="fInativas"/> incluir inativas</label>
+  </div>
+
+  <!-- TABELA -->
+  <div class="table-wrap">
+    <table id="tbl">
+      <thead><tr>
+        <th data-sort="numero_topico">Número<span class="arrow"></span></th>
+        <th data-sort="nome">Nome<span class="arrow"></span></th>
+        <th data-sort="fase">Fase<span class="arrow"></span></th>
+        <th data-sort="tipo_pacote">Tipo<span class="arrow"></span></th>
+        <th data-sort="cwa">CWA<span class="arrow"></span></th>
+        <th data-sort="cwp">CWP<span class="arrow"></span></th>
+        <th data-sort="empresa">Empresa<span class="arrow"></span></th>
+        <th data-sort="custo_lb" class="right">Custo LB<span class="arrow"></span></th>
+        <th data-sort="inicio_lb">Início LB<span class="arrow"></span></th>
+        <th data-sort="termino_lb">Término LB<span class="arrow"></span></th>
+        <th data-sort="pai_topico">Pai<span class="arrow"></span></th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="11" class="loading">Carregando cronograma geral...</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+if(!CG.requireAuth()) throw new Error('auth');
+if(typeof pcoRenderSwitcher === 'function') pcoRenderSwitcher('unidade-switcher');
+
+var $ = CG.$;
+var DADOS = [];
+var SORT = { key: 'numero_topico', dir: 1 };
+
+// download modelo
+$('btnModelo').addEventListener('click', function(){
+  CG.baixarModelo().catch(function(e){ CG.toast('Falha: '+e.message,'warn'); });
+});
+
+// carrega
+function load(){
+  return CG.sbGetAll(CG.comUnidade('cron_geral_atividades?select=*'))
+    .then(function(rows){
+      DADOS = rows || [];
+      popularSelects();
+      render();
+    })
+    .catch(function(e){
+      var box = $('msgBox');
+      if(CG.isMissingTable(e)){
+        box.innerHTML = '<div class="msg err">Tabelas não encontradas. Rode <b>supabase_cron_geral.sql</b> no SQL Editor do Supabase antes de importar.</div>';
+      } else {
+        box.innerHTML = '<div class="msg err">Falha ao carregar: '+CG.esc(e.message)+'</div>';
+      }
+      $('tb').innerHTML = '<tr><td colspan="11" class="empty">— sem dados —</td></tr>';
+    });
+}
+
+function popularSelects(){
+  var addOpts = function(sel, values){
+    var s = $(sel);
+    var cur = s.value;
+    // limpa mantendo a primeira opção (default)
+    while(s.options.length > 1) s.remove(1);
+    values.forEach(function(v){
+      var o = document.createElement('option');
+      o.value = v.code || v;
+      o.textContent = v.label || v;
+      s.appendChild(o);
+    });
+    s.value = cur;
+  };
+  addOpts('fFase', CG.FASES);
+  addOpts('fTipo', CG.TIPOS);
+  addOpts('fCwa', uniq(DADOS.map(function(a){ return a.cwa; })));
+  addOpts('fCwp', uniq(DADOS.map(function(a){ return a.cwp; })));
+  addOpts('fEmp', uniq(DADOS.map(function(a){ return a.empresa; })));
+}
+
+function uniq(arr){
+  var s = {};
+  arr.forEach(function(v){ if(v && !s[v]) s[v]=true; });
+  return Object.keys(s).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+}
+
+function filtrar(){
+  var q = CG.deacc($('fBusca').value.trim());
+  var fase = $('fFase').value, tipo = $('fTipo').value;
+  var cwa = $('fCwa').value, cwp = $('fCwp').value, emp = $('fEmp').value;
+  var inclInat = $('fInativas').checked;
+  return DADOS.filter(function(a){
+    if(!inclInat && a.ativo === false) return false;
+    if(fase && a.fase !== fase) return false;
+    if(tipo && a.tipo_pacote !== tipo) return false;
+    if(cwa  && a.cwa !== cwa) return false;
+    if(cwp  && a.cwp !== cwp) return false;
+    if(emp  && a.empresa !== emp) return false;
+    if(q){
+      var bag = CG.deacc([a.numero_topico,a.nome,a.cwa,a.cwp,a.empresa,a.pai_topico].join(' '));
+      if(bag.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function ordenar(lista){
+  var k = SORT.key, dir = SORT.dir;
+  return lista.slice().sort(function(a,b){
+    var va = a[k], vb = b[k];
+    if(va == null && vb == null) return 0;
+    if(va == null) return 1; if(vb == null) return -1;
+    if(k === 'custo_lb') return (Number(va) - Number(vb)) * dir;
+    if(k === 'inicio_lb' || k === 'termino_lb') return (String(va).localeCompare(String(vb))) * dir;
+    if(k === 'numero_topico') return cmpTopico(String(va), String(vb)) * dir;
+    return String(va).localeCompare(String(vb),'pt-BR',{numeric:true}) * dir;
+  });
+}
+function cmpTopico(a,b){
+  var pa = a.split('.').map(function(x){ return parseInt(x,10)||0; });
+  var pb = b.split('.').map(function(x){ return parseInt(x,10)||0; });
+  for(var i=0; i<Math.max(pa.length,pb.length); i++){
+    var da = pa[i]||0, db = pb[i]||0;
+    if(da!==db) return da-db;
+  }
+  return 0;
+}
+
+function render(){
+  var lista = ordenar(filtrar());
+  var tb = $('tb');
+  atualizarKPIs(lista);
+  atualizarSetas();
+  if(!lista.length){
+    tb.innerHTML = '<tr><td colspan="11" class="empty">— nenhuma atividade encontrada com esses filtros —</td></tr>';
+    return;
+  }
+  var frag = document.createDocumentFragment();
+  lista.forEach(function(a){
+    var tr = document.createElement('tr');
+    if(a.ativo === false) tr.className = 'inativa';
+    tr.innerHTML = ''
+      + '<td class="mono">'+CG.esc(a.numero_topico)+'</td>'
+      + '<td>'+CG.esc(a.nome)+(a.ativo===false?' <span class="pill inativa">inativa</span>':'')+'</td>'
+      + '<td><span class="pill '+pillClsFase(a.fase)+'">'+labelFase(a.fase)+'</span></td>'
+      + '<td><span class="pill '+pillClsTipo(a.tipo_pacote)+'">'+labelTipo(a.tipo_pacote)+'</span></td>'
+      + '<td>'+CG.esc(a.cwa || '—')+'</td>'
+      + '<td>'+CG.esc(a.cwp || '—')+'</td>'
+      + '<td>'+CG.esc(a.empresa || '—')+'</td>'
+      + '<td class="right mono">'+(a.custo_lb==null?'—':CG.nfMoney(a.custo_lb))+'</td>'
+      + '<td class="mono">'+(a.inicio_lb ? CG.fmtBr(a.inicio_lb) : '—')+'</td>'
+      + '<td class="mono">'+(a.termino_lb ? CG.fmtBr(a.termino_lb) : '—')+'</td>'
+      + '<td class="mono">'+CG.esc(a.pai_topico || '—')+'</td>';
+    frag.appendChild(tr);
+  });
+  tb.innerHTML = '';
+  tb.appendChild(frag);
+}
+
+function atualizarKPIs(lista){
+  var tot = lista.length;
+  var custo = lista.reduce(function(s,a){ return s + (Number(a.custo_lb) || 0); }, 0);
+  var porFase = {}; lista.forEach(function(a){ porFase[a.fase] = (porFase[a.fase]||0) + 1; });
+  var exec = lista.filter(function(a){ return a.tipo_pacote === 'EXECUCAO'; }).length;
+
+  var html = '';
+  html += '<div class="stat"><div class="lbl">Atividades (filtro)</div><div class="val">'+tot+'</div></div>';
+  html += '<div class="stat"><div class="lbl">Custo LB (filtro)</div><div class="val small">'+CG.nfMoney(custo)+'</div></div>';
+  html += '<div class="stat"><div class="lbl">Execução</div><div class="val">'+exec+'</div></div>';
+  ['FASE_I','FASE_II','ARMAZEM','POSTO'].forEach(function(f){
+    html += '<div class="stat"><div class="lbl">'+labelFase(f)+'</div><div class="val">'+(porFase[f]||0)+'</div></div>';
+  });
+  $('stats').innerHTML = html;
+}
+
+// sort headers
+document.querySelectorAll('thead th[data-sort]').forEach(function(th){
+  th.addEventListener('click', function(){
+    var k = th.getAttribute('data-sort');
+    if(SORT.key === k) SORT.dir = -SORT.dir; else { SORT.key = k; SORT.dir = 1; }
+    render();
+  });
+});
+function atualizarSetas(){
+  document.querySelectorAll('thead th[data-sort]').forEach(function(th){
+    var arrow = th.querySelector('.arrow');
+    if(!arrow) return;
+    arrow.textContent = (th.getAttribute('data-sort') === SORT.key) ? (SORT.dir === 1 ? '▲' : '▼') : '';
+  });
+}
+
+// filtros
+['fBusca','fFase','fTipo','fCwa','fCwp','fEmp','fInativas'].forEach(function(id){
+  $(id).addEventListener('input', render);
+  $(id).addEventListener('change', render);
+});
+
+// helpers de rótulo
+function labelFase(f){ var x = CG.FASES.find(function(k){return k.code===f;}); return x?x.label:(f||'—'); }
+function labelTipo(t){ var x = CG.TIPOS.find(function(k){return k.code===t;}); return x?x.label:(t||'—'); }
+function pillClsFase(f){ return ({FASE_I:'fase-i',FASE_II:'fase-ii',ARMAZEM:'armazem',POSTO:'posto'})[f] || ''; }
+function pillClsTipo(t){ return ({EXECUCAO:'exec',PROJETO:'proj',FORNECIMENTO:'forn',COMISSIONAMENTO:'com'})[t] || ''; }
+
+load();
+</script>
+</body>
+</html>

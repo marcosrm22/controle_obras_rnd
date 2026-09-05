@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Importar Cronograma Geral · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-dark:#223a60; --blue-soft:#eef2f8;
+  --teal:#007D77; --teal-soft:#e0f2f1;
+  --green:#0f5c47; --green-soft:#e6efe9;
+  --red:#8a3822; --red-soft:#fdecea;
+  --gold:#EAA239; --gold-soft:#fef3d5;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text);font-size:13px}
+.page{max-width:1400px;margin:0 auto;padding:28px 24px 60px}
+.head{border-bottom:3px solid var(--teal);padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.head .eyebrow{font-size:9px;color:var(--teal);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:5px}
+.head h1{font-size:22px;font-weight:800;letter-spacing:-.3px;line-height:1.15}
+.head h1 span{color:var(--text-dim);font-weight:500}
+.head p{font-size:12px;color:var(--text-dim);margin-top:4px}
+.back{color:var(--text-dim);text-decoration:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:inline-flex;align-items:center;gap:6px;margin-bottom:12px}
+.back:hover{color:var(--teal)}
+
+.panel{background:var(--panel);border:1px solid var(--border);padding:20px 22px;margin-bottom:18px;box-shadow:0 2px 12px -4px rgba(26,35,50,.08)}
+.panel h2{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--text-mute);font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:200px}
+
+button, .btn{font-family:inherit;font-size:12px;font-weight:600;padding:9px 16px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+button:hover, .btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
+button.primary, .btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+button.primary:hover, .btn.primary:hover{background:#005f5a;border-color:#005f5a;color:#fff}
+button.ghost{background:transparent}
+button:disabled{opacity:.5;cursor:not-allowed}
+
+input[type=file]{font:inherit;font-size:12px}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);cursor:pointer}
+label.chk input{accent-color:var(--teal)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:12px}
+.stat{background:var(--blue-soft);border-left:3px solid var(--teal);padding:10px 14px}
+.stat.warn{background:var(--gold-soft);border-left-color:var(--gold)}
+.stat.err{background:var(--red-soft);border-left-color:var(--red)}
+.stat .lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700}
+.stat .val{font-size:22px;font-weight:800;color:var(--text);margin-top:2px}
+.stat .val.small{font-size:14px}
+
+.table-wrap{overflow-x:auto;max-height:520px;overflow-y:auto;border:1px solid var(--border);margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:11.5px;background:var(--panel)}
+thead th{position:sticky;top:0;background:var(--blue-soft);color:var(--text);font-weight:700;text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+tbody td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tbody tr:hover{background:#fafbfc}
+tbody tr.err td{background:#fef2f0}
+tbody tr.err td:first-child{border-left:3px solid var(--red)}
+.pill{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--blue-soft);color:var(--blue)}
+.pill.fase-i{background:#e0f2f1;color:#00695c}
+.pill.fase-ii{background:#fef3d5;color:#a06714}
+.pill.armazem{background:#e8efe1;color:#3d6027}
+.pill.posto{background:#fdecea;color:#8a3822}
+.pill.exec{background:#e0f2f1;color:#00695c}
+.pill.proj{background:#f0e6f8;color:#6b4fa0}
+.pill.forn{background:#fef3d5;color:#a06714}
+.pill.com{background:#e6f0f8;color:#304F7E}
+td.err-cell{color:var(--red);font-weight:600}
+
+.msg{padding:10px 14px;font-size:12px;border-left:3px solid;margin-top:12px}
+.msg.info{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-dark)}
+.msg.ok{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.msg.warn{background:var(--gold-soft);border-color:var(--gold);color:#a06714}
+.msg.err{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+
+.mono{font-family:'JetBrains Mono',monospace}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tabs button{border-bottom:2px solid transparent;background:none;border-left:none;border-right:none;border-top:none;padding:8px 14px;font-size:11px}
+.tabs button.on{border-bottom-color:var(--teal);color:var(--teal)}
+.hidden{display:none}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="cron_geral_core.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <a class="back" href="cron_geral.html">← Voltar às Atividades</a>
+
+  <header class="head">
+    <div>
+      <div class="eyebrow">Cronograma Executivo Geral</div>
+      <h1>Importar do Excel <span>· baseline pesado</span></h1>
+      <p>Faz upload do cronograma geral com CWA, Disciplina, Fase e Custo LB. O sistema faz UPSERT por Número de Estrutura de Tópicos — reimportar substitui as linhas existentes.</p>
+    </div>
+    <div class="row">
+      <span id="unidade-switcher"></span>
+      <a class="btn" href="index.html">Painel</a>
+    </div>
+  </header>
+
+  <!-- 1. FONTE -->
+  <div class="panel">
+    <h2>1 · Escolher arquivo</h2>
+    <div class="row">
+      <button id="btnModelo" class="ghost">↓ Baixar modelo</button>
+      <div class="grow">
+        <input type="file" id="fileIn" accept=".xlsx,.xlsm,.xls,.csv"/>
+      </div>
+      <button id="btnLer">Ler planilha</button>
+    </div>
+    <div id="msgLer" class="msg info hidden"></div>
+  </div>
+
+  <!-- 2. PREVIEW -->
+  <div class="panel hidden" id="pnlPreview">
+    <h2>2 · Conferir</h2>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs" style="margin-top:14px">
+      <button data-tab="ok"   class="on">Válidas (<span id="cOk">0</span>)</button>
+      <button data-tab="err">Com erro (<span id="cErr">0</span>)</button>
+      <button data-tab="all">Todas</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th>Linha</th><th>Número</th><th>Nome</th><th>Fase</th><th>Tipo</th>
+          <th>CWA</th><th>CWP</th><th>Empresa</th>
+          <th style="text-align:right">Custo LB</th>
+          <th>Início LB</th><th>Término LB</th><th>Pai</th><th>Diag.</th>
+        </tr></thead>
+        <tbody id="tbBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. GRAVAR -->
+  <div class="panel hidden" id="pnlSalvar">
+    <h2>3 · Salvar no Supabase</h2>
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="chkDesativar"/>
+        Marcar como <b>inativas</b> as atividades que sumiram deste arquivo (mantém histórico e vínculos)</label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="btnSalvar" class="primary" disabled>Gravar atividades válidas</button>
+      <span id="statusSalvar" class="mono" style="font-size:11px;color:var(--text-mute)"></span>
+    </div>
+    <div id="msgSalvar" class="msg info hidden"></div>
+  </div>
+
+</div>
+
+<script>
+if(!CG.requireAuth()) throw new Error('auth');
+
+// Renderiza o switcher de unidade (helper opcional em unidade.js)
+if(typeof pcoRenderSwitcher === 'function') pcoRenderSwitcher('unidade-switcher');
+
+var $ = CG.$;
+var PARSED = null;    // { header, mapa, atividades:[], erros:[] }
+var ARQUIVO = '';
+var TAB = 'ok';
+
+// ------- 1. Modelo
+$('btnModelo').addEventListener('click', function(){
+  CG.baixarModelo().catch(function(e){ CG.toast('Falha ao gerar modelo: '+e.message,'warn'); });
+});
+
+// ------- 2. Ler planilha
+$('btnLer').addEventListener('click', function(){
+  var f = $('fileIn').files[0];
+  if(!f){ CG.toast('Escolha um arquivo primeiro.','warn'); return; }
+  ARQUIVO = f.name;
+  var msg = $('msgLer');
+  msg.className='msg info'; msg.textContent='Lendo '+f.name+'...';
+  CG.readWorkbookRows(f).then(function(res){
+    PARSED = CG.parseAtividades(res.rows, f.name);
+    renderPreview();
+    msg.className='msg ok';
+    msg.innerHTML = 'Aba lida: <b>'+res.sheetName+'</b>. '
+      + PARSED.atividades.length + ' atividades encontradas · '
+      + PARSED.erros.length + ' com erro.';
+  }).catch(function(e){
+    msg.className='msg err'; msg.textContent='Falha: '+e.message;
+    PARSED=null; $('pnlPreview').classList.add('hidden'); $('pnlSalvar').classList.add('hidden');
+  });
+});
+
+// ------- 3. Preview
+function renderPreview(){
+  if(!PARSED) return;
+  $('pnlPreview').classList.remove('hidden');
+  $('pnlSalvar').classList.remove('hidden');
+
+  var validos = PARSED.atividades;
+  var errosLinhas = {};
+  PARSED.erros.forEach(function(e){ (errosLinhas[e.linha] = errosLinhas[e.linha] || []).push(e.msg); });
+
+  // Stats
+  var totCusto = validos.reduce(function(s,a){ return s + (a.custo_lb || 0); }, 0);
+  var porFase = {}; validos.forEach(function(a){ porFase[a.fase] = (porFase[a.fase]||0) + 1; });
+  var porTipo = {}; validos.forEach(function(a){ porTipo[a.tipo_pacote] = (porTipo[a.tipo_pacote]||0) + 1; });
+
+  var stats = '';
+  stats += '<div class="stat"><div class="lbl">Atividades</div><div class="val">'+validos.length+'</div></div>';
+  stats += '<div class="stat"><div class="lbl">Custo LB total</div><div class="val small">'+CG.nfMoney(totCusto)+'</div></div>';
+  ['FASE_I','FASE_II','ARMAZEM','POSTO'].forEach(function(f){
+    if(porFase[f]) stats += '<div class="stat"><div class="lbl">'+labelFase(f)+'</div><div class="val">'+porFase[f]+'</div></div>';
+  });
+  ['EXECUCAO','PROJETO','FORNECIMENTO','COMISSIONAMENTO'].forEach(function(t){
+    if(porTipo[t]) stats += '<div class="stat"><div class="lbl">'+labelTipo(t)+'</div><div class="val">'+porTipo[t]+'</div></div>';
+  });
+  if(PARSED.erros.length) stats += '<div class="stat err"><div class="lbl">Com erro</div><div class="val">'+PARSED.erros.length+'</div></div>';
+  $('stats').innerHTML = stats;
+
+  $('cOk').textContent  = validos.length;
+  $('cErr').textContent = PARSED.erros.length;
+
+  $('btnSalvar').disabled = (validos.length === 0);
+
+  drawTable(errosLinhas);
+}
+
+function drawTable(errosLinhas){
+  var tb = $('tbBody'); tb.innerHTML = '';
+  var rows = [];
+  if(TAB === 'ok') rows = PARSED.atividades.map(function(a){ return {ok:true, a:a}; });
+  else if(TAB === 'err') rows = PARSED.erros.map(function(e){ return {ok:false, e:e}; });
+  else {
+    rows = PARSED.atividades.map(function(a){ return {ok:true, a:a}; })
+      .concat(PARSED.erros.map(function(e){ return {ok:false, e:e}; }));
+    rows.sort(function(x,y){ return (x.ok?x.a._linha:x.e.linha) - (y.ok?y.a._linha:y.e.linha); });
+  }
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-mute);padding:24px">— nada a mostrar —</td></tr>'; return; }
+  var frag = document.createDocumentFragment();
+  rows.forEach(function(row){
+    var tr = document.createElement('tr');
+    if(!row.ok){
+      tr.className = 'err';
+      tr.innerHTML = '<td class="mono">'+row.e.linha+'</td>'
+        + '<td colspan="11" class="err-cell">— linha ignorada —</td>'
+        + '<td class="err-cell">'+CG.esc(row.e.msg)+'</td>';
+    } else {
+      var a = row.a;
+      var diag = (errosLinhas[a._linha] || []).join(' · ');
+      tr.innerHTML = ''
+        + '<td class="mono">'+a._linha+'</td>'
+        + '<td class="mono">'+CG.esc(a.numero_topico)+'</td>'
+        + '<td>'+CG.esc(a.nome)+'</td>'
+        + '<td><span class="pill '+pillClsFase(a.fase)+'">'+labelFase(a.fase)+'</span></td>'
+        + '<td><span class="pill '+pillClsTipo(a.tipo_pacote)+'">'+labelTipo(a.tipo_pacote)+'</span></td>'
+        + '<td>'+CG.esc(a.cwa || '—')+'</td>'
+        + '<td>'+CG.esc(a.cwp || '—')+'</td>'
+        + '<td>'+CG.esc(a.empresa || '—')+'</td>'
+        + '<td style="text-align:right" class="mono">'+(a.custo_lb==null?'—':CG.nfMoney(a.custo_lb))+'</td>'
+        + '<td class="mono">'+(a.inicio_lb ? CG.fmtBr(a.inicio_lb) : '—')+'</td>'
+        + '<td class="mono">'+(a.termino_lb ? CG.fmtBr(a.termino_lb) : '—')+'</td>'
+        + '<td class="mono">'+CG.esc(a.pai_topico || '—')+'</td>'
+        + '<td class="'+(diag?'err-cell':'')+'">'+CG.esc(diag)+'</td>';
+    }
+    frag.appendChild(tr);
+  });
+  tb.appendChild(frag);
+}
+
+// tabs
+document.querySelectorAll('.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){
+    TAB = b.getAttribute('data-tab');
+    document.querySelectorAll('.tabs button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on');
+    if(PARSED){
+      var el = {}; PARSED.erros.forEach(function(e){ (el[e.linha] = el[e.linha] || []).push(e.msg); });
+      drawTable(el);
+    }
+  });
+});
+
+// ------- 4. Salvar
+$('btnSalvar').addEventListener('click', function(){
+  if(!PARSED || !PARSED.atividades.length) return;
+  if(!CG.canEdit()){ CG.toast('Seu perfil é somente leitura neste módulo.','warn'); return; }
+  var desat = $('chkDesativar').checked;
+  var st = $('statusSalvar'); var msg = $('msgSalvar');
+  $('btnSalvar').disabled = true;
+  st.textContent = 'Gravando ' + PARSED.atividades.length + ' atividades...';
+  msg.className='msg info';
+  msg.classList.remove('hidden');
+  msg.textContent='Gravando... aguarde.';
+
+  CG.upsertAtividades(PARSED.atividades, { desativarAusentes: desat })
+    .then(function(r){
+      st.textContent = 'OK · '+r.inseridos+' gravadas · '+r.desativados+' desativadas';
+      msg.className='msg ok';
+      msg.innerHTML = '<b>Concluído.</b> '+r.inseridos+' atividades gravadas.'
+        + (desat ? ' '+r.desativados+' que não vieram no arquivo foram marcadas como inativas.' : '');
+      CG.toast('Atividades salvas.', 'ok');
+      setTimeout(function(){ $('btnSalvar').disabled = false; }, 1500);
+    })
+    .catch(function(e){
+      msg.className='msg err';
+      if(CG.isMissingTable(e)) msg.innerHTML='Tabelas não encontradas — rode <b>supabase_cron_geral.sql</b> no SQL Editor do Supabase.';
+      else msg.textContent = 'Falha: ' + e.message;
+      st.textContent = 'Erro.';
+      $('btnSalvar').disabled = false;
+    });
+});
+
+// ------- helpers
+function labelFase(f){ var x = CG.FASES.find(function(k){return k.code===f;}); return x?x.label:f; }
+function labelTipo(t){ var x = CG.TIPOS.find(function(k){return k.code===t;}); return x?x.label:t; }
+function pillClsFase(f){ return ({FASE_I:'fase-i',FASE_II:'fase-ii',ARMAZEM:'armazem',POSTO:'posto'})[f] || ''; }
+function pillClsTipo(t){ return ({EXECUCAO:'exec',PROJETO:'proj',FORNECIMENTO:'forn',COMISSIONAMENTO:'com'})[t] || ''; }
+</script>
+</body>
+</html>
