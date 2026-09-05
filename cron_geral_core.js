@@ -304,6 +304,11 @@
   function normFase(v) { return FASE_ALIAS[deacc(v)] || null; }
   function normTipo(v) { return TIPO_ALIAS[deacc(v)] || null; }
 
+  /* Lê o workbook.
+     - Escolhe a primeira aba cujo nome case (deacc/lower) com "atividades",
+       ou a primeira aba do arquivo como fallback.
+     - Se existir uma aba "areas" ou "cwa" (deacc/lower), extrai a coluna A
+       inteira como lista de "CÓDIGO - Nome" para o mapeamento automático. */
   function readWorkbookRows(file) {
     return ensureXLSX().then(function (X) {
       return new Promise(function (resolve, reject) {
@@ -312,10 +317,24 @@
         reader.onload = function (e) {
           try {
             var wb = X.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
-            var name = wb.SheetNames[0];
-            var ws = wb.Sheets[name];
-            var arr = X.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
-            resolve({ sheetName: name, rows: arr });
+            var atvName = wb.SheetNames.find(function (n) { return deacc(n) === 'ATIVIDADES'; })
+                       || wb.SheetNames[0];
+            var wsA = wb.Sheets[atvName];
+            var rows = X.utils.sheet_to_json(wsA, { header: 1, defval: '', raw: true });
+
+            var areas = null;
+            var refName = wb.SheetNames.find(function (n) {
+              var d = deacc(n); return d === 'AREAS' || d === 'CWA' || d === 'CWAS';
+            });
+            if (refName) {
+              var wsR = wb.Sheets[refName];
+              var refRows = X.utils.sheet_to_json(wsR, { header: 1, defval: '', raw: true });
+              areas = refRows.map(function (r) { return r && r[0] != null ? String(r[0]).trim() : ''; })
+                             .filter(function (s) { return s && s.length > 3; });
+              if (!areas.length) areas = null;
+            }
+
+            resolve({ sheetName: atvName, rows: rows, areasNames: areas });
           } catch (err) { reject(err); }
         };
         reader.readAsArrayBuffer(file);
@@ -323,8 +342,142 @@
     });
   }
 
-  /* Interpreta as linhas: retorna { header, mapa, atividades, erros } */
-  function parseAtividades(rows, arquivoOrigem) {
+  /* ================================================================
+     Mapeamento de CWA "livre" (texto solto do PM) para a nomenclatura
+     oficial listada na aba Áreas do workbook, no formato "2323.A - Nome".
+     Ordem: exato → sem-parênteses → sinônimo → fuzzy (Levenshtein).
+     ================================================================ */
+  var CWA_ALIAS = {
+    'agrotoxicos':                     'agroquimicos',
+    'deposito de agrotoxicos':         'deposito de gestao de agroquimicos',
+    'tratamento de efluentes':         'tratamento de esgoto',
+    'tratamento de efluentes lagoas':  'tratamento de esgoto lagoas',
+    'trincater':                       'tricanter',
+    'extracao de oleo trincater':      'extracao de oleo tricanter',
+    'refrigeracao do ddgs':            'resfrigeracao do ddgs',
+    'terraplanagem':                   'terraplenagem',
+    'dorna volante':                   'dornas volante',
+    'balanca rodoviaria':              'balancas rodoviaria',
+    'sistema de alimentacao':          'transportadores de alimentacao da caldeira sistema de medicao de biomassa e peneiras de disco',
+    'armazenamento de graos':          'armazens aeracao e termometria'
+  };
+  var CWA_STOP = { de:1, da:1, do:1, das:1, dos:1, e:1, a:1, o:1, as:1, os:1,
+                   em:1, na:1, no:1, nas:1, nos:1, com:1, para:1, por:1, sistema:1 };
+
+  function _stem(w) {
+    if (w.length > 3 && w.slice(-3) === 'oes') return w.slice(0,-3) + 'ao';
+    if (w.length > 3 && w.slice(-3) === 'aes') return w.slice(0,-3) + 'ao';
+    if (w.length > 3 && w.slice(-2) === 'ns')  return w.slice(0,-2) + 'm';
+    if (w.length > 3 && w.slice(-2) === 'is')  return w.slice(0,-2) + 'l';
+    if (w.length > 3 && w.slice(-2) === 'es')  return w.slice(0,-2);
+    if (w.length > 2 && w.slice(-1) === 's')   return w.slice(0,-1);
+    return w;
+  }
+  function _normLeaf(s, stripParens) {
+    var v = deacc(s).toLowerCase();
+    if (stripParens) v = v.replace(/\s*\([^)]*\)\s*/g, ' ');
+    v = v.replace(/[|,/\-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return v;
+  }
+  function _wordsSet(s, stripParens) {
+    var v = _normLeaf(s, stripParens);
+    var out = {}, m = v.match(/[a-z0-9']+/g) || [];
+    m.forEach(function (w) { if (w.length >= 2 && !CWA_STOP[w]) out[_stem(w)] = 1; });
+    return out;
+  }
+  function _lev(a, b) {
+    if (a === b) return 0; if (!a) return b.length; if (!b) return a.length;
+    var prev = []; for (var i = 0; i <= b.length; i++) prev.push(i);
+    for (var i2 = 0; i2 < a.length; i2++) {
+      var cur = [i2 + 1];
+      for (var j = 0; j < b.length; j++) {
+        cur.push(Math.min(cur[j] + 1, prev[j+1] + 1, prev[j] + (a[i2] === b[j] ? 0 : 1)));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function _sim(a, b) { return (!a || !b) ? 0 : (1 - _lev(a,b) / Math.max(a.length, b.length)); }
+
+  function buildAreasIndex(areasNames) {
+    var idx = { list: [], byNorm: {}, byNormNoParen: {} };
+    (areasNames || []).forEach(function (full) {
+      var parts = full.split(' - ');
+      var code  = (parts[0] || '').trim();
+      var name  = (parts.slice(1).join(' - ') || '').trim();
+      var it = {
+        full: full, code: code, name: name,
+        isUmbrella: code.indexOf('.') === -1,
+        nameNorm:         _normLeaf(name, false),
+        nameNormNoParen:  _normLeaf(name, true),
+        nameWords:        _wordsSet(name, true)
+      };
+      idx.list.push(it);
+      if (it.nameNorm)         (idx.byNorm[it.nameNorm]         = idx.byNorm[it.nameNorm]         || []).push(it);
+      if (it.nameNormNoParen)  (idx.byNormNoParen[it.nameNormNoParen] = idx.byNormNoParen[it.nameNormNoParen] || []).push(it);
+    });
+    return idx;
+  }
+
+  function _pickChild(cands) {
+    var ch = cands.filter(function (c) { return !c.isUmbrella; });
+    return (ch.length ? ch : cands)[0];
+  }
+
+  /* Retorna { full, diag } — diag ∈ exato|sem-paren|sinonimo|fuzzy|palavras|sem-match */
+  function mapCWA(raw, areasIdx) {
+    if (!raw || !String(raw).trim() || !areasIdx || !areasIdx.list.length) {
+      return { full: null, diag: 'sem-ref' };
+    }
+    var parts = String(raw).split('.').map(function (p) { return p.trim(); }).filter(Boolean);
+    if (!parts.length) return { full: null, diag: 'sem-match' };
+    var leaf = parts[parts.length - 1];
+    var keyF = _normLeaf(leaf, false);
+    var keyN = _normLeaf(leaf, true);
+
+    if (areasIdx.byNorm[keyF])         return { full: _pickChild(areasIdx.byNorm[keyF]).full,        diag: 'exato' };
+    if (areasIdx.byNormNoParen[keyN])  return { full: _pickChild(areasIdx.byNormNoParen[keyN]).full, diag: 'sem-paren' };
+
+    var alias = CWA_ALIAS[keyN];
+    if (alias) {
+      if (areasIdx.byNorm[alias])         return { full: _pickChild(areasIdx.byNorm[alias]).full,        diag: 'sinonimo' };
+      if (areasIdx.byNormNoParen[alias])  return { full: _pickChild(areasIdx.byNormNoParen[alias]).full, diag: 'sinonimo' };
+    }
+
+    // fuzzy
+    var best = null, bestS = 0;
+    for (var i = 0; i < areasIdx.list.length; i++) {
+      var a = areasIdx.list[i], s = _sim(keyN, a.nameNormNoParen);
+      if (s > bestS) { best = a; bestS = s; }
+    }
+    if (best && bestS >= 0.88 && !best.isUmbrella) return { full: best.full, diag: 'fuzzy' };
+
+    // palavras stemmed — prefere filho, threshold 0.6
+    var lw = _wordsSet(leaf, true);
+    var lwKeys = Object.keys(lw);
+    var bestC = null, bestCs = 0, bestU = null, bestUs = 0;
+    for (var k = 0; k < areasIdx.list.length; k++) {
+      var it = areasIdx.list[k], aw = it.nameWords, akeys = Object.keys(aw);
+      if (!akeys.length || !lwKeys.length) continue;
+      var uni = {}, inter = 0;
+      lwKeys.forEach(function (w) { uni[w] = 1; if (aw[w]) inter++; });
+      akeys.forEach(function (w) { uni[w] = 1; });
+      var s2 = inter / Math.max(1, Object.keys(uni).length);
+      if (it.isUmbrella) { if (s2 > bestUs) { bestU = it; bestUs = s2; } }
+      else               { if (s2 > bestCs) { bestC = it; bestCs = s2; } }
+    }
+    if (bestC && bestCs >= 0.6) return { full: bestC.full, diag: 'palavras' };
+    if (bestU && bestUs >= 0.75 && bestCs < 0.5) return { full: bestU.full, diag: 'pai' };
+
+    return { full: null, diag: 'sem-match' };
+  }
+
+  /* Interpreta as linhas: retorna { header, mapa, atividades, erros, descartadas, cwaResumo }
+     - Se `areasNames` for informado, aplica mapeamento automático de CWA.
+     - Se `tipo_pacote` estiver vazio E cwa preenchido → assume EXECUCAO.
+     - Se `tipo_pacote` estiver vazio E cwa vazio → linha descartada (é resumo/marco).
+     - `pai_topico` é derivado automaticamente de `numero_topico` quando vazio. */
+  function parseAtividades(rows, arquivoOrigem, areasNames) {
     if (!rows || !rows.length) return { header: [], mapa: {}, atividades: [], erros: [{ linha: 0, msg: 'Planilha vazia' }] };
     // encontra a linha do header (a primeira que contenha "NOME" ou "FASE")
     var headerIdx = -1;
@@ -343,7 +496,11 @@
         msg: 'Faltam colunas obrigatórias: ' + faltando.join(', ') }] };
     }
 
-    var atividades = [], erros = [];
+    var areasIdx = areasNames && areasNames.length ? buildAreasIndex(areasNames) : null;
+
+    var atividades = [], erros = [], descartadas = 0;
+    var cwaResumo = { total: 0, exato: 0, 'sem-paren': 0, sinonimo: 0, fuzzy: 0, palavras: 0, pai: 0, 'sem-match': 0, 'sem-ref': 0 };
+
     for (var r = headerIdx + 1; r < rows.length; r++) {
       var row = rows[r];
       if (!row || row.every(function (c) { return c == null || c === ''; })) continue;
@@ -352,36 +509,62 @@
       var nome   = String(row[mapa.nome]          == null ? '' : row[mapa.nome]).trim();
       var faseR  = row[mapa.fase], tipoR = row[mapa.tipo_pacote];
 
+      var cwaRaw = mapa.cwa != null ? String(row[mapa.cwa] || '').trim() : '';
+
       if (!numero) { erros.push({ linha: linha, msg: 'numero_topico vazio' }); continue; }
       if (!nome)   { erros.push({ linha: linha, msg: 'nome vazio' }); continue; }
 
+      // Auto-tipo: CWA preenchido + Tipo vazio → EXECUCAO.
+      // CWA vazio + Tipo vazio → linha descartada (é resumo/marco, não execução).
+      var tipo = normTipo(tipoR);
+      if (!tipo) {
+        if (cwaRaw) tipo = 'EXECUCAO';
+        else { descartadas++; continue; }
+      }
+
       var fase = normFase(faseR);
       if (!fase) { erros.push({ linha: linha, msg: 'fase inválida: "' + faseR + '"' }); continue; }
-      var tipo = normTipo(tipoR);
-      if (!tipo) { erros.push({ linha: linha, msg: 'tipo inválido: "' + tipoR + '"' }); continue; }
+
+      // Auto-pai: se coluna Pai vazia, deriva do numero_topico (drop último .N)
+      var pai = mapa.pai_topico != null ? String(row[mapa.pai_topico] || '').trim() : '';
+      if (!pai) {
+        var ix = numero.lastIndexOf('.');
+        pai = (ix > 0) ? numero.slice(0, ix) : null;
+      }
+
+      // Mapeamento de CWA
+      var cwaFinal = cwaRaw || null;
+      var cwaDiag  = null;
+      if (cwaRaw && areasIdx) {
+        var m = mapCWA(cwaRaw, areasIdx);
+        cwaDiag = m.diag;
+        cwaResumo.total++;
+        if (cwaResumo[m.diag] != null) cwaResumo[m.diag]++;
+        if (m.full) cwaFinal = m.full;
+      }
 
       var custo = mapa.custo_lb   != null ? parseNum(row[mapa.custo_lb])   : null;
       var iniLB = mapa.inicio_lb  != null ? toISO(row[mapa.inicio_lb])     : null;
       var fimLB = mapa.termino_lb != null ? toISO(row[mapa.termino_lb])    : null;
       var nivel = mapa.nivel      != null ? parseNum(row[mapa.nivel])      : null;
-      var pai   = mapa.pai_topico != null ? String(row[mapa.pai_topico] || '').trim() : null;
-      if (pai === '') pai = null;
 
       atividades.push({
         numero_topico:  numero,
         nome:           nome,
         fase:           fase,
         tipo_pacote:    tipo,
-        cwa:            mapa.cwa     != null ? String(row[mapa.cwa]     || '').trim() || null : null,
+        cwa:            cwaFinal,
         cwp:            mapa.cwp     != null ? String(row[mapa.cwp]     || '').trim() || null : null,
         empresa:        mapa.empresa != null ? String(row[mapa.empresa] || '').trim() || null : null,
         custo_lb:       custo,
         inicio_lb:      iniLB,
         termino_lb:     fimLB,
         nivel:          nivel != null ? Math.round(nivel) : null,
-        pai_topico:     pai,
+        pai_topico:     pai || null,
         arquivo_origem: arquivoOrigem || null,
-        _linha:         linha
+        _linha:         linha,
+        _cwa_raw:       cwaRaw || null,
+        _cwa_diag:      cwaDiag
       });
     }
 
@@ -395,7 +578,9 @@
       }
     });
 
-    return { header: header, mapa: mapa, atividades: atividades, erros: erros };
+    return { header: header, mapa: mapa, atividades: atividades, erros: erros,
+             descartadas: descartadas, cwaResumo: cwaResumo,
+             areasReconhecidas: areasIdx ? areasIdx.list.length : 0 };
   }
 
   /* ── Salva no Supabase (upsert por (unidade, numero_topico)) ─
@@ -538,7 +723,8 @@
     parseAtividades: parseAtividades,
     upsertAtividades: upsertAtividades,
     baixarModelo: baixarModelo,
-    normFase: normFase, normTipo: normTipo
+    normFase: normFase, normTipo: normTipo,
+    buildAreasIndex: buildAreasIndex, mapCWA: mapCWA
   };
 
 })(window);
