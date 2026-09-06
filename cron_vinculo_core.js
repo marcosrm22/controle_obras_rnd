@@ -82,15 +82,34 @@
     return ka === kb || ka.indexOf(kb) !== -1 || kb.indexOf(ka) !== -1;
   }
 
-  /* ============ Detecção de fase pelo nome do L2 ============ */
+  /* ============ Detecção de fase pelo nome ============ */
   function detectarFasePorNome(nomeL2) {
     var s = _deacc(nomeL2);
     if (/\barmazem/.test(s)) return 'ARMAZEM';
     if (/\bposto/.test(s))   return 'POSTO';
-    // "fase 01", "fase 1", "fase i" — atenção: "fase i" precisa ser posição isolada
+    // "fase 02", "fase 2", "fase ii" — checa II ANTES de I para não pegar "II" como "I"
     if (/\bfase\s*0*2\b/.test(s) || /\bfase\s*ii\b/.test(s)) return 'FASE_II';
     if (/\bfase\s*0*1\b/.test(s) || /\bfase\s*i\b/.test(s))  return 'FASE_I';
     return null;
+  }
+
+  /* Extrai código CWA embutido no nome (padrão APR ENGENHARIA):
+     "2300.A Pipe Rack" → "2300.A"
+     "2311. Moinho de Grãos" → "2311"
+     "2323.F - Almoxarifado..." → "2323.F"
+     Retorna null se não encontrar. */
+  var RE_CWA = /\b(\d{4})(\.[A-Z])?\b/;
+  function extrairCwaDoNome(nome) {
+    if (!nome) return null;
+    var m = String(nome).match(RE_CWA);
+    if (!m) return null;
+    return m[1] + (m[2] || '');
+  }
+  /* Extrai o código CWA de uma linha do geral: "2300.A - Pipe Rack" → "2300.A" */
+  function extrairCwaCodigo(cwaFull) {
+    if (!cwaFull) return null;
+    var m = String(cwaFull).match(RE_CWA);
+    return m ? (m[1] + (m[2] || '')) : null;
   }
 
   /* ============ Carregamento ============ */
@@ -190,6 +209,8 @@
         name:  t.name || '',
         level: t.level || 0,
         cp:    (t.CP == null ? null : t.CP),
+        cwaEmbedded: extrairCwaDoNome(t.name || ''),
+        faseSelfDetect: detectarFasePorNome(t.name || ''),
         filhos: [],
         resumosDescendentes: 0,
         folhasDescendentes:  0
@@ -256,13 +277,41 @@
     return 0;
   }
 
-  /* ============ Fase detectada pelo WBS do resumo ============ */
+  /* ============ Fase detectada pelo WBS do resumo ============
+     Estratégia em cascata:
+       1. O próprio nó tem fase no nome? (ex.: "MONTAGEM ...FASE I")
+       2. Algum ancestral (subindo por WBS) tem fase no nome?
+       3. Fase do L2 ancestral (mapa faseByWbs2)
+       Retorna null se nenhuma cascata der resultado. */
   function faseDoResumo(arvore, wbs) {
-    // pega o prefixo L2 desse WBS (2 primeiros segmentos)
+    var cur = String(wbs);
+    while (cur) {
+      var no = arvore.todosPorWbs[cur];
+      if (no && no.faseSelfDetect) return no.faseSelfDetect;
+      var ix = cur.lastIndexOf('.');
+      if (ix <= 0) break;
+      cur = cur.slice(0, ix);
+    }
     var parts = String(wbs).split('.');
-    if (parts.length < 2) return null;
-    var wbs2 = parts.slice(0, 2).join('.');
-    return arvore.faseByWbs2[wbs2] || null;
+    if (parts.length >= 2) {
+      var wbs2 = parts.slice(0, 2).join('.');
+      return arvore.faseByWbs2[wbs2] || null;
+    }
+    return null;
+  }
+
+  /* CWA embutido no nome, com herança para descendentes.
+     Se o próprio nó não tem, sobe procurando o primeiro ancestral que tem. */
+  function cwaEmbeddedDoResumo(arvore, wbs) {
+    var cur = String(wbs);
+    while (cur) {
+      var no = arvore.todosPorWbs[cur];
+      if (no && no.cwaEmbedded) return no.cwaEmbedded;
+      var ix = cur.lastIndexOf('.');
+      if (ix <= 0) break;
+      cur = cur.slice(0, ix);
+    }
+    return null;
   }
 
   /* ============ Vínculo efetivo com herança ============ */
@@ -287,6 +336,7 @@
     var contrato = arvore.contrato;
     var empKey   = _empresaKey(contrato.empresa || '');
     var fase     = faseDoResumo(arvore, no.wbs);
+    var cwaEmb   = cwaEmbeddedDoResumo(arvore, no.wbs);
 
     // 1) Sinal WBS exato (raro casar no seu cenário — mas rápido de checar)
     for (var i = 0; i < dados.geral.length; i++) {
@@ -295,16 +345,49 @@
       }
     }
 
-    // 2) Restringe candidatos pelo filtro (empresa + CWAs + fase)
+    // 2) Sinal CWA embutida no nome (padrão APR ENGENHARIA e similares) —
+    //    é o sinal mais forte; NÃO restringe por empresa (o dono do CWA no
+    //    geral pode ser outra empresa, ex.: aterramento é APR mas o CWA
+    //    é gerenciado pela HFC no geral).
+    if (cwaEmb) {
+      var porCwa = dados.geral.filter(function (g) {
+        var code = extrairCwaCodigo(g.cwa || '');
+        return code && code === cwaEmb;
+      });
+      if (fase) porCwa = porCwa.filter(function (g) { return g.fase === fase; });
+      if (porCwa.length === 1) {
+        return { cron_geral_id: porCwa[0].id, confianca: 'alta', metodo: 'cwa-no-nome', score: 0.95 };
+      }
+      if (porCwa.length > 1) {
+        // prefere linha da empresa correta; senão, jaccard-palavras entre elas
+        var doDono = porCwa.filter(function (g) { return _empresaMatch(contrato.empresa || '', g.empresa || ''); });
+        if (doDono.length === 1) {
+          return { cron_geral_id: doDono[0].id, confianca: 'alta', metodo: 'cwa-no-nome+empresa', score: 0.92 };
+        }
+        var poolCwa = doDono.length ? doDono : porCwa;
+        var noWordsC = _words(no.name);
+        var bestC = null, bestCs = 0;
+        poolCwa.forEach(function (g) {
+          var s = _jaccard(noWordsC, dados.geralWords[g.id] || {});
+          if (s > bestCs) { bestC = g; bestCs = s; }
+        });
+        if (bestC) {
+          // dentro do CWA, jaccard mais baixo ainda é útil — dá média
+          if (bestCs >= 0.4) return { cron_geral_id: bestC.id, confianca: 'alta',  metodo: 'cwa-no-nome+nome', score: 0.85 + bestCs * 0.1 };
+          return              { cron_geral_id: bestC.id,       confianca: 'media', metodo: 'cwa-no-nome',      score: 0.75 };
+        }
+      }
+      // cwaEmb detectada mas não existe no geral → cai pro caminho padrão
+    }
+
+    // 3) Restringe candidatos pelo filtro empresa+CWAs (aprendido do geral) + fase
     var candidatos = null;
     if (empKey && dados.geralPorEmpresa[empKey]) candidatos = dados.geralPorEmpresa[empKey];
-    // Se não temos linhas da empresa no geral, avisa (retorna null semSubset=true)
     if (!candidatos || !candidatos.length) return null;
-
     if (fase) candidatos = candidatos.filter(function (g) { return g.fase === fase; });
     if (!candidatos.length) return null;
 
-    // 3) Jaccard-palavras contra o candidato filtrado
+    // 4) Jaccard-palavras
     var noWords = _words(no.name);
     var best = null, bestScore = 0;
     candidatos.forEach(function (g) {
@@ -314,9 +397,9 @@
 
     if (!best) return null;
     var metodo = 'empresa+fase+nome';
-    if (bestScore >= 0.7)  return { cron_geral_id: best.id, confianca: 'alta',   metodo: metodo, score: bestScore };
-    if (bestScore >= 0.45) return { cron_geral_id: best.id, confianca: 'media',  metodo: metodo, score: bestScore };
-    if (bestScore >= 0.25) return { cron_geral_id: best.id, confianca: 'baixa',  metodo: metodo, score: bestScore };
+    if (bestScore >= 0.7)  return { cron_geral_id: best.id, confianca: 'alta',  metodo: metodo, score: bestScore };
+    if (bestScore >= 0.45) return { cron_geral_id: best.id, confianca: 'media', metodo: metodo, score: bestScore };
+    if (bestScore >= 0.25) return { cron_geral_id: best.id, confianca: 'baixa', metodo: metodo, score: bestScore };
     return null;
   }
 
@@ -373,6 +456,9 @@
   global.CV = {
     loadAll: loadAll,
     detectarFasePorNome: detectarFasePorNome,
+    extrairCwaDoNome: extrairCwaDoNome,
+    extrairCwaCodigo: extrairCwaCodigo,
+    cwaEmbeddedDoResumo: cwaEmbeddedDoResumo,
     faseDoResumo: faseDoResumo,
     vinculoEfetivo: vinculoEfetivo,
     sugerirMatch: sugerirMatch,
