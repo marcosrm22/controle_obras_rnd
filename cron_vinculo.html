@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vincular Terceiras × Cronograma Geral · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-soft:#eef2f8;
+  --teal:#007D77; --teal-soft:#e0f2f1;
+  --green:#0f5c47; --green-soft:#e6efe9;
+  --gold:#EAA239; --gold-soft:#fef3d5;
+  --red:#8a3822; --red-soft:#fdecea;
+  --violet:#6B4FA0; --violet-soft:#f0e6f8;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text);font-size:13px}
+.page{max-width:1720px;margin:0 auto;padding:22px 20px 60px}
+.head{border-bottom:3px solid var(--teal);padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.head .eyebrow{font-size:9px;color:var(--teal);letter-spacing:3px;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+.head h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.head h1 span{color:var(--text-dim);font-weight:500}
+.head p{font-size:12px;color:var(--text-dim);margin-top:3px}
+.back{color:var(--text-dim);text-decoration:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:inline-flex;align-items:center;gap:6px;margin-bottom:10px}
+.back:hover{color:var(--teal)}
+
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,.btn{font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+button:hover,.btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
+button.primary,.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+button.primary:hover,.btn.primary:hover{background:#005f5a;border-color:#005f5a;color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.ghost{background:transparent}
+button.warn{border-color:var(--gold);color:var(--gold)}
+button.warn:hover{background:var(--gold-soft)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--teal);padding:10px 14px}
+.stat.warn{border-left-color:var(--gold)} .stat.err{border-left-color:var(--red)}
+.stat.ok{border-left-color:var(--green)}
+.stat .lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700}
+.stat .val{font-size:22px;font-weight:800;color:var(--text);margin-top:2px}
+.stat .val.small{font-size:14px}
+
+.filters{background:var(--panel);border:1px solid var(--border);padding:10px 14px;margin-bottom:12px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto auto;gap:8px;align-items:center}
+.filters input,.filters select{font:inherit;font-size:12px;padding:7px 10px;border:1px solid var(--border);background:var(--panel);color:var(--text);width:100%}
+.filters input:focus,.filters select:focus{outline:none;border-color:var(--teal)}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;padding:0 6px;white-space:nowrap}
+label.chk input{accent-color:var(--teal)}
+
+.table-wrap{overflow:auto;max-height:calc(100vh - 340px);border:1px solid var(--border);background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{position:sticky;top:0;background:var(--blue-soft);color:var(--text);font-weight:700;text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;z-index:2}
+thead th.right{text-align:right}
+tbody td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tbody td.right{text-align:right}
+tbody tr:hover{background:#fafbfc}
+tbody tr.dirty{background:#fffbf0}
+tbody tr.dirty:hover{background:#fef7e5}
+tbody tr.salvo{background:#f6faf7}
+
+.mono{font-family:'JetBrains Mono',monospace}
+.pill{display:inline-block;padding:2px 8px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.pill.alta{background:#e6efe9;color:#0f5c47}
+.pill.media{background:#fef3d5;color:#a06714}
+.pill.baixa{background:#fdecea;color:#8a3822}
+.pill.salvo{background:#e0f2f1;color:#00695c}
+.pill.pendente{background:#eee;color:#666}
+.pill.metodo{background:#eef2f8;color:#304F7E}
+
+.geral-cell{max-width:340px}
+.geral-cell .picked{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.geral-cell .picked .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.geral-cell .picked .num{color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:10.5px;flex-shrink:0}
+.geral-cell .picked .badge{font-size:9px;color:var(--text-mute);margin-top:2px;display:block}
+.geral-cell button{padding:3px 8px;font-size:10.5px;font-weight:500}
+.geral-cell .none{color:var(--text-mute);font-style:italic}
+
+.msg{padding:10px 14px;font-size:12px;border-left:3px solid;margin-bottom:12px}
+.msg.info{background:var(--blue-soft);border-color:var(--blue);color:#223a60}
+.msg.warn{background:var(--gold-soft);border-color:var(--gold);color:#a06714}
+.msg.err{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.msg.ok{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+
+.loading{text-align:center;color:var(--text-mute);padding:40px}
+.empty{text-align:center;color:var(--text-mute);padding:40px}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(26,35,50,.45);display:none;z-index:900;align-items:flex-start;justify-content:center;padding-top:50px}
+.modal-bg.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);width:calc(100% - 40px);max-width:1100px;max-height:calc(100vh - 100px);display:flex;flex-direction:column;box-shadow:0 20px 60px -20px rgba(0,0,0,.4)}
+.modal .modal-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal .modal-head h2{font-size:14px}
+.modal .modal-close{cursor:pointer;font-size:22px;color:var(--text-mute);background:none;border:none;padding:0 8px}
+.modal .modal-close:hover{color:var(--red)}
+.modal .modal-body{padding:12px 20px;overflow:auto;flex:1}
+.modal-body .filters-inline{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.modal-body table{font-size:12px}
+.modal-body tbody tr{cursor:pointer}
+.modal-body tbody tr:hover{background:var(--teal-soft)}
+.modal-body tbody tr.sel{background:var(--teal-soft);outline:2px solid var(--teal)}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="cron_geral_core.js"></script>
+<script src="cron_vinculo_core.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <a class="back" href="cron_geral.html">← Voltar ao Cronograma Geral</a>
+
+  <header class="head">
+    <div>
+      <div class="eyebrow">Cronograma Executivo Geral · AWP</div>
+      <h1>Vincular Terceiras × Geral <span>· Fase 2</span></h1>
+      <p>Ligue cada atividade-resumo dos cronogramas das terceiras à sua atividade-mãe no cronograma geral. O auto-match sugere; você revisa e salva.</p>
+    </div>
+    <div class="actions">
+      <span id="unidade-switcher"></span>
+      <button id="btnAceitarAltas" title="Marca todas as sugestões de alta confiança">✓ Aceitar altas</button>
+      <button id="btnSalvar" class="primary" disabled>💾 Salvar selecionados (<span id="qtdSel">0</span>)</button>
+    </div>
+  </header>
+
+  <div id="msgBox"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="filters">
+    <input id="fBusca" placeholder="Buscar nome, WBS, contrato..."/>
+    <select id="fCron"><option value="">Todos os cronogramas</option></select>
+    <select id="fConf">
+      <option value="">Qualquer confiança</option>
+      <option value="salvo">Já salvo</option>
+      <option value="alta">Alta</option>
+      <option value="media">Média</option>
+      <option value="baixa">Baixa</option>
+      <option value="pendente">Sem sugestão (pendente)</option>
+    </select>
+    <select id="fDirty">
+      <option value="">Todos</option>
+      <option value="dirty">Só com alteração pendente</option>
+      <option value="salvo">Só já salvos</option>
+      <option value="novo">Só não salvos</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="fSel"/> só selecionados</label>
+    <button id="btnLimparFiltros" class="ghost">Limpar filtros</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="tbl">
+      <thead><tr>
+        <th style="width:34px"><input type="checkbox" id="chkAll" title="Selecionar tudo"/></th>
+        <th>Terceira (contrato)</th>
+        <th>WBS</th>
+        <th>Nome do resumo</th>
+        <th class="right">Folhas</th>
+        <th>Atividade do Geral vinculada</th>
+        <th class="right">Custo LB (Geral)</th>
+        <th>Confiança</th>
+        <th>Método</th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="9" class="loading">Carregando resumos e cronograma geral...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL de escolha de atividade do geral -->
+<div class="modal-bg" id="mBg">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Escolher atividade do cronograma geral <span id="mForCtx" style="color:var(--text-mute);font-weight:500"></span></h2>
+      <button class="modal-close" id="mClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="filters-inline">
+        <input id="mBusca" placeholder="Buscar por número, nome, CWA, empresa..."/>
+        <select id="mFase"><option value="">Todas as fases</option></select>
+        <select id="mCwa"><option value="">Todos os CWAs</option></select>
+        <select id="mEmp"><option value="">Todas as empresas</option></select>
+      </div>
+      <div style="max-height:calc(100vh - 340px);overflow:auto;border:1px solid var(--border)">
+        <table>
+          <thead><tr>
+            <th>Número</th><th>Nome</th><th>Fase</th><th>CWA</th><th>CWP</th><th>Empresa</th><th class="right">Custo LB</th>
+          </tr></thead>
+          <tbody id="mTb"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-mute)">Clique na linha para escolher. Só linhas de <b>Execução</b> ativas aparecem.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+if(!CG.requireAuth()) throw new Error('auth');
+if(typeof pcoRenderSwitcher === 'function') pcoRenderSwitcher('unidade-switcher');
+
+var $ = CG.$;
+var DADOS = null;         // {contratos, resumos, geral, vinculos, geralById, contratoById, vinculosByKey}
+var LINHAS = [];          // saída de CV.computarLinhas — array de linhas ricas
+var MODAL_LINHA = null;   // referência à linha sendo editada
+
+function load(){
+  return CV.loadAll().then(function(d){
+    DADOS  = d;
+    LINHAS = CV.computarLinhas(d);
+    popularFiltros();
+    render();
+  }).catch(function(e){
+    var box = $('msgBox');
+    if(CG.isMissingTable(e)){
+      box.innerHTML = '<div class="msg err">Tabela <b>cron_vinculo</b> não encontrada. Rode <b>supabase_cron_geral.sql</b> no SQL Editor do Supabase antes de continuar.</div>';
+    } else {
+      box.innerHTML = '<div class="msg err">Falha ao carregar: '+CG.esc(e.message)+'</div>';
+    }
+    $('tb').innerHTML = '<tr><td colspan="9" class="empty">— sem dados —</td></tr>';
+  });
+}
+
+function popularFiltros(){
+  // cronogramas para filtro principal
+  var selCron = $('fCron');
+  while(selCron.options.length > 1) selCron.remove(1);
+  (DADOS.contratos || []).forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = (c.empresa || '(sem empresa)') + ' — ' + (c.escopo || '(sem escopo)');
+    selCron.appendChild(o);
+  });
+
+  // fase / cwa / empresa do modal (populados a partir do geral)
+  var addOpts = function(sel, values){
+    while(sel.options.length > 1) sel.remove(1);
+    values.forEach(function(v){
+      var o = document.createElement('option'); o.value = v.code || v; o.textContent = v.label || v;
+      sel.appendChild(o);
+    });
+  };
+  addOpts($('mFase'), CG.FASES);
+  var cwas = uniq((DADOS.geral || []).map(function(g){ return g.cwa; }));
+  var emps = uniq((DADOS.geral || []).map(function(g){ return g.empresa; }));
+  addOpts($('mCwa'), cwas);
+  addOpts($('mEmp'), emps);
+}
+function uniq(arr){ var s={}; arr.forEach(function(v){ if(v && !s[v]) s[v]=true; }); return Object.keys(s).sort(function(a,b){return a.localeCompare(b,'pt-BR');}); }
+
+/* ============ filtros da lista principal ============ */
+function filtrar(){
+  var q = CG.deacc($('fBusca').value.trim());
+  var cron = $('fCron').value;
+  var conf = $('fConf').value;
+  var dirt = $('fDirty').value;
+  var sSel = $('fSel').checked;
+  return LINHAS.filter(function(L){
+    var r = L.resumo;
+    if(cron && String(r.cronograma_id) !== cron) return false;
+    if(conf){
+      if(conf === 'pendente'){ if(L.salvo || L.sugestao) return false; }
+      else if(conf === 'salvo'){ if(!L.salvo) return false; }
+      else if(!L.salvo && (!L.sugestao || L.sugestao.confianca !== conf)) return false;
+    }
+    if(dirt === 'dirty' && !L._dirty) return false;
+    if(dirt === 'salvo' && !L.salvo) return false;
+    if(dirt === 'novo'  && L.salvo) return false;
+    if(sSel && !L._selecionado) return false;
+    if(q){
+      var contratoName = ((r.contrato && r.contrato.empresa) || '') + ' ' + ((r.contrato && r.contrato.escopo) || '');
+      var bag = CG.deacc([contratoName, r.wbs, r.name].join(' '));
+      if(bag.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+/* ============ render ============ */
+function render(){
+  var lista = filtrar();
+  atualizarKPIs();
+  atualizarBotoes();
+  var tb = $('tb');
+  if(!lista.length){
+    tb.innerHTML = '<tr><td colspan="9" class="empty">— nenhuma linha com esses filtros —</td></tr>';
+    return;
+  }
+  var frag = document.createDocumentFragment();
+  lista.forEach(function(L){
+    var r = L.resumo;
+    var tr = document.createElement('tr');
+    if(L._dirty) tr.className = 'dirty';
+    else if(L.salvo) tr.className = 'salvo';
+
+    // checkbox
+    var tdChk = td(); tdChk.innerHTML = '<input type="checkbox" '+(L._selecionado?'checked':'')+' data-idx="'+idxOf(L)+'" class="cbLinha"/>';
+    tr.appendChild(tdChk);
+
+    // contrato
+    tr.appendChild(tdText('<b>'+CG.esc((r.contrato && r.contrato.empresa) || '—')+'</b>'
+      + '<div style="color:var(--text-mute);font-size:10.5px">'+CG.esc((r.contrato && r.contrato.escopo) || '')+'</div>'));
+
+    // WBS
+    tr.appendChild(tdText('<span class="mono">'+CG.esc(r.wbs)+'</span>'));
+
+    // Nome
+    tr.appendChild(tdText(CG.esc(r.name) + '<div style="color:var(--text-mute);font-size:10px">nível '+r.level+(r.cp!=null?' · CP '+CG.nfMoney(r.cp):'')+'</div>'));
+
+    // Folhas
+    var tdF = td('right'); tdF.innerHTML = '<span class="mono">'+r.folhas+'</span>'; tr.appendChild(tdF);
+
+    // Geral vinculado (com botão de editar)
+    tr.appendChild(cellGeral(L));
+
+    // Custo LB (Geral)
+    var g = L.cron_geral_id ? DADOS.geralById[L.cron_geral_id] : null;
+    var tdCusto = td('right');
+    tdCusto.innerHTML = g && g.custo_lb!=null ? '<span class="mono">'+CG.nfMoney(g.custo_lb)+'</span>' : '—';
+    tr.appendChild(tdCusto);
+
+    // Confiança
+    tr.appendChild(tdText(pillConf(L)));
+
+    // Método
+    tr.appendChild(tdText(L.metodo_view ? '<span class="pill metodo">'+CG.esc(L.metodo_view)+'</span>' : '—'));
+
+    frag.appendChild(tr);
+  });
+  tb.innerHTML = '';
+  tb.appendChild(frag);
+
+  // wire checkboxes de linha
+  tb.querySelectorAll('.cbLinha').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      var i = +cb.getAttribute('data-idx');
+      LINHAS[i]._selecionado = cb.checked;
+      atualizarBotoes();
+    });
+  });
+  // botão "abrir modal" por linha
+  tb.querySelectorAll('.btnPickGeral').forEach(function(bt){
+    bt.addEventListener('click', function(){
+      var i = +bt.getAttribute('data-idx');
+      abrirModalGeral(LINHAS[i]);
+    });
+  });
+  // botão "limpar vínculo"
+  tb.querySelectorAll('.btnClearGeral').forEach(function(bt){
+    bt.addEventListener('click', function(){
+      var i = +bt.getAttribute('data-idx');
+      var L = LINHAS[i];
+      L.cron_geral_id = null;
+      L._dirty = !!L.salvo;              // se havia salvo, marcar dirty; senão volta ao "sem sugestão"
+      L.confianca_view = null; L.metodo_view = null;
+      render();
+    });
+  });
+}
+function td(cls){ var t = document.createElement('td'); if(cls) t.className = cls; return t; }
+function tdText(html){ var t = td(); t.innerHTML = html; return t; }
+function idxOf(L){ return LINHAS.indexOf(L); }
+function pillConf(L){
+  if(L.salvo) return '<span class="pill salvo">salvo</span>' + (L._dirty ? ' <span class="pill media">alterado</span>' : '');
+  if(!L.sugestao) return '<span class="pill pendente">pendente</span>';
+  var c = L.sugestao.confianca;
+  return '<span class="pill '+c+'">'+c+'</span>'
+       + ' <span style="font-size:10px;color:var(--text-mute)" class="mono">'+(Math.round(L.sugestao.score*100))+'%</span>';
+}
+function cellGeral(L){
+  var t = td('geral-cell');
+  var g = L.cron_geral_id ? DADOS.geralById[L.cron_geral_id] : null;
+  var i = idxOf(L);
+  if(g){
+    var badge = '';
+    if(L.salvo && L._dirty) badge = '<span class="badge">era: '+CG.esc(numeroDe(L.salvo.cron_geral_id))+'</span>';
+    t.innerHTML = '<div class="picked">'
+      + '<div class="txt"><b>'+CG.esc(g.nome)+'</b>' + badge + '</div>'
+      + '<div class="num">'+CG.esc(g.numero_topico)+'</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:4px;margin-top:4px">'
+      + '<button class="btnPickGeral" data-idx="'+i+'">Trocar</button>'
+      + '<button class="btnClearGeral ghost" data-idx="'+i+'" style="color:var(--red)">×</button>'
+      + '</div>';
+  } else {
+    t.innerHTML = '<span class="none">(sem sugestão — escolher)</span>'
+      + '<div style="margin-top:4px"><button class="btnPickGeral" data-idx="'+i+'">Escolher…</button></div>';
+  }
+  return t;
+}
+function numeroDe(id){ var g = DADOS.geralById[id]; return g ? g.numero_topico : '—'; }
+
+/* ============ modal de escolha ============ */
+function abrirModalGeral(L){
+  MODAL_LINHA = L;
+  $('mForCtx').textContent = '· ' + (L.resumo.contrato && L.resumo.contrato.empresa || '') + ' · ' + L.resumo.wbs + ' · ' + L.resumo.name;
+  $('mBusca').value = ''; $('mFase').value = ''; $('mCwa').value = ''; $('mEmp').value = '';
+  // pré-filtra pela empresa do contrato se combinar com alguma opção
+  var emp = L.resumo.contrato && L.resumo.contrato.empresa;
+  if(emp){
+    var opts = Array.prototype.slice.call($('mEmp').options).map(function(o){return o.value;});
+    var alvo = CG.deacc(emp).toLowerCase();
+    var m = opts.filter(function(x){ return x && CG.deacc(x).toLowerCase().indexOf(alvo) !== -1; })[0];
+    if(m) $('mEmp').value = m;
+  }
+  renderModal();
+  $('mBg').classList.add('on');
+}
+function fecharModal(){ $('mBg').classList.remove('on'); MODAL_LINHA = null; }
+$('mClose').addEventListener('click', fecharModal);
+$('mBg').addEventListener('click', function(e){ if(e.target === $('mBg')) fecharModal(); });
+
+function renderModal(){
+  var q = CG.deacc($('mBusca').value.trim());
+  var fFase = $('mFase').value, fCwa = $('mCwa').value, fEmp = $('mEmp').value;
+  var lista = (DADOS.geral || []).filter(function(g){
+    if(fFase && g.fase !== fFase) return false;
+    if(fCwa  && g.cwa !== fCwa) return false;
+    if(fEmp  && g.empresa !== fEmp) return false;
+    if(q){
+      var bag = CG.deacc([g.numero_topico, g.nome, g.cwa, g.cwp, g.empresa].join(' '));
+      if(bag.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+  // limita a 500 para não travar
+  var trunc = false;
+  if(lista.length > 500){ trunc = true; lista = lista.slice(0, 500); }
+  var tb = $('mTb'); tb.innerHTML = '';
+  if(!lista.length){ tb.innerHTML = '<tr><td colspan="7" class="empty">— nenhuma atividade com esses filtros —</td></tr>'; return; }
+  var frag = document.createDocumentFragment();
+  lista.forEach(function(g){
+    var tr = document.createElement('tr');
+    if(MODAL_LINHA && MODAL_LINHA.cron_geral_id === g.id) tr.className = 'sel';
+    tr.innerHTML = '<td class="mono">'+CG.esc(g.numero_topico)+'</td>'
+      + '<td>'+CG.esc(g.nome)+'</td>'
+      + '<td>'+labelFase(g.fase)+'</td>'
+      + '<td>'+CG.esc(g.cwa || '—')+'</td>'
+      + '<td>'+CG.esc(g.cwp || '—')+'</td>'
+      + '<td>'+CG.esc(g.empresa || '—')+'</td>'
+      + '<td class="right mono">'+(g.custo_lb==null?'—':CG.nfMoney(g.custo_lb))+'</td>';
+    tr.addEventListener('click', function(){ escolherGeral(g.id); });
+    frag.appendChild(tr);
+  });
+  tb.appendChild(frag);
+  if(trunc){
+    var trTrunc = document.createElement('tr');
+    trTrunc.innerHTML = '<td colspan="7" style="text-align:center;color:var(--text-mute);padding:8px">... e mais atividades — refine os filtros para vê-las.</td>';
+    tb.appendChild(trTrunc);
+  }
+}
+function labelFase(f){ var x = CG.FASES.find(function(k){return k.code===f;}); return x?x.label:(f||'—'); }
+
+function escolherGeral(gid){
+  if(!MODAL_LINHA) return;
+  var L = MODAL_LINHA;
+  L.cron_geral_id = gid;
+  L._dirty = true;
+  L.confianca_view = 'salvo';
+  L.metodo_view    = 'manual';
+  L._selecionado   = true;
+  fecharModal();
+  render();
+}
+
+['mBusca','mFase','mCwa','mEmp'].forEach(function(id){
+  $(id).addEventListener('input', renderModal);
+  $(id).addEventListener('change', renderModal);
+});
+
+/* ============ ações ============ */
+$('chkAll').addEventListener('change', function(){
+  var lista = filtrar();
+  lista.forEach(function(L){ L._selecionado = $('chkAll').checked; });
+  render();
+});
+
+$('btnAceitarAltas').addEventListener('click', function(){
+  var n = 0;
+  LINHAS.forEach(function(L){
+    if(!L.salvo && L.sugestao && L.sugestao.confianca === 'alta' && L.cron_geral_id){
+      L._selecionado = true; L._dirty = true; n++;
+    }
+  });
+  render();
+  CG.toast(n + ' linhas com sugestão de alta confiança marcadas.', n ? 'ok' : 'warn');
+});
+
+$('btnSalvar').addEventListener('click', function(){
+  if(!CG.canEdit()){ CG.toast('Seu perfil é somente leitura neste módulo.','warn'); return; }
+  var sel = LINHAS.filter(function(L){ return L._selecionado && L.cron_geral_id; });
+  if(!sel.length){ CG.toast('Selecione pelo menos uma linha com vínculo definido.','warn'); return; }
+  $('btnSalvar').disabled = true;
+  var box = $('msgBox');
+  box.innerHTML = '<div class="msg info">Gravando '+sel.length+' vínculos...</div>';
+  CV.salvarSelecionados(sel).then(function(r){
+    box.innerHTML = '<div class="msg ok">'+r.gravados+' vínculos salvos.</div>';
+    CG.toast(r.gravados + ' vínculos salvos.','ok');
+    return load();       // recarrega para pegar os novos IDs / mudar linhas para "salvo"
+  }).catch(function(e){
+    box.innerHTML = '<div class="msg err">Falha: '+CG.esc(e.message)+'</div>';
+    $('btnSalvar').disabled = false;
+  });
+});
+
+['fBusca','fCron','fConf','fDirty','fSel'].forEach(function(id){
+  $(id).addEventListener('input', render);
+  $(id).addEventListener('change', render);
+});
+$('btnLimparFiltros').addEventListener('click', function(){
+  $('fBusca').value = ''; $('fCron').value = ''; $('fConf').value = ''; $('fDirty').value = '';
+  $('fSel').checked = false;
+  render();
+});
+
+/* ============ KPIs e botões ============ */
+function atualizarKPIs(){
+  var total = LINHAS.length;
+  var salvos    = LINHAS.filter(function(L){ return !!L.salvo; }).length;
+  var sugAlta   = LINHAS.filter(function(L){ return !L.salvo && L.sugestao && L.sugestao.confianca === 'alta';  }).length;
+  var sugMedia  = LINHAS.filter(function(L){ return !L.salvo && L.sugestao && L.sugestao.confianca === 'media'; }).length;
+  var sugBaixa  = LINHAS.filter(function(L){ return !L.salvo && L.sugestao && L.sugestao.confianca === 'baixa'; }).length;
+  var pendente  = LINHAS.filter(function(L){ return !L.salvo && !L.sugestao; }).length;
+  var dirty     = LINHAS.filter(function(L){ return L._dirty; }).length;
+
+  var html = '';
+  html += '<div class="stat"><div class="lbl">Resumos totais</div><div class="val">'+total+'</div></div>';
+  html += '<div class="stat ok"><div class="lbl">Já vinculados</div><div class="val">'+salvos+'</div></div>';
+  html += '<div class="stat ok"><div class="lbl">Sugestão alta</div><div class="val">'+sugAlta+'</div></div>';
+  if(sugMedia)  html += '<div class="stat warn"><div class="lbl">Sugestão média</div><div class="val">'+sugMedia+'</div></div>';
+  if(sugBaixa)  html += '<div class="stat warn"><div class="lbl">Sugestão baixa</div><div class="val">'+sugBaixa+'</div></div>';
+  if(pendente)  html += '<div class="stat err"><div class="lbl">Sem sugestão</div><div class="val">'+pendente+'</div></div>';
+  if(dirty)     html += '<div class="stat warn"><div class="lbl">Alterações pendentes</div><div class="val">'+dirty+'</div></div>';
+  $('stats').innerHTML = html;
+}
+function atualizarBotoes(){
+  var sel = LINHAS.filter(function(L){ return L._selecionado && L.cron_geral_id; });
+  $('qtdSel').textContent = sel.length;
+  $('btnSalvar').disabled = !sel.length;
+}
+
+load();
+</script>
+</body>
+</html>
