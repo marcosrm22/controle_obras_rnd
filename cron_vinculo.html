@@ -76,6 +76,7 @@ button.small{padding:3px 8px;font-size:10.5px;font-weight:500}
 .pill.salvo{background:#e0f2f1;color:#00695c} .pill.herdado{background:#fef3d5;color:#a06714} .pill.pendente{background:#eee;color:#666}
 .pill.fase{background:var(--violet-soft);color:var(--violet)} .pill.metodo{background:var(--blue-soft);color:var(--blue)}
 .pill.pesado{background:#e0f2f1;color:#00695c;text-transform:none}
+.pill.cwaemb{background:#eaf3fb;color:#1f5170;text-transform:none;font-family:'JetBrains Mono',monospace}
 
 .link-slot{display:flex;align-items:center;gap:6px;min-width:280px;max-width:420px;flex-shrink:0}
 .link-slot .txt{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
@@ -420,6 +421,8 @@ function renderNo(arv, no, depth){
   var meta = document.createElement('span'); meta.className='meta-badges';
   var fase = CV.faseDoResumo(arv, no.wbs);
   if(fase) meta.innerHTML += '<span class="pill fase">'+labelFase(fase)+'</span>';
+  var cwaEmb = CV.cwaEmbeddedDoResumo(arv, no.wbs);
+  if(cwaEmb) meta.innerHTML += '<span class="pill cwaemb" title="CWA embutida no nome do resumo — dá match direto">CWA '+CG.esc(cwaEmb)+'</span>';
   if(no.filhos.length) meta.innerHTML += '<span class="cnt">'+no.resumosDescendentes+' res · '+no.folhasDescendentes+' folhas</span>';
   else                 meta.innerHTML += '<span class="cnt">'+no.folhasDescendentes+' folhas</span>';
   if(no.cp) meta.innerHTML += '<span class="pill pesado">CP '+CG.nfMoney(no.cp)+'</span>';
