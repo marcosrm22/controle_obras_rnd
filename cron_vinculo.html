@@ -28,7 +28,6 @@ html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-u
 .head p{font-size:12px;color:var(--text-dim);margin-top:3px}
 .back{color:var(--text-dim);text-decoration:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:inline-flex;align-items:center;gap:6px;margin-bottom:10px}
 .back:hover{color:var(--teal)}
-
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 button,.btn{font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 button:hover,.btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
@@ -36,71 +35,81 @@ button.primary,.btn.primary{background:var(--teal);color:#fff;border-color:var(-
 button.primary:hover,.btn.primary:hover{background:#005f5a;border-color:#005f5a;color:#fff}
 button:disabled{opacity:.5;cursor:not-allowed}
 button.ghost{background:transparent}
-button.warn{border-color:var(--gold);color:var(--gold)}
-button.warn:hover{background:var(--gold-soft)}
+button.small{padding:3px 8px;font-size:10.5px;font-weight:500}
 
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .stat{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--teal);padding:10px 14px}
-.stat.warn{border-left-color:var(--gold)} .stat.err{border-left-color:var(--red)}
-.stat.ok{border-left-color:var(--green)}
+.stat.warn{border-left-color:var(--gold)} .stat.err{border-left-color:var(--red)} .stat.ok{border-left-color:var(--green)}
 .stat .lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700}
 .stat .val{font-size:22px;font-weight:800;color:var(--text);margin-top:2px}
-.stat .val.small{font-size:14px}
 
-.filters{background:var(--panel);border:1px solid var(--border);padding:10px 14px;margin-bottom:12px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto auto;gap:8px;align-items:center}
-.filters input,.filters select{font:inherit;font-size:12px;padding:7px 10px;border:1px solid var(--border);background:var(--panel);color:var(--text);width:100%}
-.filters input:focus,.filters select:focus{outline:none;border-color:var(--teal)}
-label.chk{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;padding:0 6px;white-space:nowrap}
-label.chk input{accent-color:var(--teal)}
+.contract-card{background:var(--panel);border:1px solid var(--border);margin-bottom:12px;overflow:hidden}
+.contract-hdr{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--blue-soft);display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+.contract-hdr .toggle{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text-mute);width:14px;flex-shrink:0}
+.contract-hdr h2{font-size:14px;font-weight:800;flex-shrink:0}
+.contract-hdr h2 small{color:var(--text-dim);font-weight:500;font-size:12px;margin-left:6px}
+.contract-hdr .meta{margin-left:auto;display:flex;gap:12px;font-size:11px;color:var(--text-dim);align-items:center}
+.contract-hdr .meta b{color:var(--text)}
+.contract-body{padding:0}
+.no-detail{padding:14px 16px;color:var(--text-mute);font-size:12px;font-style:italic}
 
-.table-wrap{overflow:auto;max-height:calc(100vh - 340px);border:1px solid var(--border);background:var(--panel)}
-table{width:100%;border-collapse:collapse;font-size:11.5px}
-thead th{position:sticky;top:0;background:var(--blue-soft);color:var(--text);font-weight:700;text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;z-index:2}
-thead th.right{text-align:right}
-tbody td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
-tbody td.right{text-align:right}
-tbody tr:hover{background:#fafbfc}
-tbody tr.dirty{background:#fffbf0}
-tbody tr.dirty:hover{background:#fef7e5}
-tbody tr.salvo{background:#f6faf7}
+.tree{padding:6px 0 10px 6px}
+.node{border-left:2px solid transparent;padding-left:6px;margin:1px 0}
+.node.has-vinculo{border-left-color:var(--teal)}
+.node.herdado{border-left-color:var(--gold);opacity:.92}
+.row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:3px}
+.row:hover{background:#fafbfc}
+.tw{font-family:'JetBrains Mono',monospace;color:var(--text-mute);font-size:10.5px;min-width:110px;flex-shrink:0}
+.tw.lvl2{color:var(--blue);font-weight:700;font-size:11px}
+.tw.lvl3{color:var(--teal);font-weight:700}
+.name{flex:1;min-width:200px;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name.lvl2{font-weight:800;font-size:13.5px}
+.name.lvl3{font-weight:700;font-size:13px}
+.meta-badges{display:flex;gap:6px;align-items:center;flex-shrink:0;font-size:10px;color:var(--text-mute)}
+.meta-badges .cnt{font-family:'JetBrains Mono',monospace}
+.chev{cursor:pointer;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--text-mute);font-size:10px;flex-shrink:0}
+.chev:hover{color:var(--teal)}
+.chev.leaf{cursor:default;color:transparent}
 
-.mono{font-family:'JetBrains Mono',monospace}
 .pill{display:inline-block;padding:2px 8px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
-.pill.alta{background:#e6efe9;color:#0f5c47}
-.pill.media{background:#fef3d5;color:#a06714}
-.pill.baixa{background:#fdecea;color:#8a3822}
-.pill.salvo{background:#e0f2f1;color:#00695c}
-.pill.pendente{background:#eee;color:#666}
-.pill.metodo{background:#eef2f8;color:#304F7E}
+.pill.alta{background:#e6efe9;color:#0f5c47} .pill.media{background:#fef3d5;color:#a06714} .pill.baixa{background:#fdecea;color:#8a3822}
+.pill.salvo{background:#e0f2f1;color:#00695c} .pill.herdado{background:#fef3d5;color:#a06714} .pill.pendente{background:#eee;color:#666}
+.pill.fase{background:var(--violet-soft);color:var(--violet)} .pill.metodo{background:var(--blue-soft);color:var(--blue)}
+.pill.pesado{background:#e0f2f1;color:#00695c;text-transform:none}
 
-.geral-cell{max-width:340px}
-.geral-cell .picked{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
-.geral-cell .picked .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.geral-cell .picked .num{color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:10.5px;flex-shrink:0}
-.geral-cell .picked .badge{font-size:9px;color:var(--text-mute);margin-top:2px;display:block}
-.geral-cell button{padding:3px 8px;font-size:10.5px;font-weight:500}
-.geral-cell .none{color:var(--text-mute);font-style:italic}
+.link-slot{display:flex;align-items:center;gap:6px;min-width:280px;max-width:420px;flex-shrink:0}
+.link-slot .txt{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
+.link-slot .txt b{color:var(--text)}
+.link-slot .none{color:var(--text-mute);font-style:italic;font-size:11.5px}
+.link-slot .num{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-mute)}
 
 .msg{padding:10px 14px;font-size:12px;border-left:3px solid;margin-bottom:12px}
 .msg.info{background:var(--blue-soft);border-color:var(--blue);color:#223a60}
 .msg.warn{background:var(--gold-soft);border-color:var(--gold);color:#a06714}
 .msg.err{background:var(--red-soft);border-color:var(--red);color:var(--red)}
 .msg.ok{background:var(--green-soft);border-color:var(--green);color:var(--green)}
-
 .loading{text-align:center;color:var(--text-mute);padding:40px}
-.empty{text-align:center;color:var(--text-mute);padding:40px}
+.empty{text-align:center;color:var(--text-mute);padding:30px}
+
+.filters{background:var(--panel);border:1px solid var(--border);padding:10px 14px;margin-bottom:12px;display:grid;grid-template-columns:1.5fr 1fr 1fr auto auto auto;gap:8px;align-items:center}
+.filters input,.filters select{font:inherit;font-size:12px;padding:7px 10px;border:1px solid var(--border);background:var(--panel);color:var(--text);width:100%}
+.filters input:focus,.filters select:focus{outline:none;border-color:var(--teal)}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;padding:0 6px;white-space:nowrap}
+label.chk input{accent-color:var(--teal)}
 
 /* modal */
-.modal-bg{position:fixed;inset:0;background:rgba(26,35,50,.45);display:none;z-index:900;align-items:flex-start;justify-content:center;padding-top:50px}
+.modal-bg{position:fixed;inset:0;background:rgba(26,35,50,.45);display:none;z-index:900;align-items:flex-start;justify-content:center;padding-top:40px}
 .modal-bg.on{display:flex}
-.modal{background:var(--panel);border:1px solid var(--border);width:calc(100% - 40px);max-width:1100px;max-height:calc(100vh - 100px);display:flex;flex-direction:column;box-shadow:0 20px 60px -20px rgba(0,0,0,.4)}
-.modal .modal-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.modal .modal-head h2{font-size:14px}
+.modal{background:var(--panel);border:1px solid var(--border);width:calc(100% - 40px);max-width:1100px;max-height:calc(100vh - 80px);display:flex;flex-direction:column;box-shadow:0 20px 60px -20px rgba(0,0,0,.4)}
+.modal .modal-head{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal .modal-head h3{font-size:13px}
+.modal .modal-head h3 .ctx{color:var(--text-mute);font-weight:500;font-size:12px;margin-left:6px}
 .modal .modal-close{cursor:pointer;font-size:22px;color:var(--text-mute);background:none;border:none;padding:0 8px}
-.modal .modal-close:hover{color:var(--red)}
-.modal .modal-body{padding:12px 20px;overflow:auto;flex:1}
-.modal-body .filters-inline{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px}
-.modal-body table{font-size:12px}
+.modal-body{padding:12px 20px;overflow:auto;flex:1}
+.modal-body .filters-inline{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:10px;align-items:center}
+.modal-body table{width:100%;border-collapse:collapse;font-size:11.5px}
+.modal-body thead th{position:sticky;top:0;background:var(--blue-soft);text-align:left;padding:8px;border-bottom:2px solid var(--border);font-size:10.5px;text-transform:uppercase;letter-spacing:.8px}
+.modal-body tbody td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
 .modal-body tbody tr{cursor:pointer}
 .modal-body tbody tr:hover{background:var(--teal-soft)}
 .modal-body tbody tr.sel{background:var(--teal-soft);outline:2px solid var(--teal)}
@@ -112,88 +121,63 @@ tbody tr.salvo{background:#f6faf7}
 </head>
 <body>
 <div class="page">
-
   <a class="back" href="cron_geral.html">← Voltar ao Cronograma Geral</a>
-
   <header class="head">
     <div>
       <div class="eyebrow">Cronograma Executivo Geral · AWP</div>
-      <h1>Vincular Terceiras × Geral <span>· Fase 2</span></h1>
-      <p>Ligue cada atividade-resumo dos cronogramas das terceiras à sua atividade-mãe no cronograma geral. O auto-match sugere; você revisa e salva.</p>
+      <h1>Vincular Terceiras × Geral <span>· Fase 2 (herança por WBS)</span></h1>
+      <p>Vincule no nível do resumo que faz sentido — filhos herdam. Sobrescreva qualquer descendente para uma exceção.</p>
     </div>
     <div class="actions">
       <span id="unidade-switcher"></span>
-      <button id="btnAceitarAltas" title="Marca todas as sugestões de alta confiança">✓ Aceitar altas</button>
-      <button id="btnSalvar" class="primary" disabled>💾 Salvar selecionados (<span id="qtdSel">0</span>)</button>
+      <button id="btnExpandTudo" class="ghost small">Expandir tudo</button>
+      <button id="btnCollapseTudo" class="ghost small">Colapsar tudo</button>
+      <button id="btnAceitarAltas">✓ Aceitar altas</button>
+      <button id="btnSalvar" class="primary" disabled>💾 Salvar (<span id="qtdDirty">0</span>)</button>
     </div>
   </header>
 
   <div id="msgBox"></div>
-
   <div class="stats" id="stats"></div>
 
   <div class="filters">
-    <input id="fBusca" placeholder="Buscar nome, WBS, contrato..."/>
-    <select id="fCron"><option value="">Todos os cronogramas</option></select>
-    <select id="fConf">
-      <option value="">Qualquer confiança</option>
-      <option value="salvo">Já salvo</option>
-      <option value="alta">Alta</option>
-      <option value="media">Média</option>
-      <option value="baixa">Baixa</option>
-      <option value="pendente">Sem sugestão (pendente)</option>
-    </select>
-    <select id="fDirty">
-      <option value="">Todos</option>
-      <option value="dirty">Só com alteração pendente</option>
-      <option value="salvo">Só já salvos</option>
-      <option value="novo">Só não salvos</option>
-    </select>
-    <label class="chk"><input type="checkbox" id="fSel"/> só selecionados</label>
-    <button id="btnLimparFiltros" class="ghost">Limpar filtros</button>
+    <input id="fBusca" placeholder="Buscar nome do resumo, WBS..."/>
+    <select id="fContrato"><option value="">Todos os contratos</option></select>
+    <select id="fFase"><option value="">Todas as fases</option></select>
+    <label class="chk"><input type="checkbox" id="fSemVinc"/> só não vinculados</label>
+    <label class="chk"><input type="checkbox" id="fSemSug"/> só sem sugestão</label>
+    <button id="btnLimparF" class="ghost">Limpar</button>
   </div>
 
-  <div class="table-wrap">
-    <table id="tbl">
-      <thead><tr>
-        <th style="width:34px"><input type="checkbox" id="chkAll" title="Selecionar tudo"/></th>
-        <th>Terceira (contrato)</th>
-        <th>WBS</th>
-        <th>Nome do resumo</th>
-        <th class="right">Folhas</th>
-        <th>Atividade do Geral vinculada</th>
-        <th class="right">Custo LB (Geral)</th>
-        <th>Confiança</th>
-        <th>Método</th>
-      </tr></thead>
-      <tbody id="tb"><tr><td colspan="9" class="loading">Carregando resumos e cronograma geral...</td></tr></tbody>
-    </table>
-  </div>
+  <div id="arvores"></div>
 </div>
 
-<!-- MODAL de escolha de atividade do geral -->
+<!-- Modal escolha do geral -->
 <div class="modal-bg" id="mBg">
   <div class="modal">
     <div class="modal-head">
-      <h2>Escolher atividade do cronograma geral <span id="mForCtx" style="color:var(--text-mute);font-weight:500"></span></h2>
+      <h3>Escolher atividade do cronograma geral <span class="ctx" id="mCtx"></span></h3>
       <button class="modal-close" id="mClose">×</button>
     </div>
     <div class="modal-body">
       <div class="filters-inline">
-        <input id="mBusca" placeholder="Buscar por número, nome, CWA, empresa..."/>
-        <select id="mFase"><option value="">Todas as fases</option></select>
-        <select id="mCwa"><option value="">Todos os CWAs</option></select>
-        <select id="mEmp"><option value="">Todas as empresas</option></select>
+        <input id="mBusca" placeholder="Buscar número, nome..."/>
+        <select id="mFase"><option value="">Fase</option></select>
+        <select id="mCwa"><option value="">CWA</option></select>
+        <select id="mEmp"><option value="">Empresa</option></select>
+        <label class="chk"><input type="checkbox" id="mFiltroInterno" checked/> respeitar filtros</label>
       </div>
-      <div style="max-height:calc(100vh - 340px);overflow:auto;border:1px solid var(--border)">
+      <div style="max-height:calc(100vh - 300px);overflow:auto;border:1px solid var(--border)">
         <table>
           <thead><tr>
-            <th>Número</th><th>Nome</th><th>Fase</th><th>CWA</th><th>CWP</th><th>Empresa</th><th class="right">Custo LB</th>
+            <th>Número</th><th>Nome</th><th>Fase</th><th>CWA</th><th>CWP</th><th>Empresa</th><th style="text-align:right">Custo LB</th>
           </tr></thead>
           <tbody id="mTb"></tbody>
         </table>
       </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--text-mute)">Clique na linha para escolher. Só linhas de <b>Execução</b> ativas aparecem.</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-mute)">
+        Clique na linha para escolher. "Respeitar filtros" pré-filtra pela empresa/CWA-set/fase detectados para este resumo.
+      </div>
     </div>
   </div>
 </div>
@@ -201,346 +185,443 @@ tbody tr.salvo{background:#f6faf7}
 <script>
 if(!CG.requireAuth()) throw new Error('auth');
 if(typeof pcoRenderSwitcher === 'function') pcoRenderSwitcher('unidade-switcher');
-
 var $ = CG.$;
-var DADOS = null;         // {contratos, resumos, geral, vinculos, geralById, contratoById, vinculosByKey}
-var LINHAS = [];          // saída de CV.computarLinhas — array de linhas ricas
-var MODAL_LINHA = null;   // referência à linha sendo editada
+
+var DADOS = null;                              // {contratos, geral, vinculos, arvores, ...}
+var EXPANDIDOS = {};                           // { "cronId::wbs" : true }
+var VINCULO_LOCAL = {};                        // muta as sugestões em memória: { "cronId::uid" : cron_geral_id (null = remover) }
+var MODAL_CTX = null;                          // { arvore, no, faseDetectada }
 
 function load(){
   return CV.loadAll().then(function(d){
-    DADOS  = d;
-    LINHAS = CV.computarLinhas(d);
+    DADOS = d;
     popularFiltros();
     render();
   }).catch(function(e){
     var box = $('msgBox');
-    if(CG.isMissingTable(e)){
-      box.innerHTML = '<div class="msg err">Tabela <b>cron_vinculo</b> não encontrada. Rode <b>supabase_cron_geral.sql</b> no SQL Editor do Supabase antes de continuar.</div>';
-    } else {
-      box.innerHTML = '<div class="msg err">Falha ao carregar: '+CG.esc(e.message)+'</div>';
-    }
-    $('tb').innerHTML = '<tr><td colspan="9" class="empty">— sem dados —</td></tr>';
+    if(CG.isMissingTable(e)) box.innerHTML = '<div class="msg err">Rode <b>supabase_cron_geral.sql</b> no Supabase antes de usar esta tela.</div>';
+    else box.innerHTML = '<div class="msg err">Falha: '+CG.esc(e.message)+'</div>';
+    $('arvores').innerHTML = '<div class="loading empty">— sem dados —</div>';
   });
 }
 
 function popularFiltros(){
-  // cronogramas para filtro principal
-  var selCron = $('fCron');
-  while(selCron.options.length > 1) selCron.remove(1);
-  (DADOS.contratos || []).forEach(function(c){
-    var o = document.createElement('option');
-    o.value = c.id;
-    o.textContent = (c.empresa || '(sem empresa)') + ' — ' + (c.escopo || '(sem escopo)');
-    selCron.appendChild(o);
-  });
-
-  // fase / cwa / empresa do modal (populados a partir do geral)
-  var addOpts = function(sel, values){
-    while(sel.options.length > 1) sel.remove(1);
-    values.forEach(function(v){
-      var o = document.createElement('option'); o.value = v.code || v; o.textContent = v.label || v;
-      sel.appendChild(o);
-    });
-  };
+  var addOpts = function(sel, values){ while(sel.options.length > 1) sel.remove(1);
+    values.forEach(function(v){ var o=document.createElement('option'); o.value=v.code||v.id||v; o.textContent=v.label||v.name||v; sel.appendChild(o); }); };
+  addOpts($('fContrato'), (DADOS.contratos||[]).map(function(c){
+    return { id:c.id, name:(c.empresa||'(sem empresa)') + ' — ' + (c.escopo||'') };
+  }));
+  addOpts($('fFase'), CG.FASES);
   addOpts($('mFase'), CG.FASES);
-  var cwas = uniq((DADOS.geral || []).map(function(g){ return g.cwa; }));
-  var emps = uniq((DADOS.geral || []).map(function(g){ return g.empresa; }));
+  var cwas = uniq((DADOS.geral||[]).map(function(g){return g.cwa;}));
+  var emps = uniq((DADOS.geral||[]).map(function(g){return g.empresa;}));
   addOpts($('mCwa'), cwas);
   addOpts($('mEmp'), emps);
 }
-function uniq(arr){ var s={}; arr.forEach(function(v){ if(v && !s[v]) s[v]=true; }); return Object.keys(s).sort(function(a,b){return a.localeCompare(b,'pt-BR');}); }
+function uniq(arr){ var s={}; arr.forEach(function(v){if(v && !s[v]) s[v]=true;}); return Object.keys(s).sort(function(a,b){return a.localeCompare(b,'pt-BR');}); }
 
-/* ============ filtros da lista principal ============ */
-function filtrar(){
+/* ============ estado dos vínculos: efetivo (memória + banco) ============ */
+function vinculoEfetivoDe(arvore, no){
+  // 1) tenta local (memória) — inclui overrides do usuário
+  var cur = no.wbs;
+  while(cur){
+    var n2 = arvore.todosPorWbs[cur];
+    if(n2){
+      var k = arvore.contrato.id + '::' + n2.uid;
+      if(VINCULO_LOCAL.hasOwnProperty(k)){
+        var gid = VINCULO_LOCAL[k];
+        if(gid === null) { // remoção pendente — cai para o próximo ancestral
+        } else {
+          return { cron_geral_id: gid, no: n2, herdado: (cur !== no.wbs), fonte: 'local' };
+        }
+      } else {
+        var v = DADOS.vinculoByKey[k];
+        if(v){
+          return { cron_geral_id: v.cron_geral_id, no: n2, herdado: (cur !== no.wbs), fonte: 'db' };
+        }
+      }
+    }
+    var ix = cur.lastIndexOf('.');
+    if(ix<=0) break;
+    cur = cur.slice(0, ix);
+  }
+  return null;
+}
+
+/* ============ dirty tracking ============ */
+function estaDirty(k){
+  if(!VINCULO_LOCAL.hasOwnProperty(k)) return false;
+  var local = VINCULO_LOCAL[k];   // pode ser number ou null
+  var db = DADOS.vinculoByKey[k];
+  if(local === null) return !!db;         // pendente de delete: dirty se existia no banco
+  if(!db) return true;                     // pendente de insert
+  return db.cron_geral_id !== local;
+}
+function contarDirty(){
+  return Object.keys(VINCULO_LOCAL).filter(estaDirty).length;
+}
+
+/* ============ filtros ============ */
+function passaFiltros(arvore, no){
   var q = CG.deacc($('fBusca').value.trim());
-  var cron = $('fCron').value;
-  var conf = $('fConf').value;
-  var dirt = $('fDirty').value;
-  var sSel = $('fSel').checked;
-  return LINHAS.filter(function(L){
-    var r = L.resumo;
-    if(cron && String(r.cronograma_id) !== cron) return false;
-    if(conf){
-      if(conf === 'pendente'){ if(L.salvo || L.sugestao) return false; }
-      else if(conf === 'salvo'){ if(!L.salvo) return false; }
-      else if(!L.salvo && (!L.sugestao || L.sugestao.confianca !== conf)) return false;
-    }
-    if(dirt === 'dirty' && !L._dirty) return false;
-    if(dirt === 'salvo' && !L.salvo) return false;
-    if(dirt === 'novo'  && L.salvo) return false;
-    if(sSel && !L._selecionado) return false;
-    if(q){
-      var contratoName = ((r.contrato && r.contrato.empresa) || '') + ' ' + ((r.contrato && r.contrato.escopo) || '');
-      var bag = CG.deacc([contratoName, r.wbs, r.name].join(' '));
-      if(bag.indexOf(q) === -1) return false;
-    }
-    return true;
-  });
+  var fCon = $('fContrato').value;
+  var fFas = $('fFase').value;
+  var fSem = $('fSemVinc').checked;
+  var fSug = $('fSemSug').checked;
+  if(fCon && String(arvore.contrato.id) !== fCon) return false;
+  var fase = CV.faseDoResumo(arvore, no.wbs);
+  if(fFas && fase !== fFas) return false;
+  if(fSem){
+    var v = vinculoEfetivoDe(arvore, no);
+    if(v) return false;
+  }
+  if(fSug){
+    var v2 = vinculoEfetivoDe(arvore, no);
+    if(v2) return false;
+    var sug = CV.sugerirMatch(no, arvore, DADOS);
+    if(sug) return false;
+  }
+  if(q){
+    var bag = CG.deacc(no.wbs + ' ' + no.name);
+    if(bag.indexOf(q) === -1) return false;
+  }
+  return true;
 }
 
 /* ============ render ============ */
 function render(){
-  var lista = filtrar();
-  atualizarKPIs();
-  atualizarBotoes();
-  var tb = $('tb');
-  if(!lista.length){
-    tb.innerHTML = '<tr><td colspan="9" class="empty">— nenhuma linha com esses filtros —</td></tr>';
-    return;
+  var tot = 0, salvos = 0, sugAlta = 0, sugMedia = 0, sugBaixa = 0, semSug = 0;
+  DADOS.arvores.forEach(function(arv){
+    Object.keys(arv.todosPorWbs || {}).forEach(function(w){
+      tot++;
+      var no = arv.todosPorWbs[w];
+      var v = vinculoEfetivoDe(arv, no);
+      if(v && !v.herdado) salvos++;
+      else if(!v){
+        var s = CV.sugerirMatch(no, arv, DADOS);
+        if(!s) semSug++;
+        else if(s.confianca==='alta') sugAlta++;
+        else if(s.confianca==='media') sugMedia++;
+        else sugBaixa++;
+      }
+    });
+  });
+  var dirty = contarDirty();
+  $('qtdDirty').textContent = dirty;
+  $('btnSalvar').disabled = !dirty;
+
+  var html = '';
+  html += '<div class="stat"><div class="lbl">Resumos totais</div><div class="val">'+tot+'</div></div>';
+  html += '<div class="stat ok"><div class="lbl">Vinc. diretos</div><div class="val">'+salvos+'</div></div>';
+  html += '<div class="stat ok"><div class="lbl">Sug. alta</div><div class="val">'+sugAlta+'</div></div>';
+  if(sugMedia) html += '<div class="stat warn"><div class="lbl">Sug. média</div><div class="val">'+sugMedia+'</div></div>';
+  if(sugBaixa) html += '<div class="stat warn"><div class="lbl">Sug. baixa</div><div class="val">'+sugBaixa+'</div></div>';
+  if(semSug)   html += '<div class="stat err"><div class="lbl">Sem sugestão</div><div class="val">'+semSug+'</div></div>';
+  if(dirty)    html += '<div class="stat warn"><div class="lbl">Alterações</div><div class="val">'+dirty+'</div></div>';
+  $('stats').innerHTML = html;
+
+  // Renderiza contratos
+  var box = $('arvores');
+  box.innerHTML = '';
+  if(!DADOS.arvores.length){ box.innerHTML = '<div class="loading empty">Nenhum cronograma validado nesta unidade.</div>'; return; }
+  DADOS.arvores.forEach(function(arv){
+    var fCon = $('fContrato').value;
+    if(fCon && String(arv.contrato.id) !== fCon) return;
+    box.appendChild(renderContrato(arv));
+  });
+}
+
+function renderContrato(arv){
+  var c = arv.contrato;
+  var card = document.createElement('div'); card.className='contract-card';
+
+  var kExp = 'C:' + c.id;
+  var expandido = EXPANDIDOS[kExp] !== false;   // default aberto
+
+  var hdr = document.createElement('div'); hdr.className='contract-hdr';
+  var empKey = CV._empresaKey(c.empresa||'');
+  var cwas = DADOS.empresaCwas[empKey] ? Object.keys(DADOS.empresaCwas[empKey]).sort() : [];
+  var fasesDetect = Object.keys(arv.faseByWbs2 || {}).map(function(w){ return arv.faseByWbs2[w]; });
+  fasesDetect = uniq(fasesDetect);
+  var totalVinc = 0, totalRes = arv.totalResumos || 0;
+  Object.keys(arv.todosPorWbs||{}).forEach(function(w){
+    var no = arv.todosPorWbs[w];
+    var v = vinculoEfetivoDe(arv, no);
+    if(v && !v.herdado) totalVinc++;
+  });
+  hdr.innerHTML = '<span class="toggle">'+(expandido?'▾':'▸')+'</span>'
+    + '<h2>'+CG.esc(c.empresa||'—')+' <small>· '+CG.esc(c.escopo||'')+'</small></h2>'
+    + '<div class="meta">'
+    +   (arv.semDetalhe ? '<span class="pill baixa">sem revisão detalhada</span>'
+                        : '<span><b>'+totalRes+'</b> resumos · <b>'+totalVinc+'</b> vinculados</span>')
+    +   (cwas.length ? '<span>CWAs empresa: <b>'+cwas.join(', ')+'</b></span>'
+                     : '<span class="pill baixa">empresa não cadastrada no geral</span>')
+    +   (fasesDetect.length ? '<span>Fases detectadas: '+fasesDetect.map(function(f){return '<span class="pill fase">'+labelFase(f)+'</span>';}).join(' ')+'</span>' : '')
+    + '</div>';
+  hdr.addEventListener('click', function(){
+    EXPANDIDOS[kExp] = !(EXPANDIDOS[kExp] !== false);
+    render();
+  });
+  card.appendChild(hdr);
+
+  if(expandido){
+    var body = document.createElement('div'); body.className='contract-body';
+    if(arv.semDetalhe){
+      body.innerHTML = '<div class="no-detail">Este contrato não tem revisão com tarefas_json. Reimporte o XML na tela de Validação.</div>';
+    } else if(!arv.raizes.length){
+      body.innerHTML = '<div class="no-detail">Sem resumos ativos.</div>';
+    } else {
+      var tree = document.createElement('div'); tree.className='tree';
+      arv.raizes.forEach(function(no){ tree.appendChild(renderNo(arv, no, 0)); });
+      body.appendChild(tree);
+    }
+    card.appendChild(body);
   }
-  var frag = document.createDocumentFragment();
-  lista.forEach(function(L){
-    var r = L.resumo;
-    var tr = document.createElement('tr');
-    if(L._dirty) tr.className = 'dirty';
-    else if(L.salvo) tr.className = 'salvo';
+  return card;
+}
 
-    // checkbox
-    var tdChk = td(); tdChk.innerHTML = '<input type="checkbox" '+(L._selecionado?'checked':'')+' data-idx="'+idxOf(L)+'" class="cbLinha"/>';
-    tr.appendChild(tdChk);
+function renderNo(arv, no, depth){
+  // Se este nó (e nenhum descendente) não passa nos filtros, oculta o ramo
+  if(!ramoTemFiltro(arv, no)) return document.createTextNode('');
 
-    // contrato
-    tr.appendChild(tdText('<b>'+CG.esc((r.contrato && r.contrato.empresa) || '—')+'</b>'
-      + '<div style="color:var(--text-mute);font-size:10.5px">'+CG.esc((r.contrato && r.contrato.escopo) || '')+'</div>'));
+  var wrap = document.createElement('div');
+  wrap.className = 'node';
+  var vef = vinculoEfetivoDe(arv, no);
+  if(vef && !vef.herdado) wrap.classList.add('has-vinculo');
+  if(vef &&  vef.herdado) wrap.classList.add('herdado');
 
-    // WBS
-    tr.appendChild(tdText('<span class="mono">'+CG.esc(r.wbs)+'</span>'));
+  var row = document.createElement('div'); row.className='row';
+  row.style.paddingLeft = (depth*18 + 4) + 'px';
 
-    // Nome
-    tr.appendChild(tdText(CG.esc(r.name) + '<div style="color:var(--text-mute);font-size:10px">nível '+r.level+(r.cp!=null?' · CP '+CG.nfMoney(r.cp):'')+'</div>'));
+  // chevron
+  var kExp = arv.contrato.id + '::' + no.wbs;
+  var abertoDefault = (no.level <= 3);
+  var aberto = EXPANDIDOS.hasOwnProperty(kExp) ? EXPANDIDOS[kExp] : abertoDefault;
+  var chev = document.createElement('span'); chev.className='chev';
+  if(no.filhos.length){
+    chev.textContent = aberto ? '▾' : '▸';
+    chev.addEventListener('click', function(e){ e.stopPropagation(); EXPANDIDOS[kExp] = !aberto; render(); });
+  } else {
+    chev.classList.add('leaf'); chev.textContent='·';
+  }
+  row.appendChild(chev);
 
-    // Folhas
-    var tdF = td('right'); tdF.innerHTML = '<span class="mono">'+r.folhas+'</span>'; tr.appendChild(tdF);
+  // WBS
+  var tw = document.createElement('span'); tw.className='tw lvl'+Math.min(no.level,3); tw.textContent = no.wbs;
+  row.appendChild(tw);
 
-    // Geral vinculado (com botão de editar)
-    tr.appendChild(cellGeral(L));
+  // Nome
+  var nm = document.createElement('span'); nm.className='name lvl'+Math.min(no.level,3);
+  nm.textContent = no.name || '(sem nome)';
+  nm.title = no.name || '';
+  row.appendChild(nm);
 
-    // Custo LB (Geral)
-    var g = L.cron_geral_id ? DADOS.geralById[L.cron_geral_id] : null;
-    var tdCusto = td('right');
-    tdCusto.innerHTML = g && g.custo_lb!=null ? '<span class="mono">'+CG.nfMoney(g.custo_lb)+'</span>' : '—';
-    tr.appendChild(tdCusto);
+  // meta (descendentes + fase + CP)
+  var meta = document.createElement('span'); meta.className='meta-badges';
+  var fase = CV.faseDoResumo(arv, no.wbs);
+  if(fase) meta.innerHTML += '<span class="pill fase">'+labelFase(fase)+'</span>';
+  if(no.filhos.length) meta.innerHTML += '<span class="cnt">'+no.resumosDescendentes+' res · '+no.folhasDescendentes+' folhas</span>';
+  else                 meta.innerHTML += '<span class="cnt">'+no.folhasDescendentes+' folhas</span>';
+  if(no.cp) meta.innerHTML += '<span class="pill pesado">CP '+CG.nfMoney(no.cp)+'</span>';
+  row.appendChild(meta);
 
-    // Confiança
-    tr.appendChild(tdText(pillConf(L)));
+  // slot do vínculo
+  row.appendChild(renderLinkSlot(arv, no, vef));
 
-    // Método
-    tr.appendChild(tdText(L.metodo_view ? '<span class="pill metodo">'+CG.esc(L.metodo_view)+'</span>' : '—'));
+  wrap.appendChild(row);
 
-    frag.appendChild(tr);
-  });
-  tb.innerHTML = '';
-  tb.appendChild(frag);
+  // filhos
+  if(no.filhos.length && aberto){
+    var box = document.createElement('div');
+    no.filhos.forEach(function(f){ box.appendChild(renderNo(arv, f, depth+1)); });
+    wrap.appendChild(box);
+  }
+  return wrap;
+}
 
-  // wire checkboxes de linha
-  tb.querySelectorAll('.cbLinha').forEach(function(cb){
-    cb.addEventListener('change', function(){
-      var i = +cb.getAttribute('data-idx');
-      LINHAS[i]._selecionado = cb.checked;
-      atualizarBotoes();
-    });
-  });
-  // botão "abrir modal" por linha
-  tb.querySelectorAll('.btnPickGeral').forEach(function(bt){
-    bt.addEventListener('click', function(){
-      var i = +bt.getAttribute('data-idx');
-      abrirModalGeral(LINHAS[i]);
-    });
-  });
-  // botão "limpar vínculo"
-  tb.querySelectorAll('.btnClearGeral').forEach(function(bt){
-    bt.addEventListener('click', function(){
-      var i = +bt.getAttribute('data-idx');
-      var L = LINHAS[i];
-      L.cron_geral_id = null;
-      L._dirty = !!L.salvo;              // se havia salvo, marcar dirty; senão volta ao "sem sugestão"
-      L.confianca_view = null; L.metodo_view = null;
+/* Devolve true se o nó ou algum descendente passa nos filtros atuais. */
+function ramoTemFiltro(arv, no){
+  if(passaFiltros(arv, no)) return true;
+  for(var i=0;i<no.filhos.length;i++){ if(ramoTemFiltro(arv, no.filhos[i])) return true; }
+  return false;
+}
+
+function renderLinkSlot(arv, no, vef){
+  var slot = document.createElement('span'); slot.className='link-slot';
+  var k = arv.contrato.id + '::' + no.uid;
+  var dirty = estaDirty(k);
+  if(vef){
+    var g = DADOS.geralById[vef.cron_geral_id];
+    slot.innerHTML = '<span class="txt">'
+      + (vef.herdado ? '<span class="pill herdado">herdado de '+CG.esc(vef.no.wbs)+'</span> ' : '<span class="pill salvo">vinculado</span> ')
+      + (dirty ? '<span class="pill media">alterado</span> ' : '')
+      + '<b>' + CG.esc(g ? g.nome : '(#'+vef.cron_geral_id+' — sumiu)') + '</b>'
+      + (g ? ' <span class="num">'+CG.esc(g.numero_topico)+'</span>' : '')
+      + '</span>';
+    var btnT = document.createElement('button'); btnT.className='small'; btnT.textContent = vef.herdado ? 'Sobrescrever' : 'Trocar';
+    btnT.addEventListener('click', function(){ abrirModal(arv, no); });
+    var btnX = document.createElement('button'); btnX.className='small ghost'; btnX.textContent='×'; btnX.title = vef.herdado ? 'Remover herança (define null neste nó)' : 'Remover vínculo';
+    btnX.style.color = 'var(--red)';
+    btnX.addEventListener('click', function(){
+      VINCULO_LOCAL[k] = null;    // marca deleção deste nó
       render();
     });
-  });
-}
-function td(cls){ var t = document.createElement('td'); if(cls) t.className = cls; return t; }
-function tdText(html){ var t = td(); t.innerHTML = html; return t; }
-function idxOf(L){ return LINHAS.indexOf(L); }
-function pillConf(L){
-  if(L.salvo) return '<span class="pill salvo">salvo</span>' + (L._dirty ? ' <span class="pill media">alterado</span>' : '');
-  if(!L.sugestao) return '<span class="pill pendente">pendente</span>';
-  var c = L.sugestao.confianca;
-  return '<span class="pill '+c+'">'+c+'</span>'
-       + ' <span style="font-size:10px;color:var(--text-mute)" class="mono">'+(Math.round(L.sugestao.score*100))+'%</span>';
-}
-function cellGeral(L){
-  var t = td('geral-cell');
-  var g = L.cron_geral_id ? DADOS.geralById[L.cron_geral_id] : null;
-  var i = idxOf(L);
-  if(g){
-    var badge = '';
-    if(L.salvo && L._dirty) badge = '<span class="badge">era: '+CG.esc(numeroDe(L.salvo.cron_geral_id))+'</span>';
-    t.innerHTML = '<div class="picked">'
-      + '<div class="txt"><b>'+CG.esc(g.nome)+'</b>' + badge + '</div>'
-      + '<div class="num">'+CG.esc(g.numero_topico)+'</div>'
-      + '</div>'
-      + '<div style="display:flex;gap:4px;margin-top:4px">'
-      + '<button class="btnPickGeral" data-idx="'+i+'">Trocar</button>'
-      + '<button class="btnClearGeral ghost" data-idx="'+i+'" style="color:var(--red)">×</button>'
-      + '</div>';
+    slot.appendChild(btnT); slot.appendChild(btnX);
   } else {
-    t.innerHTML = '<span class="none">(sem sugestão — escolher)</span>'
-      + '<div style="margin-top:4px"><button class="btnPickGeral" data-idx="'+i+'">Escolher…</button></div>';
+    // Sem vínculo efetivo — mostra sugestão se houver
+    var sug = CV.sugerirMatch(no, arv, DADOS);
+    if(sug){
+      var g2 = DADOS.geralById[sug.cron_geral_id];
+      slot.innerHTML = '<span class="txt">'
+        + '<span class="pill '+sug.confianca+'">'+sug.confianca+' '+Math.round(sug.score*100)+'%</span> '
+        + '<b>' + CG.esc(g2 ? g2.nome : '—') + '</b>'
+        + (g2 ? ' <span class="num">'+CG.esc(g2.numero_topico)+'</span>' : '')
+        + '</span>';
+      var btnOK = document.createElement('button'); btnOK.className='small'; btnOK.textContent='✓ Aceitar';
+      btnOK.addEventListener('click', function(){ VINCULO_LOCAL[k] = sug.cron_geral_id; render(); });
+      var btnT2 = document.createElement('button'); btnT2.className='small ghost'; btnT2.textContent='Trocar';
+      btnT2.addEventListener('click', function(){ abrirModal(arv, no); });
+      slot.appendChild(btnOK); slot.appendChild(btnT2);
+    } else {
+      slot.innerHTML = '<span class="none">(sem sugestão)</span>';
+      var btnE = document.createElement('button'); btnE.className='small'; btnE.textContent='Escolher…';
+      btnE.addEventListener('click', function(){ abrirModal(arv, no); });
+      slot.appendChild(btnE);
+    }
   }
-  return t;
+  return slot;
 }
-function numeroDe(id){ var g = DADOS.geralById[id]; return g ? g.numero_topico : '—'; }
 
-/* ============ modal de escolha ============ */
-function abrirModalGeral(L){
-  MODAL_LINHA = L;
-  $('mForCtx').textContent = '· ' + (L.resumo.contrato && L.resumo.contrato.empresa || '') + ' · ' + L.resumo.wbs + ' · ' + L.resumo.name;
-  $('mBusca').value = ''; $('mFase').value = ''; $('mCwa').value = ''; $('mEmp').value = '';
-  // pré-filtra pela empresa do contrato se combinar com alguma opção
-  var emp = L.resumo.contrato && L.resumo.contrato.empresa;
-  if(emp){
-    var opts = Array.prototype.slice.call($('mEmp').options).map(function(o){return o.value;});
-    var alvo = CG.deacc(emp).toLowerCase();
-    var m = opts.filter(function(x){ return x && CG.deacc(x).toLowerCase().indexOf(alvo) !== -1; })[0];
-    if(m) $('mEmp').value = m;
-  }
+function labelFase(f){ var x = CG.FASES.find(function(k){return k.code===f;}); return x?x.label:(f||'—'); }
+
+/* ============ modal ============ */
+function abrirModal(arv, no){
+  MODAL_CTX = { arv: arv, no: no };
+  var fase = CV.faseDoResumo(arv, no.wbs);
+  var empKey = CV._empresaKey(arv.contrato.empresa||'');
+  var cwas = DADOS.empresaCwas[empKey] ? Object.keys(DADOS.empresaCwas[empKey]) : [];
+  $('mCtx').textContent = '· ' + arv.contrato.empresa + ' · ' + no.wbs + ' · ' + no.name;
+  $('mBusca').value = '';
+  $('mFase').value = fase || '';
+  $('mCwa').value  = '';
+  $('mEmp').value  = '';
+  // pré-seleciona empresa se combinar com alguma opção
+  var opts = Array.prototype.slice.call($('mEmp').options).map(function(o){return o.value;});
+  var m = opts.filter(function(x){ return x && CV._empresaMatch(arv.contrato.empresa||'', x); })[0];
+  if(m) $('mEmp').value = m;
+  $('mFiltroInterno').checked = true;
+  MODAL_CTX.cwasHint = cwas;
   renderModal();
   $('mBg').classList.add('on');
 }
-function fecharModal(){ $('mBg').classList.remove('on'); MODAL_LINHA = null; }
+function fecharModal(){ $('mBg').classList.remove('on'); MODAL_CTX = null; }
 $('mClose').addEventListener('click', fecharModal);
 $('mBg').addEventListener('click', function(e){ if(e.target === $('mBg')) fecharModal(); });
 
 function renderModal(){
   var q = CG.deacc($('mBusca').value.trim());
-  var fFase = $('mFase').value, fCwa = $('mCwa').value, fEmp = $('mEmp').value;
+  var fF = $('mFase').value, fC = $('mCwa').value, fE = $('mEmp').value;
+  var respeitar = $('mFiltroInterno').checked;
+  var cwasHint = (MODAL_CTX && MODAL_CTX.cwasHint) || [];
   var lista = (DADOS.geral || []).filter(function(g){
-    if(fFase && g.fase !== fFase) return false;
-    if(fCwa  && g.cwa !== fCwa) return false;
-    if(fEmp  && g.empresa !== fEmp) return false;
+    if(fF && g.fase !== fF) return false;
+    if(fC && g.cwa  !== fC) return false;
+    if(fE && g.empresa !== fE) return false;
+    if(respeitar && cwasHint.length && g.cwa && cwasHint.indexOf(g.cwa) === -1) return false;
     if(q){
       var bag = CG.deacc([g.numero_topico, g.nome, g.cwa, g.cwp, g.empresa].join(' '));
       if(bag.indexOf(q) === -1) return false;
     }
     return true;
   });
-  // limita a 500 para não travar
-  var trunc = false;
-  if(lista.length > 500){ trunc = true; lista = lista.slice(0, 500); }
+  var trunc = false; if(lista.length > 500){ trunc = true; lista = lista.slice(0, 500); }
   var tb = $('mTb'); tb.innerHTML = '';
-  if(!lista.length){ tb.innerHTML = '<tr><td colspan="7" class="empty">— nenhuma atividade com esses filtros —</td></tr>'; return; }
+  if(!lista.length){ tb.innerHTML = '<tr><td colspan="7" class="empty">— nada com esses filtros —</td></tr>'; return; }
   var frag = document.createDocumentFragment();
   lista.forEach(function(g){
     var tr = document.createElement('tr');
-    if(MODAL_LINHA && MODAL_LINHA.cron_geral_id === g.id) tr.className = 'sel';
     tr.innerHTML = '<td class="mono">'+CG.esc(g.numero_topico)+'</td>'
       + '<td>'+CG.esc(g.nome)+'</td>'
       + '<td>'+labelFase(g.fase)+'</td>'
-      + '<td>'+CG.esc(g.cwa || '—')+'</td>'
-      + '<td>'+CG.esc(g.cwp || '—')+'</td>'
-      + '<td>'+CG.esc(g.empresa || '—')+'</td>'
-      + '<td class="right mono">'+(g.custo_lb==null?'—':CG.nfMoney(g.custo_lb))+'</td>';
-    tr.addEventListener('click', function(){ escolherGeral(g.id); });
+      + '<td>'+CG.esc(g.cwa||'—')+'</td>'
+      + '<td>'+CG.esc(g.cwp||'—')+'</td>'
+      + '<td>'+CG.esc(g.empresa||'—')+'</td>'
+      + '<td style="text-align:right" class="mono">'+(g.custo_lb==null?'—':CG.nfMoney(g.custo_lb))+'</td>';
+    tr.addEventListener('click', function(){
+      if(!MODAL_CTX) return;
+      var k = MODAL_CTX.arv.contrato.id + '::' + MODAL_CTX.no.uid;
+      VINCULO_LOCAL[k] = g.id;
+      fecharModal(); render();
+    });
     frag.appendChild(tr);
   });
   tb.appendChild(frag);
-  if(trunc){
-    var trTrunc = document.createElement('tr');
-    trTrunc.innerHTML = '<td colspan="7" style="text-align:center;color:var(--text-mute);padding:8px">... e mais atividades — refine os filtros para vê-las.</td>';
-    tb.appendChild(trTrunc);
-  }
+  if(trunc){ var tr = document.createElement('tr'); tr.innerHTML='<td colspan="7" style="text-align:center;color:var(--text-mute);padding:8px">... e mais linhas — refine os filtros para vê-las.</td>'; tb.appendChild(tr); }
 }
-function labelFase(f){ var x = CG.FASES.find(function(k){return k.code===f;}); return x?x.label:(f||'—'); }
-
-function escolherGeral(gid){
-  if(!MODAL_LINHA) return;
-  var L = MODAL_LINHA;
-  L.cron_geral_id = gid;
-  L._dirty = true;
-  L.confianca_view = 'salvo';
-  L.metodo_view    = 'manual';
-  L._selecionado   = true;
-  fecharModal();
-  render();
-}
-
-['mBusca','mFase','mCwa','mEmp'].forEach(function(id){
+['mBusca','mFase','mCwa','mEmp','mFiltroInterno'].forEach(function(id){
   $(id).addEventListener('input', renderModal);
   $(id).addEventListener('change', renderModal);
 });
 
 /* ============ ações ============ */
-$('chkAll').addEventListener('change', function(){
-  var lista = filtrar();
-  lista.forEach(function(L){ L._selecionado = $('chkAll').checked; });
-  render();
-});
-
-$('btnAceitarAltas').addEventListener('click', function(){
-  var n = 0;
-  LINHAS.forEach(function(L){
-    if(!L.salvo && L.sugestao && L.sugestao.confianca === 'alta' && L.cron_geral_id){
-      L._selecionado = true; L._dirty = true; n++;
-    }
+$('btnExpandTudo').addEventListener('click', function(){
+  DADOS.arvores.forEach(function(arv){
+    EXPANDIDOS['C:'+arv.contrato.id] = true;
+    Object.keys(arv.todosPorWbs || {}).forEach(function(w){ EXPANDIDOS[arv.contrato.id+'::'+w] = true; });
   });
   render();
-  CG.toast(n + ' linhas com sugestão de alta confiança marcadas.', n ? 'ok' : 'warn');
 });
-
+$('btnCollapseTudo').addEventListener('click', function(){
+  EXPANDIDOS = {};
+  DADOS.arvores.forEach(function(arv){ EXPANDIDOS['C:'+arv.contrato.id] = false; });
+  render();
+});
+$('btnAceitarAltas').addEventListener('click', function(){
+  var n = 0;
+  DADOS.arvores.forEach(function(arv){
+    Object.keys(arv.todosPorWbs).forEach(function(w){
+      var no = arv.todosPorWbs[w];
+      var vef = vinculoEfetivoDe(arv, no);
+      if(vef) return;
+      var s = CV.sugerirMatch(no, arv, DADOS);
+      if(s && s.confianca === 'alta'){
+        VINCULO_LOCAL[arv.contrato.id+'::'+no.uid] = s.cron_geral_id; n++;
+      }
+    });
+  });
+  render();
+  CG.toast(n + ' sugestões de alta confiança aceitas.', n ? 'ok' : 'warn');
+});
 $('btnSalvar').addEventListener('click', function(){
-  if(!CG.canEdit()){ CG.toast('Seu perfil é somente leitura neste módulo.','warn'); return; }
-  var sel = LINHAS.filter(function(L){ return L._selecionado && L.cron_geral_id; });
-  if(!sel.length){ CG.toast('Selecione pelo menos uma linha com vínculo definido.','warn'); return; }
+  if(!CG.canEdit()){ CG.toast('Perfil somente leitura.','warn'); return; }
+  var itens = [];
+  Object.keys(VINCULO_LOCAL).forEach(function(k){
+    if(!estaDirty(k)) return;
+    var parts = k.split('::');
+    itens.push({ cronograma_id: parts[0], terceira_uid: parts[1], cron_geral_id: VINCULO_LOCAL[k] });
+  });
+  if(!itens.length){ CG.toast('Nada para salvar.','warn'); return; }
   $('btnSalvar').disabled = true;
   var box = $('msgBox');
-  box.innerHTML = '<div class="msg info">Gravando '+sel.length+' vínculos...</div>';
-  CV.salvarSelecionados(sel).then(function(r){
-    box.innerHTML = '<div class="msg ok">'+r.gravados+' vínculos salvos.</div>';
-    CG.toast(r.gravados + ' vínculos salvos.','ok');
-    return load();       // recarrega para pegar os novos IDs / mudar linhas para "salvo"
+  box.innerHTML = '<div class="msg info">Gravando '+itens.length+' alterações...</div>';
+  CV.salvarBatch(itens).then(function(r){
+    box.innerHTML = '<div class="msg ok">'+(r.upserts+r.deletes)+' alterações salvas ('+r.upserts+' upserts, '+r.deletes+' remoções).</div>';
+    CG.toast('Salvo.','ok');
+    VINCULO_LOCAL = {};
+    return load();
   }).catch(function(e){
     box.innerHTML = '<div class="msg err">Falha: '+CG.esc(e.message)+'</div>';
     $('btnSalvar').disabled = false;
   });
 });
-
-['fBusca','fCron','fConf','fDirty','fSel'].forEach(function(id){
-  $(id).addEventListener('input', render);
-  $(id).addEventListener('change', render);
+['fBusca','fContrato','fFase','fSemVinc','fSemSug'].forEach(function(id){
+  $(id).addEventListener('input', render); $(id).addEventListener('change', render);
 });
-$('btnLimparFiltros').addEventListener('click', function(){
-  $('fBusca').value = ''; $('fCron').value = ''; $('fConf').value = ''; $('fDirty').value = '';
-  $('fSel').checked = false;
+$('btnLimparF').addEventListener('click', function(){
+  $('fBusca').value=''; $('fContrato').value=''; $('fFase').value='';
+  $('fSemVinc').checked=false; $('fSemSug').checked=false;
   render();
 });
-
-/* ============ KPIs e botões ============ */
-function atualizarKPIs(){
-  var total = LINHAS.length;
-  var salvos    = LINHAS.filter(function(L){ return !!L.salvo; }).length;
-  var sugAlta   = LINHAS.filter(function(L){ return !L.salvo && L.sugestao && L.sugestao.confianca === 'alta';  }).length;
-  var sugMedia  = LINHAS.filter(function(L){ return !L.salvo && L.sugestao && L.sugestao.confianca === 'media'; }).length;
-  var sugBaixa  = LINHAS.filter(function(L){ return !L.salvo && L.sugestao && L.sugestao.confianca === 'baixa'; }).length;
-  var pendente  = LINHAS.filter(function(L){ return !L.salvo && !L.sugestao; }).length;
-  var dirty     = LINHAS.filter(function(L){ return L._dirty; }).length;
-
-  var html = '';
-  html += '<div class="stat"><div class="lbl">Resumos totais</div><div class="val">'+total+'</div></div>';
-  html += '<div class="stat ok"><div class="lbl">Já vinculados</div><div class="val">'+salvos+'</div></div>';
-  html += '<div class="stat ok"><div class="lbl">Sugestão alta</div><div class="val">'+sugAlta+'</div></div>';
-  if(sugMedia)  html += '<div class="stat warn"><div class="lbl">Sugestão média</div><div class="val">'+sugMedia+'</div></div>';
-  if(sugBaixa)  html += '<div class="stat warn"><div class="lbl">Sugestão baixa</div><div class="val">'+sugBaixa+'</div></div>';
-  if(pendente)  html += '<div class="stat err"><div class="lbl">Sem sugestão</div><div class="val">'+pendente+'</div></div>';
-  if(dirty)     html += '<div class="stat warn"><div class="lbl">Alterações pendentes</div><div class="val">'+dirty+'</div></div>';
-  $('stats').innerHTML = html;
-}
-function atualizarBotoes(){
-  var sel = LINHAS.filter(function(L){ return L._selecionado && L.cron_geral_id; });
-  $('qtdSel').textContent = sel.length;
-  $('btnSalvar').disabled = !sel.length;
-}
 
 load();
 </script>
