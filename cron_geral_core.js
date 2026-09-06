@@ -261,7 +261,7 @@
        PAI | NUMERO PAI | PAI TOPICO
      Toda outra coluna é ignorada. */
   var HEAD_MAP = {
-    numero_topico:  ['NUMERO DE ESTRUTURA DE TOPICOS','NUMERO ESTRUTURA DE TOPICOS','NUMERO TOPICO','ESTRUTURA DE TOPICOS','WBS'],
+    numero_topico:  ['NUMERO DA ESTRUTURA DE TOPICOS','NUMERO DE ESTRUTURA DE TOPICOS','NUMERO ESTRUTURA DE TOPICOS','NUMERO TOPICO','ESTRUTURA DE TOPICOS','WBS','NUMERO'],
     nome:           ['NOME DA ATIVIDADE','NOME','ATIVIDADE'],
     fase:           ['FASE'],
     tipo_pacote:    ['TIPO','TIPO DE PACOTE','TIPO PACOTE'],
@@ -400,7 +400,7 @@
   function _sim(a, b) { return (!a || !b) ? 0 : (1 - _lev(a,b) / Math.max(a.length, b.length)); }
 
   function buildAreasIndex(areasNames) {
-    var idx = { list: [], byNorm: {}, byNormNoParen: {} };
+    var idx = { list: [], byNorm: {}, byNormNoParen: {}, byFullNorm: {} };
     (areasNames || []).forEach(function (full) {
       var parts = full.split(' - ');
       var code  = (parts[0] || '').trim();
@@ -413,6 +413,7 @@
         nameWords:        _wordsSet(name, true)
       };
       idx.list.push(it);
+      idx.byFullNorm[deacc(full).toLowerCase().replace(/\s+/g,' ').trim()] = it;
       if (it.nameNorm)         (idx.byNorm[it.nameNorm]         = idx.byNorm[it.nameNorm]         || []).push(it);
       if (it.nameNormNoParen)  (idx.byNormNoParen[it.nameNormNoParen] = idx.byNormNoParen[it.nameNormNoParen] || []).push(it);
     });
@@ -424,11 +425,17 @@
     return (ch.length ? ch : cands)[0];
   }
 
-  /* Retorna { full, diag } — diag ∈ exato|sem-paren|sinonimo|fuzzy|palavras|sem-match */
+  /* Retorna { full, diag } — diag ∈ canonico|exato|sem-paren|sinonimo|fuzzy|palavras|sem-match */
   function mapCWA(raw, areasIdx) {
     if (!raw || !String(raw).trim() || !areasIdx || !areasIdx.list.length) {
       return { full: null, diag: 'sem-ref' };
     }
+    // Pass 0: se o valor já é uma CWA canônica ("2300.A - Nome"), retorna direto
+    var rawNorm = deacc(String(raw)).toLowerCase().replace(/\s+/g,' ').trim();
+    if (areasIdx.byFullNorm && areasIdx.byFullNorm[rawNorm]) {
+      return { full: areasIdx.byFullNorm[rawNorm].full, diag: 'canonico' };
+    }
+
     var parts = String(raw).split('.').map(function (p) { return p.trim(); }).filter(Boolean);
     if (!parts.length) return { full: null, diag: 'sem-match' };
     var leaf = parts[parts.length - 1];
@@ -478,14 +485,14 @@
      - Se `tipo_pacote` estiver vazio E cwa vazio → linha descartada (é resumo/marco).
      - `pai_topico` é derivado automaticamente de `numero_topico` quando vazio. */
   function parseAtividades(rows, arquivoOrigem, areasNames) {
-    if (!rows || !rows.length) return { header: [], mapa: {}, atividades: [], erros: [{ linha: 0, msg: 'Planilha vazia' }] };
+    if (!rows || !rows.length) return { header: [], mapa: {}, atividades: [], erros: [{ linha: 0, msg: 'Planilha vazia' }], descartadas: 0, cwaResumo: {total:0}, areasReconhecidas: 0 };
     // encontra a linha do header (a primeira que contenha "NOME" ou "FASE")
     var headerIdx = -1;
     for (var i = 0; i < Math.min(rows.length, 30); i++) {
       var joined = rows[i].map(function (c) { return deacc(c); }).join('|');
       if (joined.indexOf('NOME') > -1 && joined.indexOf('FASE') > -1) { headerIdx = i; break; }
     }
-    if (headerIdx === -1) return { header: [], mapa: {}, atividades: [], erros: [{ linha: 0, msg: 'Cabeçalho não encontrado (a planilha precisa ter as colunas NOME e FASE).' }] };
+    if (headerIdx === -1) return { header: [], mapa: {}, atividades: [], erros: [{ linha: 0, msg: 'Cabeçalho não encontrado (a planilha precisa ter as colunas NOME e FASE).' }], descartadas: 0, cwaResumo: {total:0}, areasReconhecidas: 0 };
 
     var header = rows[headerIdx];
     var mapa = detectHeaderMap(header);
@@ -493,13 +500,13 @@
       .filter(function (k) { return mapa[k] == null; });
     if (faltando.length) {
       return { header: header, mapa: mapa, atividades: [], erros: [{ linha: headerIdx + 1,
-        msg: 'Faltam colunas obrigatórias: ' + faltando.join(', ') }] };
+        msg: 'Faltam colunas obrigatórias: ' + faltando.join(', ') }], descartadas: 0, cwaResumo: {total:0}, areasReconhecidas: 0 };
     }
 
     var areasIdx = areasNames && areasNames.length ? buildAreasIndex(areasNames) : null;
 
     var atividades = [], erros = [], descartadas = 0;
-    var cwaResumo = { total: 0, exato: 0, 'sem-paren': 0, sinonimo: 0, fuzzy: 0, palavras: 0, pai: 0, 'sem-match': 0, 'sem-ref': 0 };
+    var cwaResumo = { total: 0, canonico: 0, exato: 0, 'sem-paren': 0, sinonimo: 0, fuzzy: 0, palavras: 0, pai: 0, 'sem-match': 0, 'sem-ref': 0 };
 
     for (var r = headerIdx + 1; r < rows.length; r++) {
       var row = rows[r];
