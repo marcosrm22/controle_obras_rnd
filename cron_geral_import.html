@@ -226,7 +226,7 @@ function renderPreview(){
   // CWA — resumo do mapeamento (só quando havia aba Áreas)
   var cr = PARSED.cwaResumo || {};
   if(cr.total){
-    var okAuto = (cr.exato||0) + (cr['sem-paren']||0) + (cr.sinonimo||0) + (cr.fuzzy||0);
+    var okAuto = (cr.canonico||0) + (cr.exato||0) + (cr['sem-paren']||0) + (cr.sinonimo||0) + (cr.fuzzy||0);
     var revisar = (cr.palavras||0) + (cr.pai||0);
     var semMatch = (cr['sem-match']||0);
     stats += '<div class="stat"><div class="lbl">CWA · auto-mapeada</div><div class="val">'+okAuto+'</div></div>';
