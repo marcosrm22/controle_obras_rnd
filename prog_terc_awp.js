@@ -262,6 +262,41 @@
     });
   }
 
+  /* ============ SALVA UM LOTE DE VÍNCULOS (upsert em batch) ============
+     items = [{cronograma_id, terceira_uid, terceira_wbs, cron_geral_id}]
+     cron_geral_id=null em algum item o pula (não é DELETE em batch aqui). */
+  function salvarVinculosBatch(items) {
+    if (!items || !items.length) return Promise.resolve({ok:0});
+    var upserts = items.filter(function (i) { return i.cron_geral_id != null; });
+    if (!upserts.length) return Promise.resolve({ok:0});
+    var payload = upserts.map(function (i) {
+      var p = {
+        cronograma_id: i.cronograma_id,
+        terceira_uid:  String(i.terceira_uid),
+        terceira_wbs:  i.terceira_wbs || null,
+        cron_geral_id: i.cron_geral_id,
+        metodo_rateio: null,
+        criado_por:    PT.userNome()
+      };
+      if (typeof global.pcoComTag === 'function') p = global.pcoComTag(p);
+      else p.unidade = sessionStorage.getItem('pco_unidade') || 'RDN';
+      return p;
+    });
+    var CFG = global.PCO_CONFIG || {}, SB_URL = (CFG.supabase||{}).url, SB_KEY = (CFG.supabase||{}).key;
+    var qs = 'on_conflict=' + encodeURIComponent('cronograma_id,terceira_uid');
+    return fetch(SB_URL + '/rest/v1/cron_vinculo?' + qs, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type':'application/json',
+                 Prefer: 'return=representation,resolution=merge-duplicates' },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      return res.text().then(function(txt){
+        if(!res.ok) throw new Error(res.status + ': ' + txt.slice(0,320));
+        return { ok: payload.length };
+      });
+    });
+  }
+
   /* ============ SALVA/REMOVE UM ÚNICO VÍNCULO (para o modal) ============ */
   function salvarVinculoUnico(cronograma_id, terceira_uid, terceira_wbs, cron_geral_id) {
     var CFG = global.PCO_CONFIG || {}, SB_URL = (CFG.supabase||{}).url, SB_KEY = (CFG.supabase||{}).key;
@@ -486,6 +521,7 @@
     desmarcarNaoExecBatch: desmarcarNaoExecBatch,
     // Modal split-view
     loadTarefasCronograma: loadTarefasCronograma,
-    salvarVinculoUnico:    salvarVinculoUnico
+    salvarVinculoUnico:    salvarVinculoUnico,
+    salvarVinculosBatch:   salvarVinculosBatch
   };
 })(window);
