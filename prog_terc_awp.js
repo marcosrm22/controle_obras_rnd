@@ -192,6 +192,61 @@
     });
   }
 
+  /* Batch: marca N atividades como não executáveis num único POST */
+  function marcarNaoExecBatch(items, motivo) {
+    if (!items || !items.length) return Promise.resolve({ok:0, err:0});
+    var payload = items.map(function (i) {
+      var p = {
+        cronograma_id: i.cronograma_id,
+        terceira_uid:  String(i.terceira_uid),
+        terceira_wbs:  i.terceira_wbs || null,
+        motivo:        motivo || i.motivo || null,
+        criado_por:    PT.userNome()
+      };
+      if (typeof global.pcoComTag === 'function') p = global.pcoComTag(p);
+      else p.unidade = sessionStorage.getItem('pco_unidade') || 'RDN';
+      return p;
+    });
+    var CFG = global.PCO_CONFIG || {}, SB_URL = (CFG.supabase||{}).url, SB_KEY = (CFG.supabase||{}).key;
+    var qs = 'on_conflict=' + encodeURIComponent('cronograma_id,terceira_uid');
+    return fetch(SB_URL + '/rest/v1/terc_nao_executavel?' + qs, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type':'application/json',
+                 Prefer: 'return=representation,resolution=merge-duplicates' },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      return res.text().then(function(txt){
+        if(!res.ok) throw new Error(res.status + ': ' + txt.slice(0,320));
+        // atualiza cache
+        if (_cacheRegras && _cacheRegras.naoExecKey) {
+          items.forEach(function(i){ _cacheRegras.naoExecKey[i.cronograma_id + '::' + i.terceira_uid] = motivo || true; });
+        }
+        return { ok: items.length, err: 0 };
+      });
+    });
+  }
+
+  /* Batch: reativa N atividades (delete em lote via or filter do PostgREST) */
+  function desmarcarNaoExecBatch(items) {
+    if (!items || !items.length) return Promise.resolve({ok:0, err:0});
+    // Agrupa por cronograma_id — cada grupo vira 1 DELETE com filtro IN
+    var porCron = {};
+    items.forEach(function(i){ (porCron[i.cronograma_id] = porCron[i.cronograma_id] || []).push(String(i.terceira_uid)); });
+    var proms = Object.keys(porCron).map(function(cid){
+      var uids = porCron[cid];
+      var lista = uids.map(function(u){ return '"' + String(u).replace(/"/g,'\\"') + '"'; }).join(',');
+      var url = 'terc_nao_executavel?cronograma_id=eq.' + encodeURIComponent(cid) +
+                '&terceira_uid=in.(' + lista + ')';
+      return PT.sb('DELETE', url).catch(function(){}); // idempotente
+    });
+    return Promise.all(proms).then(function(){
+      if (_cacheRegras && _cacheRegras.naoExecKey) {
+        items.forEach(function(i){ delete _cacheRegras.naoExecKey[i.cronograma_id + '::' + i.terceira_uid]; });
+      }
+      return { ok: items.length, err: 0 };
+    });
+  }
+
   /* ============ TAREFAS DE UM CRONOGRAMA (para o modal split-view) ============ */
   var _cacheTarefas = {};
   function loadTarefasCronograma(cronograma_id, force) {
@@ -427,6 +482,8 @@
     filtrarExecutaveis:   filtrarExecutaveis,
     marcarNaoExec:        marcarNaoExec,
     desmarcarNaoExec:     desmarcarNaoExec,
+    marcarNaoExecBatch:   marcarNaoExecBatch,
+    desmarcarNaoExecBatch: desmarcarNaoExecBatch,
     // Modal split-view
     loadTarefasCronograma: loadTarefasCronograma,
     salvarVinculoUnico:    salvarVinculoUnico
