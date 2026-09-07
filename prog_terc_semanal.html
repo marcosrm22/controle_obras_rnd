@@ -25,6 +25,7 @@
 <script src="config.js"></script>
 <script src="unidade.js"></script>
 <script src="prog_terc_core.js"></script>
+<script src="prog_terc_awp.js"></script>
 </head>
 <body>
 <div class="page">
@@ -41,6 +42,8 @@
     <span class="small muted" id="wkInfo" style="margin-right:auto"></span>
     <select class="f" id="fArea"><option value="">Todas as áreas</option></select>
     <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fFase"><option value="">Todas as fases</option></select>
+    <select class="f" id="fCwa"><option value="">Todos os CWAs</option></select>
     <button class="btn solid" id="btnNovo">+ Novo card</button>
     <button class="btn" id="btnHerdar">⟳ Herdar semana anterior</button>
     <button class="btn" id="btnXls">⤓ Excel</button>
@@ -147,12 +150,18 @@ var BASE = L.mondayOf(), pendingDrop = null;
 $('wkBase').value = BASE;
 
 /* ================= CARGA ================= */
+var REGRAS = null;   // { pesoProjeto, pesoPorFase, ... } — vem do PTA
 function load(){
   return Promise.all([
     L.loadAtividades(false),
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&order=ordem.asc,id.asc'))
   ]).then(function(r){
     ATIV = r[0].atividades; CARDS = r[1];
+    // Enriquece com CWA / CWP / Fase / Peso a partir dos vínculos (Fase 3)
+    return window.PTA
+      ? PTA.enriquecerTudo(ATIV, CARDS, true).then(function(res){ REGRAS = res.regras; })
+      : Promise.resolve();
+  }).then(function(){
     $('setup').style.display = 'none';
     fillSelects(); render();
   }).catch(function(err){
@@ -160,6 +169,7 @@ function load(){
     $('lanes').innerHTML = '<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
   });
 }
+var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
 
 function ativLabel(a){
   return (a.empresa ? a.empresa + ' · ' : '') + a.nome + (a.wbs ? ' (WBS ' + a.wbs + ')' : '');
@@ -197,15 +207,34 @@ function fillSelects(){
   var ca = $('fArea').value;
   $('fArea').innerHTML = '<option value="">Todas as áreas</option>'
     + areas.map(function(e){ return '<option'+(e===ca?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+
+  // Fase e CWA (Fase 3 — vindos do enriquecimento)
+  var fases = [];
+  ATIV.forEach(function(a){ if(a.fase && fases.indexOf(a.fase) < 0) fases.push(a.fase); });
+  CARDS.forEach(function(c){ if(c.fase && fases.indexOf(c.fase) < 0) fases.push(c.fase); });
+  var cf = $('fFase').value;
+  $('fFase').innerHTML = '<option value="">Todas as fases</option>'
+    + fases.map(function(f){ return '<option value="'+esc(f)+'"'+(f===cf?' selected':'')+'>'+esc(FASE_LABELS[f]||f)+'</option>'; }).join('');
+
+  var cwas = [];
+  ATIV.forEach(function(a){ if(a.cwa && cwas.indexOf(a.cwa) < 0) cwas.push(a.cwa); });
+  CARDS.forEach(function(c){ if(c.cwa && cwas.indexOf(c.cwa) < 0) cwas.push(c.cwa); });
+  cwas.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cc = $('fCwa').value;
+  $('fCwa').innerHTML = '<option value="">Todos os CWAs</option>'
+    + cwas.map(function(w){ return '<option'+(w===cc?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
 }
 
 /* ================= SELEÇÃO DA SEMANA ================= */
 function daSemana(wk){
   var fa = $('fArea').value, fe = $('fEmpresa').value;
+  var ff = $('fFase').value, fc = $('fCwa').value;
   return CARDS.filter(function(c){
     if(String(c.semana).slice(0,10) !== wk) return false;
     if(fa && c.area !== fa) return false;
     if(fe && c.empresa !== fe) return false;
+    if(ff && c.fase !== ff) return false;
+    if(fc && c.cwa !== fc) return false;
     return true;
   });
 }
@@ -279,6 +308,12 @@ function cardHtml(c){
     + (c.qtd_prog ? '<div class="kc-meta mono">'+nf(c.qtd_real||0,0)+' / '+nf(c.qtd_prog,0)
         + ' ' + esc(c.un||'') + (pct!=null?' · '+pct+'%':'') + '</div>' : '')
     + (c.causa ? '<div class="kc-meta" style="color:var(--terracota);font-weight:700">⚠ '+esc(c.causa)+'</div>' : '')
+    + (c.fase || c.cwa || c.peso_pct_projeto ? '<div class="kc-meta" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">'
+       + (c.fase ? '<span class="tag" style="background:#f0e6f8;color:#6B4FA0">'+esc(FASE_LABELS[c.fase]||c.fase)+'</span>' : '')
+       + (c.cwa  ? '<span class="tag" style="background:#eaf3fb;color:#1f5170;font-family:var(--mono)">'+esc(String(c.cwa).slice(0,26))+(String(c.cwa).length>26?'…':'')+'</span>' : '')
+       + (c.peso_pct_projeto ? '<span class="tag" style="background:#e0f2f1;color:#00695c;font-family:var(--mono);font-weight:700">'+Number(c.peso_pct_projeto).toFixed(2)+'%</span>' : '')
+       + (c.sem_vinculo && (c.cronograma_id!=null) ? '<span class="tag" style="background:#fdecea;color:#8a3822">sem vínculo</span>' : '')
+       + '</div>' : '')
     + '<div class="kc-foot">'
       + '<span class="small muted">'+origem+(c.terceira_wbs?(' · WBS '+esc(c.terceira_wbs)):'')+'</span>'
       + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'">✎</button>' : '')
@@ -300,14 +335,25 @@ function renderKpis(list){
   }
   var media = hist.length ? Math.round(hist.reduce(function(a,b){ return a+b; },0)/hist.length) : null;
 
+  // KPIs de peso (Fase 3) — só se PTA/REGRAS carregados
+  var K = window.PTA ? PTA.kpisSemana(list, REGRAS) : null;
+  var kpiPpcPeso = K ? kpi('b-blue',   (K.ppcPeso==null?'—':K.ppcPeso+'%'),          'PPC peso',       'concluído / programado (R$)') : '';
+  var kpiAder   = K ? kpi('b-violet', (K.aderenciaParcial==null?'—':K.aderenciaParcial+'%'), 'Aderência real', 'considera qtd_real ÷ qtd_prog') : '';
+  var kpiPctPrj = (K && REGRAS && REGRAS.pesoProjeto) ? kpi('b-teal', K.pctProjSemana.toFixed(2)+'%', '% do projeto', 'peso programado esta semana') : '';
+  var alertSem  = (K && K.cardsSemPeso) ? kpi('b-red', K.cardsSemPeso, 'Sem peso', 'cards não vinculados ao geral') : '';
+
   $('kpis').innerHTML =
     '<div class="kpi static b-blue"><div class="num">'+(p==null?'—':p+'%')+'</div>'
-      + '<div class="label">PPC da semana</div><div class="sub">'+done+' de '+list.length+' concluídos</div></div>' +
+      + '<div class="label">PPC contagem</div><div class="sub">'+done+' de '+list.length+' concluídos</div></div>' +
+    kpiPpcPeso +
+    kpiAder +
+    kpiPctPrj +
     kpi('b-gray', prog, 'Programadas', 'ainda não iniciadas') +
     kpi('b-violet', exec, 'Em execução', 'em andamento') +
     kpi('b-green', done, 'Concluídas', 'compromisso cumprido') +
     kpi('b-red', fail, 'Não concluídas', 'com causa registrada') +
-    kpi('b-gold', (media==null?'—':media+'%'), 'PPC médio', 'últimas ' + hist.length + ' semanas');
+    kpi('b-gold', (media==null?'—':media+'%'), 'PPC médio', 'últimas ' + hist.length + ' semanas') +
+    alertSem;
 }
 function kpi(cls, num, label, sub){
   return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
@@ -517,24 +563,30 @@ $('mDel').addEventListener('click', function(){
 /* ================= EXPORT ================= */
 $('btnXls').addEventListener('click', function(){
   var list = daSemana(BASE);
-  var head = ['Empresa','Coluna','O que será feito','Área','Disciplina','Responsável','Equipe',
-              'Qtd prog','Qtd real','Un.','Causa','WBS terceira','Observações'];
+  var head = ['Empresa','Coluna','O que será feito','Fase','CWA','CWP','Área','Disciplina','Responsável','Equipe',
+              'Qtd prog','Qtd real','Un.','Peso % projeto','Peso R$','Causa','WBS terceira','Observações'];
   var aoa = [head];
   var colLabel = {};
   L.KB_COLS.forEach(function(c){ colLabel[c.key] = c.label; });
   list.forEach(function(c){
-    aoa.push([c.empresa, colLabel[c.coluna]||c.coluna, c.descricao, c.area, c.disciplina,
-      c.responsavel, c.equipe, c.qtd_prog==null?'':Number(c.qtd_prog),
-      c.qtd_real==null?'':Number(c.qtd_real), c.un, c.causa, c.terceira_wbs, c.obs]);
+    aoa.push([c.empresa, colLabel[c.coluna]||c.coluna, c.descricao,
+      c.fase ? (FASE_LABELS[c.fase] || c.fase) : '',
+      c.cwa || '', c.cwp || '',
+      c.area, c.disciplina, c.responsavel, c.equipe,
+      c.qtd_prog==null?'':Number(c.qtd_prog),
+      c.qtd_real==null?'':Number(c.qtd_real), c.un,
+      c.peso_pct_projeto ? Number(Number(c.peso_pct_projeto).toFixed(4)) : '',
+      c.peso_lb_abs ? Math.round(Number(c.peso_lb_abs)) : '',
+      c.causa, c.terceira_wbs, c.obs]);
   });
   L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa,
-    cols:[{wch:20},{wch:14},{wch:50},{wch:12},{wch:16},{wch:18},{wch:14},
-          {wch:10},{wch:10},{wch:7},{wch:26},{wch:14},{wch:30}] }],
+    cols:[{wch:20},{wch:14},{wch:50},{wch:14},{wch:34},{wch:14},{wch:12},{wch:16},{wch:18},{wch:14},
+          {wch:10},{wch:10},{wch:7},{wch:14},{wch:14},{wch:26},{wch:14},{wch:30}] }],
     'ProgTerc_semana_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
 });
 
 /* ================= EVENTOS ================= */
-['fArea','fEmpresa'].forEach(function(id){ $(id).addEventListener('change', render); });
+['fArea','fEmpresa','fFase','fCwa'].forEach(function(id){ $(id).addEventListener('change', render); });
 $('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
