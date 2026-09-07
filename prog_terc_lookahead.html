@@ -24,6 +24,13 @@
   td.act-name .awp-tag.marco{background:#eee;color:#666}
   tr.naoexec td{opacity:.55;background:#f5f5f7}
   tr.naoexec td.act-name b{text-decoration:line-through}
+  /* Coluna Ações fixa à esquerda para não sumir ao rolar horizontal */
+  table.grid thead th:first-child,
+  table.grid tbody td:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--border-2)}
+  table.grid thead th:first-child{background:var(--blue-soft);z-index:3}
+  table.grid tbody tr:hover td:first-child{background:#fafbfc}
+  table.grid tbody tr.naoexec td:first-child{background:#f5f5f7}
+  table.grid tbody td:first-child .btn.sm{margin:0 1px;padding:3px 6px}
   /* Modal split-view */
   .mvl-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:60vh}
   .mvl-pane{border:1px solid var(--border-2);background:#fff;display:flex;flex-direction:column;min-height:0}
@@ -316,18 +323,19 @@ function render(){
   var wks = weeks();
   var hoje = L.mondayOf();
 
-  var head = ['<th class="act-name" style="min-width:280px">Atividade</th>',
+    var head = [];
+  if(EDIT) head.push('<th class="ctr no-print" style="width:96px;min-width:96px">Ações</th>');
+  head.push('<th class="act-name" style="min-width:280px">Atividade</th>',
     '<th style="min-width:120px">Empresa</th>',
     '<th style="min-width:96px">Área</th>',
     '<th class="ctr" style="min-width:92px">Início</th>',
     '<th class="ctr" style="min-width:92px">Término</th>',
     '<th class="ctr" style="min-width:96px">Avanço</th>',
-    '<th class="ctr" style="min-width:84px">Restrições</th>'];
+    '<th class="ctr" style="min-width:84px">Restrições</th>');
   wks.forEach(function(w){
     head.push('<th class="ctr la-wk la-week-hd'+(w.ini===hoje?' cur':'')+'">'
       + w.label + '<small>' + w.rng + '</small></th>');
   });
-  if(EDIT) head.push('<th class="ctr no-print" style="width:70px"></th>');
   $('headRow').innerHTML = head.join('');
 
   var vis = visiveis();
@@ -357,7 +365,14 @@ function render(){
       awpBadges += '<span class="awp-tag orfa" title="Sem vínculo com o cronograma geral — clique em ⚙ para ajustar">⚠ sem vínculo</span>';
     }
 
+    var actionsCell = EDIT ? ('<td class="ctr no-print nowrap" style="white-space:nowrap">'
+      + '<button class="btn sm" data-vinc="'+esc(a.aid)+'" title="Ajustar vínculo AWP / marcar não executável">⚙</button>'
+      + '<button class="btn sm" data-restr="'+esc(a.aid)+'" title="Registrar restrição">⚑</button>'
+      + '<button class="btn sm" data-prog="'+esc(a.aid)+'" title="Programar na semana-base"'
+      + (jaProgramada(a)||isNE?' disabled':'')+'>▶</button></td>') : '';
+
     return '<tr'+(isNE?' class="naoexec"':'')+'>'
+      + actionsCell
       + '<td class="act-name"><b>'+esc(a.nome)+'</b>'
         + (a.wbs ? '<div class="wbs">WBS '+esc(a.wbs)+(a.escopo?(' · '+esc(a.escopo)):'')+'</div>' : '')
         + '<div class="small">'+statusPill(a)+'</div>'
@@ -374,11 +389,6 @@ function render(){
             + esc(rs.map(function(r){return r.descricao;}).join(' | ')) + '">⚑ '+rs.length+'</span>'
           : '<span class="pill g">livre</span>')+'</td>'
       + cells
-      + (EDIT ? '<td class="ctr no-print nowrap">'
-          + '<button class="btn sm" data-vinc="'+esc(a.aid)+'" title="Ajustar vínculo AWP / marcar não executável">⚙</button> '
-          + '<button class="btn sm" data-restr="'+esc(a.aid)+'" title="Registrar restrição">⚑</button> '
-          + '<button class="btn sm" data-prog="'+esc(a.aid)+'" title="Programar na semana-base"'
-          + (jaProgramada(a)||isNE?' disabled':'')+'>▶</button></td>' : '')
       + '</tr>';
   }).join('') || '<tr><td colspan="'+ncols+'" class="empty"><div class="big">▶</div>'
       + 'Nenhuma atividade nesse recorte.'
