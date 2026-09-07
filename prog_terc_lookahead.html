@@ -108,6 +108,13 @@
       <option value="sem">Só sem vínculo</option>
       <option value="com">Só vinculados</option>
     </select>
+    <select class="f" id="fAvanco">
+      <option value="">Avanço: todos</option>
+      <option value="com">Só com avanço iniciado (&gt;0%)</option>
+      <option value="sem">Só sem avanço (0%)</option>
+      <option value="parcial">Só parcial (1–99%)</option>
+      <option value="concl">Só concluídas (100%)</option>
+    </select>
     <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
       <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
     </label>
@@ -155,6 +162,7 @@
   <button class="btn ghost" id="massClear">Limpar</button>
   <button class="btn solid" id="massMark" disabled>▷ Marcar como NÃO EXECUTÁVEIS</button>
   <button class="btn" id="massUnmark" disabled>↩ Reativar (desmarcar)</button>
+  <button class="btn" id="massProg" disabled style="background:#00695c;color:#fff;border-color:#00695c">▶ Programar na semana-base</button>
   <button class="btn ghost" id="massClose" title="Sair do modo de seleção">✕</button>
 </div>
 
@@ -321,9 +329,11 @@ function visiveis(){
   var q = L.deacc($('q').value), fe = $('fEmpresa').value, fa = $('fArea').value,
       escP = $('fEscopo').value, fr = $('fRestr').value,
       ff = $('fFase').value, fc = $('fCwa').value, fv = $('fVinc').value,
+      fAv = $('fAvanco').value,
       inclNE = $('fInclNaoExec').checked;
   return ATIV.filter(function(a){
-    if(a.execStatus === 'concluida' && escP !== 'todas') return false;
+    // "Só concluídas" precisa passar mesmo com escP != 'todas'
+    if(a.execStatus === 'concluida' && escP !== 'todas' && fAv !== 'concl' && fAv !== 'com') return false;
     // Filtra não-executáveis por padrão (Fase 3.5)
     if(!inclNE && window.PTA && PTA.isNaoExecutavel(a.cronograma_id, a.uid, REGRAS)) return false;
     if(fe && a.empresa !== fe) return false;
@@ -332,6 +342,14 @@ function visiveis(){
     if(fc && a.cwa  !== fc) return false;
     if(fv === 'sem' && !a.sem_vinculo) return false;
     if(fv === 'com' &&  a.sem_vinculo) return false;
+    // Filtro de avanço
+    if(fAv){
+      var p = +a.pct || 0;
+      if(fAv === 'com'     && p <= 0) return false;
+      if(fAv === 'sem'     && p >  0) return false;
+      if(fAv === 'parcial' && (p <= 0 || p >= 100)) return false;
+      if(fAv === 'concl'   && p < 100) return false;
+    }
 
     if(escP === 'atras'  && !a.atrasada) return false;
     if(escP === 'janela' && !naJanela(a)) return false;
@@ -554,7 +572,7 @@ $('btnXls').addEventListener('click', function(){
 
 /* ================= EVENTOS ================= */
 $('q').addEventListener('input', render);
-['fEmpresa','fArea','fFase','fCwa','fEscopo','fRestr','fVinc','fInclNaoExec'].forEach(function(id){
+['fEmpresa','fArea','fFase','fCwa','fEscopo','fRestr','fVinc','fAvanco','fInclNaoExec'].forEach(function(id){
   $(id).addEventListener('change', render);
 });
 /* ================= SELEÇÃO EM MASSA ================= */
@@ -567,6 +585,8 @@ function atualizarBarraMassa(){
   $('massLbl').textContent = (n === 1) ? 'selecionada' : 'selecionada(s)';
   $('massMark').disabled = n === 0;
   $('massUnmark').disabled = n === 0;
+  $('massProg').disabled = n === 0;
+  $('massProg').textContent = '▶ Programar em ' + L.fmtBr(BASE);
 }
 $('btnSelMode').addEventListener('click', function(){
   SELMODE = !SELMODE;
@@ -623,6 +643,65 @@ $('massUnmark').addEventListener('click', function(){
       return load();
     })
     .catch(function(e){ L.toast('Falha: '+e.message,'warn'); $('massUnmark').disabled=false; });
+});
+$('massProg').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Perfil somente leitura.','warn');
+  // Colhe todas as atividades ATIV para bater com SELSET (não só as visíveis)
+  var todas = Object.keys(SELSET).map(function(aid){ return L.atividadePorAid(aid); }).filter(Boolean);
+  if(!todas.length) return;
+  // Filtra: pula já programadas nesta semana e não-executáveis
+  var puladas = { jaProg: 0, naoExec: 0 };
+  var validas = todas.filter(function(a){
+    if(jaProgramada(a)){ puladas.jaProg++; return false; }
+    if(window.PTA && PTA.isNaoExecutavel(a.cronograma_id, a.uid, REGRAS)){ puladas.naoExec++; return false; }
+    return true;
+  });
+  // Conta restrições abertas
+  var comRestr = validas.filter(function(a){ return restrDe(a).length; });
+  if(!validas.length){
+    L.toast('Nada a programar. Selecionadas: '+puladas.jaProg+' já programadas, '+puladas.naoExec+' não executáveis.','warn');
+    return;
+  }
+  var msg = 'Programar ' + validas.length + ' atividade(s) para a semana de ' + L.fmtBr(BASE) + '?';
+  if(puladas.jaProg || puladas.naoExec){
+    msg += '\n\nSerão puladas: ' + puladas.jaProg + ' já programada(s) nesta semana';
+    if(puladas.naoExec) msg += ', ' + puladas.naoExec + ' marcadas não executáveis';
+    msg += '.';
+  }
+  if(comRestr.length){
+    msg += '\n\n⚠ ATENÇÃO: ' + comRestr.length + ' atividade(s) têm restrição aberta.'
+        + ' No LPS o correto é remover as restrições antes de programar. Programar mesmo assim?';
+  }
+  if(!confirm(msg)) return;
+
+  var payload = validas.map(function(a){
+    return L.comTag({
+      semana: BASE,
+      cronograma_id: a.cronograma_id,
+      terceira_uid: String(a.uid),
+      terceira_wbs: a.wbs || null,
+      descricao: a.nome,
+      area: a.area || null,
+      empresa: a.empresa || null,
+      disciplina: a.disciplina || null,
+      coluna: 'programada',
+      criado_por: L.userNome()
+    });
+  });
+  $('massProg').disabled = true;
+  L.sbInsertChunked('prog_terc_programacao', payload, 100)
+    .then(function(){
+      L.toast(validas.length + ' atividade(s) programada(s) em ' + L.fmtBr(BASE) + '.','ok');
+      SELSET = {}; SELMODE = false;
+      $('btnSelMode').classList.remove('on');
+      $('massBar').classList.remove('on');
+      return load();
+    })
+    .catch(function(e){
+      if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para habilitar a programação.','warn');
+      else L.toast('Falha: '+e.message,'warn');
+      $('massProg').disabled = false;
+    });
 });
 
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
