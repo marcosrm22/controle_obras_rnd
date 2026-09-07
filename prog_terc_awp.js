@@ -38,10 +38,17 @@
                     .catch(function (e) { if (PT.isMissingTable(e)) return []; throw e; });
     var pVinc  = PT.sbGetAll(PT.comUnidade('cron_vinculo?select=*'))
                     .catch(function (e) { if (PT.isMissingTable(e)) return []; throw e; });
+    var pNaoExec = PT.sbGetAll(PT.comUnidade('terc_nao_executavel?select=cronograma_id,terceira_uid,motivo'))
+                    .catch(function (e) { if (PT.isMissingTable(e)) return []; throw e; });
 
-    return Promise.all([pGeral, pVinc]).then(function (r) {
+    return Promise.all([pGeral, pVinc, pNaoExec]).then(function (r) {
       var geral    = r[0] || [];
       var vinculos = r[1] || [];
+      var naoExec  = r[2] || [];
+
+      // Set de "cronograma_id::terceira_uid" que não executa
+      var naoExecKey = {};
+      naoExec.forEach(function (n) { naoExecKey[n.cronograma_id + '::' + n.terceira_uid] = n.motivo || true; });
 
       // Índice geral por id
       var geralById = {};
@@ -133,10 +140,98 @@
           pesoPorCwa:        pesoPorCwa,
           totalGeral:        geral.length,
           totalVinculos:     vinculos.length,
-          vinculosOrfaos:    vinculosOrfaos
+          vinculosOrfaos:    vinculosOrfaos,
+          naoExecKey:        naoExecKey,
+          totalNaoExec:      naoExec.length
         };
         return _cacheRegras;
       });
+    });
+  }
+
+  /* ============ NÃO EXECUTÁVEIS ============ */
+  function isNaoExecutavel(cronograma_id, terceira_uid, regras) {
+    var R = regras || _cacheRegras;
+    if (!R || !R.naoExecKey) return false;
+    return !!R.naoExecKey[cronograma_id + '::' + terceira_uid];
+  }
+  function filtrarExecutaveis(atividades, regras) {
+    return (atividades || []).filter(function (a) {
+      return !isNaoExecutavel(a.cronograma_id, a.uid, regras);
+    });
+  }
+  /* Marca como não executável (upsert). Retorna Promise. */
+  function marcarNaoExec(cronograma_id, terceira_uid, opts) {
+    opts = opts || {};
+    var payload = {
+      cronograma_id: cronograma_id,
+      terceira_uid:  String(terceira_uid),
+      terceira_wbs:  opts.terceira_wbs || null,
+      motivo:        opts.motivo || null,
+      criado_por:    PT.userNome()
+    };
+    // adiciona unidade via comTag
+    if (typeof global.pcoComTag === 'function') payload = global.pcoComTag(payload);
+    else payload.unidade = sessionStorage.getItem('pco_unidade') || 'RDN';
+    var CFG = global.PCO_CONFIG || {}, SB_URL = (CFG.supabase||{}).url, SB_KEY = (CFG.supabase||{}).key;
+    return fetch(SB_URL + '/rest/v1/terc_nao_executavel?on_conflict=' + encodeURIComponent('cronograma_id,terceira_uid'), {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type':'application/json', Prefer:'return=representation,resolution=merge-duplicates' },
+      body: JSON.stringify([payload])
+    }).then(function(res){
+      return res.text().then(function(txt){ if(!res.ok) throw new Error(res.status + ': ' + txt.slice(0,320)); });
+    }).then(function () {
+      if (_cacheRegras && _cacheRegras.naoExecKey) _cacheRegras.naoExecKey[cronograma_id + '::' + terceira_uid] = opts.motivo || true;
+    });
+  }
+  function desmarcarNaoExec(cronograma_id, terceira_uid) {
+    var url = 'terc_nao_executavel?cronograma_id=eq.' + encodeURIComponent(cronograma_id) +
+              '&terceira_uid=eq.' + encodeURIComponent(terceira_uid);
+    return PT.sb('DELETE', url).then(function () {
+      if (_cacheRegras && _cacheRegras.naoExecKey) delete _cacheRegras.naoExecKey[cronograma_id + '::' + terceira_uid];
+    });
+  }
+
+  /* ============ TAREFAS DE UM CRONOGRAMA (para o modal split-view) ============ */
+  var _cacheTarefas = {};
+  function loadTarefasCronograma(cronograma_id, force) {
+    if (!force && _cacheTarefas[cronograma_id]) return Promise.resolve(_cacheTarefas[cronograma_id]);
+    var q = 'val_revisoes?cronograma_id=eq.' + cronograma_id +
+            '&tarefas_json=not.is.null&select=cronograma_id,revisao,tarefas_json&order=revisao.desc&limit=1';
+    return PT.sb('GET', PT.comUnidade(q)).then(function (revs) {
+      var tj = (revs && revs[0] && revs[0].tarefas_json) || [];
+      if (typeof tj === 'string') { try { tj = JSON.parse(tj); } catch(_) { tj = []; } }
+      if (!Array.isArray(tj)) tj = [];
+      _cacheTarefas[cronograma_id] = tj;
+      return tj;
+    });
+  }
+
+  /* ============ SALVA/REMOVE UM ÚNICO VÍNCULO (para o modal) ============ */
+  function salvarVinculoUnico(cronograma_id, terceira_uid, terceira_wbs, cron_geral_id) {
+    var CFG = global.PCO_CONFIG || {}, SB_URL = (CFG.supabase||{}).url, SB_KEY = (CFG.supabase||{}).key;
+    if (cron_geral_id == null) {
+      var url = 'cron_vinculo?cronograma_id=eq.' + encodeURIComponent(cronograma_id) +
+                '&terceira_uid=eq.' + encodeURIComponent(String(terceira_uid));
+      return PT.sb('DELETE', url);
+    }
+    var payload = {
+      cronograma_id: cronograma_id,
+      terceira_uid:  String(terceira_uid),
+      terceira_wbs:  terceira_wbs || null,
+      cron_geral_id: cron_geral_id,
+      metodo_rateio: null,
+      criado_por:    PT.userNome()
+    };
+    if (typeof global.pcoComTag === 'function') payload = global.pcoComTag(payload);
+    else payload.unidade = sessionStorage.getItem('pco_unidade') || 'RDN';
+    var qs = 'on_conflict=' + encodeURIComponent('cronograma_id,terceira_uid');
+    return fetch(SB_URL + '/rest/v1/cron_vinculo?' + qs, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type':'application/json', Prefer:'return=representation,resolution=merge-duplicates' },
+      body: JSON.stringify([payload])
+    }).then(function(res){
+      return res.text().then(function(txt){ if(!res.ok) throw new Error(res.status + ': ' + txt.slice(0,320)); });
     });
   }
 
@@ -326,6 +421,14 @@
     agregar:              agregar,
     fmtPct:               fmtPct,
     fmtBRL:               fmtBRL,
-    cache:                function () { return _cacheRegras; }
+    cache:                function () { return _cacheRegras; },
+    // Não executáveis
+    isNaoExecutavel:      isNaoExecutavel,
+    filtrarExecutaveis:   filtrarExecutaveis,
+    marcarNaoExec:        marcarNaoExec,
+    desmarcarNaoExec:     desmarcarNaoExec,
+    // Modal split-view
+    loadTarefasCronograma: loadTarefasCronograma,
+    salvarVinculoUnico:    salvarVinculoUnico
   };
 })(window);
