@@ -31,6 +31,20 @@
   table.grid tbody tr:hover td:first-child{background:#fafbfc}
   table.grid tbody tr.naoexec td:first-child{background:#f5f5f7}
   table.grid tbody td:first-child .btn.sm{margin:0 1px;padding:3px 6px}
+  /* Modo seleção em massa */
+  #btnSelMode.on{background:#e0f2f1;border-color:#00695c;color:#00695c;font-weight:700}
+  table.grid td.selcb{width:32px;min-width:32px;text-align:center;padding:0}
+  table.grid td.selcb input{accent-color:#00695c;cursor:pointer;transform:scale(1.2)}
+  tr.selecionada td{background:#eef7f5 !important}
+  tr.selecionada td:first-child{background:#eef7f5 !important}
+  #massBar{position:fixed;left:50%;bottom:20px;transform:translate(-50%,120%);background:#1a2332;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 12px 40px -8px rgba(0,0,0,.45);z-index:500;transition:transform .2s ease;border-radius:6px;flex-wrap:wrap;max-width:calc(100vw - 40px)}
+  #massBar.on{transform:translate(-50%,0)}
+  #massBar .qtd{font-family:var(--mono);font-weight:800;font-size:15px;background:#00695c;padding:3px 10px;border-radius:3px}
+  #massBar .btn.solid{background:#8a3822;border-color:#8a3822;color:#fff;font-weight:700}
+  #massBar .btn.solid:hover{background:#a04528}
+  #massBar .btn{background:#fff;color:#1a2332;border:1px solid transparent}
+  #massBar .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+  #massBar .btn.ghost:hover{background:rgba(255,255,255,.1)}
   /* Modal split-view */
   .mvl-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:60vh}
   .mvl-pane{border:1px solid var(--border-2);background:#fff;display:flex;flex-direction:column;min-height:0}
@@ -97,6 +111,7 @@
     <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
       <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
     </label>
+    <button class="btn" id="btnSelMode" title="Ativa/desativa modo de seleção em massa">☑ Seleção em massa</button>
     <button class="btn" id="btnXls">⤓ Excel</button>
     <button class="btn" onclick="window.print()">⎙ PDF</button>
   </div>
@@ -129,6 +144,16 @@
     </table>
   </div>
   <div class="small muted" style="margin-top:10px" id="foot"></div>
+</div>
+
+<!-- Barra flutuante do modo seleção em massa -->
+<div id="massBar">
+  <span class="qtd" id="massQtd">0</span>
+  <span>selecionada(s)</span>
+  <button class="btn ghost" id="massSelAll">Selecionar todas visíveis</button>
+  <button class="btn ghost" id="massClear">Limpar</button>
+  <button class="btn solid" id="massMark">▷ Marcar como NÃO EXECUTÁVEIS</button>
+  <button class="btn" id="massUnmark">↩ Reativar (desmarcar)</button>
 </div>
 
 <!-- ===== MODAL DE VÍNCULO (Fase 3.5) ===== -->
@@ -192,6 +217,8 @@ var ATIV = [], RESTR = [], PROG = [];
 var REGRAS = null;
 var BASE = L.mondayOf(), NW = 6;
 var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
+var SELMODE = false;      // modo seleção em massa
+var SELSET  = {};         // { aid: true } — atividades selecionadas
 $('wkBase').value = BASE;
 
 /* ================= CARGA ================= */
@@ -324,6 +351,7 @@ function render(){
   var hoje = L.mondayOf();
 
     var head = [];
+  if(SELMODE) head.push('<th class="selcb no-print"><input type="checkbox" id="chkAllHead" title="Selecionar/limpar todas visíveis"/></th>');
   if(EDIT) head.push('<th class="ctr no-print" style="width:96px;min-width:96px">Ações</th>');
   head.push('<th class="act-name" style="min-width:280px">Atividade</th>',
     '<th style="min-width:120px">Empresa</th>',
@@ -371,7 +399,10 @@ function render(){
       + '<button class="btn sm" data-prog="'+esc(a.aid)+'" title="Programar na semana-base"'
       + (jaProgramada(a)||isNE?' disabled':'')+'>▶</button></td>') : '';
 
-    return '<tr'+(isNE?' class="naoexec"':'')+'>'
+    var selCell = SELMODE ? ('<td class="selcb no-print"><input type="checkbox" data-sel="'+esc(a.aid)+'"'+(SELSET[a.aid]?' checked':'')+'/></td>') : '';
+
+    return '<tr'+(isNE?' class="naoexec"':'')+(SELSET[a.aid]?' selecionada':'')+'>'
+      + selCell
       + actionsCell
       + '<td class="act-name"><b>'+esc(a.nome)+'</b>'
         + (a.wbs ? '<div class="wbs">WBS '+esc(a.wbs)+(a.escopo?(' · '+esc(a.escopo)):'')+'</div>' : '')
@@ -406,6 +437,25 @@ function render(){
   document.querySelectorAll('button[data-vinc]').forEach(function(b){
     b.addEventListener('click', function(){ abrirModalVinculo(b.dataset.vinc); });
   });
+  // Wire dos checkboxes de seleção em massa
+  document.querySelectorAll('input[data-sel]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      var aid = cb.getAttribute('data-sel');
+      if(cb.checked) SELSET[aid] = true; else delete SELSET[aid];
+      atualizarBarraMassa();
+      // marca a linha
+      var tr = cb.closest('tr'); if(tr){ tr.classList.toggle('selecionada', cb.checked); }
+    });
+  });
+  var chkAll = $('chkAllHead');
+  if(chkAll){
+    chkAll.addEventListener('change', function(){
+      var visibles = vis.map(function(a){ return a.aid; });
+      if(chkAll.checked){ visibles.forEach(function(id){ SELSET[id] = true; }); }
+      else               { visibles.forEach(function(id){ delete SELSET[id]; }); }
+      render();
+    });
+  }
 
   $('wkInfo').innerHTML = 'Janela: <b>' + L.fmtBr(BASE) + '</b> a <b>'
     + L.fmtBr(wks[wks.length-1].fim) + '</b>';
@@ -505,6 +555,66 @@ $('q').addEventListener('input', render);
 ['fEmpresa','fArea','fFase','fCwa','fEscopo','fRestr','fVinc','fInclNaoExec'].forEach(function(id){
   $(id).addEventListener('change', render);
 });
+/* ================= SELEÇÃO EM MASSA ================= */
+function atualizarBarraMassa(){
+  var n = Object.keys(SELSET).length;
+  $('massQtd').textContent = n;
+  $('massBar').classList.toggle('on', SELMODE && n > 0);
+  // Habilita/desabilita botões
+  $('massMark').disabled = n === 0;
+  $('massUnmark').disabled = n === 0;
+}
+$('btnSelMode').addEventListener('click', function(){
+  SELMODE = !SELMODE;
+  $('btnSelMode').classList.toggle('on', SELMODE);
+  if(!SELMODE){ SELSET = {}; $('massBar').classList.remove('on'); }
+  render();
+  atualizarBarraMassa();
+});
+$('massClear').addEventListener('click', function(){ SELSET = {}; render(); atualizarBarraMassa(); });
+$('massSelAll').addEventListener('click', function(){
+  visiveis().forEach(function(a){ SELSET[a.aid] = true; });
+  render(); atualizarBarraMassa();
+});
+function coletarSelecao(){
+  return Object.keys(SELSET).map(function(aid){
+    var a = L.atividadePorAid(aid); if(!a) return null;
+    return { cronograma_id: a.cronograma_id, terceira_uid: String(a.uid), terceira_wbs: a.wbs || null };
+  }).filter(Boolean);
+}
+$('massMark').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Perfil somente leitura.','warn');
+  var items = coletarSelecao();
+  if(!items.length) return;
+  if(!confirm('Marcar ' + items.length + ' atividade(s) como NÃO EXECUTÁVEIS?\n(Elas somem do Lookahead — reversível.)')) return;
+  $('massMark').disabled = true;
+  PTA.marcarNaoExecBatch(items, 'lookahead-batch')
+    .then(function(r){
+      L.toast(r.ok + ' atividades marcadas.','ok');
+      SELSET = {}; SELMODE = false;
+      $('btnSelMode').classList.remove('on');
+      $('massBar').classList.remove('on');
+      return load();
+    })
+    .catch(function(e){ L.toast('Falha: '+e.message,'warn'); $('massMark').disabled=false; });
+});
+$('massUnmark').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Perfil somente leitura.','warn');
+  var items = coletarSelecao();
+  if(!items.length) return;
+  if(!confirm('Reativar ' + items.length + ' atividade(s)?\n(Elas voltam a aparecer no Lookahead.)')) return;
+  $('massUnmark').disabled = true;
+  PTA.desmarcarNaoExecBatch(items)
+    .then(function(r){
+      L.toast(r.ok + ' atividades reativadas.','ok');
+      SELSET = {}; SELMODE = false;
+      $('btnSelMode').classList.remove('on');
+      $('massBar').classList.remove('on');
+      return load();
+    })
+    .catch(function(e){ L.toast('Falha: '+e.message,'warn'); $('massUnmark').disabled=false; });
+});
+
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
 $('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
