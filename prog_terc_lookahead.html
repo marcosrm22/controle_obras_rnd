@@ -149,11 +149,13 @@
 <!-- Barra flutuante do modo seleção em massa -->
 <div id="massBar">
   <span class="qtd" id="massQtd">0</span>
-  <span>selecionada(s)</span>
+  <span id="massLbl">selecionada(s)</span>
+  <span id="massHint" style="opacity:.85;font-size:12px">— marque as linhas na coluna à esquerda</span>
   <button class="btn ghost" id="massSelAll">Selecionar todas visíveis</button>
   <button class="btn ghost" id="massClear">Limpar</button>
-  <button class="btn solid" id="massMark">▷ Marcar como NÃO EXECUTÁVEIS</button>
-  <button class="btn" id="massUnmark">↩ Reativar (desmarcar)</button>
+  <button class="btn solid" id="massMark" disabled>▷ Marcar como NÃO EXECUTÁVEIS</button>
+  <button class="btn" id="massUnmark" disabled>↩ Reativar (desmarcar)</button>
+  <button class="btn ghost" id="massClose" title="Sair do modo de seleção">✕</button>
 </div>
 
 <!-- ===== MODAL DE VÍNCULO (Fase 3.5) ===== -->
@@ -559,8 +561,10 @@ $('q').addEventListener('input', render);
 function atualizarBarraMassa(){
   var n = Object.keys(SELSET).length;
   $('massQtd').textContent = n;
-  $('massBar').classList.toggle('on', SELMODE && n > 0);
-  // Habilita/desabilita botões
+  // Sobe a barra sempre que o modo está ativo (mesmo com 0 selecionadas — para descoberta)
+  $('massBar').classList.toggle('on', SELMODE);
+  $('massHint').style.display = (n === 0) ? '' : 'none';
+  $('massLbl').textContent = (n === 1) ? 'selecionada' : 'selecionada(s)';
   $('massMark').disabled = n === 0;
   $('massUnmark').disabled = n === 0;
 }
@@ -570,6 +574,12 @@ $('btnSelMode').addEventListener('click', function(){
   if(!SELMODE){ SELSET = {}; $('massBar').classList.remove('on'); }
   render();
   atualizarBarraMassa();
+});
+$('massClose').addEventListener('click', function(){
+  SELMODE = false; SELSET = {};
+  $('btnSelMode').classList.remove('on');
+  $('massBar').classList.remove('on');
+  render();
 });
 $('massClear').addEventListener('click', function(){ SELSET = {}; render(); atualizarBarraMassa(); });
 $('massSelAll').addEventListener('click', function(){
