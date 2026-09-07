@@ -405,7 +405,8 @@
 
   /* ============ Salvamento (upsert em batch) ============ */
   function salvarBatch(itens) {
-    // itens = [{cronograma_id, terceira_uid, cron_geral_id}] ; cron_geral_id=null → delete
+    // itens = [{cronograma_id, terceira_uid, terceira_wbs?, cron_geral_id}]
+    // cron_geral_id=null → delete
     var upserts = itens.filter(function (i) { return i.cron_geral_id != null; });
     var deletes = itens.filter(function (i) { return i.cron_geral_id == null; });
 
@@ -415,6 +416,7 @@
         return CG.comTag({
           cronograma_id: i.cronograma_id,
           terceira_uid:  i.terceira_uid,
+          terceira_wbs:  i.terceira_wbs || null,   // Fase 3 usa isso para caminhar herança sem fetch extra
           cron_geral_id: i.cron_geral_id,
           metodo_rateio: null,
           criado_por:    CG.userNome()
