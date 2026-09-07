@@ -45,6 +45,17 @@
   #massBar .btn{background:#fff;color:#1a2332;border:1px solid transparent}
   #massBar .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
   #massBar .btn.ghost:hover{background:rgba(255,255,255,.1)}
+  /* Modo "Copiar vínculo" */
+  #btnCopyVinc.on{background:#eef2f8;border-color:#304F7E;color:#304F7E;font-weight:700}
+  #copyBanner{display:none;padding:10px 14px;margin:8px 0;background:#eef2f8;border-left:3px solid #304F7E;font-size:12px;color:var(--blue-dark);align-items:center;gap:12px;flex-wrap:wrap}
+  #copyBanner.on{display:flex}
+  #copyBanner b{color:var(--blue-dark)}
+  #copyBanner .src{background:#e0f2f1;padding:2px 8px;font-family:var(--mono);font-size:11px;color:#00695c}
+  #copyBanner .spacer{flex:1}
+  table.grid tr.copysrc-click{cursor:pointer}
+  table.grid tr.copysrc-click:hover td:not(:first-child){background:#eef2f8}
+  table.grid tr.copysrc-noeff{cursor:not-allowed;opacity:.5}
+  table.grid tr.copysrc-selected td{background:#e0f2f1 !important;outline:2px solid #00695c;outline-offset:-2px}
   /* Modal split-view */
   .mvl-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:60vh}
   .mvl-pane{border:1px solid var(--border-2);background:#fff;display:flex;flex-direction:column;min-height:0}
@@ -119,6 +130,7 @@
       <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
     </label>
     <button class="btn" id="btnSelMode" title="Ativa/desativa modo de seleção em massa">☑ Seleção em massa</button>
+    <button class="btn" id="btnCopyVinc" title="Copiar vínculo de uma atividade para várias">📋 Copiar vínculo</button>
     <button class="btn" id="btnXls">⤓ Excel</button>
     <button class="btn" onclick="window.print()">⎙ PDF</button>
   </div>
@@ -144,6 +156,14 @@
     semanal. Use <b>▶</b> para levar a atividade à semana-base e <b>⚑</b> para registrar uma restrição.
   </div>
 
+  <!-- Banner do modo "Copiar vínculo" -->
+  <div id="copyBanner">
+    <span id="copyBannerText">Clique na atividade FONTE — a que já tem o vínculo que você quer copiar.</span>
+    <span class="spacer"></span>
+    <button class="btn sm" id="copyReset" style="display:none">↺ Trocar fonte</button>
+    <button class="btn sm" id="copyCancel">✕ Cancelar</button>
+  </div>
+
   <div class="tablewrap">
     <table class="grid">
       <thead><tr id="headRow"></tr></thead>
@@ -163,6 +183,7 @@
   <button class="btn solid" id="massMark" disabled>▷ Marcar como NÃO EXECUTÁVEIS</button>
   <button class="btn" id="massUnmark" disabled>↩ Reativar (desmarcar)</button>
   <button class="btn" id="massProg" disabled style="background:#00695c;color:#fff;border-color:#00695c">▶ Programar na semana-base</button>
+  <button class="btn" id="massCopy" disabled style="background:#304F7E;color:#fff;border-color:#304F7E;display:none">📋 Aplicar vínculo da fonte</button>
   <button class="btn ghost" id="massClose" title="Sair do modo de seleção">✕</button>
 </div>
 
@@ -229,6 +250,8 @@ var BASE = L.mondayOf(), NW = 6;
 var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
 var SELMODE = false;      // modo seleção em massa
 var SELSET  = {};         // { aid: true } — atividades selecionadas
+var COPYMODE = null;      // null | 'src' | 'targets'
+var COPYSRC  = null;      // {aid, atividade, cron_geral_id, nomeGeral}
 $('wkBase').value = BASE;
 
 /* ================= CARGA ================= */
@@ -421,7 +444,19 @@ function render(){
 
     var selCell = SELMODE ? ('<td class="selcb no-print"><input type="checkbox" data-sel="'+esc(a.aid)+'"'+(SELSET[a.aid]?' checked':'')+'/></td>') : '';
 
-    return '<tr'+(isNE?' class="naoexec"':'')+(SELSET[a.aid]?' selecionada':'')+'>'
+    // Classes contextuais do modo Copiar
+    var rowClass = '';
+    if(isNE) rowClass += ' naoexec';
+    if(SELSET[a.aid]) rowClass += ' selecionada';
+    if(COPYMODE === 'src'){
+      if(a.cron_geral_id) rowClass += ' copysrc-click';
+      else                rowClass += ' copysrc-noeff';
+    }
+    if(COPYSRC && COPYSRC.aid === a.aid) rowClass += ' copysrc-selected';
+
+    return '<tr'+(rowClass ? ' class="'+rowClass.trim()+'"' : '')
+      + (COPYMODE === 'src' ? ' data-copyaid="'+esc(a.aid)+'"' : '')
+      + '>'
       + selCell
       + actionsCell
       + '<td class="act-name"><b>'+esc(a.nome)+'</b>'
@@ -474,6 +509,16 @@ function render(){
       if(chkAll.checked){ visibles.forEach(function(id){ SELSET[id] = true; }); }
       else               { visibles.forEach(function(id){ delete SELSET[id]; }); }
       render();
+    });
+  }
+  // Wire de click-para-selecionar-fonte no modo Copiar
+  if(COPYMODE === 'src'){
+    document.querySelectorAll('tr[data-copyaid]').forEach(function(tr){
+      tr.addEventListener('click', function(ev){
+        if(ev.target.closest('button')) return; // não interferir com os botões
+        var aid = tr.getAttribute('data-copyaid');
+        selecionarFonteCopy(aid);
+      });
     });
   }
 
@@ -703,6 +748,124 @@ $('massProg').addEventListener('click', function(){
       $('massProg').disabled = false;
     });
 });
+
+/* ================= COPIAR VÍNCULO ================= */
+function atualizarCopyBanner(){
+  var b = $('copyBanner');
+  if(!COPYMODE){
+    b.classList.remove('on');
+    $('massCopy').style.display = 'none';
+    $('massCopy').disabled = true;
+    return;
+  }
+  b.classList.add('on');
+  if(COPYMODE === 'src'){
+    $('copyBannerText').innerHTML = '<b>📋 Modo Copiar vínculo · passo 1/2:</b> '
+      + 'clique numa linha que já tenha vínculo AWP (badges de Fase/CWA/peso). '
+      + 'Linhas sem vínculo aparecem desbotadas.';
+    $('copyReset').style.display = 'none';
+    $('massCopy').style.display = 'none';
+  } else if(COPYMODE === 'targets' && COPYSRC){
+    var g = REGRAS && REGRAS.geralById[COPYSRC.cron_geral_id];
+    var nomeG = g ? (g.numero_topico + ' · ' + g.nome) : ('#' + COPYSRC.cron_geral_id);
+    $('copyBannerText').innerHTML = '<b>📋 Modo Copiar vínculo · passo 2/2:</b> '
+      + 'FONTE: <span class="src">'+esc(COPYSRC.atividade.empresa||'—')+' · '+esc(COPYSRC.atividade.wbs||'—')+' · '+esc(COPYSRC.atividade.nome)+'</span> → '
+      + 'vínculo <span class="src">'+esc(nomeG)+'</span>. '
+      + 'Agora marque as atividades DESTINO (checkboxes) e clique <b>📋 Aplicar vínculo</b>.';
+    $('copyReset').style.display = '';
+    $('massCopy').style.display = '';
+  }
+}
+function selecionarFonteCopy(aid){
+  var a = L.atividadePorAid(aid);
+  if(!a){ L.toast('Atividade não encontrada.','warn'); return; }
+  if(!a.cron_geral_id){
+    L.toast('Essa atividade não tem vínculo AWP para copiar. Escolha outra.','warn');
+    return;
+  }
+  COPYSRC = { aid: aid, atividade: a, cron_geral_id: a.cron_geral_id };
+  COPYMODE = 'targets';
+  // Entra em modo de seleção em massa automaticamente
+  SELMODE = true; SELSET = {};
+  $('btnSelMode').classList.add('on');
+  render();
+  atualizarCopyBanner();
+  atualizarBarraMassa();
+}
+$('btnCopyVinc').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Perfil somente leitura.','warn');
+  if(COPYMODE){
+    // Se já está ativo, cancela
+    cancelarCopy();
+    return;
+  }
+  COPYMODE = 'src'; COPYSRC = null;
+  // Sai do modo de seleção em massa (se estava ativo) para não confundir
+  SELMODE = false; SELSET = {};
+  $('btnSelMode').classList.remove('on');
+  $('btnCopyVinc').classList.add('on');
+  render();
+  atualizarCopyBanner();
+  atualizarBarraMassa();
+});
+function cancelarCopy(){
+  COPYMODE = null; COPYSRC = null;
+  SELMODE = false; SELSET = {};
+  $('btnCopyVinc').classList.remove('on');
+  $('btnSelMode').classList.remove('on');
+  render();
+  atualizarCopyBanner();
+  atualizarBarraMassa();
+}
+$('copyCancel').addEventListener('click', cancelarCopy);
+$('copyReset').addEventListener('click', function(){
+  COPYSRC = null; COPYMODE = 'src';
+  SELMODE = false; SELSET = {};
+  $('btnSelMode').classList.remove('on');
+  render();
+  atualizarCopyBanner();
+  atualizarBarraMassa();
+});
+$('massCopy').addEventListener('click', function(){
+  if(!EDIT || !COPYSRC) return;
+  var items = Object.keys(SELSET).map(function(aid){
+    var a = L.atividadePorAid(aid); if(!a) return null;
+    if(a.aid === COPYSRC.aid) return null;                       // não sobrescrever a própria fonte
+    return { cronograma_id: a.cronograma_id, terceira_uid: String(a.uid),
+             terceira_wbs: a.wbs || null, cron_geral_id: COPYSRC.cron_geral_id };
+  }).filter(Boolean);
+  if(!items.length){ L.toast('Selecione as atividades destino.','warn'); return; }
+  var g = REGRAS && REGRAS.geralById[COPYSRC.cron_geral_id];
+  var nomeG = g ? g.nome : '#'+COPYSRC.cron_geral_id;
+  if(!confirm('Copiar o vínculo "'+nomeG+'" para '+items.length+' atividade(s)?\n(Vínculos próprios anteriores dessas atividades serão substituídos.)')) return;
+  $('massCopy').disabled = true;
+  PTA.salvarVinculosBatch(items)
+    .then(function(r){
+      L.toast(r.ok + ' vínculos aplicados.','ok');
+      cancelarCopy();
+      return load();
+    })
+    .catch(function(e){ L.toast('Falha: '+e.message,'warn'); $('massCopy').disabled=false; });
+});
+// atualiza estado do botão massCopy quando a seleção muda
+var _origAtualizarBarra = atualizarBarraMassa;
+atualizarBarraMassa = function(){
+  _origAtualizarBarra();
+  if(COPYMODE === 'targets'){
+    $('massCopy').style.display = '';
+    $('massCopy').disabled = Object.keys(SELSET).length === 0;
+    // esconde botões que não fazem sentido nessa fase
+    $('massMark').style.display = 'none';
+    $('massUnmark').style.display = 'none';
+    $('massProg').style.display = 'none';
+    $('massHint').textContent = ' — marque as atividades DESTINO';
+  } else {
+    $('massCopy').style.display = 'none';
+    $('massMark').style.display = '';
+    $('massUnmark').style.display = '';
+    $('massProg').style.display = '';
+  }
+};
 
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
 $('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
