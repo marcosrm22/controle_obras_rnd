@@ -601,7 +601,16 @@ $('btnSalvar').addEventListener('click', function(){
   Object.keys(VINCULO_LOCAL).forEach(function(k){
     if(!estaDirty(k)) return;
     var parts = k.split('::');
-    itens.push({ cronograma_id: parts[0], terceira_uid: parts[1], cron_geral_id: VINCULO_LOCAL[k] });
+    var cid = parts[0], uid = parts[1];
+    // acha wbs do resumo para gravar junto (Fase 3 usa)
+    var wbs = null;
+    for(var i=0; i<DADOS.arvores.length && !wbs; i++){
+      var arv = DADOS.arvores[i];
+      if(String(arv.contrato.id) !== cid) continue;
+      var mapa = arv.todosPorWbs || {};
+      Object.keys(mapa).some(function(w){ if(mapa[w].uid === uid){ wbs = w; return true; } });
+    }
+    itens.push({ cronograma_id: cid, terceira_uid: uid, terceira_wbs: wbs, cron_geral_id: VINCULO_LOCAL[k] });
   });
   if(!itens.length){ CG.toast('Nada para salvar.','warn'); return; }
   $('btnSalvar').disabled = true;
