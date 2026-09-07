@@ -14,10 +14,49 @@
   .src-note{font-size:11px}
   .src-note b{color:var(--blue-dark)}
   td.act-name .wbs{font-family:var(--mono);font-size:10px;color:var(--text-mute)}
+  /* Badges de contexto AWP na coluna Atividade (Fase 3.5) */
+  td.act-name .awp-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+  td.act-name .awp-tag{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.3px}
+  td.act-name .awp-tag.fase{background:#f0e6f8;color:#6B4FA0}
+  td.act-name .awp-tag.cwa{background:#eaf3fb;color:#1f5170;font-family:var(--mono);font-weight:600}
+  td.act-name .awp-tag.peso{background:#e0f2f1;color:#00695c;font-family:var(--mono)}
+  td.act-name .awp-tag.orfa{background:#fdecea;color:#8a3822}
+  td.act-name .awp-tag.marco{background:#eee;color:#666}
+  tr.naoexec td{opacity:.55;background:#f5f5f7}
+  tr.naoexec td.act-name b{text-decoration:line-through}
+  /* Modal split-view */
+  .mvl-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:60vh}
+  .mvl-pane{border:1px solid var(--border-2);background:#fff;display:flex;flex-direction:column;min-height:0}
+  .mvl-head{padding:8px 12px;border-bottom:1px solid var(--border-2);background:var(--blue-soft);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--blue-dark);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+  .mvl-scroll{overflow:auto;flex:1;padding:6px 8px}
+  .mvl-tree .node{padding:2px 0;font-size:12px}
+  .mvl-tree .row{display:flex;gap:6px;align-items:center;padding:3px 6px;border-radius:3px;cursor:pointer}
+  .mvl-tree .row:hover{background:#fafbfc}
+  .mvl-tree .row.here{background:var(--gold-soft);outline:1px solid var(--gold)}
+  .mvl-tree .row.selected{background:#e0f2f1;outline:1px solid var(--teal,#007D77);font-weight:700}
+  .mvl-tree .chev{cursor:pointer;width:14px;color:var(--text-mute);font-size:10px;flex-shrink:0;text-align:center}
+  .mvl-tree .chev.leaf{cursor:default;color:transparent}
+  .mvl-tree .tw{font-family:var(--mono);font-size:10px;color:var(--text-mute);flex-shrink:0;min-width:66px}
+  .mvl-tree .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mvl-tree .tag{padding:1px 6px;font-size:9px;background:#eee;color:#666}
+  .mvl-tree .tag.sum{background:#e6efe9;color:#0f5c47}
+  .mvl-cand-list .item{padding:8px 10px;border-bottom:1px solid var(--border-2);cursor:pointer}
+  .mvl-cand-list .item:hover{background:#fafbfc}
+  .mvl-cand-list .item.sel{background:#e0f2f1;outline:2px solid var(--teal,#007D77)}
+  .mvl-cand-list .item .num{font-family:var(--mono);font-size:10px;color:var(--text-mute)}
+  .mvl-cand-list .item .nm{font-weight:700;font-size:12.5px;margin:2px 0}
+  .mvl-cand-list .item .meta{font-size:10.5px;color:var(--text-dim);display:flex;gap:8px;flex-wrap:wrap}
+  .mvl-cand-list .item .meta span{background:#eef2f8;padding:1px 6px}
+  .mvl-filters{display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--border-2);background:#fafbfc;flex-wrap:wrap}
+  .mvl-filters input,.mvl-filters select{font:inherit;font-size:11px;padding:4px 8px;border:1px solid var(--border-2);flex:1;min-width:80px}
+  .mvl-notes{padding:8px 12px;background:var(--gold-soft);border-top:1px solid var(--border-2);font-size:11px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .mvl-notes label{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .mvl-empty{padding:20px;text-align:center;color:var(--text-mute);font-size:11px;font-style:italic}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
 <script src="prog_terc_core.js"></script>
+<script src="prog_terc_awp.js"></script>
 </head>
 <body>
 <div class="page">
@@ -36,11 +75,21 @@
       <option value="atras">Só atrasadas</option>
       <option value="todas">Todas as atividades</option>
     </select>
+    <select class="f" id="fFase"><option value="">Todas as fases</option></select>
+    <select class="f" id="fCwa"><option value="">Todos os CWAs</option></select>
     <select class="f" id="fRestr">
       <option value="">Restrições: todas</option>
       <option value="com">Só com restrição aberta</option>
       <option value="sem">Só liberadas</option>
     </select>
+    <select class="f" id="fVinc">
+      <option value="">Vínculo: todos</option>
+      <option value="sem">Só sem vínculo</option>
+      <option value="com">Só vinculados</option>
+    </select>
+    <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
+      <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
+    </label>
     <button class="btn" id="btnXls">⤓ Excel</button>
     <button class="btn" onclick="window.print()">⎙ PDF</button>
   </div>
@@ -75,6 +124,49 @@
   <div class="small muted" style="margin-top:10px" id="foot"></div>
 </div>
 
+<!-- ===== MODAL DE VÍNCULO (Fase 3.5) ===== -->
+<div class="modal" id="mVinc"><div class="modal-box" style="width:96%;max-width:1400px">
+  <div class="modal-head">
+    <div><h3>Ajustar vínculo AWP <span id="mvTitle" style="font-weight:500;color:var(--text-dim)"></span></h3>
+    <div class="mh-sub" id="mvSub"></div></div>
+    <button class="modal-close" onclick="PT.closeModal('mVinc')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="mvl-body">
+      <div class="mvl-pane">
+        <div class="mvl-head">
+          <span>▤ Cronograma da terceira (contexto)</span>
+          <span id="mvContrato" class="small muted" style="text-transform:none;letter-spacing:0"></span>
+        </div>
+        <div class="mvl-scroll mvl-tree" id="mvTree"><div class="mvl-empty">Carregando árvore…</div></div>
+        <div class="mvl-notes">
+          <label><input type="checkbox" id="mvNaoExec"/> Marcar esta atividade como <b>NÃO EXECUTÁVEL</b> (some do Lookahead — reversível)</label>
+        </div>
+      </div>
+      <div class="mvl-pane">
+        <div class="mvl-head">
+          <span>▤ Cronograma geral (destino do vínculo)</span>
+          <label class="small muted" style="text-transform:none;letter-spacing:0;font-weight:400">
+            <input type="checkbox" id="mvShowAll"/> mostrar todas as linhas do geral (não só da empresa)
+          </label>
+        </div>
+        <div class="mvl-filters">
+          <input id="mvBusca" placeholder="Buscar número, nome, CWA…"/>
+          <select id="mvFase"><option value="">Fase</option></select>
+          <select id="mvCwa"><option value="">CWA</option></select>
+        </div>
+        <div class="mvl-scroll mvl-cand-list" id="mvCand"><div class="mvl-empty">Selecione um nó da árvore à esquerda para ver candidatos.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mvClear" title="Remover o vínculo atual desta atividade" style="display:none">✕ Remover vínculo</button>
+    <span class="spacer"></span>
+    <button class="btn" onclick="PT.closeModal('mVinc')">Cancelar</button>
+    <button class="btn solid" id="mvSave">Salvar</button>
+  </div>
+</div></div>
+
 <script>
 (function(){
 'use strict';
@@ -90,7 +182,9 @@ L.renderShell({
 
 var EDIT = L.canEdit();
 var ATIV = [], RESTR = [], PROG = [];
+var REGRAS = null;
 var BASE = L.mondayOf(), NW = 6;
+var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
 $('wkBase').value = BASE;
 
 /* ================= CARGA ================= */
@@ -102,6 +196,10 @@ function load(){
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true'))
   ]).then(function(r){
     ATIV = r[0].atividades; RESTR = r[1]; PROG = r[2];
+    return window.PTA
+      ? PTA.enriquecerTudo(ATIV, null, true).then(function(res){ REGRAS = res.regras; })
+      : Promise.resolve();
+  }).then(function(){
     $('setup').style.display = 'none';
     fillSelects(); render();
   }).catch(function(err){
@@ -111,8 +209,9 @@ function load(){
       RESTR = []; PROG = [];
       L.loadAtividades(false).then(function(c){
         ATIV = c.atividades; L.setupNotice('setup', err);
-        fillSelects(); render();
-      }).catch(function(e2){ fail(e2); });
+        return window.PTA ? PTA.enriquecerTudo(ATIV, null, true).then(function(res){ REGRAS = res.regras; }).catch(function(){}) : Promise.resolve();
+      }).then(function(){ fillSelects(); render(); })
+        .catch(function(e2){ fail(e2); });
     } else { fail(err); }
   });
 }
@@ -134,6 +233,21 @@ function fillSelects(){
     + emps.map(function(e){ return '<option'+(e===ce?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   $('fArea').innerHTML = '<option value="">Todas as áreas</option>'
     + areas.map(function(e){ return '<option'+(e===ca?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+
+  // Fase (Fase 3.5)
+  var fases = [];
+  ATIV.forEach(function(a){ if(a.fase && fases.indexOf(a.fase) < 0) fases.push(a.fase); });
+  var cf = $('fFase').value;
+  $('fFase').innerHTML = '<option value="">Todas as fases</option>'
+    + fases.map(function(f){ return '<option value="'+esc(f)+'"'+(f===cf?' selected':'')+'>'+esc(FASE_LABELS[f]||f)+'</option>'; }).join('');
+
+  // CWA (das atividades enriquecidas)
+  var cwas = [];
+  ATIV.forEach(function(a){ if(a.cwa && cwas.indexOf(a.cwa) < 0) cwas.push(a.cwa); });
+  cwas.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var cc = $('fCwa').value;
+  $('fCwa').innerHTML = '<option value="">Todos os CWAs</option>'
+    + cwas.map(function(w){ return '<option'+(w===cc?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
 }
 
 /* ================= SEMANAS ================= */
@@ -169,11 +283,19 @@ function jaProgramada(a){
 /* ================= FILTRO ================= */
 function visiveis(){
   var q = L.deacc($('q').value), fe = $('fEmpresa').value, fa = $('fArea').value,
-      escP = $('fEscopo').value, fr = $('fRestr').value;
+      escP = $('fEscopo').value, fr = $('fRestr').value,
+      ff = $('fFase').value, fc = $('fCwa').value, fv = $('fVinc').value,
+      inclNE = $('fInclNaoExec').checked;
   return ATIV.filter(function(a){
     if(a.execStatus === 'concluida' && escP !== 'todas') return false;
+    // Filtra não-executáveis por padrão (Fase 3.5)
+    if(!inclNE && window.PTA && PTA.isNaoExecutavel(a.cronograma_id, a.uid, REGRAS)) return false;
     if(fe && a.empresa !== fe) return false;
     if(fa && a.area !== fa) return false;
+    if(ff && a.fase !== ff) return false;
+    if(fc && a.cwa  !== fc) return false;
+    if(fv === 'sem' && !a.sem_vinculo) return false;
+    if(fv === 'com' &&  a.sem_vinculo) return false;
 
     if(escP === 'atras'  && !a.atrasada) return false;
     if(escP === 'janela' && !naJanela(a)) return false;
@@ -184,7 +306,7 @@ function visiveis(){
     if(fr === 'sem' && rs.length) return false;
 
     if(!q) return true;
-    return L.deacc([a.nome,a.wbs,a.empresa,a.escopo,a.area,a.recursos].join(' ')).indexOf(q) > -1;
+    return L.deacc([a.nome,a.wbs,a.empresa,a.escopo,a.area,a.recursos,a.cwa,a.cwp].join(' ')).indexOf(q) > -1;
   });
 }
 
@@ -223,10 +345,23 @@ function render(){
         + (a.execStatus === 'concluida' ? '✓' : (rs.length ? '⚑' : '')) + '</span></td>';
     }).join('');
 
-    return '<tr>'
+    // Badges de contexto AWP (Fase 3.5)
+    var isNE = window.PTA && PTA.isNaoExecutavel(a.cronograma_id, a.uid, REGRAS);
+    var awpBadges = '';
+    if(isNE) awpBadges += '<span class="awp-tag marco" title="Marcada como não executável">▷ não executável</span>';
+    else if(a.fase || a.cwa || a.peso_pct_projeto){
+      if(a.fase) awpBadges += '<span class="awp-tag fase">'+esc(FASE_LABELS[a.fase]||a.fase)+'</span>';
+      if(a.cwa)  awpBadges += '<span class="awp-tag cwa" title="'+esc(a.cwa)+'">'+esc(String(a.cwa).slice(0,32))+(String(a.cwa).length>32?'…':'')+'</span>';
+      if(a.peso_pct_projeto) awpBadges += '<span class="awp-tag peso" title="'+(a.peso_lb_abs?'R$ '+Math.round(a.peso_lb_abs).toLocaleString('pt-BR'):'')+'">'+Number(a.peso_pct_projeto).toFixed(3)+'%</span>';
+    } else {
+      awpBadges += '<span class="awp-tag orfa" title="Sem vínculo com o cronograma geral — clique em ⚙ para ajustar">⚠ sem vínculo</span>';
+    }
+
+    return '<tr'+(isNE?' class="naoexec"':'')+'>'
       + '<td class="act-name"><b>'+esc(a.nome)+'</b>'
         + (a.wbs ? '<div class="wbs">WBS '+esc(a.wbs)+(a.escopo?(' · '+esc(a.escopo)):'')+'</div>' : '')
-        + '<div class="small">'+statusPill(a)+'</div></td>'
+        + '<div class="small">'+statusPill(a)+'</div>'
+        + '<div class="awp-row">'+awpBadges+'</div></td>'
       + '<td class="small">'+esc(a.empresa||'—')+'</td>'
       + '<td>'+(a.area ? '<span class="tag b">'+esc(a.area)+'</span>' : '<span class="muted">—</span>')+'</td>'
       + '<td class="ctr">'+L.fmtBrDash(a.inicio)+'</td>'
@@ -240,9 +375,10 @@ function render(){
           : '<span class="pill g">livre</span>')+'</td>'
       + cells
       + (EDIT ? '<td class="ctr no-print nowrap">'
+          + '<button class="btn sm" data-vinc="'+esc(a.aid)+'" title="Ajustar vínculo AWP / marcar não executável">⚙</button> '
           + '<button class="btn sm" data-restr="'+esc(a.aid)+'" title="Registrar restrição">⚑</button> '
           + '<button class="btn sm" data-prog="'+esc(a.aid)+'" title="Programar na semana-base"'
-          + (jaProgramada(a)?' disabled':'')+'>▶</button></td>' : '')
+          + (jaProgramada(a)||isNE?' disabled':'')+'>▶</button></td>' : '')
       + '</tr>';
   }).join('') || '<tr><td colspan="'+ncols+'" class="empty"><div class="big">▶</div>'
       + 'Nenhuma atividade nesse recorte.'
@@ -256,6 +392,9 @@ function render(){
     b.addEventListener('click', function(){
       window.location.href = 'prog_terc_restricoes.html?aid=' + encodeURIComponent(b.dataset.restr);
     });
+  });
+  document.querySelectorAll('button[data-vinc]').forEach(function(b){
+    b.addEventListener('click', function(){ abrirModalVinculo(b.dataset.vinc); });
   });
 
   $('wkInfo').innerHTML = 'Janela: <b>' + L.fmtBr(BASE) + '</b> a <b>'
@@ -353,7 +492,7 @@ $('btnXls').addEventListener('click', function(){
 
 /* ================= EVENTOS ================= */
 $('q').addEventListener('input', render);
-['fEmpresa','fArea','fEscopo','fRestr'].forEach(function(id){
+['fEmpresa','fArea','fFase','fCwa','fEscopo','fRestr','fVinc','fInclNaoExec'].forEach(function(id){
   $(id).addEventListener('change', render);
 });
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
@@ -361,6 +500,252 @@ $('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value)
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
 $('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+
+/* =========================================================================
+   MODAL DE VÍNCULO (Fase 3.5 — split view "terceira × geral")
+   ========================================================================= */
+var MV = null;   // { aOrig, tarefas, nos, raizes, expandidos, selectedTerceiraUid, selectedTerceiraWbs, selectedGeralId, contratoEmpresa }
+
+function _empresaKey(nome){
+  if(!nome) return '';
+  var toks = L.deacc(nome).replace(/[^a-z0-9]+/gi,' ').toLowerCase().trim().split(/\s+/);
+  var IGN = { ltda:1, sa:1, s:1, me:1, epp:1, cia:1, construtora:1, engenharia:1, servicos:1, servico:1 };
+  for(var i=0; i<toks.length; i++) if(!IGN[toks[i]] && toks[i].length >= 3) return toks[i];
+  return toks[0] || '';
+}
+function _empresaMatch(a, b){
+  if(!a || !b) return false;
+  var ka = _empresaKey(a), kb = _empresaKey(b);
+  if(!ka || !kb) return false;
+  return ka === kb || ka.indexOf(kb) !== -1 || kb.indexOf(ka) !== -1;
+}
+function _cmpWbs(a, b){
+  var pa = String(a).split('.').map(function(x){ return parseInt(x,10)||0; });
+  var pb = String(b).split('.').map(function(x){ return parseInt(x,10)||0; });
+  for(var i=0; i<Math.max(pa.length,pb.length); i++){ var d = (pa[i]||0)-(pb[i]||0); if(d!==0) return d; }
+  return 0;
+}
+
+function abrirModalVinculo(aid){
+  if(!EDIT){ L.toast('Seu perfil é somente leitura neste módulo.','warn'); return; }
+  var a = L.atividadePorAid(aid);
+  if(!a){ L.toast('Atividade não encontrada.','warn'); return; }
+  MV = {
+    aOrig: a,
+    tarefas: null, nos: {}, raizes: [], expandidos: {},
+    selectedTerceiraUid: String(a.uid),
+    selectedTerceiraWbs: a.wbs || null,
+    selectedGeralId: a.cron_geral_id || null,
+    tinhaVinculoProprio: !a.vinculo_herdado && !!a.cron_geral_id,
+    naoExecInicial: !!(window.PTA && PTA.isNaoExecutavel(a.cronograma_id, a.uid, REGRAS))
+  };
+  $('mvTitle').textContent = '· ' + (a.empresa||'—') + ' · WBS ' + (a.wbs||'—');
+  $('mvSub').textContent = a.nome || '';
+  $('mvContrato').textContent = (a.empresa||'') + (a.escopo?(' — '+a.escopo):'');
+  $('mvNaoExec').checked = MV.naoExecInicial;
+  $('mvBusca').value = ''; $('mvFase').value = ''; $('mvCwa').value = '';
+  $('mvShowAll').checked = false;
+  popularSelectsModal();
+  $('mvClear').style.display = MV.tinhaVinculoProprio ? '' : 'none';
+  $('mvTree').innerHTML = '<div class="mvl-empty">Carregando árvore…</div>';
+  $('mvCand').innerHTML = '<div class="mvl-empty">Carregando…</div>';
+  L.openModal('mVinc');
+  if(!window.PTA){ $('mvTree').innerHTML = '<div class="mvl-empty">prog_terc_awp.js não carregado.</div>'; return; }
+  PTA.loadTarefasCronograma(a.cronograma_id).then(function(tarefas){
+    MV.tarefas = tarefas || [];
+    _construirArvoreMV();
+    renderTreeMV();
+    renderCandidatosMV();
+  }).catch(function(err){
+    $('mvTree').innerHTML = '<div class="mvl-empty">Falha ao carregar árvore: '+esc(err.message)+'</div>';
+  });
+}
+
+function popularSelectsModal(){
+  var fasesU = {}; (REGRAS && REGRAS.geralList || []).forEach(function(g){ if(g.fase) fasesU[g.fase]=1; });
+  var cwasU  = {}; (REGRAS && REGRAS.geralList || []).forEach(function(g){ if(g.cwa)  cwasU[g.cwa]=1; });
+  $('mvFase').innerHTML = '<option value="">Fase</option>'
+    + Object.keys(fasesU).map(function(f){ return '<option value="'+esc(f)+'">'+esc(FASE_LABELS[f]||f)+'</option>'; }).join('');
+  $('mvCwa').innerHTML = '<option value="">CWA</option>'
+    + Object.keys(cwasU).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).map(function(w){ return '<option>'+esc(w)+'</option>'; }).join('');
+}
+
+function _construirArvoreMV(){
+  MV.nos = {}; MV.raizes = [];
+  var tj = MV.tarefas;
+  tj.forEach(function(t){
+    if(!t.wbs || t.active === false) return;
+    var w = String(t.wbs);
+    MV.nos[w] = { uid: String(t.uid), wbs: w, name: t.name||'', level: t.level||0, summary: !!t.summary, cp: (t.CP==null?null:t.CP), filhos: [] };
+  });
+  Object.keys(MV.nos).forEach(function(w){
+    var no = MV.nos[w];
+    var ix = w.lastIndexOf('.');
+    var wpai = ix > 0 ? w.slice(0,ix) : null;
+    while(wpai){
+      if(MV.nos[wpai]){ MV.nos[wpai].filhos.push(no); return; }
+      var ix2 = wpai.lastIndexOf('.');
+      wpai = ix2 > 0 ? wpai.slice(0,ix2) : null;
+    }
+    MV.raizes.push(no);
+  });
+  var natural = function(a,b){ return _cmpWbs(a.wbs,b.wbs); };
+  MV.raizes.sort(natural);
+  Object.keys(MV.nos).forEach(function(w){ MV.nos[w].filhos.sort(natural); });
+  // Expande automaticamente todos os ancestrais da atividade original
+  var cur = String(MV.aOrig.wbs || '');
+  while(cur){
+    MV.expandidos[cur] = true;
+    var ix = cur.lastIndexOf('.'); cur = ix > 0 ? cur.slice(0,ix) : null;
+  }
+}
+
+function renderTreeMV(){
+  var box = $('mvTree');
+  if(!MV.raizes.length){ box.innerHTML = '<div class="mvl-empty">Cronograma sem tarefas ativas.</div>'; return; }
+  box.innerHTML = '';
+  MV.raizes.forEach(function(no){ box.appendChild(_renderNoMV(no, 0)); });
+  // Wire chevrons e clicks
+  box.querySelectorAll('.chev[data-w]').forEach(function(el){
+    el.addEventListener('click', function(ev){ ev.stopPropagation(); MV.expandidos[el.dataset.w] = !MV.expandidos[el.dataset.w]; renderTreeMV(); });
+  });
+  box.querySelectorAll('.row[data-w]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var no = MV.nos[el.dataset.w]; if(!no) return;
+      MV.selectedTerceiraUid = no.uid;
+      MV.selectedTerceiraWbs = no.wbs;
+      renderTreeMV();
+      // Atualiza título com nó selecionado
+      $('mvTitle').textContent = '· ' + (MV.aOrig.empresa||'—') + ' · WBS ' + no.wbs + ' (selecionado)';
+      $('mvSub').textContent = no.name;
+    });
+  });
+}
+function _renderNoMV(no, depth){
+  var wrap = document.createElement('div'); wrap.className = 'node';
+  var aberto = !!MV.expandidos[no.wbs];
+  var isHere = (no.wbs === MV.aOrig.wbs);
+  var isSel  = (String(no.uid) === String(MV.selectedTerceiraUid));
+
+  var row = document.createElement('div');
+  row.className = 'row' + (isHere?' here':'') + (isSel?' selected':'');
+  row.setAttribute('data-w', no.wbs);
+  row.style.paddingLeft = (depth*14 + 4) + 'px';
+
+  var chev = document.createElement('span'); chev.className = 'chev' + (no.filhos.length?'':' leaf');
+  if(no.filhos.length){ chev.setAttribute('data-w', no.wbs); chev.textContent = aberto ? '▾' : '▸'; }
+  else                { chev.textContent = '·'; }
+  row.appendChild(chev);
+
+  var tw = document.createElement('span'); tw.className = 'tw'; tw.textContent = no.wbs; row.appendChild(tw);
+  var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = no.name || '(sem nome)'; nm.title = no.name||''; row.appendChild(nm);
+  if(no.summary) { var tg = document.createElement('span'); tg.className='tag sum'; tg.textContent='resumo'; row.appendChild(tg); }
+  if(isHere)     { var tg2= document.createElement('span'); tg2.className='tag'; tg2.textContent='aqui'; tg2.style.background='var(--gold-soft)'; tg2.style.color='#7c4a00'; row.appendChild(tg2); }
+
+  wrap.appendChild(row);
+  if(no.filhos.length && aberto){
+    var box = document.createElement('div');
+    no.filhos.forEach(function(f){ box.appendChild(_renderNoMV(f, depth+1)); });
+    wrap.appendChild(box);
+  }
+  return wrap;
+}
+
+function renderCandidatosMV(){
+  var box = $('mvCand');
+  if(!REGRAS || !REGRAS.geralList){ box.innerHTML = '<div class="mvl-empty">Cronograma geral não carregado (rode a migração e importe atividades).</div>'; return; }
+  var empresa = MV.aOrig.empresa || '';
+  var showAll = $('mvShowAll').checked;
+  var q = L.deacc(($('mvBusca').value||'').trim());
+  var fF = $('mvFase').value, fC = $('mvCwa').value;
+
+  var lista = REGRAS.geralList.filter(function(g){
+    if(!showAll && !_empresaMatch(empresa, g.empresa||'')) return false;
+    if(fF && g.fase !== fF) return false;
+    if(fC && g.cwa  !== fC) return false;
+    if(q){
+      var bag = L.deacc([g.numero_topico,g.nome,g.cwa,g.cwp,g.empresa].join(' '));
+      if(bag.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+  if(!lista.length){
+    box.innerHTML = '<div class="mvl-empty">— nenhuma linha do geral casa com esse filtro —' +
+      (!showAll ? '<br><small>Se a empresa desta terceira ainda não está cadastrada no geral, marque "mostrar todas" acima.</small>' : '') + '</div>';
+    return;
+  }
+  var trunc = false; if(lista.length > 400){ trunc = true; lista = lista.slice(0,400); }
+  box.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  lista.forEach(function(g){
+    var it = document.createElement('div');
+    it.className = 'item' + (MV.selectedGeralId === g.id ? ' sel' : '');
+    it.setAttribute('data-gid', g.id);
+    it.innerHTML = '<div class="num">'+esc(g.numero_topico)+'</div>'
+      + '<div class="nm">'+esc(g.nome)+'</div>'
+      + '<div class="meta">'
+      + (g.fase?'<span>'+esc(FASE_LABELS[g.fase]||g.fase)+'</span>':'')
+      + (g.cwa?'<span title="'+esc(g.cwa)+'">'+esc(String(g.cwa).slice(0,42))+(String(g.cwa).length>42?'…':'')+'</span>':'')
+      + (g.cwp?'<span>'+esc(g.cwp)+'</span>':'')
+      + (g.empresa?'<span>'+esc(g.empresa)+'</span>':'')
+      + (g.custo_lb?'<span style="background:#e0f2f1;color:#00695c">R$ '+Math.round(g.custo_lb).toLocaleString('pt-BR')+'</span>':'')
+      + '</div>';
+    frag.appendChild(it);
+  });
+  box.appendChild(frag);
+  if(trunc){
+    var tr = document.createElement('div'); tr.className='mvl-empty'; tr.textContent='… e mais linhas — refine os filtros para vê-las.'; box.appendChild(tr);
+  }
+  box.querySelectorAll('.item[data-gid]').forEach(function(el){
+    el.addEventListener('click', function(){
+      MV.selectedGeralId = parseInt(el.getAttribute('data-gid'), 10);
+      renderCandidatosMV();
+    });
+  });
+}
+['mvBusca','mvFase','mvCwa','mvShowAll'].forEach(function(id){
+  $(id).addEventListener('input', renderCandidatosMV);
+  $(id).addEventListener('change', renderCandidatosMV);
+});
+
+$('mvSave').addEventListener('click', function(){
+  if(!MV){ return; }
+  var cid = MV.aOrig.cronograma_id;
+  var uid = MV.selectedTerceiraUid;
+  var wbs = MV.selectedTerceiraWbs;
+  var querMarcarNE = $('mvNaoExec').checked;
+  var passos = [];
+
+  // 1) NÃO EXECUTÁVEL: alterna estado (baseado no checkbox × estado atual)
+  if(querMarcarNE !== MV.naoExecInicial){
+    if(querMarcarNE) passos.push(PTA.marcarNaoExec(cid, uid, { terceira_wbs: wbs, motivo: 'lookahead' }));
+    else             passos.push(PTA.desmarcarNaoExec(cid, uid));
+  }
+
+  // 2) VÍNCULO (só grava se selecionou candidato)
+  if(!querMarcarNE && MV.selectedGeralId){
+    passos.push(PTA.salvarVinculoUnico(cid, uid, wbs, MV.selectedGeralId));
+  }
+
+  if(!passos.length){ L.toast('Nada a salvar. Selecione um candidato à direita ou marque "não executável".','warn'); return; }
+  $('mvSave').disabled = true;
+  Promise.all(passos).then(function(){
+    L.toast('Salvo.','ok'); L.closeModal('mVinc'); $('mvSave').disabled = false;
+    return load();
+  }).catch(function(err){
+    L.toast('Falha ao salvar: '+err.message,'warn');
+    $('mvSave').disabled = false;
+  });
+});
+$('mvClear').addEventListener('click', function(){
+  if(!MV || !MV.tinhaVinculoProprio) return;
+  if(!confirm('Remover o vínculo atual desta atividade? (Ela passará a herdar do ancestral, ou ficar sem vínculo)')) return;
+  $('mvSave').disabled = true;
+  PTA.salvarVinculoUnico(MV.aOrig.cronograma_id, MV.aOrig.uid, MV.aOrig.wbs, null)
+    .then(function(){ L.toast('Vínculo removido.','ok'); L.closeModal('mVinc'); $('mvSave').disabled=false; return load(); })
+    .catch(function(err){ L.toast('Falha: '+err.message,'warn'); $('mvSave').disabled=false; });
+});
+L.wireModal('mVinc');
 
 load();
 })();
