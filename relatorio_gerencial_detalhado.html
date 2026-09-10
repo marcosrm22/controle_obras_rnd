@@ -127,6 +127,25 @@
     <div style="font-size:11px;color:var(--muted);margin-top:8px">– não avaliado · ✓ conforme · ✗ não conforme. Clique na célula para alternar; no cabeçalho da semana para marcar a coluna toda.</div>
   </div>
 
+  <div class="panel">
+    <h3>Contratações — arquivo <span class="pill">concluídas / excluídas</span></h3>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn gold" onclick="arqAdd('C')">＋ Nova pendência (entra como ativa)</button>
+      <button class="btn" onclick="arqLoad()">↻ Recarregar</button>
+      <span id="arqStatus" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="tablewrap"><table style="width:100%;border-collapse:collapse;font-size:12px" id="arqCTable"></table></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Reativar volta o item para o Gerencial. O × aqui é <b>exclusão definitiva</b> (não dá para desfazer).</div>
+  </div>
+
+  <div class="panel">
+    <h3>Outros Impactos — arquivo <span class="pill">concluídos / excluídos</span></h3>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn gold" onclick="arqAdd('I')">＋ Novo impacto (entra como ativo)</button>
+    </div>
+    <div class="tablewrap"><table style="width:100%;border-collapse:collapse;font-size:12px" id="arqITable"></table></div>
+  </div>
+
   <div class="panel" id="qorc" style="display:none">
     <h3>Controle Orçado x Compromissado <span class="pill">Proprietário</span></h3>
     <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
@@ -137,9 +156,9 @@
     </div>
     <div class="chartbox" style="height:300px"><canvas id="orcChart"></canvas></div>
     <div class="tablewrap" style="margin-top:12px">
-      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Disciplina</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Inicial (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Atual (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Δ (MM)</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Situação</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a;border-left:2px solid #cfd8df">Compromissado (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">% Comp.</th></tr></thead><tbody id="orcTable"></tbody></table>
+      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Disciplina</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Orç. Atual (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Compromissado (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Delta (MM)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">% Não Comp.</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a">Situação</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a;border-left:2px solid #cfd8df">% Comp.</th></tr></thead><tbody id="orcTable"></tbody></table>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px">Linha cheia = Orçamento Atual · tracejada = Orçamento Inicial. Valores em R$ milhões.</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Linha cheia = Orçamento Atual · tracejada = Compromissado. Situação compara Atual × Compromissado. Valores em R$ milhões.</div>
       <div id="orcModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,30,.5);z-index:99999;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)orcCloseModal()">
         <div style="background:#fff;border-radius:14px;max-width:940px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eef2f5;position:sticky;top:0;background:#fff">
@@ -537,10 +556,10 @@ async function orcRender(){
     const labels=ORC_SNAPS.map(s=>orcFmtBR(s.data)); const ds=[];
     discList.forEach(d=>{ const cor=orcColor(d);
       ds.push({label:d+' \u00b7 Atual',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).atual||0)/1e6),borderColor:cor,backgroundColor:cor,tension:.25,pointRadius:3,borderWidth:2});
-      ds.push({label:d+' \u00b7 Inicial',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).inicial||0)/1e6),borderColor:cor,backgroundColor:cor,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:1.5});
+      ds.push({label:d+' \u00b7 Compromissado',data:ORC_SNAPS.map(s=>((s.disc[d]||{}).compromissado||0)/1e6),borderColor:cor,backgroundColor:cor,borderDash:[5,4],tension:.25,pointRadius:0,borderWidth:1.5});
     });
     ds.push({label:'Total \u00b7 Atual',data:ORC_SNAPS.map(s=>orcTot(s.disc).atual/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,tension:.25,pointRadius:3,borderWidth:3});
-    ds.push({label:'Total \u00b7 Inicial',data:ORC_SNAPS.map(s=>orcTot(s.disc).inicial/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,borderDash:[6,4],tension:.25,pointRadius:0,borderWidth:2});
+    ds.push({label:'Total \u00b7 Compromissado',data:ORC_SNAPS.map(s=>orcTot(s.disc).compromissado/1e6),borderColor:ORC_TOT_COR,backgroundColor:ORC_TOT_COR,borderDash:[6,4],tension:.25,pointRadius:0,borderWidth:2});
     if(orcChartObj) orcChartObj.destroy();
     orcChartObj=new Chart(cv,{type:'line',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
@@ -555,18 +574,23 @@ async function orcRender(){
     const disc=ORC_LAST.disc||{};
     const ordem=discList.filter(d=>disc[d]);
     const tdc='padding:5px 8px;border-bottom:1px solid #eef2f5';
-    const linha=(nome,a,opt)=>{ opt=opt||{}; const delta=(a.atual||0)-(a.inicial||0); const pos=(a.atual||0)<=(a.inicial||0);
+    const linha=(nome,a,opt)=>{ opt=opt||{};
+      const at=(a.atual||0), comp=(a.compromissado||0), delta=comp-at;
+      const pnc= at>0 ? (delta/at*100) : 0;
+      let situ,cor; if(pnc>0){situ='Estourou';cor='#c0392b';} else if(pnc>=-5){situ='No limite (≤5%)';cor='#c9922b';} else {situ='Dentro';cor='#1f8a4c';}
+      const cc= opt.excl?'#9aa8b3':cor;
       const plusKey= opt.total?'__TOTAL__':nome;
       const mute= opt.excl?'color:#9aa8b3;':'';
       const nomeCell = `<button onclick="orcOpenPac('${plusKey}')" title="Ver pacotes" style="border:1px solid #c1c9d3;background:#fff;border-radius:6px;width:20px;height:20px;line-height:1;cursor:pointer;font-weight:700;color:#0f3a54;margin-right:7px">+</button>${nome}${opt.excl?' <span style="color:#c0392b;font-size:9px;font-weight:600">(fora do Total)</span>':''}`;
       const bg= opt.total?'background:#f4f7fa;font-weight:700':'';
+      const pncTxt=(pnc>=0?'+':'')+pnc.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
       return `<tr style="${bg}"><td style="${tdc};${mute}${opt.total?'font-weight:700':'font-weight:600'}">${nomeCell}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.inicial)}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcMM(a.atual)}</td>`+
-        `<td style="${tdc};text-align:right;font-weight:600;color:${opt.excl?'#9aa8b3':(delta>0?'#c0392b':'#1f8a4c')}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
-        `<td style="${tdc}"><b style="color:${opt.excl?'#9aa8b3':(pos?'#1f8a4c':'#c0392b')}">${pos?'Desvio Positivo':'Desvio Negativo'}</b></td>`+
-        `<td style="${tdc};text-align:right;${mute};border-left:2px solid #cfd8df">${orcMM(a.compromissado)}</td>`+
-        `<td style="${tdc};text-align:right;${mute}">${orcPct(a.compromissado||0,a.atual||0)}</td></tr>`;
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(at)}</td>`+
+        `<td style="${tdc};text-align:right;${mute}">${orcMM(comp)}</td>`+
+        `<td style="${tdc};text-align:right;font-weight:600;color:${cc}">${delta>=0?'+':''}${orcMM(delta)}</td>`+
+        `<td style="${tdc};text-align:right;color:${cc}">${pncTxt}</td>`+
+        `<td style="${tdc}"><b style="color:${cc}">${situ}</b></td>`+
+        `<td style="${tdc};text-align:right;${mute};border-left:2px solid #cfd8df">${orcPct(comp,at)}</td></tr>`;
     };
     let h=''; ordem.forEach(d=>{ h+=linha(d, disc[d], {excl:ORC_EXCL.has(d)}); });
     const excl=[...ORC_EXCL].filter(d=>disc[d]);
@@ -672,6 +696,76 @@ function cantCyc(i,w){ const c=CANT[i]; if(!c.s5)c.s5={}; const k=String(w); c.s
 function cantToggleWeek(w){ const k=String(w); const anyNeu=CANT.some(c=>!(c.s5&&c.s5[k])); CANT.forEach(c=>{if(!c.s5)c.s5={}; c.s5[k]=anyNeu?1:0;}); render5s(); cantSchedule(); }
 function cantFill(v){ const k=String(selSemana()); CANT.forEach(c=>{if(!c.s5)c.s5={}; c.s5[k]=v;}); render5s(); cantSchedule(); }
 
+
+async function gzB64(str){
+  if(!('CompressionStream' in window)) return 'RAW:' + str;
+  const cs = new CompressionStream('gzip');
+  const buf = await new Response(new Blob([str]).stream().pipeThrough(cs)).arrayBuffer();
+  const bytes = new Uint8Array(buf); let bin=''; const CH=0x8000;
+  for(let i=0;i<bytes.length;i+=CH) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+CH));
+  return btoa(bin);
+}
+async function ungzB64(b64){
+  if(b64.startsWith('RAW:')) return b64.slice(4);
+  const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+/* ===== Arquivo de Contratações / Impactos (concluídos + excluídos) — lê/grava o blob do Gerencial ===== */
+let ARQ_STATE=null;
+function arqArr(t){ if(!ARQ_STATE) return []; if(t==='I'){ if(!Array.isArray(ARQ_STATE.impactos))ARQ_STATE.impactos=[]; return ARQ_STATE.impactos; } if(!Array.isArray(ARQ_STATE.contr2))ARQ_STATE.contr2=[]; return ARQ_STATE.contr2; }
+async function arqLoad(){
+  const st=document.getElementById('arqStatus'); if(st)st.textContent='carregando\u2026';
+  if(!SB_URL||!SB_KEY){ if(st)st.textContent='config.js ausente'; return; }
+  try{
+    const path=sbComUnidade('relatorio_gerencial_live?select=dados&limit=1');
+    const res=await fetch(SB_URL+'/rest/v1/'+path,{headers:sbHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    if(Array.isArray(rows)&&rows.length&&rows[0].dados){ ARQ_STATE=JSON.parse(await ungzB64(rows[0].dados)); }
+    else { ARQ_STATE={contr2:[],impactos:[]}; }
+    if(st)st.textContent='';
+  }catch(e){ ARQ_STATE={contr2:[],impactos:[]}; if(st)st.textContent='offline'; }
+  renderArq('C'); renderArq('I');
+}
+async function arqSave(){
+  if(!SB_URL||!SB_KEY||!ARQ_STATE) return;
+  const st=document.getElementById('arqStatus'); if(st)st.textContent='salvando\u2026';
+  try{
+    const dados=await gzB64(JSON.stringify(ARQ_STATE));
+    const body=[ sbComTag({dados, rev:Date.now(), atualizado_por:(sessionStorage.getItem('pco_nome')||'Detalhado'), atualizado_em:new Date().toISOString()}) ];
+    const res=await fetch(SB_URL+'/rest/v1/relatorio_gerencial_live?on_conflict=unidade',{method:'POST',headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(body)});
+    if(st)st.textContent=res.ok?'\u2601 salvo':'falha ao salvar';
+  }catch(e){ if(st)st.textContent='offline'; }
+}
+function renderArq(t){
+  const tb=document.getElementById(t==='I'?'arqITable':'arqCTable'); if(!tb) return;
+  const arr=arqArr(t);
+  const th='padding:6px 8px;border-bottom:2px solid #dfe5ea;font-size:10px;text-transform:uppercase;color:#6b7c8a';
+  const td='padding:5px 8px;border-bottom:1px solid #eef2f5';
+  let h=`<thead><tr><th style="${th};text-align:left;width:92px">Estado</th><th style="${th};text-align:left">Escopo / Tema</th><th style="${th};text-align:left">Disciplina</th><th style="${th};text-align:left">Responsável</th><th style="${th};text-align:left">Status</th><th style="${th};width:150px"></th></tr></thead><tbody>`;
+  const rows=[]; arr.forEach((r,i)=>{ const e=r.estado||'ativo'; if(e==='concluido'||e==='excluido') rows.push([r,i]); });
+  if(!rows.length){ h+=`<tr><td colspan="6" style="${td};text-align:center;color:#6b7c8a;padding:14px">Nenhum item concluído ou excluído.</td></tr>`; }
+  rows.forEach(([r,i])=>{
+    const e=r.estado;
+    const badge=e==='concluido'
+      ? '<span style="background:#e8f5ec;color:#1f8a4c;border:1px solid #bfe3ca;border-radius:6px;padding:1px 8px;font-weight:600;font-size:11px">Concluído</span>'
+      : '<span style="background:#fdeaea;color:#c0392b;border:1px solid #f0b4b4;border-radius:6px;padding:1px 8px;font-weight:600;font-size:11px">Excluído</span>';
+    h+=`<tr><td style="${td}">${badge}</td><td style="${td}">${esc(r.escopo||'')}</td><td style="${td}">${esc(r.disciplina||'')}</td><td style="${td}">${esc(r.responsavel||'')}</td><td style="${td}">${esc(r.status||'')}</td>`+
+       `<td style="${td};white-space:nowrap"><button class="btn" style="padding:2px 8px;font-size:11px" title="voltar para ativo" onclick="arqReativar('${t}',${i})">↩ reativar</button> <button class="btn" style="padding:2px 8px;font-size:11px" title="excluir definitivo" onclick="arqDel('${t}',${i})">×</button></td></tr>`;
+  });
+  h+='</tbody>'; tb.innerHTML=h;
+}
+function arqReativar(t,i){ const arr=arqArr(t); if(arr[i]){ arr[i].estado='ativo'; renderArq(t); arqSave(); } }
+function arqDel(t,i){ const arr=arqArr(t); if(arr[i] && confirm('Excluir DEFINITIVAMENTE este item? Não dá para desfazer.')){ arr.splice(i,1); renderArq(t); arqSave(); } }
+function arqAdd(t){
+  if(!ARQ_STATE){ alert('Ainda carregando o arquivo — tente de novo em instantes.'); return; }
+  const base = t==='I'
+    ? {escopo:'',disciplina:'',responsavel:'',status:'',anexo:null,estado:'ativo'}
+    : {escopo:'',disciplina:'',alcada:'',responsavel:'',status:'',link:'',fechamento:'',anexo:null,estado:'ativo'};
+  arqArr(t).push(base); arqSave();
+  alert('Novo item criado como ATIVO — ele aparece no Relatório Gerencial para você preencher.');
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('f_semana').value=curWeek();
   document.getElementById('f_ano').value=new Date().getFullYear();
@@ -682,6 +776,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   refresh();
   orcInit();
   cantLoad();
+  arqLoad();
 });
 </script>
 </body>
