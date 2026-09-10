@@ -298,6 +298,20 @@ function cardHtml(c){
   var pct = (c.qtd_prog && c.qtd_real != null)
     ? Math.round(Math.min(100, (c.qtd_real / c.qtd_prog) * 100)) : null;
   var origem = (c.cronograma_id != null && c.terceira_uid != null) ? 'do cronograma' : 'avulso';
+  // Meta/dia (Fase 4) — se a atividade correspondente tem produtividade cadastrada
+  var metaBadge = '';
+  if(c.cronograma_id != null && c.terceira_uid != null && window.PTA && REGRAS){
+    var a = ATIV.filter(function(x){ return x.cronograma_id === c.cronograma_id && String(x.uid) === String(c.terceira_uid); })[0];
+    if(a){
+      var m = PTA.metaPorDia(a, REGRAS);
+      if(m){
+        metaBadge = '<div class="kc-meta" style="background:#e0f2f1;color:#00695c;padding:3px 6px;margin-top:3px;font-weight:700">'
+          + '🎯 Meta: ' + L.nf(m.qtd_dia, m.qtd_dia<10?2:0) + ' ' + (m.unidade||'') + '/dia'
+          + ' <span style="opacity:.65;font-weight:400">('+ L.nf(m.qtd_total, 0) +' em '+m.dias+'d)</span>'
+          + '</div>';
+      }
+    }
+  }
   return '<div class="kb-card '+col.cls+'" draggable="'+(EDIT?'true':'false')+'" data-id="'+c.id+'">'
     + '<div class="kc-title">'+esc(c.descricao)+'</div>'
     + '<div class="kc-meta">'
@@ -307,6 +321,7 @@ function cardHtml(c){
     + '</div>'
     + (c.qtd_prog ? '<div class="kc-meta mono">'+nf(c.qtd_real||0,0)+' / '+nf(c.qtd_prog,0)
         + ' ' + esc(c.un||'') + (pct!=null?' · '+pct+'%':'') + '</div>' : '')
+    + metaBadge
     + (c.causa ? '<div class="kc-meta" style="color:var(--terracota);font-weight:700">⚠ '+esc(c.causa)+'</div>' : '')
     + (c.fase || c.cwa || c.peso_pct_projeto ? '<div class="kc-meta" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">'
        + (c.fase ? '<span class="tag" style="background:#f0e6f8;color:#6B4FA0">'+esc(FASE_LABELS[c.fase]||c.fase)+'</span>' : '')
