@@ -896,7 +896,7 @@ function ctRowHtml(t,r,i){
     <td><input value="${esc(r.status)}" onchange="updRow('${t}',${i},'status',this.value)"></td>
     ${linkCell}
     <td><select class="sel" onchange="updRow('${t}',${i},'fechamento',this.value)">${fechOpts}</select></td>
-    <td><button class="del no-print" onclick="delRow('${t}',${i})">×</button></td>
+    <td class="no-print" style="white-space:nowrap"><button class="del" style="color:#1f8a4c;border-color:#bfe3ca" title="concluir" onclick="setEstado('${t}',${i},'concluido')">✓</button> <button class="del" title="excluir" onclick="setEstado('${t}',${i},'excluido')">×</button></td>
   </tr>`;
 }
 
@@ -920,7 +920,7 @@ function impRowHtml(r,i){
     <td><input value="${esc(r.responsavel||'')}" onchange="updRow('I',${i},'responsavel',this.value)"></td>
     <td><input value="${esc(r.status)}" onchange="updRow('I',${i},'status',this.value)"></td>
     ${anexoCell}
-    <td><button class="del no-print" onclick="delRow('I',${i})">×</button></td>
+    <td class="no-print" style="white-space:nowrap"><button class="del" style="color:#1f8a4c;border-color:#bfe3ca" title="concluir" onclick="setEstado('I',${i},'concluido')">✓</button> <button class="del" title="excluir" onclick="setEstado('I',${i},'excluido')">×</button></td>
   </tr>`;
 }
 async function uploadAnexo(i, input){
@@ -956,6 +956,7 @@ function renderTbl(t){
   const uniq = (key,base) => { const pres=[...new Set(data.map(r=>r[key]).filter(Boolean))]; return base.concat(pres.filter(v=>!base.some(b=>b.toLowerCase()===v.toLowerCase()))); };
   const discFilter = ['<option value="">Disciplina (todas)</option>'].concat(uniq('disciplina',DISCS).map(d=>`<option>${esc(d)}</option>`)).join('');
   const fechFilter = ['<option value="">Fechamento (todos)</option>'].concat(uniq('fechamento',FECHOPTS).map(d=>`<option>${esc(d)}</option>`)).join('');
+  const ativos = data.filter(r=>(r.estado||'ativo')==='ativo').length;
   const rotulo = t==='I' ? 'Impactos' : 'Pendências';
   const addLbl = t==='I' ? 'impacto' : 'pendência';
   const headC = `
@@ -963,7 +964,7 @@ function renderTbl(t){
           <th style="width:30%">Escopo</th><th style="width:11%">Disciplina</th>
           <th style="width:8%">Valor</th><th style="width:12%">Responsável</th>
           <th style="width:16%">Observação</th>
-          <th style="width:64px">Link do Supria</th><th style="width:12%">Tipo de Fechamento</th><th style="width:22px"></th>
+          <th style="width:64px">Link do Supria</th><th style="width:12%">Tipo de Fechamento</th><th style="width:58px"></th>
         </tr>
         <tr class="frow no-print">
           <th><input class="fin" data-c="escopo" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
@@ -979,7 +980,7 @@ function renderTbl(t){
         <tr>
           <th style="width:34%">Tema</th><th style="width:14%">Disciplina</th>
           <th style="width:16%">Responsável</th><th style="width:24%">Observação</th>
-          <th style="width:74px">Anexo (PDF)</th><th style="width:22px"></th>
+          <th style="width:74px">Anexo (PDF)</th><th style="width:58px"></th>
         </tr>
         <tr class="frow no-print">
           <th><input class="fin" data-c="escopo" oninput="filterTbl('${t}')" placeholder="filtrar…"></th>
@@ -991,19 +992,19 @@ function renderTbl(t){
         </tr>`;
   const headHtml = t==='I' ? headI : headC;
   let h = `<div class="ct-block full">
-    <div class="ct-head"><span>${rotulo} <span style="font-weight:500;color:var(--muted);font-size:10.5px">(${data.length})</span></span>
+    <div class="ct-head"><span>${rotulo} <span style="font-weight:500;color:var(--muted);font-size:10.5px">(${ativos})</span></span>
       <button class="btn mini no-print" onclick="addRow('${t}')">＋ ${addLbl}</button></div>
     <table class="ct flt">
       <thead>${headHtml}</thead>
       <tbody id="${ctBodyId(t)}">`;
-  data.forEach((r,i)=>h+=ctRowHtml(t,r,i));
+  data.forEach((r,i)=>{ if((r.estado||'ativo')!=='ativo') return; h+=ctRowHtml(t,r,i); });
   h += `</tbody></table>`;
-  if(!data.length) h += `<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem itens. Use “＋” para adicionar.</div>`;
+  if(!ativos) h += `<div style="padding:8px 11px;font-size:11px;color:var(--muted)">Sem itens ativos. Use “＋” para adicionar.</div>`;
   h += `</div>`;
   listEl.innerHTML = h;
   if(editLinkKey && editLinkKey.indexOf(t+':')===0){ const inp=listEl.querySelector('.linkin'); if(inp){ inp.focus(); inp.select(); } }
-  if(t==='I') setVerdict('v8b', data.length>0?'nao':'sim', data.length>0?`Sim · ${data.length} impacto(s)`:'Não · nenhum');
-  else        setVerdict('v8',  data.length>0?'nao':'sim', data.length>0?`Sim · ${data.length} pendência(s)`:'Não · nenhuma');
+  if(t==='I') setVerdict('v8b', ativos>0?'nao':'sim', ativos>0?`Sim · ${ativos} impacto(s)`:'Não · nenhum');
+  else        setVerdict('v8',  ativos>0?'nao':'sim', ativos>0?`Sim · ${ativos} pendência(s)`:'Não · nenhuma');
 }
 
 function filterTbl(t){
@@ -1033,9 +1034,10 @@ function filterTbl(t){
 
 function renderContr(){ renderTbl('C'); }
 function renderImpactos(){ renderTbl('I'); }
-function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',responsavel:'',status:'',link:'',fechamento:'',anexo:null}); save(); renderTbl(t); }
+function addRow(t){ ctData(t).push({escopo:'',disciplina:'',alcada:'',responsavel:'',status:'',link:'',fechamento:'',anexo:null,estado:'ativo'}); save(); renderTbl(t); }
 function updRow(t,i,k,v){ ctData(t)[i][k]=v; save(); if(k==='link') renderTbl(t); }
 function delRow(t,i){ ctData(t).splice(i,1); save(); renderTbl(t); }
+function setEstado(t,i,e){ if(ctData(t)[i]){ ctData(t)[i].estado=e; save(); renderTbl(t); } }
 
 /* ---- seções colapsáveis ---- */
 function initCollapse(){
@@ -1472,7 +1474,7 @@ async function orcRender(){
     const linha=(nome,a,opt)=>{ opt=opt||{};
       const at=(a.atual||0), comp=(a.compromissado||0), delta=comp-at;
       const pnc= at>0 ? (delta/at*100) : 0;
-      let situ,cor; if(pnc>0){situ='Estourou';cor='#c0392b';} else if(pnc>=-5){situ='No limite (≤5%)';cor='#c9922b';} else {situ='Desvio Positivo';cor='#1f8a4c';}
+      let situ,cor; if(pnc>0){situ='Estourou';cor='#c0392b';} else if(pnc>=-5){situ='No limite (≤5%)';cor='#c9922b';} else {situ='Dentro';cor='#1f8a4c';}
       const cc= opt.excl?'#9aa8b3':cor;
       const plusKey= opt.total?'__TOTAL__':nome;
       const mute= opt.excl?'color:#9aa8b3;':'';
