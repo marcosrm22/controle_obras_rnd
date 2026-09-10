@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Produtividade · Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+  td.act-name .wbs{font-family:var(--mono);font-size:10px;color:var(--text-mute)}
+  td.editable{background:#fafbfc}
+  td.editable input, td.editable select{width:100%;font:inherit;font-size:12px;padding:3px 6px;border:1px solid var(--border-2);background:#fff;box-sizing:border-box}
+  td.editable input:focus, td.editable select:focus{outline:none;border-color:#00695c;background:#f0fdfa}
+  td.calc{font-family:var(--mono);font-weight:700;color:#00695c;text-align:right}
+  td.calc.dim{color:var(--text-mute);font-weight:400}
+  tr.dirty td{background:#fffbf0}
+  tr.dirty td:first-child{border-left:3px solid var(--gold)}
+  .pill.tem{background:#e6efe9;color:#0f5c47}
+  .pill.sem{background:#fdecea;color:#8a3822}
+  .header-actions .btn{margin-left:6px}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+<script src="prog_terc_awp.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="notice src-note">
+    Define a <b>grandeza</b> (unidade de medida) e a <b>quantidade prevista total</b> de cada
+    atividade da terceira. A partir das datas do cronograma da terceira e da duração da atividade,
+    o sistema calcula a <b>meta/dia</b> — usada no check-in/check-out diário e mostrada em cada
+    card da Programação Semanal. Baixe o modelo, preencha no Excel e reimporte para atualizar em lote.
+  </div>
+
+  <div class="toolbar no-print">
+    <div class="search"><input type="text" id="q" placeholder="Buscar atividade, WBS, empresa..."></div>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fFase"><option value="">Todas as fases</option></select>
+    <select class="f" id="fCwa"><option value="">Todos os CWAs</option></select>
+    <select class="f" id="fProd">
+      <option value="">Produtividade: todas</option>
+      <option value="sem">Só sem produtividade</option>
+      <option value="com">Só com produtividade</option>
+    </select>
+    <select class="f" id="fVinc">
+      <option value="">Vínculo: todos</option>
+      <option value="com">Só vinculados ao geral</option>
+      <option value="sem">Só sem vínculo</option>
+    </select>
+    <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
+      <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
+    </label>
+  </div>
+
+  <div class="toolbar no-print header-actions" style="margin-top:-4px;justify-content:flex-end">
+    <span class="small muted" id="dirtyInfo" style="margin-right:auto"></span>
+    <button class="btn" id="btnModel">↓ Baixar modelo Excel</button>
+    <input type="file" id="fileImp" accept=".xlsx,.xls,.csv" style="display:none"/>
+    <button class="btn" id="btnImp">↥ Importar Excel</button>
+    <button class="btn solid" id="btnSave" disabled>💾 Salvar alterações (<span id="dirtyN">0</span>)</button>
+  </div>
+
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr>
+        <th class="act-name" style="min-width:280px">Atividade</th>
+        <th style="min-width:110px">Empresa</th>
+        <th class="ctr" style="min-width:82px">Início</th>
+        <th class="ctr" style="min-width:82px">Término</th>
+        <th class="ctr" style="min-width:60px">Dur.</th>
+        <th class="ctr" style="min-width:96px">Unidade</th>
+        <th class="ctr" style="min-width:112px">Qtd prevista</th>
+        <th class="ctr" style="min-width:112px">Meta/dia</th>
+        <th class="ctr" style="min-width:60px" title="Já tem produtividade?">Status</th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="9" class="loading-line">Carregando atividades…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="small muted" style="margin-top:10px" id="foot"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'produtividade',
+  title:'Produtividade das Atividades',
+  subtitle:'Grandeza e quantidade prevista por atividade — alimenta a meta/dia do check-in diário'
+});
+
+var EDIT = L.canEdit();
+var ATIV = [], REGRAS = null;
+var DIRTY = {};   // { aid: { unidade_medida, qtd_prevista, obs } }
+var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
+var UNIDADES_SUGERIDAS = ['un', 'ton', 'kg', 'm', 'm²', 'm³', 'pç', 'sv', 'l', 'jg', 'peça'];
+
+/* ================= CARGA ================= */
+function load(){
+  $('tb').innerHTML = '<tr><td colspan="9" class="loading-line">Carregando atividades…</td></tr>';
+  return L.loadAtividades(true).then(function(r){
+    ATIV = r.atividades;
+    return window.PTA ? PTA.enriquecerTudo(ATIV, null, true).then(function(res){ REGRAS = res.regras; }) : Promise.resolve();
+  }).then(function(){
+    $('setup').style.display = 'none';
+    fillSelects(); render();
+  }).catch(function(err){
+    L.setupNotice('setup', err);
+    $('tb').innerHTML = '<tr><td colspan="9" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+  });
+}
+
+function fillSelects(){
+  var emps = [], fases = [], cwas = [];
+  ATIV.forEach(function(a){
+    if(a.empresa && emps.indexOf(a.empresa) < 0) emps.push(a.empresa);
+    if(a.fase && fases.indexOf(a.fase) < 0) fases.push(a.fase);
+    if(a.cwa  && cwas.indexOf(a.cwa)  < 0) cwas.push(a.cwa);
+  });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  cwas.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var ce = $('fEmpresa').value, cf = $('fFase').value, cc = $('fCwa').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===ce?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  $('fFase').innerHTML = '<option value="">Todas as fases</option>'
+    + fases.map(function(f){ return '<option value="'+esc(f)+'"'+(f===cf?' selected':'')+'>'+esc(FASE_LABELS[f]||f)+'</option>'; }).join('');
+  $('fCwa').innerHTML = '<option value="">Todos os CWAs</option>'
+    + cwas.map(function(w){ return '<option'+(w===cc?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
+}
+
+/* ================= FILTROS ================= */
+function visiveis(){
+  var q = L.deacc($('q').value), fe = $('fEmpresa').value, ff = $('fFase').value, fc = $('fCwa').value;
+  var fp = $('fProd').value, fv = $('fVinc').value, inclNE = $('fInclNaoExec').checked;
+  return ATIV.filter(function(a){
+    if(!inclNE && window.PTA && PTA.isNaoExecutavel(a.cronograma_id, a.uid, REGRAS)) return false;
+    if(fe && a.empresa !== fe) return false;
+    if(ff && a.fase !== ff) return false;
+    if(fc && a.cwa !== fc)  return false;
+    var p = _pDe(a);
+    var temProd = !!(p && p.qtd_prevista);
+    if(fp === 'sem' &&  temProd) return false;
+    if(fp === 'com' && !temProd) return false;
+    if(fv === 'com' && a.sem_vinculo) return false;
+    if(fv === 'sem' && !a.sem_vinculo) return false;
+    if(q){
+      var bag = L.deacc([a.nome,a.wbs,a.empresa,a.escopo,a.cwa,a.cwp].join(' '));
+      if(bag.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+/* Estado local (banco + edições) */
+function _pDe(a){
+  var chave = a.cronograma_id + '::' + a.uid;
+  if(DIRTY[a.aid]) return DIRTY[a.aid];
+  var pRegras = REGRAS && REGRAS.produtByKey ? REGRAS.produtByKey[chave] : null;
+  return pRegras || null;
+}
+function _duracao(a){
+  if(!a.inicio || !a.termino) return 0;
+  var d1 = new Date(a.inicio), d2 = new Date(a.termino);
+  if(isNaN(d1) || isNaN(d2)) return 0;
+  return Math.max(1, Math.round((d2-d1)/86400000) + 1);
+}
+function _metaDia(a){
+  var p = _pDe(a);
+  if(!p || !p.qtd_prevista) return null;
+  var d = _duracao(a);
+  if(!d) return null;
+  return (+p.qtd_prevista) / d;
+}
+
+/* ================= RENDER ================= */
+function render(){
+  var vis = visiveis();
+  renderKpis(vis);
+  $('foot').innerHTML = vis.length + ' atividade(s) exibida(s).';
+  if(!vis.length){
+    $('tb').innerHTML = '<tr><td colspan="9" class="empty"><div class="big">▶</div>Nada com esses filtros.</td></tr>';
+    return;
+  }
+  $('tb').innerHTML = vis.map(function(a){
+    var p   = _pDe(a);
+    var isDirty = !!DIRTY[a.aid];
+    var dur = _duracao(a);
+    var meta = _metaDia(a);
+    var unVal = (p && p.unidade_medida) ? p.unidade_medida : '';
+    var qtVal = (p && p.qtd_prevista != null) ? String(p.qtd_prevista).replace('.', ',') : '';
+    var temProd = !!(p && p.qtd_prevista);
+
+    return '<tr'+(isDirty?' class="dirty"':'')+'>'
+      + '<td class="act-name"><b>'+esc(a.nome)+'</b>'
+        + (a.wbs ? '<div class="wbs">WBS '+esc(a.wbs)+(a.escopo?(' · '+esc(a.escopo)):'')+'</div>' : '')
+        + (a.cwa ? '<div class="small" style="margin-top:2px"><span class="tag b" style="background:#eaf3fb;color:#1f5170;font-family:var(--mono)">'
+            + esc(String(a.cwa).slice(0,32))+(String(a.cwa).length>32?'…':'')+'</span></div>' : '')
+      + '</td>'
+      + '<td class="small">'+esc(a.empresa||'—')+'</td>'
+      + '<td class="ctr small">'+L.fmtBrDash(a.inicio)+'</td>'
+      + '<td class="ctr small">'+L.fmtBrDash(a.termino)+'</td>'
+      + '<td class="ctr small mono">'+(dur?dur+'d':'—')+'</td>'
+      + '<td class="editable">'
+        + '<input type="text" list="unSug" data-aid="'+esc(a.aid)+'" data-field="unidade_medida" value="'+esc(unVal)+'" placeholder="un, ton..."/>'
+      + '</td>'
+      + '<td class="editable">'
+        + '<input type="text" data-aid="'+esc(a.aid)+'" data-field="qtd_prevista" value="'+esc(qtVal)+'" placeholder="0" style="text-align:right"/>'
+      + '</td>'
+      + '<td class="calc'+(meta==null?' dim':'')+'">'
+        + (meta==null ? '—' : (nf(meta, meta<10?2:0) + ' ' + (unVal || '') + '/dia'))
+      + '</td>'
+      + '<td class="ctr">'+(temProd
+          ? '<span class="pill tem">✓</span>'
+          : '<span class="pill sem">—</span>')+'</td>'
+      + '</tr>';
+  }).join('');
+
+  // wire dos inputs
+  document.querySelectorAll('input[data-aid]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var aid = inp.dataset.aid, field = inp.dataset.field;
+      var a = L.atividadePorAid(aid); if(!a) return;
+      var chave = a.cronograma_id + '::' + a.uid;
+      var atualSalvo = (REGRAS && REGRAS.produtByKey && REGRAS.produtByKey[chave]) || null;
+      // clone do salvo ou objeto vazio; muta o campo
+      var cur = DIRTY[aid] || { unidade_medida: atualSalvo ? atualSalvo.unidade_medida : null,
+                                qtd_prevista:   atualSalvo ? atualSalvo.qtd_prevista   : null,
+                                obs:            atualSalvo ? atualSalvo.obs            : null };
+      if(field === 'qtd_prevista'){
+        var v = inp.value.trim().replace(',', '.');
+        cur.qtd_prevista = (v === '') ? null : Number(v);
+      } else {
+        cur.unidade_medida = inp.value.trim() || null;
+      }
+      // dirty se difere do salvo
+      var isDirty = !atualSalvo
+        || (cur.unidade_medida || '') !== (atualSalvo.unidade_medida || '')
+        || (cur.qtd_prevista == null ? '' : String(cur.qtd_prevista)) !== (atualSalvo.qtd_prevista == null ? '' : String(atualSalvo.qtd_prevista));
+      if(isDirty) DIRTY[aid] = cur; else delete DIRTY[aid];
+      atualizarDirtyBar();
+      // recalcula meta/dia da linha em tempo real, sem re-render completo
+      var tr = inp.closest('tr'); tr.classList.toggle('dirty', isDirty);
+      var metaTd = tr.querySelector('td.calc');
+      var meta = _metaDia(a);
+      if(metaTd){
+        if(meta == null){ metaTd.textContent = '—'; metaTd.classList.add('dim'); }
+        else { metaTd.classList.remove('dim'); metaTd.textContent = nf(meta, meta<10?2:0) + ' ' + (cur.unidade_medida||'') + '/dia'; }
+      }
+    });
+  });
+}
+
+/* ================= KPIs ================= */
+function renderKpis(list){
+  var comProd = 0, semProd = 0, comMeta = 0;
+  list.forEach(function(a){
+    var p = _pDe(a);
+    if(p && p.qtd_prevista) { comProd++; if(_metaDia(a)!=null) comMeta++; }
+    else semProd++;
+  });
+  var pctCoverage = list.length ? Math.round(comProd / list.length * 100) : 0;
+  $('kpis').innerHTML = ''
+    + kpi('b-blue', list.length, 'Atividades', 'no filtro atual')
+    + kpi('b-green', comProd, 'Com produtividade', pctCoverage+'% de cobertura')
+    + kpi('b-red', semProd, 'Sem produtividade', 'faltam preencher')
+    + kpi('b-violet', comMeta, 'Meta/dia calculável', 'têm datas + qtd')
+    + kpi('b-gold', Object.keys(DIRTY).length, 'Alterações pendentes', 'ainda não salvas');
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+function atualizarDirtyBar(){
+  var n = Object.keys(DIRTY).length;
+  $('dirtyN').textContent = n;
+  $('btnSave').disabled = n === 0;
+  $('dirtyInfo').textContent = n ? (n + ' linha(s) com alterações pendentes — clique "Salvar" para gravar') : '';
+  renderKpis(visiveis());
+}
+
+/* ================= SAVE ================= */
+$('btnSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Perfil somente leitura.','warn');
+  var itens = Object.keys(DIRTY).map(function(aid){
+    var a = L.atividadePorAid(aid); if(!a) return null;
+    var d = DIRTY[aid];
+    return {
+      cronograma_id: a.cronograma_id, terceira_uid: String(a.uid),
+      terceira_wbs: a.wbs || null,
+      unidade_medida: d.unidade_medida || null,
+      qtd_prevista:   d.qtd_prevista,
+      obs:            d.obs || null
+    };
+  }).filter(Boolean);
+  if(!itens.length) return;
+  $('btnSave').disabled = true;
+  PTA.salvarProdutividadeBatch(itens)
+    .then(function(r){
+      L.toast(r.ok + ' linha(s) salvas.','ok');
+      DIRTY = {};
+      return load();
+    })
+    .catch(function(e){
+      if(L.isMissingTable(e)) L.toast('Rode o supabase_cron_geral.sql atualizado (nova tabela terc_produtividade).','warn');
+      else L.toast('Falha: '+e.message,'warn');
+      $('btnSave').disabled = false;
+    });
+});
+
+/* ================= EXPORT / IMPORT EXCEL ================= */
+$('btnModel').addEventListener('click', function(){
+  var list = visiveis();
+  var aoa = [[
+    'AID','Cronograma ID','Terceira UID','Empresa','Nome da atividade','WBS','CWA','CWP','Fase',
+    'Início LB','Término LB','Duração (dias)',
+    'Unidade de medida','Qtd prevista','Meta/dia (calc — não editar)','Observações'
+  ]];
+  list.forEach(function(a){
+    var p = _pDe(a);
+    var dur = _duracao(a);
+    var meta = _metaDia(a);
+    aoa.push([
+      a.aid, a.cronograma_id, String(a.uid),
+      a.empresa || '', a.nome || '', a.wbs || '',
+      a.cwa || '', a.cwp || '', a.fase ? (FASE_LABELS[a.fase]||a.fase) : '',
+      L.fmtBr(a.inicio), L.fmtBr(a.termino), dur,
+      (p && p.unidade_medida) || '',
+      (p && p.qtd_prevista != null) ? Number(p.qtd_prevista) : '',
+      meta == null ? '' : Number(meta.toFixed(4)),
+      (p && p.obs) || ''
+    ]);
+  });
+  L.exportXlsx([{ nome:'Produtividade', aoa:aoa,
+    cols:[{wch:40},{wch:38},{wch:12},{wch:20},{wch:52},{wch:14},{wch:34},{wch:14},{wch:12},
+          {wch:11},{wch:11},{wch:10},{wch:14},{wch:14},{wch:16},{wch:30}] }],
+    'Produtividade_terceiras_' + L.stamp() + '.xlsx');
+});
+
+$('btnImp').addEventListener('click', function(){ $('fileImp').click(); });
+$('fileImp').addEventListener('change', function(){
+  var f = this.files[0]; if(!f) return;
+  L.ensureXLSX().then(function(X){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try {
+        var wb = X.read(new Uint8Array(e.target.result), { type:'array', cellDates:true });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = X.utils.sheet_to_json(ws, { defval:'', raw:true });
+        importarLinhas(rows);
+      } catch(err){ L.toast('Falha ao ler o arquivo: '+err.message,'warn'); }
+    };
+    reader.readAsArrayBuffer(f);
+  }).catch(function(err){ L.toast('Falha ao carregar SheetJS: '+err.message,'warn'); });
+  this.value = '';   // permite re-selecionar o mesmo arquivo
+});
+function importarLinhas(rows){
+  var byAid = {};
+  ATIV.forEach(function(a){ byAid[a.aid] = a; });
+  var pByKey = (REGRAS && REGRAS.produtByKey) || {};
+  var alterados = 0, ignorados = 0, novos = 0;
+  rows.forEach(function(r){
+    var aid = String(r['AID'] || '').trim();
+    if(!aid || !byAid[aid]){ ignorados++; return; }
+    var a = byAid[aid];
+    var un = String(r['Unidade de medida'] || '').trim();
+    var qtRaw = r['Qtd prevista'];
+    var qt = (qtRaw === '' || qtRaw == null) ? null
+           : Number(String(qtRaw).replace(',', '.'));
+    var obs = String(r['Observações'] || '').trim() || null;
+    if(!un && (qt == null || qt === 0)){ return; } // linha vazia, pula sem alarde
+    var atual = pByKey[a.cronograma_id + '::' + a.uid] || null;
+    var isDif = !atual
+      || (atual.unidade_medida || '') !== (un || '')
+      || (atual.qtd_prevista == null ? '' : String(atual.qtd_prevista)) !== (qt == null ? '' : String(qt))
+      || (atual.obs || '') !== (obs || '');
+    if(!isDif) return;
+    DIRTY[aid] = { unidade_medida: un || null, qtd_prevista: qt, obs: obs };
+    if(atual) alterados++; else novos++;
+  });
+  render();
+  atualizarDirtyBar();
+  L.toast('Importado: '+(novos+alterados)+' linha(s) alteradas ('+novos+' novas · '+alterados+' atualizadas), '+ignorados+' ignoradas.','ok');
+}
+
+/* ================= DATALIST de sugestões de unidade ================= */
+(function(){
+  var dl = document.createElement('datalist'); dl.id = 'unSug';
+  dl.innerHTML = UNIDADES_SUGERIDAS.map(function(u){ return '<option value="'+esc(u)+'">'; }).join('');
+  document.body.appendChild(dl);
+})();
+
+/* ================= EVENTOS ================= */
+$('q').addEventListener('input', render);
+['fEmpresa','fFase','fCwa','fProd','fVinc','fInclNaoExec'].forEach(function(id){
+  $(id).addEventListener('change', render);
+});
+
+load();
+})();
+</script>
+</body>
+</html>
