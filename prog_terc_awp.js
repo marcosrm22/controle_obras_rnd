@@ -40,15 +40,28 @@
                     .catch(function (e) { if (PT.isMissingTable(e)) return []; throw e; });
     var pNaoExec = PT.sbGetAll(PT.comUnidade('terc_nao_executavel?select=cronograma_id,terceira_uid,motivo'))
                     .catch(function (e) { if (PT.isMissingTable(e)) return []; throw e; });
+    var pProdut  = PT.sbGetAll(PT.comUnidade('terc_produtividade?select=cronograma_id,terceira_uid,unidade_medida,qtd_prevista,obs'))
+                    .catch(function (e) { if (PT.isMissingTable(e)) return []; throw e; });
 
-    return Promise.all([pGeral, pVinc, pNaoExec]).then(function (r) {
+    return Promise.all([pGeral, pVinc, pNaoExec, pProdut]).then(function (r) {
       var geral    = r[0] || [];
       var vinculos = r[1] || [];
       var naoExec  = r[2] || [];
+      var produt   = r[3] || [];
 
       // Set de "cronograma_id::terceira_uid" que não executa
       var naoExecKey = {};
       naoExec.forEach(function (n) { naoExecKey[n.cronograma_id + '::' + n.terceira_uid] = n.motivo || true; });
+
+      // Mapa "cronograma_id::terceira_uid" → { unidade_medida, qtd_prevista, obs }
+      var produtByKey = {};
+      produt.forEach(function (p) {
+        produtByKey[p.cronograma_id + '::' + p.terceira_uid] = {
+          unidade_medida: p.unidade_medida || null,
+          qtd_prevista:   p.qtd_prevista != null ? Number(p.qtd_prevista) : null,
+          obs:            p.obs || null
+        };
+      });
 
       // Índice geral por id
       var geralById = {};
@@ -142,11 +155,103 @@
           totalVinculos:     vinculos.length,
           vinculosOrfaos:    vinculosOrfaos,
           naoExecKey:        naoExecKey,
-          totalNaoExec:      naoExec.length
+          totalNaoExec:      naoExec.length,
+          produtByKey:       produtByKey,
+          totalProdut:       produt.length
         };
         return _cacheRegras;
       });
     });
+  }
+
+  /* ============ PRODUTIVIDADE — helpers ============ */
+  function produtividadeDe(a, regras) {
+    var R = regras || _cacheRegras;
+    if (!R || !R.produtByKey) return null;
+    return R.produtByKey[a.cronograma_id + '::' + a.uid] || null;
+  }
+  /* Meta/dia = qtd_prevista / dias_corridos_totais (baseline).
+     Se a atividade não tem produtividade cadastrada ou datas, retorna null. */
+  function metaPorDia(a, regras) {
+    var p = produtividadeDe(a, regras);
+    if (!p || p.qtd_prevista == null || !(+p.qtd_prevista > 0)) return null;
+    var d = _diasUteis(a);   // aqui é "dias corridos" (inicio-termino da baseline)
+    if (!d || d <= 0) return null;
+    return {
+      qtd_dia: (+p.qtd_prevista) / d,
+      unidade: p.unidade_medida || null,
+      dias:    d,
+      qtd_total: +p.qtd_prevista
+    };
+  }
+  /* Meta da semana = qtd_dia × (dias da semana que caem dentro da baseline).
+     Se a atividade não cobre parte da semana, retorna 0. */
+  function metaDaSemana(a, isoSegunda, regras) {
+    var m = metaPorDia(a, regras);
+    if (!m) return null;
+    var s = a.inicio, f = a.termino;
+    if (!s || !f) return null;
+    var segIni = new Date(isoSegunda);
+    var segFim = new Date(segIni.getTime() + 6 * 86400000);
+    var atvIni = new Date(s), atvFim = new Date(f);
+    if (segFim < atvIni || segIni > atvFim) return { qtd_semana: 0, dias_na_semana: 0, qtd_dia: m.qtd_dia, unidade: m.unidade };
+    var interIni = segIni > atvIni ? segIni : atvIni;
+    var interFim = segFim < atvFim ? segFim : atvFim;
+    var diasNaSem = Math.round((interFim - interIni) / 86400000) + 1;
+    return {
+      qtd_semana:      m.qtd_dia * diasNaSem,
+      dias_na_semana:  diasNaSem,
+      qtd_dia:         m.qtd_dia,
+      unidade:         m.unidade
+    };
+  }
+  /* Salva/atualiza em batch. items = [{cronograma_id, terceira_uid, terceira_wbs,
+     unidade_medida, qtd_prevista, obs}]. Upsert por (cronograma_id, terceira_uid). */
+  function salvarProdutividadeBatch(items) {
+    if (!items || !items.length) return Promise.resolve({ ok: 0 });
+    var payload = items.map(function (i) {
+      var p = {
+        cronograma_id: i.cronograma_id,
+        terceira_uid:  String(i.terceira_uid),
+        terceira_wbs:  i.terceira_wbs || null,
+        unidade_medida: i.unidade_medida || null,
+        qtd_prevista:  (i.qtd_prevista == null || i.qtd_prevista === '') ? null : Number(i.qtd_prevista),
+        obs:           i.obs || null,
+        criado_por:    PT.userNome(),
+        atualizado_em: new Date().toISOString()
+      };
+      if (typeof global.pcoComTag === 'function') p = global.pcoComTag(p);
+      else p.unidade = sessionStorage.getItem('pco_unidade') || 'RDN';
+      return p;
+    });
+    var CFG = global.PCO_CONFIG || {}, SB_URL = (CFG.supabase || {}).url, SB_KEY = (CFG.supabase || {}).key;
+    var qs = 'on_conflict=' + encodeURIComponent('cronograma_id,terceira_uid');
+    // envia em blocos de 200
+    var i = 0, size = 200;
+    function next() {
+      if (i >= payload.length) return Promise.resolve(payload.length);
+      var slice = payload.slice(i, i + size); i += size;
+      return fetch(SB_URL + '/rest/v1/terc_produtividade?' + qs, {
+        method: 'POST',
+        headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json',
+                   Prefer: 'return=representation,resolution=merge-duplicates' },
+        body: JSON.stringify(slice)
+      }).then(function (res) {
+        return res.text().then(function (txt) {
+          if (!res.ok) throw new Error(res.status + ': ' + txt.slice(0, 320));
+          // atualiza cache
+          if (_cacheRegras && _cacheRegras.produtByKey) {
+            slice.forEach(function (p) {
+              _cacheRegras.produtByKey[p.cronograma_id + '::' + p.terceira_uid] = {
+                unidade_medida: p.unidade_medida, qtd_prevista: p.qtd_prevista, obs: p.obs
+              };
+            });
+          }
+          return next();
+        });
+      });
+    }
+    return next().then(function (n) { return { ok: n }; });
   }
 
   /* ============ NÃO EXECUTÁVEIS ============ */
@@ -522,6 +627,11 @@
     // Modal split-view
     loadTarefasCronograma: loadTarefasCronograma,
     salvarVinculoUnico:    salvarVinculoUnico,
-    salvarVinculosBatch:   salvarVinculosBatch
+    salvarVinculosBatch:   salvarVinculosBatch,
+    // Produtividade (Fase 4)
+    produtividadeDe:       produtividadeDe,
+    metaPorDia:            metaPorDia,
+    metaDaSemana:          metaDaSemana,
+    salvarProdutividadeBatch: salvarProdutividadeBatch
   };
 })(window);
