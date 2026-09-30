@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cronogramas · Programação Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+  .src-note{font-size:11px}
+  .src-note b{color:var(--blue-dark)}
+  #selRow{align-items:flex-end}
+  #selRow .field{min-width:360px}
+  #selRow .field label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.4px;
+    text-transform:uppercase;color:var(--text-dim);margin-bottom:4px}
+  #selRow select{width:100%}
+  #cronMeta{white-space:nowrap;color:var(--text-dim)}
+  td.act-name{white-space:normal;vertical-align:top}
+  td.act-name .chev{display:inline-block;width:14px;cursor:pointer;color:var(--text-mute);
+    font-size:10px;text-align:center;user-select:none}
+  td.act-name .chev.leaf{cursor:default;color:transparent}
+  td.act-name .wbs-mono{font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px}
+  tr.summary-row{background:#fafbfc}
+  tr.summary-row td{border-top:1px solid var(--border-2)}
+  tr.summary-row td.act-name b{color:var(--blue-dark)}
+  tr.naoexec td{opacity:.55;background:#f5f5f7}
+  tr.naoexec td.act-name b{text-decoration:line-through}
+  .la-blk.sum{opacity:.55;border:1px dashed rgba(0,0,0,.28)}
+  /* Coluna Ações fixa à esquerda para não sumir ao rolar horizontal (padrão do Lookahead) */
+  table.grid thead th:first-child,
+  table.grid tbody td:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--border-2)}
+  table.grid thead th:first-child{background:var(--blue-soft);z-index:3}
+  table.grid tbody tr:hover td:first-child{background:#fafbfc}
+  table.grid tbody tr.naoexec td:first-child{background:#f5f5f7}
+  table.grid tbody td:first-child .btn.sm{margin:0 1px;padding:3px 6px}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+<script src="prog_terc_awp.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="notice src-note">
+    Escolha um <b>cronograma da terceira</b> para ver <b>todas as atividades</b>, inclusive as
+    atividades-resumo — abra e feche os níveis como no MS Project. Use <b>▶</b> para programar na
+    semana-base e <b>⚑</b> para registrar uma restrição <b>sem sair desta tela</b>. O trabalho de
+    vínculo com o cronograma geral continua sendo feito aos poucos pela tela de Lookahead.
+  </div>
+
+  <div class="toolbar no-print" id="selRow">
+    <div class="field">
+      <label>Cronograma da terceira</label>
+      <select id="selCron"><option value="">Selecione um cronograma…</option></select>
+    </div>
+    <span class="small" id="cronMeta"></span>
+  </div>
+
+  <div id="emptyState" class="notice">Selecione um cronograma acima para visualizar as atividades.</div>
+
+  <div id="cronArea" style="display:none">
+    <div class="toolbar no-print">
+      <div class="search"><input type="text" id="q" placeholder="Buscar atividade ou WBS…"></div>
+      <button class="btn sm" id="btnExpAll">▾ Expandir tudo</button>
+      <button class="btn sm" id="btnColAll">▸ Recolher tudo</button>
+      <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
+        <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
+      </label>
+      <button class="btn" id="btnXls">⤓ Excel</button>
+      <button class="btn" onclick="window.print()">⎙ PDF</button>
+    </div>
+
+    <div class="toolbar no-print" style="margin-top:-4px">
+      <button class="btn sm" id="wkPrev">← Semana anterior</button>
+      <input type="date" class="f" id="wkBase" style="max-width:160px">
+      <button class="btn sm" id="wkNext">Próxima semana →</button>
+      <button class="btn sm" id="wkHoje">Semana atual</button>
+      <select class="f" id="nWeeks">
+        <option value="4">Horizonte: 4 semanas</option>
+        <option value="6" selected>Horizonte: 6 semanas</option>
+        <option value="8">Horizonte: 8 semanas</option>
+        <option value="12">Horizonte: 12 semanas</option>
+      </select>
+      <span class="small muted" id="wkInfo"></span>
+    </div>
+
+    <div class="tablewrap">
+      <table class="grid">
+        <thead><tr id="headRow"></tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+    <div class="small muted" style="margin-top:10px" id="foot"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL DE RESTRIÇÃO (aparece nesta mesma tela, sem navegar) ===== -->
+<div class="modal" id="mR"><div class="modal-box wide">
+  <div class="modal-head">
+    <div><h3 id="mTitle">Nova restrição</h3>
+    <div class="mh-sub">Impedimento identificado no cronograma que precisa ser removido antes da programação</div></div>
+    <button class="modal-close" onclick="PT.closeModal('mR')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Descrição da restrição *</label>
+      <textarea id="rDesc" placeholder="Ex.: Frente de montagem do costado não liberada — obra civil da fundação em atraso"></textarea>
+    </div></div>
+    <div class="frow">
+      <div class="field"><label>Categoria *</label><select id="rCat"></select></div>
+      <div class="field"><label>Status</label><select id="rStatus"></select></div>
+      <div class="field"><label>Área</label><input id="rArea" placeholder="Área / frente"></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Atividade impactada (cronograma desta terceira)</label>
+      <select id="rAtiv"></select>
+      <div class="hint">Vincular a atividade faz a restrição aparecer aqui e no Lookahead, e bloquear a programação.</div>
+    </div></div>
+    <div class="frow">
+      <div class="field"><label>Responsável pela remoção *</label><input id="rResp" list="resps" placeholder="Nome"><datalist id="resps"></datalist></div>
+      <div class="field"><label>Setor</label><input id="rSetor" list="setores" placeholder="Suprimentos, Engenharia…"><datalist id="setores"></datalist></div>
+      <div class="field"><label>Empresa envolvida</label><input id="rEmp" list="empresas"><datalist id="empresas"></datalist></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Identificada em</label><input type="date" id="rIdent"></div>
+      <div class="field"><label>Necessária até *</label><input type="date" id="rNec">
+        <div class="hint">Data em que a restrição precisa estar removida para não atrasar a atividade.</div></div>
+      <div class="field"><label>Prometida para</label><input type="date" id="rProm"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Removida em</label><input type="date" id="rRem">
+        <div class="hint">Preencher marca automaticamente como removida.</div></div>
+      <div class="field"><label>Impacto se não removida</label><input id="rImp" placeholder="Ex.: paralisa 2 equipes por 5 dias"></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Ação / plano de remoção</label><textarea id="rAcao"></textarea></div></div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Observações</label><textarea id="rObs"></textarea></div></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
+    <span class="spacer"></span>
+    <button class="btn" id="btnRemover" style="display:none">✓ Marcar como removida</button>
+    <button class="btn" onclick="PT.closeModal('mR')">Cancelar</button>
+    <button class="btn solid" id="mSave">Salvar</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'cronogramas',
+  title:'Cronogramas das Terceiras',
+  subtitle:'Veja o cronograma completo de uma contratada — inclusive as atividades-resumo — antes de decidir o que entra no Lookahead'
+});
+
+var EDIT = L.canEdit();
+var SETORES = ['Suprimentos','Contratos','Engenharia','Projetos','Obra / Execução',
+               'Comissionamento','Qualidade','Segurança','Planejamento','Cliente','Contratada'];
+
+var CONTRATOS = [];
+var RESTR = [], PROG = [];
+var REGRAS = null;
+var SELECTED = null;      // contrato (val_cronogramas) atualmente selecionado
+var TAREFAS = [];         // tarefas_json bruto (inclui resumos) do cronograma selecionado
+var NOS = {}, NOS_BY_UID = {}, RAIZES = [];
+var COLLAPSED = {};       // { wbs: true } — nó recolhido
+var BASE = L.mondayOf(), NW = 6;
+var editandoRestr = null;
+$('wkBase').value = BASE;
+
+/* ================= WBS helpers ================= */
+function cmpWbs(a, b){
+  var pa = String(a).split('.').map(function(x){ return parseInt(x,10)||0; });
+  var pb = String(b).split('.').map(function(x){ return parseInt(x,10)||0; });
+  for(var i=0; i<Math.max(pa.length,pb.length); i++){ var d=(pa[i]||0)-(pb[i]||0); if(d!==0) return d; }
+  return 0;
+}
+
+/* ================= CARGA INICIAL ================= */
+function loadBase(){
+  return Promise.all([
+    L.sbGetAll(L.comUnidade('val_cronogramas?select=*&order=empresa.asc')),
+    L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=id,num,descricao,categoria,status,cronograma_id,terceira_uid,area,responsavel,data_necessidade&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true')),
+    (window.PTA ? PTA.loadRegras(true).catch(function(){ return null; }) : Promise.resolve(null))
+  ]).then(function(r){
+    CONTRATOS = r[0] || []; RESTR = r[1] || []; PROG = r[2] || []; REGRAS = r[3];
+    $('setup').style.display = 'none';
+    fillSelectCron();
+    fillSelectsModal();
+  }).catch(function(err){
+    if(L.isMissingTable(err)){
+      RESTR = []; PROG = [];
+      return L.sbGetAll(L.comUnidade('val_cronogramas?select=*&order=empresa.asc')).then(function(cs){
+        CONTRATOS = cs || [];
+        L.setupNotice('setup', err);
+        fillSelectCron(); fillSelectsModal();
+      });
+    }
+    L.setupNotice('setup', err);
+  });
+}
+
+function fillSelectCron(){
+  var cur = $('selCron').value;
+  $('selCron').innerHTML = '<option value="">Selecione um cronograma…</option>'
+    + CONTRATOS.map(function(c){
+        var label = (c.empresa||'—') + (c.escopo ? ' — ' + c.escopo : '') + (c.area ? ' (' + c.area + ')' : '');
+        return '<option value="'+esc(c.id)+'"'+(String(c.id)===cur?' selected':'')+'>'+esc(label)+'</option>';
+      }).join('');
+}
+
+function fillSelectsModal(){
+  $('rCat').innerHTML = L.RESTR_CATEGORIAS.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+  $('rStatus').innerHTML = L.RESTR_STATUS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
+  $('setores').innerHTML = SETORES.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('');
+  var emps = [];
+  CONTRATOS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  $('empresas').innerHTML = emps.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('');
+  var resps = [];
+  RESTR.forEach(function(r){ if(r.responsavel && resps.indexOf(r.responsavel) < 0) resps.push(r.responsavel); });
+  resps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  $('resps').innerHTML = resps.map(function(x){ return '<option value="'+esc(x)+'">'; }).join('');
+}
+
+/* ================= SELEÇÃO DE CRONOGRAMA ================= */
+$('selCron').addEventListener('change', function(){
+  var id = this.value;
+  if(!id){
+    SELECTED = null;
+    $('cronArea').style.display = 'none';
+    $('emptyState').style.display = '';
+    $('emptyState').innerHTML = 'Selecione um cronograma acima para visualizar as atividades.';
+    $('cronMeta').textContent = '';
+    return;
+  }
+  SELECTED = CONTRATOS.filter(function(c){ return String(c.id) === String(id); })[0] || null;
+  if(!SELECTED) return;
+  carregarCronograma();
+});
+
+function carregarCronograma(){
+  $('cronArea').style.display = 'none';
+  $('emptyState').style.display = '';
+  $('emptyState').innerHTML = '<span class="loading-line">Carregando árvore do cronograma…</span>';
+  if(!window.PTA){ $('emptyState').textContent = 'prog_terc_awp.js não carregado.'; return; }
+  Promise.all([
+    PTA.loadTarefasCronograma(SELECTED.id, true),
+    L.sb('GET', L.comUnidade('val_revisoes?cronograma_id=eq.'+SELECTED.id
+      +'&tarefas_json=not.is.null&select=revisao,rotulo,data_corte&order=revisao.desc&limit=1'))
+  ]).then(function(r){
+    TAREFAS = r[0] || [];
+    var rev = (r[1] && r[1][0]) || null;
+    construirArvore();
+    montarMeta(rev);
+    fillAtivSelect();
+    COLLAPSED = {};
+    $('emptyState').style.display = 'none';
+    $('cronArea').style.display = '';
+    render();
+  }).catch(function(err){
+    $('emptyState').innerHTML = '<div class="big">⚠️</div>Falha ao carregar o cronograma: ' + esc(err.message);
+  });
+}
+
+function montarMeta(rev){
+  var ativos = TAREFAS.filter(function(t){ return t.active !== false; }).length;
+  $('cronMeta').innerHTML = TAREFAS.length
+    ? (ativos + ' atividade(s) ativa(s) · revisão ' + esc(rev ? (rev.rotulo || ('#'+rev.revisao)) : '—')
+       + (rev && rev.data_corte ? ' · corte em ' + L.fmtBr(rev.data_corte) : ''))
+    : 'Este contrato ainda não tem revisão com detalhe de tarefas.';
+}
+
+/* ================= ÁRVORE (resumos + folhas) ================= */
+function construirArvore(){
+  NOS = {}; NOS_BY_UID = {}; RAIZES = [];
+  TAREFAS.forEach(function(t){
+    if(!t.wbs || t.active === false) return;
+    var w = String(t.wbs);
+    var no = { uid: String(t.uid), wbs: w, name: t.name || '(sem nome)', summary: !!t.summary, t: t, filhos: [] };
+    NOS[w] = no;
+    NOS_BY_UID[no.uid] = no;
+  });
+  Object.keys(NOS).forEach(function(w){
+    var no = NOS[w];
+    var ix = w.lastIndexOf('.');
+    var wpai = ix > 0 ? w.slice(0,ix) : null;
+    while(wpai){
+      if(NOS[wpai]){ NOS[wpai].filhos.push(no); return; }
+      var ix2 = wpai.lastIndexOf('.');
+      wpai = ix2 > 0 ? wpai.slice(0,ix2) : null;
+    }
+    RAIZES.push(no);
+  });
+  RAIZES.sort(function(a,b){ return cmpWbs(a.wbs,b.wbs); });
+  Object.keys(NOS).forEach(function(w){ NOS[w].filhos.sort(function(a,b){ return cmpWbs(a.wbs,b.wbs); }); });
+}
+
+function fillAtivSelect(){
+  var folhas = Object.keys(NOS).map(function(w){ return NOS[w]; })
+    .filter(function(no){ return !no.summary; })
+    .sort(function(a,b){ return cmpWbs(a.wbs,b.wbs); });
+  $('rAtiv').innerHTML = '<option value="">— nenhuma atividade específica —</option>'
+    + folhas.map(function(no){
+        var label = (no.wbs ? 'WBS ' + no.wbs + ' · ' : '') + no.name;
+        return '<option value="'+esc(no.uid)+'">'+esc(label).slice(0,140)+'</option>';
+      }).join('');
+}
+
+/* ================= RESTRIÇÕES / PROGRAMAÇÃO (por atividade) ================= */
+function restrDe(t){
+  if(!SELECTED) return [];
+  return RESTR.filter(function(r){
+    return r.cronograma_id === SELECTED.id && String(r.terceira_uid) === String(t.uid)
+        && (r.status === 'Aberta' || r.status === 'Em tratativa');
+  });
+}
+function jaProgramada(t){
+  if(!SELECTED) return false;
+  return PROG.some(function(p){
+    return p.cronograma_id === SELECTED.id && String(p.terceira_uid) === String(t.uid)
+        && String(p.semana).slice(0,10) === BASE;
+  });
+}
+function isNaoExec(t){
+  return !!(window.PTA && REGRAS && PTA.isNaoExecutavel(SELECTED.id, t.uid, REGRAS));
+}
+
+/* ================= SEMANAS ================= */
+function weeks(){
+  var out = [];
+  for(var i = 0; i < NW; i++){
+    var ini = L.addDays(BASE, i*7);
+    out.push({ ini:ini, fim:L.addDays(ini,6), label:L.weekLabel(ini), rng:L.weekRangeLabel(ini) });
+  }
+  return out;
+}
+
+/* ================= BUSCA / VISIBILIDADE DA ÁRVORE ================= */
+function termoBusca(){ return L.deacc(($('q').value || '').trim()); }
+function noCasa(no, termo){
+  return L.deacc(no.name).indexOf(termo) > -1 || L.deacc(no.wbs).indexOf(termo) > -1;
+}
+function calcularManterBusca(termo){
+  var manter = {};
+  function walk(no){
+    var self = noCasa(no, termo);
+    var algumFilho = false;
+    no.filhos.forEach(function(f){ if(walk(f)) algumFilho = true; });
+    if(self || algumFilho){ manter[no.wbs] = true; return true; }
+    return false;
+  }
+  RAIZES.forEach(walk);
+  return manter;
+}
+function linhasVisiveis(){
+  var termo = termoBusca(), buscando = !!termo;
+  var manter = buscando ? calcularManterBusca(termo) : null;
+  var inclNE = $('fInclNaoExec').checked;
+  var out = [];
+  function walk(no, depth){
+    if(buscando && !manter[no.wbs]) return;
+    if(!inclNE && !no.summary && isNaoExec(no.t)) return;
+    out.push({ no:no, depth:depth });
+    var aberto = buscando ? true : !COLLAPSED[no.wbs];
+    if(aberto) no.filhos.forEach(function(f){ walk(f, depth+1); });
+  }
+  RAIZES.forEach(function(no){ walk(no, 0); });
+  return out;
+}
+
+/* ================= RENDER ================= */
+function render(){
+  if(!SELECTED) return;
+  var wks = weeks();
+  var hoje = L.mondayOf();
+
+  var head = [];
+  if(EDIT) head.push('<th class="ctr no-print" style="width:80px;min-width:80px">Ações</th>');
+  head.push(
+    '<th class="act-name" style="min-width:320px">Atividade</th>',
+    '<th class="ctr" style="min-width:90px">LB Início</th>',
+    '<th class="ctr" style="min-width:90px">LB Término</th>',
+    '<th class="ctr" style="min-width:90px">Início</th>',
+    '<th class="ctr" style="min-width:90px">Término</th>',
+    '<th class="ctr" style="min-width:82px">% Previsto</th>',
+    '<th class="ctr" style="min-width:88px">% Concluído</th>');
+  wks.forEach(function(w){
+    head.push('<th class="ctr la-wk la-week-hd'+(w.ini===hoje?' cur':'')+'">'
+      + w.label + '<small>' + w.rng + '</small></th>');
+  });
+  $('headRow').innerHTML = head.join('');
+
+  var linhas = linhasVisiveis();
+  var ncols = 7 + wks.length + (EDIT?1:0);
+
+  $('tb').innerHTML = linhas.map(function(item){ return renderRow(item.no, item.depth, wks); }).join('')
+    || '<tr><td colspan="'+ncols+'" class="empty"><div class="big">▤</div>Nenhuma atividade encontrada com esse filtro.</td></tr>';
+
+  wireRowEvents();
+
+  $('wkInfo').innerHTML = 'Janela: <b>' + L.fmtBr(BASE) + '</b> a <b>' + L.fmtBr(wks[wks.length-1].fim) + '</b>';
+  $('foot').textContent = linhas.length + ' linha(s) exibida(s) de ' + Object.keys(NOS).length + ' no cronograma';
+}
+
+function renderRow(no, depth, wks){
+  var t = no.t, isSum = no.summary;
+  var isNE = !isSum && isNaoExec(t);
+  var rs = isSum ? [] : restrDe(t);
+  var atrasada = L.estaAtrasada(t);
+  var exec = L.classificar(t);
+  var ini = L.refIni(t), fim = L.refFim(t);
+
+  var cells = wks.map(function(w){
+    var on = ini && fim && !(fim < w.ini || ini > w.fim);
+    if(!on) return '<td class="la-cell"></td>';
+    var cls = exec === 'concluida' ? 'done' : (atrasada ? 'late' : (exec === 'execucao' ? 'wip' : 'plan'));
+    return '<td class="la-cell"><span class="la-blk '+cls+(isSum?' sum':'')+'">'
+      + (exec === 'concluida' ? '✓' : (rs.length ? '⚑' : '')) + '</span></td>';
+  }).join('');
+
+  var E = (t.E == null ? (t.pct || 0) : t.E);
+  var F = (t.F == null ? null : t.F);
+
+  var chev = no.filhos.length
+    ? '<span class="chev" data-tw="'+esc(no.wbs)+'">'+(COLLAPSED[no.wbs] ? '▸' : '▾')+'</span>'
+    : '<span class="chev leaf">·</span>';
+
+  var pillStatus = isSum ? ''
+    : (exec === 'concluida' ? '<span class="pill g">Concluída</span>'
+      : atrasada ? '<span class="pill r">Atrasada</span>'
+      : exec === 'execucao' ? '<span class="pill b">Em execução</span>'
+      : '<span class="pill n">Futura</span>');
+  var pillRestr = (!isSum && rs.length)
+    ? ' <span class="pill '+(rs.length>2?'r':'y')+'" title="'+esc(rs.map(function(r){return r.descricao;}).join(' | '))+'">⚑ '+rs.length+'</span>' : '';
+  var pillNE = isNE ? ' <span class="pill n">não executável</span>' : '';
+
+  var actionsCell = EDIT ? ('<td class="ctr no-print nowrap" style="white-space:nowrap">'
+    + (isSum ? '' :
+        '<button class="btn sm" data-restr="'+esc(no.uid)+'" title="Registrar restrição">⚑</button>'
+        + '<button class="btn sm" data-prog="'+esc(no.uid)+'" title="Programar na semana-base"'
+        + ((jaProgramada(t)||isNE) ? ' disabled' : '') + '>▶</button>')
+    + '</td>') : '';
+
+  return '<tr'+(isSum ? ' class="summary-row"' : (isNE ? ' class="naoexec"' : ''))+'>'
+    + actionsCell
+    + '<td class="act-name" style="padding-left:'+(depth*16+6)+'px">'
+      + chev
+      + (no.wbs ? '<span class="wbs-mono">'+esc(no.wbs)+'</span> ' : '')
+      + '<b>'+esc(no.name)+'</b>'
+      + '<div class="small">'+pillStatus+pillRestr+pillNE+'</div>'
+    + '</td>'
+    + '<td class="ctr">'+L.fmtBrDash(t.lbStart)+'</td>'
+    + '<td class="ctr">'+L.fmtBrDash(t.lbFinish)+'</td>'
+    + '<td class="ctr">'+L.fmtBrDash(t.start)+'</td>'
+    + '<td class="ctr'+(atrasada && !isSum ? '" style="color:var(--terracota);font-weight:700' : '')+'">'+L.fmtBrDash(t.finish)+'</td>'
+    + '<td class="ctr">'+(F == null ? '—' : nf(F,0)+'%')+'</td>'
+    + '<td class="ctr">'+nf(E,0)+'%</td>'
+    + cells
+    + '</tr>';
+}
+
+function wireRowEvents(){
+  document.querySelectorAll('.chev[data-tw]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var w = el.getAttribute('data-tw');
+      COLLAPSED[w] = !COLLAPSED[w];
+      render();
+    });
+  });
+  document.querySelectorAll('button[data-prog]').forEach(function(b){
+    b.addEventListener('click', function(){ programar(b.dataset.prog); });
+  });
+  document.querySelectorAll('button[data-restr]').forEach(function(b){
+    b.addEventListener('click', function(){ abrirRestricao(b.dataset.restr); });
+  });
+}
+
+/* ================= EXPANDIR / RECOLHER ================= */
+$('btnExpAll').addEventListener('click', function(){ COLLAPSED = {}; render(); });
+$('btnColAll').addEventListener('click', function(){
+  COLLAPSED = {};
+  Object.keys(NOS).forEach(function(w){ if(NOS[w].filhos.length) COLLAPSED[w] = true; });
+  render();
+});
+
+/* ================= PROGRAMAR NA SEMANA ================= */
+function programar(uid){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var no = NOS_BY_UID[String(uid)]; if(!no) return;
+  var t = no.t;
+  var rs = restrDe(t);
+  if(rs.length && !confirm('Esta atividade tem ' + rs.length + ' restrição(ões) aberta(s):\n\n'
+      + rs.map(function(r){ return '• ' + r.descricao; }).join('\n')
+      + '\n\nNo LPS, o correto é remover a restrição antes de programar.\nProgramar mesmo assim?')) return;
+
+  L.sb('POST','prog_terc_programacao', L.comTag({
+    semana: BASE,
+    cronograma_id: SELECTED.id,
+    terceira_uid: String(t.uid),
+    terceira_wbs: t.wbs || null,
+    descricao: t.name,
+    area: SELECTED.area || null, empresa: SELECTED.empresa || null, disciplina: SELECTED.disciplina || null,
+    coluna: 'programada', criado_por: L.userNome()
+  })).then(function(){
+    L.toast('Atividade programada na semana de ' + L.fmtBr(BASE) + '.','ok');
+    return recarregarProgRestr();
+  }).catch(function(e){
+    if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para habilitar a programação.','warn');
+    else L.toast('Erro: '+e.message,'warn');
+  });
+}
+
+function recarregarProgRestr(){
+  return Promise.all([
+    L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=id,num,descricao,categoria,status,cronograma_id,terceira_uid,area,responsavel,data_necessidade&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true'))
+  ]).then(function(r){ RESTR = r[0] || []; PROG = r[1] || []; render(); });
+}
+
+/* ================= RESTRIÇÃO — modal embutido nesta tela ================= */
+function onAtivChange(){
+  var uid = $('rAtiv').value;
+  var no = NOS_BY_UID[uid];
+  if(!$('rEmp').value && SELECTED && SELECTED.empresa) $('rEmp').value = SELECTED.empresa;
+  if(!$('rArea').value && SELECTED && SELECTED.area) $('rArea').value = SELECTED.area;
+  if(no && !$('rNec').value){
+    var ini = L.refIni(no.t);
+    if(ini) $('rNec').value = L.addDays(ini, -7);
+  }
+}
+$('rAtiv').addEventListener('change', onAtivChange);
+
+function abrirRestricao(uid){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var no = NOS_BY_UID[String(uid)]; if(!no) return;
+  var abertas = restrDe(no.t);
+  abrirModalRestr(abertas.length === 1 ? abertas[0] : null, no);
+}
+
+function abrirModalRestr(r, no){
+  editandoRestr = r || null;
+  $('mTitle').textContent = editandoRestr ? 'Restrição #' + (editandoRestr.num || '') : 'Nova restrição';
+  $('mDel').style.display = editandoRestr ? '' : 'none';
+  $('btnRemover').style.display = (editandoRestr
+    && (editandoRestr.status === 'Aberta' || editandoRestr.status === 'Em tratativa') && EDIT) ? '' : 'none';
+  var r0 = editandoRestr || {};
+  $('rDesc').value = r0.descricao || '';
+  $('rCat').value = r0.categoria || L.RESTR_CATEGORIAS[0];
+  $('rArea').value = r0.area || '';
+  $('rStatus').value = r0.status || 'Aberta';
+  $('rAtiv').value = editandoRestr ? String(editandoRestr.terceira_uid || '') : (no ? String(no.uid) : '');
+  $('rResp').value = r0.responsavel || '';
+  $('rSetor').value = r0.setor || '';
+  $('rEmp').value = r0.empresa || '';
+  $('rIdent').value = r0.data_identificacao || L.todayISO();
+  $('rNec').value = r0.data_necessidade || '';
+  $('rProm').value = r0.data_prometida || '';
+  $('rRem').value = r0.data_remocao || '';
+  $('rImp').value = r0.impacto || '';
+  $('rAcao').value = r0.acao || '';
+  $('rObs').value = r0.obs || '';
+  if(!editandoRestr) onAtivChange();
+  L.openModal('mR');
+}
+
+function proximoNum(){
+  var m = 0;
+  RESTR.forEach(function(r){ if((r.num||0) > m) m = r.num; });
+  return m + 1;
+}
+
+function coletarRestr(){
+  var d = $('rDesc').value.trim();
+  if(!d){ L.toast('Descreva a restrição.','warn'); return null; }
+  if(!$('rResp').value.trim()){ L.toast('Informe o responsável pela remoção.','warn'); return null; }
+  if(!$('rNec').value){ L.toast('Informe até quando a restrição precisa ser removida.','warn'); return null; }
+
+  var uid = $('rAtiv').value;
+  var no = uid ? NOS_BY_UID[uid] : null;
+  var body = {
+    descricao: d,
+    categoria: $('rCat').value,
+    area: $('rArea').value.trim() || (SELECTED ? SELECTED.area : null) || null,
+    status: $('rStatus').value,
+    cronograma_id: no ? SELECTED.id : null,
+    terceira_uid: no ? String(no.uid) : null,
+    terceira_nome: no ? no.name : null,
+    terceira_wbs: no ? (no.wbs || null) : null,
+    responsavel: $('rResp').value.trim(),
+    setor: $('rSetor').value.trim() || null,
+    empresa: $('rEmp').value.trim() || (SELECTED ? SELECTED.empresa : null) || null,
+    data_identificacao: $('rIdent').value || L.todayISO(),
+    data_necessidade: $('rNec').value || null,
+    data_prometida: $('rProm').value || null,
+    data_remocao: $('rRem').value || null,
+    impacto: $('rImp').value.trim() || null,
+    acao: $('rAcao').value.trim() || null,
+    obs: $('rObs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+  if(body.data_remocao && body.status !== 'Cancelada') body.status = 'Removida';
+  if(!body.data_remocao && body.status === 'Removida') body.data_remocao = L.todayISO();
+  return body;
+}
+
+$('mSave').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var body = coletarRestr();
+  if(!body) return;
+  var p = editandoRestr
+    ? L.sb('PATCH','prog_terc_restricoes?id=eq.'+editandoRestr.id, body)
+    : L.sb('POST','prog_terc_restricoes', L.comTag(Object.assign(body,
+        { num: proximoNum(), criado_por: L.userNome() })));
+  p.then(function(){
+    L.closeModal('mR'); L.toast('Restrição salva.','ok');
+    return recarregarProgRestr();
+  }).catch(function(e){
+    if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para criar as tabelas.','warn');
+    else L.toast('Erro ao salvar: '+e.message,'warn');
+  });
+});
+
+$('btnRemover').addEventListener('click', function(){
+  if(!editandoRestr || !EDIT) return;
+  L.sb('PATCH','prog_terc_restricoes?id=eq.'+editandoRestr.id, {
+    status:'Removida', data_remocao:L.todayISO(), atualizado_em:new Date().toISOString()
+  }).then(function(){
+    L.closeModal('mR'); L.toast('Restrição removida em ' + L.fmtBr(L.todayISO()) + '.','ok');
+    return recarregarProgRestr();
+  }).catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+
+$('mDel').addEventListener('click', function(){
+  if(!editandoRestr || !EDIT) return;
+  if(!confirm('Excluir a restrição #'+(editandoRestr.num||'')+'?')) return;
+  L.sb('PATCH','prog_terc_restricoes?id=eq.'+editandoRestr.id,{ativo:false})
+    .then(function(){ L.closeModal('mR'); L.toast('Restrição excluída.','ok'); return recarregarProgRestr(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+L.wireModal('mR');
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  if(!SELECTED) return;
+  var wks = weeks();
+  var head = ['WBS','Nível','Tipo','Atividade','LB Início','LB Término','Início','Término',
+              '% Previsto','% Concluído','Restrições abertas'];
+  wks.forEach(function(w){ head.push(w.label + ' (' + w.rng + ')'); });
+  var aoa = [head];
+  function walk(no, depth){
+    var t = no.t;
+    var E = (t.E == null ? (t.pct || 0) : t.E), F = (t.F == null ? null : t.F);
+    var row = [no.wbs, depth, no.summary ? 'Resumo' : 'Atividade',
+      new Array(depth+1).join('  ') + no.name,
+      L.fmtBr(t.lbStart), L.fmtBr(t.lbFinish), L.fmtBr(t.start), L.fmtBr(t.finish),
+      F == null ? '' : F, E, no.summary ? 0 : restrDe(t).length];
+    var ini = L.refIni(t), fim = L.refFim(t);
+    wks.forEach(function(w){ row.push((ini && fim && !(fim < w.ini || ini > w.fim)) ? 'X' : ''); });
+    aoa.push(row);
+    no.filhos.forEach(function(f){ walk(f, depth+1); });
+  }
+  RAIZES.forEach(function(no){ walk(no, 0); });
+  L.exportXlsx([{ nome:'Cronograma', aoa:aoa,
+    cols:[{wch:12},{wch:6},{wch:9},{wch:56},{wch:11},{wch:11},{wch:11},{wch:11},{wch:10},{wch:11},{wch:15}] }],
+    'ProgTerc_cronograma_' + (SELECTED.empresa||'contrato').replace(/[^a-z0-9]+/gi,'_') + '_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS GERAIS ================= */
+$('q').addEventListener('input', render);
+$('fInclNaoExec').addEventListener('change', render);
+$('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
+$('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+
+loadBase();
+})();
+</script>
+</body>
+</html>
