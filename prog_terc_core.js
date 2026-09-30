@@ -41,6 +41,7 @@
   var MOD_TITLE = 'Programação Semanal · Terceiras';
 
   var PAGES = [
+    { href: 'prog_terc_cronogramas.html',    key: 'cronogramas',   ic: '▦', label: 'Cronogramas' },
     { href: 'prog_terc_lookahead.html',      key: 'lookahead',     ic: '▶', label: 'Lookahead' },
     { href: 'prog_terc_restricoes.html',     key: 'restricoes',    ic: '⚑', label: 'Restrições' },
     { href: 'prog_terc_semanal.html',        key: 'semanal',       ic: '▥', label: 'Programação Semanal' },
