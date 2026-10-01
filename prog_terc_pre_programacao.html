@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pré-Programação · Programação Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+  .pill.prog{background:var(--teal-soft,#e0f2f1);color:var(--teal,#007D77);border-color:#8fcfcb}
+  tr.sel td{background:var(--blue-soft)}
+  td.qtd-cell{font-family:var(--mono);font-weight:700}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="notice src-note">
+    Fila de validação entre a tela de <b>Cronogramas</b> e a <b>Programação Semanal</b>. Toda atividade
+    enviada por lá (botão <b>▶ Programar</b>) cai primeiro aqui. Revise, <b>remova</b> o que não deve
+    entrar e, quando a lista estiver correta, use <b>✓ Validar todos</b> para jogar o restante (o que
+    estiver visível com os filtros atuais) direto para a Programação Semanal.
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <div class="search"><input type="text" id="q" placeholder="Buscar atividade, empresa, área…"></div>
+    <select class="f" id="fSemana"><option value="">Todas as semanas</option></select>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fSort">
+      <option value="semana">Ordenar por semana</option>
+      <option value="empresa">Ordenar por empresa</option>
+      <option value="criado">Ordenar por data de criação</option>
+    </select>
+    <button class="btn solid" id="btnValidar">✓ Validar todos</button>
+    <button class="btn" id="btnXls">⤓ Excel</button>
+  </div>
+
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr>
+        <th class="ctr" style="min-width:96px">Semana</th>
+        <th style="min-width:110px">Empresa</th>
+        <th style="min-width:280px">Atividade</th>
+        <th style="min-width:110px">Área</th>
+        <th style="min-width:110px">Disciplina</th>
+        <th class="ctr" style="min-width:70px">Un</th>
+        <th class="ctr" style="min-width:90px">Qtd. Programada</th>
+        <th style="min-width:120px">Criado por</th>
+        <th class="ctr" style="min-width:90px">Criado em</th>
+        <th class="ctr no-print" style="width:70px"></th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="10" class="loading-line">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="small muted" style="margin-top:10px" id="foot"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'pre_programacao',
+  title:'Pré-Programação',
+  subtitle:'Atividades enviadas da tela de Cronogramas, aguardando validação antes de entrar na Programação Semanal'
+});
+
+var EDIT = L.canEdit();
+var DADOS = [];
+
+/* ================= CARGA ================= */
+function load(){
+  return L.sbGetAll(L.comUnidade('prog_terc_pre_programacao?select=*&ativo=eq.true&order=semana.asc'))
+    .then(function(r){
+      DADOS = r || [];
+      $('setup').style.display = 'none';
+      fillSelects();
+      render();
+    }).catch(function(err){
+      if(L.isMissingTable(err)){
+        DADOS = [];
+        L.setupNotice('setup', err);
+        fillSelects(); render();
+        return;
+      }
+      L.setupNotice('setup', err);
+      $('tb').innerHTML = '<tr><td colspan="10" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+    });
+}
+
+function fillSelects(){
+  var semanas = [];
+  DADOS.forEach(function(r){ var s = String(r.semana).slice(0,10); if(semanas.indexOf(s) < 0) semanas.push(s); });
+  semanas.sort();
+  var cs = $('fSemana').value;
+  $('fSemana').innerHTML = '<option value="">Todas as semanas</option>'
+    + semanas.map(function(s){ return '<option'+(s===cs?' selected':'')+' value="'+esc(s)+'">semana de '+esc(L.fmtBr(s))+'</option>'; }).join('');
+
+  var emps = [];
+  DADOS.forEach(function(r){ if(r.empresa && emps.indexOf(r.empresa) < 0) emps.push(r.empresa); });
+  emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var ce = $('fEmpresa').value;
+  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
+    + emps.map(function(e){ return '<option'+(e===ce?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+}
+
+/* ================= FILTRO ================= */
+function visiveis(){
+  var q = L.deacc($('q').value), fs = $('fSemana').value, fe = $('fEmpresa').value, srt = $('fSort').value;
+  var out = DADOS.filter(function(r){
+    if(fs && String(r.semana).slice(0,10) !== fs) return false;
+    if(fe && r.empresa !== fe) return false;
+    if(!q) return true;
+    return L.deacc([r.descricao,r.empresa,r.area,r.disciplina,r.terceira_wbs].join(' ')).indexOf(q) > -1;
+  });
+  out.sort(function(a,b){
+    if(srt === 'empresa') return (a.empresa||'').localeCompare(b.empresa||'','pt-BR') || String(a.semana).localeCompare(String(b.semana));
+    if(srt === 'criado') return String(b.criado_em||'').localeCompare(String(a.criado_em||''));
+    return String(a.semana).localeCompare(String(b.semana)) || (a.empresa||'').localeCompare(b.empresa||'','pt-BR');
+  });
+  return out;
+}
+
+/* ================= RENDER ================= */
+function render(){ renderKpis(); renderLista(); }
+
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+function renderKpis(){
+  var emps = [];
+  DADOS.forEach(function(r){ if(r.empresa && emps.indexOf(r.empresa) < 0) emps.push(r.empresa); });
+  var semanas = [];
+  DADOS.forEach(function(r){ var s = String(r.semana).slice(0,10); if(semanas.indexOf(s) < 0) semanas.push(s); });
+  var semQtd = DADOS.filter(function(r){ return r.qtd_prog == null || !r.un; });
+
+  $('kpis').innerHTML =
+    kpi('b-blue', DADOS.length, 'Na fila', 'aguardando validação') +
+    kpi('b-violet', emps.length, 'Empresas', 'envolvidas na fila') +
+    kpi('b-gray', semanas.length, 'Semanas', 'com itens pendentes') +
+    kpi('b-gold', semQtd.length, 'Sem quantidade', 'un./qtd. não preenchidas');
+}
+
+function renderLista(){
+  var vis = visiveis();
+  $('tb').innerHTML = vis.map(function(r){
+    return '<tr data-row="'+r.id+'">'
+      + '<td class="ctr">'+esc(L.fmtBr(r.semana))+'</td>'
+      + '<td class="small"><b>'+esc(r.empresa||'—')+'</b></td>'
+      + '<td class="small">'+(r.terceira_wbs ? '<span class="wbs-mono" style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(r.terceira_wbs)+'</span>' : '')+esc(r.descricao||'—')+'</td>'
+      + '<td class="small">'+esc(r.area||'—')+'</td>'
+      + '<td class="small">'+esc(r.disciplina||'—')+'</td>'
+      + '<td class="ctr">'+esc(r.un||'—')+'</td>'
+      + '<td class="ctr qtd-cell">'+(r.qtd_prog==null?'—':nf(r.qtd_prog,2))+'</td>'
+      + '<td class="small">'+esc(r.criado_por||'—')+'</td>'
+      + '<td class="ctr small">'+L.fmtBrDash(r.criado_em)+'</td>'
+      + '<td class="ctr no-print">'+(EDIT ? '<button class="btn sm" data-rm="'+r.id+'" title="Remover da pré-programação">🗑</button>' : '')+'</td>'
+      + '</tr>';
+  }).join('') || '<tr><td colspan="10" class="empty"><div class="big">☑</div>'
+      + 'Nenhuma atividade na pré-programação com esses filtros.'
+      + '<br><span class="small">Use o botão <b>▶ Programar</b> na tela de Cronogramas para enviar atividades pra cá.</span>'
+      + '</td></tr>';
+
+  document.querySelectorAll('button[data-rm]').forEach(function(b){
+    b.addEventListener('click', function(){ remover(+b.dataset.rm); });
+  });
+  $('foot').textContent = vis.length + ' de ' + DADOS.length + ' atividade(s) na fila';
+}
+
+/* ================= AÇÕES ================= */
+function remover(id){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  if(!confirm('Remover esta atividade da pré-programação?')) return;
+  L.sb('PATCH','prog_terc_pre_programacao?id=eq.'+id, {ativo:false})
+    .then(function(){ L.toast('Removida da pré-programação.','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+}
+
+function validarTodos(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var vis = visiveis();
+  if(!vis.length){ L.toast('Nada para validar com os filtros atuais.','warn'); return; }
+  if(!confirm('Validar ' + vis.length + ' atividade(s) visível(is) e enviar para a Programação Semanal?')) return;
+
+  var inserts = vis.map(function(r){
+    return L.comTag({
+      semana: r.semana,
+      cronograma_id: r.cronograma_id,
+      terceira_uid: r.terceira_uid,
+      terceira_wbs: r.terceira_wbs,
+      descricao: r.descricao,
+      area: r.area, empresa: r.empresa, disciplina: r.disciplina,
+      qtd_prog: r.qtd_prog, un: r.un,
+      coluna: 'programada',
+      criado_por: L.userNome()
+    });
+  });
+
+  L.sbInsertChunked('prog_terc_programacao', inserts)
+    .then(function(){
+      return Promise.all(vis.map(function(r){
+        return L.sb('PATCH','prog_terc_pre_programacao?id=eq.'+r.id, {ativo:false});
+      }));
+    })
+    .then(function(){
+      L.toast(vis.length + ' atividade(s) validada(s) e enviada(s) para a Programação Semanal.','ok');
+      return load();
+    })
+    .catch(function(e){
+      if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para habilitar a Programação Semanal.','warn');
+      else L.toast('Erro ao validar: '+e.message,'warn');
+    });
+}
+$('btnValidar').addEventListener('click', validarTodos);
+if(!EDIT) $('btnValidar').style.display = 'none';
+
+/* ================= EXPORT ================= */
+$('btnXls').addEventListener('click', function(){
+  var aoa = [['Semana','Empresa','WBS','Atividade','Área','Disciplina','Un','Qtd. Programada','Criado por','Criado em']];
+  visiveis().forEach(function(r){
+    aoa.push([L.fmtBr(r.semana), r.empresa, r.terceira_wbs, r.descricao, r.area, r.disciplina,
+      r.un, r.qtd_prog, r.criado_por, L.fmtBr(r.criado_em)]);
+  });
+  L.exportXlsx([{ nome:'Pré-Programação', aoa:aoa,
+    cols:[{wch:12},{wch:20},{wch:12},{wch:48},{wch:14},{wch:14},{wch:8},{wch:14},{wch:18},{wch:12}] }],
+    'ProgTerc_pre_programacao_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+$('q').addEventListener('input', renderLista);
+['fSemana','fEmpresa','fSort'].forEach(function(id){ $(id).addEventListener('change', renderLista); });
+
+load();
+})();
+</script>
+</body>
+</html>
