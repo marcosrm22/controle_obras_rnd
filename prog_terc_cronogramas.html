@@ -35,6 +35,11 @@
   tr.naoexec td{opacity:.55;background:#f5f5f7}
   tr.naoexec td.act-name b{text-decoration:line-through}
   .la-blk.sum{opacity:.55;border:1px dashed rgba(0,0,0,.28)}
+  .qty-in{font:inherit;font-size:12px;padding:3px 4px;border:1px solid var(--border-2);border-radius:3px;
+    width:64px;text-align:center;background:#fff}
+  .qty-in:disabled{background:#f5f5f7;color:var(--text-mute)}
+  .qty-in:focus{outline:2px solid var(--blue);outline-offset:-1px}
+  .pill.prog{background:var(--teal-soft,#e0f2f1);color:var(--teal,#007D77);border-color:#8fcfcb}
   /* Coluna Ações fixa à esquerda para não sumir ao rolar horizontal (padrão do Lookahead) */
   table.grid thead th:first-child,
   table.grid tbody td:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--border-2)}
@@ -57,9 +62,11 @@
     Escolha um <b>cronograma da terceira</b> para ver <b>todas as atividades</b>, inclusive as
     atividades-resumo — abra e feche os níveis como no MS Project (clique no ▾ ou dê duplo clique na
     linha do resumo). Por padrão mostramos só o <b>foco</b>: atividades atrasadas e as previstas para a
-    próxima semana — use o filtro abaixo para ver tudo. Use <b>▶</b> para programar na semana-base e
-    <b>⚑</b> para registrar uma restrição <b>sem sair desta tela</b>. O trabalho de vínculo com o
-    cronograma geral continua sendo feito aos poucos pela tela de Lookahead.
+    próxima semana — use o filtro abaixo para ver tudo. Preencha <b>Unidade</b>, <b>Qtd. Total</b> e
+    <b>Qtd. Programada</b> direto na linha (salva ao sair do campo). Use <b>▶</b> para enviar a atividade
+    para a <b>Pré-Programação</b> (aparece a tarja <b>Programado</b>; clique de novo em <b>↩</b> para
+    tirar de lá) e <b>⚑</b> para registrar uma restrição <b>sem sair desta tela</b>. O trabalho de vínculo
+    com o cronograma geral continua sendo feito aos poucos pela tela de Lookahead.
   </div>
 
   <div class="toolbar no-print" id="selRow">
@@ -87,7 +94,6 @@
         <input type="checkbox" id="fInclNaoExec"/> incluir não executáveis
       </label>
       <button class="btn" id="btnXls">⤓ Excel</button>
-      <button class="btn" onclick="window.print()">⎙ PDF</button>
     </div>
 
     <div class="toolbar no-print" style="margin-top:-4px">
@@ -184,7 +190,8 @@ var SETORES = ['Suprimentos','Contratos','Engenharia','Projetos','Obra / Execuç
                'Comissionamento','Qualidade','Segurança','Planejamento','Cliente','Contratada'];
 
 var CONTRATOS = [];
-var RESTR = [], PROG = [];
+var RESTR = [], PROG = [], PRE = [];
+var PRODUT = {};          // { uid: {id, unidade_medida, qtd_prevista, qtd_programada} } — terc_produtividade do cronograma selecionado
 var REGRAS = null;
 var SELECTED = null;      // contrato (val_cronogramas) atualmente selecionado
 var TAREFAS = [];         // tarefas_json bruto (inclui resumos) do cronograma selecionado
@@ -208,15 +215,16 @@ function loadBase(){
     L.sbGetAll(L.comUnidade('val_cronogramas?select=*&order=empresa.asc')),
     L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=id,num,descricao,categoria,status,cronograma_id,terceira_uid,area,responsavel,data_necessidade&ativo=eq.true')),
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('prog_terc_pre_programacao?select=id,cronograma_id,terceira_uid,semana&ativo=eq.true')).catch(function(e){ if(L.isMissingTable(e)) return []; throw e; }),
     (window.PTA ? PTA.loadRegras(true).catch(function(){ return null; }) : Promise.resolve(null))
   ]).then(function(r){
-    CONTRATOS = r[0] || []; RESTR = r[1] || []; PROG = r[2] || []; REGRAS = r[3];
+    CONTRATOS = r[0] || []; RESTR = r[1] || []; PROG = r[2] || []; PRE = r[3] || []; REGRAS = r[4];
     $('setup').style.display = 'none';
     fillSelectCron();
     fillSelectsModal();
   }).catch(function(err){
     if(L.isMissingTable(err)){
-      RESTR = []; PROG = [];
+      RESTR = []; PROG = []; PRE = [];
       return L.sbGetAll(L.comUnidade('val_cronogramas?select=*&order=empresa.asc')).then(function(cs){
         CONTRATOS = cs || [];
         L.setupNotice('setup', err);
@@ -274,10 +282,16 @@ function carregarCronograma(){
   Promise.all([
     PTA.loadTarefasCronograma(SELECTED.id, true),
     L.sb('GET', L.comUnidade('val_revisoes?cronograma_id=eq.'+SELECTED.id
-      +'&tarefas_json=not.is.null&select=revisao,rotulo,data_corte&order=revisao.desc&limit=1'))
+      +'&tarefas_json=not.is.null&select=revisao,rotulo,data_corte&order=revisao.desc&limit=1')),
+    L.sbGetAll(L.comUnidade('terc_produtividade?select=*&cronograma_id=eq.'+SELECTED.id))
+      .catch(function(e){ if(L.isMissingTable(e)) return []; throw e; })
   ]).then(function(r){
     TAREFAS = r[0] || [];
     var rev = (r[1] && r[1][0]) || null;
+    PRODUT = {};
+    (r[2] || []).forEach(function(p){
+      PRODUT[String(p.terceira_uid)] = { id:p.id, unidade_medida:p.unidade_medida, qtd_prevista:p.qtd_prevista, qtd_programada:p.qtd_programada };
+    });
     construirArvore();
     montarMeta(rev);
     fillAtivSelect();
@@ -342,7 +356,15 @@ function restrDe(t){
         && (r.status === 'Aberta' || r.status === 'Em tratativa');
   });
 }
-function jaProgramada(t){
+function preProgDe(t){
+  if(!SELECTED) return [];
+  return PRE.filter(function(p){
+    return p.cronograma_id === SELECTED.id && String(p.terceira_uid) === String(t.uid)
+        && String(p.semana).slice(0,10) === BASE;
+  });
+}
+function emPreProgramacao(t){ return preProgDe(t).length > 0; }
+function jaValidada(t){
   if(!SELECTED) return false;
   return PROG.some(function(p){
     return p.cronograma_id === SELECTED.id && String(p.terceira_uid) === String(t.uid)
@@ -439,7 +461,10 @@ function render(){
     '<th class="ctr" style="min-width:90px">Início</th>',
     '<th class="ctr" style="min-width:90px">Término</th>',
     '<th class="ctr" style="min-width:82px">% Previsto</th>',
-    '<th class="ctr" style="min-width:88px">% Concluído</th>');
+    '<th class="ctr" style="min-width:88px">% Concluído</th>',
+    '<th class="ctr no-print" style="min-width:70px">Unidade</th>',
+    '<th class="ctr no-print" style="min-width:80px">Qtd. Total</th>',
+    '<th class="ctr no-print" style="min-width:90px">Qtd. Program.</th>');
   wks.forEach(function(w){
     head.push('<th class="ctr la-wk la-week-hd'+(w.ini===hoje?' cur':'')+'">'
       + w.label + '<small>' + w.rng + '</small></th>');
@@ -447,7 +472,7 @@ function render(){
   $('headRow').innerHTML = head.join('');
 
   var linhas = linhasVisiveis();
-  var ncols = 7 + wks.length + (EDIT?1:0);
+  var ncols = 10 + wks.length + (EDIT?1:0);
   var filtrandoAgora = emModoFiltro();   // com filtro ativo, tudo é forçado aberto (ver linhasVisiveis)
 
   $('tb').innerHTML = linhas.map(function(item){ return renderRow(item.no, item.depth, wks, filtrandoAgora); }).join('')
@@ -492,6 +517,10 @@ function renderRow(no, depth, wks, filtrando){
     ? '<span class="chev" data-tw="'+esc(no.wbs)+'">'+(abertoVisual ? '▾' : '▸')+'</span>'
     : '<span class="chev leaf">·</span>';
 
+  var statusProg = isSum ? null : (jaValidada(t) ? 'validada' : (emPreProgramacao(t) ? 'pre' : null));
+  var pillProg = statusProg
+    ? ' <span class="pill prog" title="'+(statusProg==='validada' ? 'Já validada e está na Programação Semanal desta semana' : 'Na pré-programação — falta validar')+'">Programado</span>'
+    : '';
   var pillStatus = isSum ? ''
     : (exec === 'concluida' ? '<span class="pill g">Concluída</span>'
       : atrasada ? '<span class="pill r">Atrasada</span>'
@@ -501,11 +530,21 @@ function renderRow(no, depth, wks, filtrando){
     ? ' <span class="pill '+(rs.length>2?'r':'y')+'" title="'+esc(rs.map(function(r){return r.descricao;}).join(' | '))+'">⚑ '+rs.length+'</span>' : '';
   var pillNE = isNE ? ' <span class="pill n">não executável</span>' : '';
 
+  var prod = PRODUT[no.uid] || {};
+  var qtyCells = isSum
+    ? '<td class="ctr no-print">—</td><td class="ctr no-print">—</td><td class="ctr no-print">—</td>'
+    : ('<td class="ctr no-print"><input type="text" class="qty-in" data-um="'+esc(no.uid)+'" value="'+esc(prod.unidade_medida||'')+'" placeholder="un"'+(EDIT?'':' disabled')+'></td>'
+      + '<td class="ctr no-print"><input type="number" step="any" class="qty-in" data-qt="'+esc(no.uid)+'" value="'+(prod.qtd_prevista==null?'':prod.qtd_prevista)+'" placeholder="0"'+(EDIT?'':' disabled')+'></td>'
+      + '<td class="ctr no-print"><input type="number" step="any" class="qty-in" data-qp="'+esc(no.uid)+'" value="'+(prod.qtd_programada==null?'':prod.qtd_programada)+'" placeholder="0"'+(EDIT?'':' disabled')+'></td>');
+
+  var progBtn;
+  if(isSum) progBtn = '';
+  else if(statusProg === 'validada') progBtn = '<button class="btn sm" disabled title="Já validada na Programação Semanal — gerencie por lá">✓</button>';
+  else if(statusProg === 'pre') progBtn = '<button class="btn sm" data-prog="'+esc(no.uid)+'" title="Remover da pré-programação" style="background:#304F7E;color:#fff;border-color:#304F7E">↩</button>';
+  else progBtn = '<button class="btn sm" data-prog="'+esc(no.uid)+'" title="Programar na semana-base (vai para a Pré-Programação)"'+(isNE?' disabled':'')+'>▶</button>';
+
   var actionsCell = EDIT ? ('<td class="ctr no-print nowrap" style="white-space:nowrap">'
-    + (isSum ? '' :
-        '<button class="btn sm" data-restr="'+esc(no.uid)+'" title="Registrar restrição">⚑</button>'
-        + '<button class="btn sm" data-prog="'+esc(no.uid)+'" title="Programar na semana-base"'
-        + ((jaProgramada(t)||isNE) ? ' disabled' : '') + '>▶</button>')
+    + (isSum ? '' : '<button class="btn sm" data-restr="'+esc(no.uid)+'" title="Registrar restrição">⚑</button>' + progBtn)
     + '</td>') : '';
 
   return '<tr'+(isSum ? ' class="summary-row"' : (isNE ? ' class="naoexec"' : ''))
@@ -515,7 +554,7 @@ function renderRow(no, depth, wks, filtrando){
       + chev
       + (no.wbs ? '<span class="wbs-mono">'+esc(no.wbs)+'</span> ' : '')
       + '<b>'+esc(no.name)+'</b>'
-      + '<div class="small">'+pillStatus+pillRestr+pillNE+'</div>'
+      + '<div class="small">'+pillStatus+pillProg+pillRestr+pillNE+'</div>'
     + '</td>'
     + '<td class="ctr">'+L.fmtBrDash(t.lbStart)+'</td>'
     + '<td class="ctr">'+L.fmtBrDash(t.lbFinish)+'</td>'
@@ -523,6 +562,7 @@ function renderRow(no, depth, wks, filtrando){
     + '<td class="ctr'+(atrasada && !isSum ? '" style="color:var(--terracota);font-weight:700' : '')+'">'+L.fmtBrDash(t.finish)+'</td>'
     + '<td class="ctr">'+(F == null ? '—' : nf(F,0)+'%')+'</td>'
     + '<td class="ctr">'+nf(E,0)+'%</td>'
+    + qtyCells
     + cells
     + '</tr>';
 }
@@ -548,11 +588,24 @@ function wireRowEvents(){
     });
   });
   document.querySelectorAll('button[data-prog]').forEach(function(b){
-    b.addEventListener('click', function(){ programar(b.dataset.prog); });
+    b.addEventListener('click', function(){ toggleProgramacao(b.dataset.prog); });
   });
   document.querySelectorAll('button[data-restr]').forEach(function(b){
     b.addEventListener('click', function(){ abrirRestricao(b.dataset.restr); });
   });
+  document.querySelectorAll('input[data-um]').forEach(function(inp){
+    inp.addEventListener('change', function(){ salvarCampo(inp.dataset.um, 'unidade_medida', inp.value.trim() || null); });
+  });
+  document.querySelectorAll('input[data-qt]').forEach(function(inp){
+    inp.addEventListener('change', function(){ salvarCampo(inp.dataset.qt, 'qtd_prevista', inp.value===''?null:Number(inp.value)); });
+  });
+  document.querySelectorAll('input[data-qp]').forEach(function(inp){
+    inp.addEventListener('change', function(){ salvarCampo(inp.dataset.qp, 'qtd_programada', inp.value===''?null:Number(inp.value)); });
+  });
+}
+function toggleProgramacao(uid){
+  var no = NOS_BY_UID[String(uid)]; if(!no) return;
+  if(emPreProgramacao(no.t)) desprogramar(uid); else programar(uid);
 }
 
 /* ================= EXPANDIR / RECOLHER ================= */
@@ -563,38 +616,95 @@ $('btnColAll').addEventListener('click', function(){
   render();
 });
 
-/* ================= PROGRAMAR NA SEMANA ================= */
+/* ================= PROGRAMAR NA SEMANA (vai para a Pré-Programação) ================= */
 function programar(uid){
   if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
   var no = NOS_BY_UID[String(uid)]; if(!no) return;
   var t = no.t;
+  if(jaValidada(t)){ L.toast('Essa atividade já está validada na Programação Semanal desta semana.','warn'); return; }
   var rs = restrDe(t);
   if(rs.length && !confirm('Esta atividade tem ' + rs.length + ' restrição(ões) aberta(s):\n\n'
       + rs.map(function(r){ return '• ' + r.descricao; }).join('\n')
       + '\n\nNo LPS, o correto é remover a restrição antes de programar.\nProgramar mesmo assim?')) return;
 
-  L.sb('POST','prog_terc_programacao', L.comTag({
+  var prod = PRODUT[no.uid] || {};
+  L.sb('POST','prog_terc_pre_programacao', L.comTag({
     semana: BASE,
     cronograma_id: SELECTED.id,
     terceira_uid: String(t.uid),
     terceira_wbs: t.wbs || null,
     descricao: t.name,
     area: SELECTED.area || null, empresa: SELECTED.empresa || null, disciplina: SELECTED.disciplina || null,
-    coluna: 'programada', criado_por: L.userNome()
+    qtd_prog: (prod.qtd_programada==null?null:prod.qtd_programada),
+    un: prod.unidade_medida || null,
+    criado_por: L.userNome()
   })).then(function(){
-    L.toast('Atividade programada na semana de ' + L.fmtBr(BASE) + '.','ok');
+    L.toast('Atividade enviada para a pré-programação da semana de ' + L.fmtBr(BASE) + '.','ok');
     return recarregarProgRestr();
   }).catch(function(e){
-    if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para habilitar a programação.','warn');
+    if(L.isMissingTable(e)) L.toast('Rode o supabase_pre_programacao.sql para habilitar a pré-programação.','warn');
     else L.toast('Erro: '+e.message,'warn');
   });
+}
+
+function desprogramar(uid){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var no = NOS_BY_UID[String(uid)]; if(!no) return;
+  var regs = preProgDe(no.t);
+  if(!regs.length) return;
+  if(!confirm('Remover esta atividade da pré-programação da semana de ' + L.fmtBr(BASE) + '?')) return;
+  Promise.all(regs.map(function(p){ return L.sb('PATCH','prog_terc_pre_programacao?id=eq.'+p.id, {ativo:false}); }))
+    .then(function(){ L.toast('Removida da pré-programação.','ok'); return recarregarProgRestr(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
 }
 
 function recarregarProgRestr(){
   return Promise.all([
     L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=id,num,descricao,categoria,status,cronograma_id,terceira_uid,area,responsavel,data_necessidade&ativo=eq.true')),
-    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true'))
-  ]).then(function(r){ RESTR = r[0] || []; PROG = r[1] || []; render(); });
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=id,cronograma_id,terceira_uid,semana,coluna&ativo=eq.true')),
+    L.sbGetAll(L.comUnidade('prog_terc_pre_programacao?select=id,cronograma_id,terceira_uid,semana&ativo=eq.true')).catch(function(e){ if(L.isMissingTable(e)) return []; throw e; })
+  ]).then(function(r){ RESTR = r[0] || []; PROG = r[1] || []; PRE = r[2] || []; render(); });
+}
+
+/* ================= QUANTIDADES (unidade / qtd. total / qtd. programada) ================= */
+function salvarCampoProdutividade(no, patch){
+  var payload = Object.assign({
+    cronograma_id: SELECTED.id,
+    terceira_uid: String(no.uid),
+    terceira_wbs: no.wbs || null,
+    criado_por: L.userNome(),
+    atualizado_em: new Date().toISOString()
+  }, patch);
+  payload = L.comTag(payload);
+  return fetch(L.SB_URL + '/rest/v1/terc_produtividade?on_conflict=' + encodeURIComponent('cronograma_id,terceira_uid'), {
+    method: 'POST',
+    headers: { apikey: L.SB_KEY, Authorization: 'Bearer '+L.SB_KEY, 'Content-Type':'application/json',
+               Prefer: 'return=representation,resolution=merge-duplicates' },
+    body: JSON.stringify([payload])
+  }).then(function(res){
+    return res.text().then(function(txt){
+      if(!res.ok) throw new Error(res.status+': '+txt.slice(0,320));
+      var rows; try{ rows = JSON.parse(txt); }catch(_){ rows = []; }
+      return rows[0] || null;
+    });
+  });
+}
+function salvarCampo(uid, campo, valor){
+  if(!EDIT) return;
+  var no = NOS_BY_UID[String(uid)]; if(!no) return;
+  PRODUT[no.uid] = PRODUT[no.uid] || {};
+  var anterior = PRODUT[no.uid][campo];
+  PRODUT[no.uid][campo] = valor;   // otimista
+  var patch = {}; patch[campo] = valor;
+  salvarCampoProdutividade(no, patch).then(function(row){
+    if(row && row.id) PRODUT[no.uid].id = row.id;
+    L.toast('Salvo.','ok');
+  }).catch(function(e){
+    PRODUT[no.uid][campo] = anterior;
+    if(L.isMissingTable(e)) L.toast('Rode o supabase_pre_programacao.sql para habilitar estes campos.','warn');
+    else L.toast('Erro ao salvar: '+e.message,'warn');
+    render();
+  });
 }
 
 /* ================= RESTRIÇÃO — modal embutido nesta tela ================= */
@@ -724,16 +834,21 @@ $('btnXls').addEventListener('click', function(){
   if(!SELECTED) return;
   var wks = weeks();
   var head = ['WBS','Nível','Tipo','Atividade','LB Início','LB Término','Início','Término',
-              '% Previsto','% Concluído','Restrições abertas'];
+              '% Previsto','% Concluído','Unidade','Qtd. Total','Qtd. Programada','Restrições abertas'];
   wks.forEach(function(w){ head.push(w.label + ' (' + w.rng + ')'); });
   var aoa = [head];
   function walk(no, depth){
     var t = no.t;
     var E = (t.E == null ? (t.pct || 0) : t.E), F = (t.F == null ? null : t.F);
+    var prod = PRODUT[no.uid] || {};
     var row = [no.wbs, depth, no.summary ? 'Resumo' : 'Atividade',
       new Array(depth+1).join('  ') + no.name,
       L.fmtBr(t.lbStart), L.fmtBr(t.lbFinish), L.fmtBr(t.start), L.fmtBr(t.finish),
-      F == null ? '' : F, E, no.summary ? 0 : restrDe(t).length];
+      F == null ? '' : F, E,
+      no.summary ? '' : (prod.unidade_medida || ''),
+      no.summary ? '' : (prod.qtd_prevista == null ? '' : prod.qtd_prevista),
+      no.summary ? '' : (prod.qtd_programada == null ? '' : prod.qtd_programada),
+      no.summary ? 0 : restrDe(t).length];
     var ini = L.refIni(t), fim = L.refFim(t);
     wks.forEach(function(w){ row.push((ini && fim && !(fim < w.ini || ini > w.fim)) ? 'X' : ''); });
     aoa.push(row);
@@ -741,7 +856,7 @@ $('btnXls').addEventListener('click', function(){
   }
   RAIZES.forEach(function(no){ walk(no, 0); });
   L.exportXlsx([{ nome:'Cronograma', aoa:aoa,
-    cols:[{wch:12},{wch:6},{wch:9},{wch:56},{wch:11},{wch:11},{wch:11},{wch:11},{wch:10},{wch:11},{wch:15}] }],
+    cols:[{wch:12},{wch:6},{wch:9},{wch:56},{wch:11},{wch:11},{wch:11},{wch:11},{wch:10},{wch:11},{wch:9},{wch:11},{wch:13},{wch:15}] }],
     'ProgTerc_cronograma_' + (SELECTED.empresa||'contrato').replace(/[^a-z0-9]+/gi,'_') + '_' + L.stamp() + '.xlsx');
 });
 
