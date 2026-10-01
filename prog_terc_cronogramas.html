@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lps_ei_core.css">
 <style>
+  /* Aproveita mais a largura da tela nesta página (as demais do módulo seguem o .page padrão) */
+  .page{max-width:none;padding-left:28px;padding-right:28px}
   .src-note{font-size:11px}
   .src-note b{color:var(--blue-dark)}
   #selRow{align-items:flex-end}
@@ -20,10 +22,13 @@
   #selRow select{width:100%}
   #cronMeta{white-space:nowrap;color:var(--text-dim)}
   td.act-name{white-space:normal;vertical-align:top}
-  td.act-name .chev{display:inline-block;width:14px;cursor:pointer;color:var(--text-mute);
-    font-size:10px;text-align:center;user-select:none}
+  td.act-name .chev{display:inline-block;width:18px;height:18px;line-height:18px;border-radius:3px;
+    cursor:pointer;color:var(--text-mute);font-size:11px;text-align:center;user-select:none}
+  td.act-name .chev:hover{background:var(--blue-soft);color:var(--blue)}
   td.act-name .chev.leaf{cursor:default;color:transparent}
+  td.act-name .chev.leaf:hover{background:none}
   td.act-name .wbs-mono{font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px}
+  tr[data-tw] td.act-name{cursor:pointer}
   tr.summary-row{background:#fafbfc}
   tr.summary-row td{border-top:1px solid var(--border-2)}
   tr.summary-row td.act-name b{color:var(--blue-dark)}
@@ -50,9 +55,11 @@
 
   <div class="notice src-note">
     Escolha um <b>cronograma da terceira</b> para ver <b>todas as atividades</b>, inclusive as
-    atividades-resumo — abra e feche os níveis como no MS Project. Use <b>▶</b> para programar na
-    semana-base e <b>⚑</b> para registrar uma restrição <b>sem sair desta tela</b>. O trabalho de
-    vínculo com o cronograma geral continua sendo feito aos poucos pela tela de Lookahead.
+    atividades-resumo — abra e feche os níveis como no MS Project (clique no ▾ ou dê duplo clique na
+    linha do resumo). Por padrão mostramos só o <b>foco</b>: atividades atrasadas e as previstas para a
+    próxima semana — use o filtro abaixo para ver tudo. Use <b>▶</b> para programar na semana-base e
+    <b>⚑</b> para registrar uma restrição <b>sem sair desta tela</b>. O trabalho de vínculo com o
+    cronograma geral continua sendo feito aos poucos pela tela de Lookahead.
   </div>
 
   <div class="toolbar no-print" id="selRow">
@@ -68,6 +75,12 @@
   <div id="cronArea" style="display:none">
     <div class="toolbar no-print">
       <div class="search"><input type="text" id="q" placeholder="Buscar atividade ou WBS…"></div>
+      <select class="f" id="fEscopo">
+        <option value="foco" selected>Foco: atrasadas + próxima semana</option>
+        <option value="atras">Só atrasadas</option>
+        <option value="semana">Só a próxima semana</option>
+        <option value="todas">Todas as atividades</option>
+      </select>
       <button class="btn sm" id="btnExpAll">▾ Expandir tudo</button>
       <button class="btn sm" id="btnColAll">▸ Recolher tudo</button>
       <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
@@ -350,15 +363,44 @@ function weeks(){
   return out;
 }
 
-/* ================= BUSCA / VISIBILIDADE DA ÁRVORE ================= */
+/* ================= BUSCA / ESCOPO / VISIBILIDADE DA ÁRVORE ================= */
 function termoBusca(){ return L.deacc(($('q').value || '').trim()); }
 function noCasa(no, termo){
   return L.deacc(no.name).indexOf(termo) > -1 || L.deacc(no.wbs).indexOf(termo) > -1;
 }
-function calcularManterBusca(termo){
+
+/* "próxima semana" = só os 7 dias a partir da semana-base — independente do horizonte do gantt (NW),
+   que é só um recorte visual. Isso é o que fica embaixo do filtro "Foco" e "Só a próxima semana". */
+function naProximaSemana(t){
+  var ini = L.refIni(t), fim = L.refFim(t);
+  if(!ini || !fim) return false;
+  var fimSemana = L.addDays(BASE, 6);
+  return !(fim < BASE || ini > fimSemana);
+}
+function emModoFiltro(){ return !!termoBusca() || $('fEscopo').value !== 'todas'; }
+
+/* Atividades concluídas ficam ocultas em qualquer escopo, exceto "todas". */
+function nodeMatchesEscopo(no, escP){
+  if(escP === 'todas') return true;
+  var t = no.t;
+  if(L.classificar(t) === 'concluida') return false;
+  if(escP === 'atras')  return L.estaAtrasada(t);
+  if(escP === 'semana') return naProximaSemana(t);
+  return L.estaAtrasada(t) || naProximaSemana(t);   // foco (padrão)
+}
+
+function noQualifica(no, termo, escP, inclNE){
+  if(!no.summary && !inclNE && isNaoExec(no.t)) return false;
+  if(termo && !noCasa(no, termo)) return false;
+  if(!nodeMatchesEscopo(no, escP)) return false;
+  return true;
+}
+/* Mantém um nó se ele mesmo qualifica nos filtros, OU se algum descendente qualifica
+   (preserva o caminho até a atividade relevante, mesmo que o resumo em si não qualifique). */
+function calcularManter(termo, escP, inclNE){
   var manter = {};
   function walk(no){
-    var self = noCasa(no, termo);
+    var self = noQualifica(no, termo, escP, inclNE);
     var algumFilho = false;
     no.filhos.forEach(function(f){ if(walk(f)) algumFilho = true; });
     if(self || algumFilho){ manter[no.wbs] = true; return true; }
@@ -368,15 +410,14 @@ function calcularManterBusca(termo){
   return manter;
 }
 function linhasVisiveis(){
-  var termo = termoBusca(), buscando = !!termo;
-  var manter = buscando ? calcularManterBusca(termo) : null;
-  var inclNE = $('fInclNaoExec').checked;
+  var termo = termoBusca(), escP = $('fEscopo').value, inclNE = $('fInclNaoExec').checked;
+  var manter = calcularManter(termo, escP, inclNE);
+  var forcarAberto = emModoFiltro();   // com filtro ativo, mostra o caminho completo até quem qualifica
   var out = [];
   function walk(no, depth){
-    if(buscando && !manter[no.wbs]) return;
-    if(!inclNE && !no.summary && isNaoExec(no.t)) return;
+    if(!manter[no.wbs]) return;
     out.push({ no:no, depth:depth });
-    var aberto = buscando ? true : !COLLAPSED[no.wbs];
+    var aberto = forcarAberto ? true : !COLLAPSED[no.wbs];
     if(aberto) no.filhos.forEach(function(f){ walk(f, depth+1); });
   }
   RAIZES.forEach(function(no){ walk(no, 0); });
@@ -407,17 +448,25 @@ function render(){
 
   var linhas = linhasVisiveis();
   var ncols = 7 + wks.length + (EDIT?1:0);
+  var filtrandoAgora = emModoFiltro();   // com filtro ativo, tudo é forçado aberto (ver linhasVisiveis)
 
-  $('tb').innerHTML = linhas.map(function(item){ return renderRow(item.no, item.depth, wks); }).join('')
-    || '<tr><td colspan="'+ncols+'" class="empty"><div class="big">▤</div>Nenhuma atividade encontrada com esse filtro.</td></tr>';
+  $('tb').innerHTML = linhas.map(function(item){ return renderRow(item.no, item.depth, wks, filtrandoAgora); }).join('')
+    || '<tr><td colspan="'+ncols+'" class="empty"><div class="big">▤</div>Nenhuma atividade encontrada com esse filtro.'
+      + '<br><span class="small">Tente o filtro "Todas as atividades" ou limpe a busca.</span></td></tr>';
 
   wireRowEvents();
 
+  $('btnExpAll').disabled = filtrandoAgora;
+  $('btnColAll').disabled = filtrandoAgora;
+  $('btnExpAll').title = $('btnColAll').title = filtrandoAgora
+    ? 'Disponível quando o filtro está em "Todas as atividades" e a busca está vazia' : '';
+
   $('wkInfo').innerHTML = 'Janela: <b>' + L.fmtBr(BASE) + '</b> a <b>' + L.fmtBr(wks[wks.length-1].fim) + '</b>';
-  $('foot').textContent = linhas.length + ' linha(s) exibida(s) de ' + Object.keys(NOS).length + ' no cronograma';
+  $('foot').textContent = linhas.length + ' linha(s) exibida(s) de ' + Object.keys(NOS).length + ' no cronograma'
+    + ($('fEscopo').value !== 'todas' ? ' · atividades concluídas ocultas — mude o filtro para "Todas" para ver tudo' : '');
 }
 
-function renderRow(no, depth, wks){
+function renderRow(no, depth, wks, filtrando){
   var t = no.t, isSum = no.summary;
   var isNE = !isSum && isNaoExec(t);
   var rs = isSum ? [] : restrDe(t);
@@ -436,8 +485,11 @@ function renderRow(no, depth, wks){
   var E = (t.E == null ? (t.pct || 0) : t.E);
   var F = (t.F == null ? null : t.F);
 
+  // Em modo filtro a árvore é sempre exibida aberta (ver linhasVisiveis) — o chevron reflete isso,
+  // mesmo que o estado manual (COLLAPSED) diga outra coisa, pra não mostrar ▸ com filhos visíveis.
+  var abertoVisual = filtrando ? true : !COLLAPSED[no.wbs];
   var chev = no.filhos.length
-    ? '<span class="chev" data-tw="'+esc(no.wbs)+'">'+(COLLAPSED[no.wbs] ? '▸' : '▾')+'</span>'
+    ? '<span class="chev" data-tw="'+esc(no.wbs)+'">'+(abertoVisual ? '▾' : '▸')+'</span>'
     : '<span class="chev leaf">·</span>';
 
   var pillStatus = isSum ? ''
@@ -456,7 +508,8 @@ function renderRow(no, depth, wks){
         + ((jaProgramada(t)||isNE) ? ' disabled' : '') + '>▶</button>')
     + '</td>') : '';
 
-  return '<tr'+(isSum ? ' class="summary-row"' : (isNE ? ' class="naoexec"' : ''))+'>'
+  return '<tr'+(isSum ? ' class="summary-row"' : (isNE ? ' class="naoexec"' : ''))
+    + (no.filhos.length ? ' data-tw="'+esc(no.wbs)+'"' : '')+'>'
     + actionsCell
     + '<td class="act-name" style="padding-left:'+(depth*16+6)+'px">'
       + chev
@@ -474,12 +527,24 @@ function renderRow(no, depth, wks){
     + '</tr>';
 }
 
+function alternarColapso(w){
+  COLLAPSED[w] = !COLLAPSED[w];
+  render();
+}
 function wireRowEvents(){
   document.querySelectorAll('.chev[data-tw]').forEach(function(el){
-    el.addEventListener('click', function(){
-      var w = el.getAttribute('data-tw');
-      COLLAPSED[w] = !COLLAPSED[w];
-      render();
+    el.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      alternarColapso(el.getAttribute('data-tw'));
+    });
+  });
+  // Duplo clique em qualquer ponto da linha de um resumo também abre/fecha os filhos
+  // (o clique simples no ▾/▸ já cobre isso — aqui só ignoramos se o alvo for o próprio chevron,
+  // pra não alternar duas vezes seguidas).
+  document.querySelectorAll('tr[data-tw]').forEach(function(tr){
+    tr.addEventListener('dblclick', function(ev){
+      if(ev.target.closest('.chev') || ev.target.closest('button')) return;
+      alternarColapso(tr.getAttribute('data-tw'));
     });
   });
   document.querySelectorAll('button[data-prog]').forEach(function(b){
@@ -682,6 +747,7 @@ $('btnXls').addEventListener('click', function(){
 
 /* ================= EVENTOS GERAIS ================= */
 $('q').addEventListener('input', render);
+$('fEscopo').addEventListener('change', render);
 $('fInclNaoExec').addEventListener('change', render);
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
 $('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
