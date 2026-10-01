@@ -41,11 +41,12 @@
   var MOD_TITLE = 'Programação Semanal · Terceiras';
 
   var PAGES = [
-    { href: 'prog_terc_cronogramas.html',    key: 'cronogramas',   ic: '▦', label: 'Cronogramas' },
-    { href: 'prog_terc_lookahead.html',      key: 'lookahead',     ic: '▶', label: 'Lookahead' },
-    { href: 'prog_terc_restricoes.html',     key: 'restricoes',    ic: '⚑', label: 'Restrições' },
-    { href: 'prog_terc_semanal.html',        key: 'semanal',       ic: '▥', label: 'Programação Semanal' },
-    { href: 'prog_terc_produtividade.html',  key: 'produtividade', ic: '⏱', label: 'Produtividade' }
+    { href: 'prog_terc_cronogramas.html',      key: 'cronogramas',     ic: '▦', label: 'Cronogramas' },
+    { href: 'prog_terc_lookahead.html',        key: 'lookahead',       ic: '▶', label: 'Lookahead' },
+    { href: 'prog_terc_restricoes.html',       key: 'restricoes',      ic: '⚑', label: 'Restrições' },
+    { href: 'prog_terc_pre_programacao.html',  key: 'pre_programacao', ic: '☑', label: 'Pré-Programação' },
+    { href: 'prog_terc_semanal.html',          key: 'semanal',         ic: '▥', label: 'Programação Semanal' },
+    { href: 'prog_terc_produtividade.html',    key: 'produtividade',   ic: '⏱', label: 'Produtividade' }
   ];
 
   /* ================================================================
@@ -332,9 +333,15 @@
           '<h1>' + esc(o.title || MOD_TITLE) + '</h1>' +
           (o.subtitle ? '<p class="subtitle">' + o.subtitle + '</p>' : '') +
         '</div>' +
-        '<div id="head-actions" class="user-bar no-print"></div>' +
+        '<div id="head-actions" class="user-bar no-print">' +
+          (o.headActions || '') +
+          '<button class="btn" id="btn-print-shell" title="Imprimir ou salvar esta tela como PDF">⎙ Imprimir</button>' +
+        '</div>' +
       '</header>' +
       '<nav class="mod-nav no-print">' + nav + '</nav>';
+
+    var btnPrint = $('btn-print-shell');
+    if (btnPrint) btnPrint.addEventListener('click', function () { window.print(); });
 
     if (typeof global.pcoRenderSwitcher === 'function') {
       try { global.pcoRenderSwitcher('unidade-switcher'); } catch (_) {}
