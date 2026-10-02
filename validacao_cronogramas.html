@@ -381,6 +381,25 @@ table.mapa td.col-acoes{white-space:nowrap}
       no SQL Editor do Supabase. Enquanto isso, a aba <b>Nova Análise</b> já funciona 100% no navegador (sem salvar histórico).
     </div>
     <div class="section-label">Cronogramas rastreados · resumo de todas as revisões subidas</div>
+    <div class="fbar no-print">
+      <div class="mf" style="margin-bottom:0;min-width:280px;flex:1">
+        <label>Cronograma</label>
+        <select id="hist-filter-crono" onchange="renderHistory()"><option value="">Todos os cronogramas</option></select>
+      </div>
+      <div class="mf" style="margin-bottom:0;min-width:190px">
+        <label>Status</label>
+        <select id="hist-filter-status" onchange="renderHistory()">
+          <option value="Ativo" selected>Somente ativos</option>
+          <option value="Inativo">Somente inativos</option>
+          <option value="Concluído">Somente concluídos</option>
+          <option value="">Todos os status</option>
+        </select>
+      </div>
+      <div class="mf" style="margin-bottom:0;min-width:220px">
+        <label>Analista de Planejamento</label>
+        <select id="hist-filter-analista" onchange="renderHistory()"><option value="">Todos</option></select>
+      </div>
+    </div>
     <div id="hist-content">
       <div class="empty"><div class="big">⏳</div>Carregando histórico…</div>
     </div>
@@ -618,6 +637,23 @@ table.mapa td.col-acoes{white-space:nowrap}
         <div class="mf"><label>Disciplina</label><input id="mc-disc"></div>
         <div class="mf"><label>Área / CWA</label><input id="mc-area"></div>
       </div>
+      <div class="mf-grid">
+        <div class="mf"><label>Supervisor</label><input id="mc-sup" list="dl-supervisores" placeholder="Nome do supervisor"></div>
+        <div class="mf"><label>Especialista</label><input id="mc-esp" list="dl-especialistas" placeholder="Nome do especialista"></div>
+      </div>
+      <div class="mf-grid">
+        <div class="mf"><label>Analista de Planejamento</label><input id="mc-ana" list="dl-analistas" placeholder="Nome do analista"></div>
+        <div class="mf"><label>Status</label>
+          <select id="mc-status">
+            <option value="Ativo">Ativo</option>
+            <option value="Inativo">Inativo</option>
+            <option value="Concluído">Concluído</option>
+          </select>
+        </div>
+      </div>
+      <datalist id="dl-supervisores"></datalist>
+      <datalist id="dl-especialistas"></datalist>
+      <datalist id="dl-analistas"></datalist>
     </div>
     <div class="modal-btns">
       <button class="btn btn-sec" onclick="closeContractEdit()">Cancelar</button>
@@ -1722,44 +1758,13 @@ async function loadHistory(){
   const box=$('hist-content');
   try{
     const cronos=await sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc'));
-    if(!cronos.length){ box.innerHTML='<div class="empty"><div class="big">📋</div>Nenhum cronograma no histórico ainda.<br>Suba uma revisão na aba <b>Nova Análise</b>.</div>'; histCronos=[];histByC={}; return; }
+    if(!cronos.length){ box.innerHTML='<div class="empty"><div class="big">📋</div>Nenhum cronograma no histórico ainda.<br>Suba uma revisão na aba <b>Nova Análise</b>.</div>'; histCronos=[];histByC={}; fillHistFiltro(); return; }
     const revs=await sb('GET',pcoComUnidade('val_revisoes?select=id,cronograma_id,revisao,rotulo,nome_arquivo,data_corte,total_tarefas,planejado,realizado,criado_em,eh_base&order=revisao.desc'));
     const byC={}; revs.forEach(r=>{(byC[r.cronograma_id]=byC[r.cronograma_id]||[]).push(r);});
     histCronos=cronos; histByC=byC;
-    const canEdit=CAN_UPLOAD;
-    box.innerHTML=cronos.map(c=>{
-      const rs=byC[c.id]||[];
-      const opts=rs.map(r=>`<option value="${r.id}">${esc(r.rotulo||('REV '+r.revisao))}</option>`).join('');
-      const revRows=rs.map(r=>`<div class="rev-row">
-        <span class="rev-tag ${r.eh_base?'base':''}">REV ${String(r.revisao).padStart(2,'0')}</span>
-        <span><div class="rev-name">${esc(r.rotulo||r.nome_arquivo||'—')}</div>
-          <div class="rev-sub">${esc(r.nome_arquivo||'')}</div></span>
-        <span class="rev-sub">corte ${fmtD(r.data_corte)} · ${r.total_tarefas||0} tarefas</span>
-        <span class="rev-sub">Prev ${fmtNum(r.planejado,1)} · Concl ${fmtNum(r.realizado,1)}</span>
-        ${canEdit?`<span class="rev-actions">
-          <button class="mini-btn" title="Editar / mover revisão" onclick="openRevEdit('${r.id}')">✏️</button>
-          <button class="mini-btn danger" title="Excluir revisão" onclick="deleteRev('${r.id}','REV ${String(r.revisao).padStart(2,'0')}')">🗑️</button>
-        </span>`:''}
-      </div>`).join('');
-      return `<div class="hist-card">
-        <div class="hist-head">
-          <div><div class="hist-title">${esc(c.empresa)}${c.escopo?' <span style="color:var(--text-mute);font-weight:600">· '+esc(c.escopo)+'</span>':''}</div>
-            <div class="hist-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões</div></div>
-          ${canEdit?`<div style="display:flex;gap:8px">
-            <button class="btn ghost sm" onclick="openContractEdit('${c.id}')">✏️ Editar dados</button>
-            <button class="btn danger-o sm" onclick="deleteContract('${c.id}')">🗑️ Excluir</button>
-          </div>`:''}
-        </div>
-        <div class="rev-list">${revRows||'<div class="rev-sub">sem revisões</div>'}</div>
-        ${rs.length>=2?`<div class="compare-bar">
-          <span style="font-size:11px;font-weight:700;color:var(--text-dim)">Comparar:</span>
-          <select id="cmpB-${c.id}">${opts}</select>
-          <span style="font-size:11px;color:var(--text-mute)">(base) vs</span>
-          <select id="cmpA-${c.id}">${opts}</select>
-          <button class="btn ghost" onclick="openComparison('${c.id}','${esc(c.empresa)}','${esc(c.area||'')}','${esc(c.escopo||'')}')">Analisar</button>
-        </div>`:''}
-      </div>`;
-    }).join('');
+    fillHistFiltro();
+    fillPeopleDatalists();
+    renderHistory();
   }catch(err){
     if(/relation .* does not exist|42P01|PGRST205|PGRST20[0-9]/i.test(err.message)){
       dbReady=false; $('setup-notice').style.display='';
@@ -1768,6 +1773,97 @@ async function loadHistory(){
       box.innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar histórico: '+esc(err.message)+'</div>';
     }
   }
+}
+
+/* seletores "Cronograma" e "Analista de Planejamento" do filtro — preservam a seleção atual ao recarregar */
+function fillHistFiltro(){
+  const sel=$('hist-filter-crono');
+  if(sel){
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Todos os cronogramas</option>'
+      + histCronos.map(c=>`<option value="${c.id}">${esc(c.empresa)}${c.escopo?' · '+esc(c.escopo):''}</option>`).join('');
+    if(cur && histCronos.some(c=>c.id===cur)) sel.value=cur;
+  }
+  const selAna=$('hist-filter-analista');
+  if(selAna){
+    const curAna=selAna.value;
+    const analistas=[...new Set(histCronos.map(c=>c.analista_planejamento).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    selAna.innerHTML='<option value="">Todos</option>'
+      + analistas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+    if(curAna && analistas.indexOf(curAna) > -1) selAna.value=curAna;
+  }
+}
+
+function cronoStatusTag(st){
+  const s=st||'Ativo';
+  const cls = s==='Concluído' ? 't-concl' : (s==='Inativo' ? 't-gray' : 't-prazo');
+  return `<span class="tag ${cls}" style="margin-left:6px">${esc(s)}</span>`;
+}
+
+/* desenha os cards do histórico respeitando os filtros de cronograma/status/analista —
+   chamada tanto pelo loadHistory() quanto pelos onchange dos três selects do filtro */
+function renderHistory(){
+  const box=$('hist-content');
+  if(!histCronos.length) return; // loadHistory() já deixou a mensagem de "nenhum cronograma" no box
+  const idFiltro=$('hist-filter-crono') ? $('hist-filter-crono').value : '';
+  const stFiltro=$('hist-filter-status') ? $('hist-filter-status').value : 'Ativo';
+  const anaFiltro=$('hist-filter-analista') ? $('hist-filter-analista').value : '';
+  const lista=histCronos.filter(c=>{
+    if(idFiltro && c.id!==idFiltro) return false;
+    if(stFiltro && (c.status||'Ativo')!==stFiltro) return false;
+    if(anaFiltro && (c.analista_planejamento||'')!==anaFiltro) return false;
+    return true;
+  });
+  if(!lista.length){
+    box.innerHTML='<div class="empty"><div class="big">🔍</div>Nenhum cronograma com esse filtro.<br>Ajuste os filtros de cronograma/status/analista acima.</div>';
+    return;
+  }
+  const canEdit=CAN_UPLOAD;
+  box.innerHTML=lista.map(c=>{
+    const rs=histByC[c.id]||[];
+    const opts=rs.map(r=>`<option value="${r.id}">${esc(r.rotulo||('REV '+r.revisao))}</option>`).join('');
+    const revRows=rs.map(r=>`<div class="rev-row">
+      <span class="rev-tag ${r.eh_base?'base':''}">REV ${String(r.revisao).padStart(2,'0')}</span>
+      <span><div class="rev-name">${esc(r.rotulo||r.nome_arquivo||'—')}</div>
+        <div class="rev-sub">${esc(r.nome_arquivo||'')}</div></span>
+      <span class="rev-sub">corte ${fmtD(r.data_corte)} · ${r.total_tarefas||0} tarefas</span>
+      <span class="rev-sub">Prev ${fmtNum(r.planejado,1)} · Concl ${fmtNum(r.realizado,1)}</span>
+      ${canEdit?`<span class="rev-actions">
+        <button class="mini-btn" title="Editar / mover revisão" onclick="openRevEdit('${r.id}')">✏️</button>
+        <button class="mini-btn danger" title="Excluir revisão" onclick="deleteRev('${r.id}','REV ${String(r.revisao).padStart(2,'0')}')">🗑️</button>
+      </span>`:''}
+    </div>`).join('');
+    const quemTexto=[c.supervisor&&('Sup. '+esc(c.supervisor)), c.especialista&&('Esp. '+esc(c.especialista)),
+      c.analista_planejamento&&('Analista '+esc(c.analista_planejamento))].filter(Boolean).join(' · ');
+    return `<div class="hist-card">
+      <div class="hist-head">
+        <div><div class="hist-title">${esc(c.empresa)}${c.escopo?' <span style="color:var(--text-mute);font-weight:600">· '+esc(c.escopo)+'</span>':''}</div>
+          <div class="hist-meta">${esc(c.area||'—')} · ${esc(c.disciplina||'—')} · ${rs.length} revisões${cronoStatusTag(c.status)}${quemTexto?' · '+quemTexto:''}</div></div>
+        ${canEdit?`<div style="display:flex;gap:8px">
+          <button class="btn ghost sm" onclick="openContractEdit('${c.id}')">✏️ Editar dados</button>
+          <button class="btn danger-o sm" onclick="deleteContract('${c.id}')">🗑️ Excluir</button>
+        </div>`:''}
+      </div>
+      <div class="rev-list">${revRows||'<div class="rev-sub">sem revisões</div>'}</div>
+      ${rs.length>=2?`<div class="compare-bar">
+        <span style="font-size:11px;font-weight:700;color:var(--text-dim)">Comparar:</span>
+        <select id="cmpB-${c.id}">${opts}</select>
+        <span style="font-size:11px;color:var(--text-mute)">(base) vs</span>
+        <select id="cmpA-${c.id}">${opts}</select>
+        <button class="btn ghost" onclick="openComparison('${c.id}','${esc(c.empresa)}','${esc(c.area||'')}','${esc(c.escopo||'')}')">Analisar</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* datalists de Supervisor/Especialista/Analista — opções = valores já usados em qualquer
+   contrato; um valor novo digitado e salvo já entra na lista na próxima renderização */
+function fillPeopleDatalists(){
+  const uniq=campo=>[...new Set(histCronos.map(c=>c[campo]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const dl=(id,vals)=>{ const el=$(id); if(el) el.innerHTML=vals.map(x=>`<option value="${esc(x)}">`).join(''); };
+  dl('dl-supervisores', uniq('supervisor'));
+  dl('dl-especialistas', uniq('especialista'));
+  dl('dl-analistas', uniq('analista_planejamento'));
 }
 
 /* ---------- EDIÇÃO DOS DADOS MESTRES (histórico) ---------- */
@@ -1779,6 +1875,8 @@ function openContractEdit(id){
   $('mc-id').value=id;
   $('mc-emp').value=c.empresa||''; $('mc-esc').value=c.escopo||'';
   $('mc-disc').value=c.disciplina||''; $('mc-area').value=c.area||'';
+  $('mc-sup').value=c.supervisor||''; $('mc-esp').value=c.especialista||'';
+  $('mc-ana').value=c.analista_planejamento||''; $('mc-status').value=c.status||'Ativo';
   $('modal-contrato').classList.add('visible');
 }
 function closeContractEdit(){ $('modal-contrato').classList.remove('visible'); }
@@ -1788,7 +1886,9 @@ async function saveContractEdit(){
   const btn=$('mc-save'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando…';
   try{
     await sb('PATCH',pcoComUnidade(`val_cronogramas?id=eq.${id}`),{empresa:emp, escopo:$('mc-esc').value.trim()||null,
-      disciplina:$('mc-disc').value.trim()||null, area:$('mc-area').value.trim()||null});
+      disciplina:$('mc-disc').value.trim()||null, area:$('mc-area').value.trim()||null,
+      supervisor:$('mc-sup').value.trim()||null, especialista:$('mc-esp').value.trim()||null,
+      analista_planejamento:$('mc-ana').value.trim()||null, status:$('mc-status').value||'Ativo'});
     toast('Dados do contrato atualizados ✓','ok'); closeContractEdit(); loadHistory();
   }catch(err){
     if(/23505|duplicate|unique/i.test(err.message)) toast('Já existe um contrato com essa Empresa + Escopo. Para juntar, mova as revisões (✏️ na revisão) e exclua o duplicado.','err');
