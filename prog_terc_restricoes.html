@@ -60,10 +60,10 @@
       <table class="grid">
         <thead><tr>
           <th class="ctr" style="width:52px">#</th>
+          <th style="min-width:220px">Atividade impactada</th>
           <th style="min-width:300px">Restrição</th>
           <th style="min-width:150px">Categoria</th>
           <th style="min-width:110px">Empresa</th>
-          <th style="min-width:200px">Atividade impactada</th>
           <th style="min-width:140px">Responsável</th>
           <th class="ctr" style="min-width:96px">Necessária em</th>
           <th class="ctr" style="min-width:76px">Em aberto</th>
@@ -197,7 +197,7 @@ function load(){
 }
 
 function ativLabel(a){
-  return (a.empresa ? a.empresa + ' · ' : '') + a.nome + (a.wbs ? ' (WBS ' + a.wbs + ')' : '');
+  return (a.pai ? a.pai + ' · ' : '') + a.nome + (a.wbs ? ' (WBS ' + a.wbs + ')' : '');
 }
 
 function fillSelects(){
@@ -256,7 +256,7 @@ function ativDe(r){
 function ativNome(r){
   var a = ativDe(r);
   if(a) return ativLabel(a);
-  if(r.terceira_nome) return (r.empresa?r.empresa+' · ':'') + r.terceira_nome + (r.terceira_wbs?' (WBS '+r.terceira_wbs+')':'');
+  if(r.terceira_nome) return r.terceira_nome + (r.terceira_wbs?' (WBS '+r.terceira_wbs+')':'');
   return '';
 }
 
@@ -336,12 +336,12 @@ function renderLista(){
     var venc = aberta(r) && r.data_necessidade && r.data_necessidade < L.todayISO();
     var an = ativNome(r);
     return '<tr><td class="ctr code">'+(r.num||'—')+'</td>'
+      + '<td class="small">'+(an ? esc(an).slice(0,90) : '<span class="muted">—</span>')+'</td>'
       + '<td><b>'+esc(r.descricao)+'</b>'
         + (r.acao ? '<div class="small muted">▸ '+esc(r.acao)+'</div>' : '')
         + (r.impacto ? '<div class="small" style="color:var(--terracota)">⚠ '+esc(r.impacto)+'</div>' : '')+'</td>'
       + '<td class="small">'+esc(r.categoria||'—')+'</td>'
       + '<td class="small">'+esc(r.empresa||'—')+'</td>'
-      + '<td class="small">'+(an ? esc(an).slice(0,90) : '<span class="muted">—</span>')+'</td>'
       + '<td class="small"><b>'+esc(r.responsavel||'—')+'</b>'
         + (r.setor ? '<div class="muted">'+esc(r.setor)+'</div>' : '')+'</td>'
       + '<td class="ctr'+(venc?'" style="color:var(--terracota);font-weight:700':'')+'">'
