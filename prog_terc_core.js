@@ -335,6 +335,9 @@
         '</div>' +
         '<div id="head-actions" class="user-bar no-print">' +
           (o.headActions || '') +
+          '<a class="btn" href="validacao_cronogramas.html" ' +
+            'title="Abrir o histórico de cronogramas (tela de Validação de Cronogramas)" ' +
+            'style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">📋 Histórico de Cronogramas</a>' +
           '<button class="btn" id="btn-print-shell" title="Imprimir ou salvar esta tela como PDF">⎙ Imprimir</button>' +
         '</div>' +
       '</header>' +
