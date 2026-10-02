@@ -524,8 +524,21 @@
     return false;
   }
 
+  /* nome da atividade-resumo um nível acima na árvore WBS (sobe até achar um nó existente,
+     cobrindo buracos na numeração) — usado pra dar contexto sem repetir o nome da empresa */
+  function paiNomeDe(wbs, porWbs) {
+    var w = String(wbs || '');
+    var ix = w.lastIndexOf('.');
+    while (ix > 0) {
+      w = w.slice(0, ix);
+      if (porWbs[w] != null) return porWbs[w];
+      ix = w.lastIndexOf('.');
+    }
+    return '';
+  }
+
   /* monta uma atividade a partir de uma tarefa-folha + contrato */
-  function atividadeDe(t, contrato) {
+  function atividadeDe(t, contrato, paiNome) {
     var E = (t.E == null ? (t.pct || 0) : t.E);
     var F = (t.F == null ? null : t.F);
     return {
@@ -537,6 +550,7 @@
       area:         contrato.area || '',
       disciplina:   contrato.disciplina || '',
       nome:         t.name || '(sem nome)',
+      pai:          paiNome || '',
       wbs:          t.wbs || '',
       level:        t.level || 0,
       inicio:       refIni(t),
@@ -589,11 +603,15 @@
               revisao: rev.revisao, rotulo: rev.rotulo,
               data_corte: rev.data_corte, total: tj.length, empresa: c.empresa
             };
+            // mapa wbs -> nome com TODAS as tarefas (inclusive resumos), só pra achar o "pai"
+            // de cada folha — não entra na lista de atividades em si
+            var porWbs = {};
+            tj.forEach(function (x) { if (x.wbs) porWbs[String(x.wbs)] = x.name || ''; });
             tj.forEach(function (t) {
               // só tarefas-folha ativas viram atividade do lookahead
               if (t.summary) return;
               if (t.active === false) return;
-              atividades.push(atividadeDe(t, c));
+              atividades.push(atividadeDe(t, c, paiNomeDe(t.wbs, porWbs)));
             });
           });
           _cache = { contratos: contratos, atividades: atividades, revInfo: revInfo };
