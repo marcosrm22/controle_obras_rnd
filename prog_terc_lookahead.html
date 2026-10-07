@@ -246,7 +246,7 @@ L.renderShell({
 var EDIT = L.canEdit();
 var ATIV = [], RESTR = [], PROG = [];
 var REGRAS = null;
-var BASE = L.mondayOf(), NW = 6;
+var BASE = L.quintaOf(), NW = 6;
 var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
 var SELMODE = false;      // modo seleção em massa
 var SELSET  = {};         // { aid: true } — atividades selecionadas
@@ -391,7 +391,7 @@ function visiveis(){
 function render(){
   $('hz-lbl').textContent = NW;
   var wks = weeks();
-  var hoje = L.mondayOf();
+  var hoje = L.quintaOf();
 
     var head = [];
   if(SELMODE) head.push('<th class="selcb no-print"><input type="checkbox" id="chkAllHead" title="Selecionar/limpar todas visíveis"/></th>');
@@ -868,10 +868,10 @@ atualizarBarraMassa = function(){
 };
 
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
-$('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
+$('wkBase').addEventListener('change', function(){ BASE = L.quintaOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
-$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.quintaOf(); $('wkBase').value = BASE; render(); });
 
 /* =========================================================================
    MODAL DE VÍNCULO (Fase 3.5 — split view "terceira × geral")
