@@ -209,7 +209,7 @@ L.renderShell({
 
 var EDIT = L.canEdit();
 var CARDS = [], ATIV = [], editando = null;
-var BASE = L.mondayOf();
+var BASE = L.quintaOf();
 $('wkBase').value = BASE;
 var RASCUNHOS = {};   // id -> {coluna, qtd_real, pct_realizado, causa, obs, pctManual}
 
@@ -709,7 +709,7 @@ $('mSave').addEventListener('click', function(){
 
   var a = L.atividadePorAid($('cAtiv').value);
   var body = {
-    semana: L.mondayOf($('cSem').value || BASE),
+    semana: L.quintaOf($('cSem').value || BASE),
     cronograma_id: a ? a.cronograma_id : (editando ? editando.cronograma_id : null),
     terceira_uid: a ? String(a.uid) : (editando ? editando.terceira_uid : null),
     terceira_wbs: a ? (a.wbs || null) : (editando ? editando.terceira_wbs : null),
@@ -783,13 +783,12 @@ $('btnGerarRel').addEventListener('click', function(){
 
 /* grade exportável com uma coluna de Previsto e outra de Realizado por dia da semana,
    semana começando na quinta-feira — células em branco pra preencher à mão depois de impressa.
-   OBS: os cards continuam agrupados pela "semana" do sistema (segunda-feira, BASE); a quinta
-   usada aqui é a quinta anterior a essa segunda (BASE - 4 dias), só para nomear/datar as colunas
-   do jeito que é preenchido em campo. */
+   BASE já é a própria quinta-feira (semana da obra: quinta a quarta), então as colunas
+   nomeiam os 7 dias a partir dela direto, sem nenhum deslocamento. */
 $('btnGrade').addEventListener('click', function(){
   var list = listaAtual();
   if(!list.length) return L.toast('Nenhum card para exportar nesta semana.','warn');
-  var thu = L.addDays(BASE, -4);
+  var thu = BASE;
   var dow = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'];
   var head = ['Empresa','Atividade','Área','Disciplina','Responsável','Equipe','Un'];
   for(var i=0;i<7;i++){
@@ -838,10 +837,10 @@ $('btnXls').addEventListener('click', function(){
 
 /* ================= EVENTOS ================= */
 ['fArea','fEmpresa','fFase','fCwa','fValid'].forEach(function(id){ $(id).addEventListener('change', render); });
-$('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
+$('wkBase').addEventListener('change', function(){ BASE = L.quintaOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
-$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.quintaOf(); $('wkBase').value = BASE; render(); });
 $('btnNovo').addEventListener('click', function(){ abrir(null); });
 if(!EDIT){
   $('btnNovo').style.display='none'; $('btnHerdar').style.display='none';
