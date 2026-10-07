@@ -11,16 +11,31 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lps_ei_core.css">
 <style>
-.ppc-badge{font-family:var(--mono);font-size:15px;font-weight:800;padding:3px 10px;border:1px solid}
-.ppc-badge.g{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
-.ppc-badge.y{background:var(--gold-soft);color:#7c4a00;border-color:#f0c87a}
-.ppc-badge.r{background:var(--red-soft);color:#8c2b1f;border-color:#e8b4ac}
-.ppc-badge.n{background:#f3f4f6;color:#4b5563;border-color:#d1d5db}
 .causa-row{display:grid;grid-template-columns:250px 1fr 46px;gap:12px;align-items:center;
   padding:6px 0;border-bottom:1px solid var(--border-2);font-size:11.5px}
 .causa-row .cb{background:#eef1f4;height:15px}
 .causa-row .cb i{display:block;height:100%;background:var(--terracota)}
 .causa-row .cv{font-family:var(--mono);font-weight:700;text-align:right}
+td.qtd-cell{font-family:var(--mono);font-weight:700}
+.cell-in{width:100%;min-width:64px;font-size:11.5px;padding:4px 6px;border:1px solid var(--border-2);
+  background:#fff;font-family:inherit}
+.cell-in.num{font-family:var(--mono);text-align:right;min-width:52px}
+select.cell-in{min-width:118px}
+.cell-row-id{display:none}
+.pill-sm{display:inline-block;font-size:9.5px;font-weight:700;font-family:var(--mono);
+  padding:2px 7px;border:1px solid;white-space:nowrap}
+.val-ok{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
+.val-pend{background:#f3f4f6;color:#6b7280;border-color:#d1d5db}
+.cron-ref{font-size:10.5px;color:var(--text-mute);line-height:1.5}
+.cron-ref b{color:var(--text-dim)}
+.cron-ref .atr{color:var(--terracota);font-weight:700}
+.desvio-flag{color:var(--terracota);font-weight:700;font-size:11px;margin-left:4px}
+tr.linha-validada td{background:#fafdf8}
+tr.linha-desvio td.c-pct{background:var(--gold-soft)}
+.rev-field{margin-bottom:12px}
+.rev-field label{display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--text-mute);font-weight:700;margin-bottom:4px}
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -44,21 +59,59 @@
     <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
     <select class="f" id="fFase"><option value="">Todas as fases</option></select>
     <select class="f" id="fCwa"><option value="">Todos os CWAs</option></select>
-    <button class="btn solid" id="btnNovo">+ Novo card</button>
+    <select class="f" id="fValid">
+      <option value="">Validadas e pendentes</option>
+      <option value="pendente">Só pendentes</option>
+      <option value="validado">Só validadas</option>
+    </select>
+  </div>
+
+  <div class="toolbar no-print">
+    <button class="btn" id="btnPull" title="Recarrega os cronogramas das terceiras e atualiza as colunas % Previsto e Cronograma informa">⤓ Puxar do cronograma</button>
+    <button class="btn solid" id="btnValFiltro" title="Valida de uma vez todas as linhas que estão visíveis com os filtros atuais">✓ Validar filtrado</button>
+    <button class="btn" id="btnValTudo" title="Revisão guiada, item por item, de tudo que ainda não foi validado nesta semana">🏁 Revisar tudo / Fechar semana</button>
+    <span class="spacer" style="flex:1"></span>
+    <button class="btn" id="btnNovo">+ Novo card</button>
     <button class="btn" id="btnHerdar">⟳ Herdar semana anterior</button>
-    <button class="btn" id="btnXls">⤓ Excel</button>
-    <button class="btn" onclick="window.print()">⎙ PDF</button>
   </div>
 
-  <div class="notice" id="hint">
-    Arraste os cards entre as colunas conforme a semana avança. Ao mover para
-    <b>Não concluída</b>, o sistema pede a <b>causa</b> — é essa informação que alimenta
-    o Pareto e mostra o que precisa mudar no processo. O <b>PPC</b> (Percentual de Programação
-    Concluída) é calculado sobre tudo o que foi programado na semana. A maioria dos cards
-    chega aqui pelo botão <b>▶</b> do Lookahead.
+  <div class="toolbar no-print">
+    <button class="btn" id="btnGerarProg" title="PDF/Excel com o % previsto para o fim da semana, por atividade — o compromisso da semana">📋 Gerar Programação</button>
+    <button class="btn" id="btnGerarRel" title="PDF/Excel com os % obtidos e as justificativas de desvio — o resultado da semana">📄 Gerar Relatório da Programação</button>
+    <button class="btn" id="btnGrade" title="Grade em branco, uma coluna Previsto/Realizado por dia (Qui–Qua), para preencher à mão em campo">🗓 Grade em branco (Qui–Qua)</button>
+    <button class="btn" id="btnXls" title="Dump completo de todos os campos, para quem quiser conferir tudo">⤓ Excel (dados brutos)</button>
   </div>
 
-  <div id="lanes"><div class="loading-line">Carregando…</div></div>
+  <div class="notice src-note">
+    Edite <b>Status</b>, <b>Qtd Real</b>, <b>% Realizado</b>, <b>Causa</b> e <b>Justificativa</b> direto na
+    linha (fica como rascunho até você validar). Use <b>✓</b> em cada linha pros acompanhamentos diários,
+    <b>Validar filtrado</b> pra confirmar em lote o que você acabou de revisar com um filtro aplicado, e
+    <b>Revisar tudo / Fechar semana</b> pra passar item por item por tudo que ainda sobrou no fim da semana.
+    <b>⤓ Puxar do cronograma</b> só atualiza as colunas de referência (não muda nada que você já validou).
+  </div>
+
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr>
+        <th style="min-width:110px">Empresa</th>
+        <th style="min-width:260px">Atividade</th>
+        <th style="min-width:100px">Área</th>
+        <th style="min-width:100px">Disciplina</th>
+        <th class="ctr" style="min-width:55px">Un</th>
+        <th class="ctr" style="min-width:80px">Qtd Prog.</th>
+        <th class="ctr" style="min-width:80px" title="Avanço esperado até o fim desta semana, pela linha de base do cronograma">% Previsto</th>
+        <th style="min-width:150px" title="Última leitura do cronograma da terceira — só referência, não é o que fica validado">Cronograma informa</th>
+        <th style="min-width:130px">Status</th>
+        <th class="ctr" style="min-width:75px">Qtd Real</th>
+        <th class="ctr" style="min-width:80px">% Realizado</th>
+        <th style="min-width:150px">Causa do desvio</th>
+        <th style="min-width:160px">Justificativa</th>
+        <th class="ctr" style="min-width:95px">Validado</th>
+        <th class="ctr no-print" style="width:60px"></th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="15" class="loading-line">Carregando…</td></tr></tbody>
+    </table>
+  </div>
 
   <div id="paretoWrap" class="hide">
     <div class="section-label">Causas de não cumprimento · semana</div>
@@ -66,7 +119,7 @@
   </div>
 </div>
 
-<!-- ===== MODAL CARD ===== -->
+<!-- ===== MODAL CARD (campos estruturais — status/qtd real/causa agora são só na tabela) ===== -->
 <div class="modal" id="mC"><div class="modal-box wide">
   <div class="modal-head">
     <div><h3 id="mTitle">Novo card</h3><div class="mh-sub" id="mSub"></div></div>
@@ -90,19 +143,12 @@
     <div class="frow">
       <div class="field"><label>Responsável</label><input id="cResp" placeholder="Encarregado / líder"></div>
       <div class="field"><label>Equipe / turma</label><input id="cEquipe" placeholder="Ex.: Equipe A"></div>
-      <div class="field"><label>Coluna</label><select id="cCol"></select></div>
-    </div>
-    <div class="frow">
-      <div class="field"><label>Qtd programada</label><input id="cQtdP" placeholder="120"></div>
-      <div class="field"><label>Qtd realizada</label><input id="cQtdR" placeholder="80"></div>
       <div class="field"><label>Unidade</label><input id="cUn" placeholder="m · kg · pç"></div>
     </div>
     <div class="frow">
+      <div class="field"><label>Qtd programada</label><input id="cQtdP" placeholder="120"></div>
       <div class="field"><label>Semana</label><input type="date" id="cSem"></div>
-      <div class="field" id="causaRow" style="grid-column:2/-1"><label>Causa (se não concluída)</label><select id="cCausa"></select></div>
     </div>
-    <div class="frow"><div class="field" style="grid-column:1/-1">
-      <label>Observações</label><textarea id="cObs"></textarea></div></div>
   </div>
   <div class="modal-foot">
     <button class="btn danger" id="mDel" style="display:none">🗑 Excluir</button>
@@ -112,22 +158,38 @@
   </div>
 </div></div>
 
-<!-- ===== MODAL CAUSA (drop em Não concluída) ===== -->
-<div class="modal" id="mCausa"><div class="modal-box">
+<!-- ===== MODAL REVISÃO GUIADA (Validar tudo / Fechar semana) ===== -->
+<div class="modal" id="mRev"><div class="modal-box">
   <div class="modal-head">
-    <div><h3>Por que não foi concluída?</h3><div class="mh-sub" id="causaSub"></div></div>
-    <button class="modal-close" onclick="PT.closeModal('mCausa')">&times;</button>
+    <div><h3>Revisão de fechamento da semana</h3><div class="mh-sub" id="revSub"></div></div>
+    <button class="modal-close" onclick="PT.closeModal('mRev')">&times;</button>
   </div>
   <div class="modal-body">
-    <div class="frow"><div class="field" style="grid-column:1/-1">
-      <label>Causa do não cumprimento *</label><select id="qCausa"></select></div></div>
-    <div class="frow"><div class="field" style="grid-column:1/-1">
-      <label>Detalhe (opcional)</label><textarea id="qObs" placeholder="O que impediu a conclusão?"></textarea></div></div>
+    <div class="rev-field">
+      <label>Atividade</label>
+      <div id="revAtiv" style="font-size:13px;font-weight:700"></div>
+      <div id="revMeta" class="small muted"></div>
+    </div>
+    <div class="rev-field">
+      <label>Cronograma informa (referência)</label>
+      <div id="revCron" class="cron-ref"></div>
+    </div>
+    <div class="rev-grid">
+      <div class="rev-field"><label>% Previsto (fim da semana)</label>
+        <div id="revPrevisto" style="font-family:var(--mono);font-weight:700;font-size:15px"></div></div>
+      <div class="rev-field"><label>Status</label><select id="revStatus" class="cell-in"></select></div>
+    </div>
+    <div class="rev-grid">
+      <div class="rev-field"><label>Qtd Real</label><input id="revQtdReal" class="cell-in num"></div>
+      <div class="rev-field"><label>% Realizado</label><input id="revPct" class="cell-in num"></div>
+    </div>
+    <div class="rev-field" id="revCausaWrap"><label>Causa do desvio</label><select id="revCausa" class="cell-in" style="width:100%"></select></div>
+    <div class="rev-field"><label>Justificativa</label><textarea id="revObs" style="width:100%"></textarea></div>
   </div>
   <div class="modal-foot">
-    <button class="btn" id="qCancel">Cancelar</button>
-    <span class="spacer"></span>
-    <button class="btn solid" id="qOk">Confirmar</button>
+    <span class="small muted" id="revProg" style="margin-right:auto"></span>
+    <button class="btn" id="revSkip">Pular (deixar pendente)</button>
+    <button class="btn solid" id="revOk">✓ Validar e avançar</button>
   </div>
 </div></div>
 
@@ -135,29 +197,31 @@
 (function(){
 'use strict';
 var L = window.PT;
+var PTA = window.PTA;
 if(!L.requireAuth()) return;
 var $ = L.$, esc = L.esc, nf = L.nf;
 
 L.renderShell({
   page:'semanal',
   title:'Programação Semanal das Terceiras',
-  subtitle:'Kanban do compromisso semanal por empresa contratada — o curto prazo do Last Planner System'
+  subtitle:'Validação diária do compromisso semanal por atividade — o curto prazo do Last Planner System'
 });
 
 var EDIT = L.canEdit();
 var CARDS = [], ATIV = [], editando = null;
-var BASE = L.mondayOf(), pendingDrop = null;
+var BASE = L.mondayOf();
 $('wkBase').value = BASE;
+var RASCUNHOS = {};   // id -> {coluna, qtd_real, pct_realizado, causa, obs, pctManual}
 
 /* ================= CARGA ================= */
-var REGRAS = null;   // { pesoProjeto, pesoPorFase, ... } — vem do PTA
+var REGRAS = null;
 function load(){
   return Promise.all([
     L.loadAtividades(false),
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&order=ordem.asc,id.asc'))
   ]).then(function(r){
     ATIV = r[0].atividades; CARDS = r[1];
-    // Enriquece com CWA / CWP / Fase / Peso a partir dos vínculos (Fase 3)
+    seedRascunhos();
     return window.PTA
       ? PTA.enriquecerTudo(ATIV, CARDS, true).then(function(res){ REGRAS = res.regras; })
       : Promise.resolve();
@@ -166,24 +230,71 @@ function load(){
     fillSelects(); render();
   }).catch(function(err){
     L.setupNotice('setup', err);
-    $('lanes').innerHTML = '<div class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</div>';
+    $('tb').innerHTML = '<tr><td colspan="15" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
   });
+}
+function seedRascunhos(){
+  var novo = {};
+  CARDS.forEach(function(c){
+    novo[c.id] = {
+      coluna: c.coluna || 'programada',
+      qtd_real: c.qtd_real == null ? '' : c.qtd_real,
+      pct_realizado: c.pct_realizado == null ? '' : c.pct_realizado,
+      causa: c.causa || '',
+      obs: c.obs || '',
+      pctManual: c.pct_realizado != null
+    };
+  });
+  RASCUNHOS = novo;
 }
 var FASE_LABELS = { FASE_I:'Fase I', FASE_II:'Fase II', ARMAZEM:'Armazém de Grãos', POSTO:'Posto de Combustíveis' };
 
 function ativLabel(a){
   return (a.empresa ? a.empresa + ' · ' : '') + a.nome + (a.wbs ? ' (WBS ' + a.wbs + ')' : '');
 }
+function ativDoCard(c){
+  if(c.cronograma_id == null || c.terceira_uid == null) return null;
+  return ATIV.filter(function(x){ return x.cronograma_id === c.cronograma_id && String(x.uid) === String(c.terceira_uid); })[0] || null;
+}
+function nomeHtmlPai(c){
+  var a = ativDoCard(c);
+  var pai = a && a.pai ? a.pai : '';
+  return (pai ? esc(pai) + ' · ' : '') + esc(c.descricao || (a ? a.nome : '') || '—');
+}
+function nomeTextoPai(c){
+  var a = ativDoCard(c);
+  var pai = a && a.pai ? a.pai : '';
+  return (pai ? pai + ' · ' : '') + (c.descricao || (a ? a.nome : '') || '');
+}
+function pctPrevistoDoCard(c){
+  var a = ativDoCard(c);
+  if(!a) return null;
+  return L.pctPrevistoEm(a, L.addDays(BASE,6));
+}
+var EXEC_LABELS = { concluida:'concluída', execucao:'em execução', planejada:'planejada' };
+function cronogramaRefHtml(c){
+  var a = ativDoCard(c);
+  if(!a) return '<span class="muted">sem vínculo</span>';
+  var pct = a.pct == null ? null : Math.round(a.pct);
+  var prev = a.prev == null ? null : Math.round(a.prev);
+  return '<b>'+(pct==null?'—':pct+'%')+'</b> concl. · prev '+(prev==null?'—':prev+'%')
+    + (a.atrasada ? ' <span class="atr">⚠ atrasada</span>' : '')
+    + '<br><span class="muted">'+esc(EXEC_LABELS[a.execStatus]||a.execStatus||'')+'</span>';
+}
+var COL_COLORS = {
+  programada:     { bg:'#eef0f2', fg:'#4b5563' },
+  execucao:       { bg:'var(--blue-soft)', fg:'var(--blue)' },
+  concluida:      { bg:'var(--green-soft)', fg:'#2b6027' },
+  nao_concluida:  { bg:'var(--red-soft)', fg:'#8c2b1f' }
+};
 
 function fillSelects(){
   $('cDisc').innerHTML = '<option value=""></option>'
     + L.DISCIPLINAS.map(function(s){ return '<option>'+esc(s)+'</option>'; }).join('');
-  $('cCol').innerHTML = L.KB_COLS.map(function(c){
-    return '<option value="'+c.key+'">'+esc(c.label)+'</option>'; }).join('');
   var causas = '<option value=""></option>'
     + L.CAUSAS_PPC.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
-  $('cCausa').innerHTML = causas;
-  $('qCausa').innerHTML = causas;
+  $('revCausa').innerHTML = causas;
+  $('revStatus').innerHTML = L.KB_COLS.map(function(c){ return '<option value="'+c.key+'">'+esc(c.label)+'</option>'; }).join('');
 
   var ord = ATIV.slice().sort(function(a,b){
     return (a.empresa||'').localeCompare(b.empresa||'','pt-BR') || (a.nome||'').localeCompare(b.nome||'','pt-BR');
@@ -208,7 +319,6 @@ function fillSelects(){
   $('fArea').innerHTML = '<option value="">Todas as áreas</option>'
     + areas.map(function(e){ return '<option'+(e===ca?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
 
-  // Fase e CWA (Fase 3 — vindos do enriquecimento)
   var fases = [];
   ATIV.forEach(function(a){ if(a.fase && fases.indexOf(a.fase) < 0) fases.push(a.fase); });
   CARDS.forEach(function(c){ if(c.fase && fases.indexOf(c.fase) < 0) fases.push(c.fase); });
@@ -225,122 +335,49 @@ function fillSelects(){
     + cwas.map(function(w){ return '<option'+(w===cc?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
 }
 
-/* ================= SELEÇÃO DA SEMANA ================= */
+/* ================= SELEÇÃO DA SEMANA / FILTROS ================= */
 function daSemana(wk){
   var fa = $('fArea').value, fe = $('fEmpresa').value;
-  var ff = $('fFase').value, fc = $('fCwa').value;
+  var ff = $('fFase').value, fc = $('fCwa').value, fv = $('fValid').value;
   return CARDS.filter(function(c){
     if(String(c.semana).slice(0,10) !== wk) return false;
     if(fa && c.area !== fa) return false;
     if(fe && c.empresa !== fe) return false;
     if(ff && c.fase !== ff) return false;
     if(fc && c.cwa !== fc) return false;
+    if(fv === 'pendente' && c.validado) return false;
+    if(fv === 'validado' && !c.validado) return false;
     return true;
   });
 }
+function listaAtual(){ return daSemana(BASE); }
 function ppcDe(list){
   if(!list.length) return null;
   var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
   return Math.round(done / list.length * 100);
 }
-function ppcCls(p){ return p == null ? 'n' : (p >= 85 ? 'g' : (p >= 70 ? 'y' : 'r')); }
 
 /* ================= RENDER ================= */
 function render(){
-  var wk = BASE;
-  var list = daSemana(wk);
-  $('wkInfo').innerHTML = 'Semana <b>' + L.weekLabel(wk) + '</b> · '
-    + L.fmtBr(wk) + ' a ' + L.fmtBr(L.addDays(wk,6));
-
+  var list = listaAtual();
+  $('wkInfo').innerHTML = 'Semana <b>' + L.weekLabel(BASE) + '</b> · '
+    + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
   renderKpis(list);
-
-  var g = {};
-  list.forEach(function(c){ var k = c.empresa || '(sem empresa)'; (g[k] = g[k] || []).push(c); });
-  var emps = Object.keys(g).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
-
-  if(!emps.length){
-    $('lanes').innerHTML = '<div class="empty"><div class="big">▥</div>'
-      + 'Nenhum card programado para esta semana.'
-      + (EDIT ? '<br><span class="small">Use o botão <b>▶</b> do Lookahead, <b>+ Novo card</b> '
-        + 'ou <b>⟳ Herdar semana anterior</b>.</span>' : '') + '</div>';
-    $('paretoWrap').classList.add('hide');
-    return;
-  }
-
-  $('lanes').innerHTML = emps.map(function(emp){
-    var cs = g[emp];
-    var p = ppcDe(cs);
-    var done = cs.filter(function(c){ return c.coluna === 'concluida'; }).length;
-    return '<div class="kb-lane">'
-      + '<div class="kb-lane-head">'
-        + '<div><div class="ln">'+esc(emp)+'</div>'
-        + '<div class="lm">'+cs.length+' cards · '+done+' concluídos</div></div>'
-        + '<div><span class="lm" style="margin-right:8px">PPC</span>'
-        + '<span class="ppc-badge '+ppcCls(p)+'">'+(p==null?'—':p+'%')+'</span></div>'
-      + '</div>'
-      + '<div class="kb-cols">'
-        + L.KB_COLS.map(function(col){
-            var items = cs.filter(function(c){ return c.coluna === col.key; });
-            return '<div class="kb-col '+col.cls+'" data-col="'+col.key+'">'
-              + '<div class="kb-col-head"><span>'+esc(col.label)+'</span><span>'+items.length+'</span></div>'
-              + (items.length ? items.map(cardHtml).join('') : '<div class="kb-empty">vazio</div>')
-              + '</div>';
-          }).join('')
-      + '</div></div>';
-  }).join('');
-
-  wireDnD();
-  renderPareto(list);
-}
-
-function cardHtml(c){
-  var col = L.KB_COLS.filter(function(x){ return x.key === c.coluna; })[0] || L.KB_COLS[0];
-  var pct = (c.qtd_prog && c.qtd_real != null)
-    ? Math.round(Math.min(100, (c.qtd_real / c.qtd_prog) * 100)) : null;
-  var origem = (c.cronograma_id != null && c.terceira_uid != null) ? 'do cronograma' : 'avulso';
-  // Meta/dia (Fase 4) — se a atividade correspondente tem produtividade cadastrada
-  var metaBadge = '';
-  if(c.cronograma_id != null && c.terceira_uid != null && window.PTA && REGRAS){
-    var a = ATIV.filter(function(x){ return x.cronograma_id === c.cronograma_id && String(x.uid) === String(c.terceira_uid); })[0];
-    if(a){
-      var m = PTA.metaPorDia(a, REGRAS);
-      if(m){
-        metaBadge = '<div class="kc-meta" style="background:#e0f2f1;color:#00695c;padding:3px 6px;margin-top:3px;font-weight:700">'
-          + '🎯 Meta: ' + L.nf(m.qtd_dia, m.qtd_dia<10?2:0) + ' ' + (m.unidade||'') + '/dia'
-          + ' <span style="opacity:.65;font-weight:400">('+ L.nf(m.qtd_total, 0) +' em '+m.dias+'d)</span>'
-          + '</div>';
-      }
-    }
-  }
-  return '<div class="kb-card '+col.cls+'" draggable="'+(EDIT?'true':'false')+'" data-id="'+c.id+'">'
-    + '<div class="kc-title">'+esc(c.descricao)+'</div>'
-    + '<div class="kc-meta">'
-      + (c.area ? '<span class="tag b">'+esc(c.area)+'</span> ' : '')
-      + (c.responsavel ? esc(c.responsavel) : '')
-      + (c.equipe ? ' · ' + esc(c.equipe) : '')
-    + '</div>'
-    + (c.qtd_prog ? '<div class="kc-meta mono">'+nf(c.qtd_real||0,0)+' / '+nf(c.qtd_prog,0)
-        + ' ' + esc(c.un||'') + (pct!=null?' · '+pct+'%':'') + '</div>' : '')
-    + metaBadge
-    + (c.causa ? '<div class="kc-meta" style="color:var(--terracota);font-weight:700">⚠ '+esc(c.causa)+'</div>' : '')
-    + (c.fase || c.cwa || c.peso_pct_projeto ? '<div class="kc-meta" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">'
-       + (c.fase ? '<span class="tag" style="background:#f0e6f8;color:#6B4FA0">'+esc(FASE_LABELS[c.fase]||c.fase)+'</span>' : '')
-       + (c.cwa  ? '<span class="tag" style="background:#eaf3fb;color:#1f5170;font-family:var(--mono)">'+esc(String(c.cwa).slice(0,26))+(String(c.cwa).length>26?'…':'')+'</span>' : '')
-       + (c.peso_pct_projeto ? '<span class="tag" style="background:#e0f2f1;color:#00695c;font-family:var(--mono);font-weight:700">'+Number(c.peso_pct_projeto).toFixed(2)+'%</span>' : '')
-       + (c.sem_vinculo && (c.cronograma_id!=null) ? '<span class="tag" style="background:#fdecea;color:#8a3822">sem vínculo</span>' : '')
-       + '</div>' : '')
-    + '<div class="kc-foot">'
-      + '<span class="small muted">'+origem+(c.terceira_wbs?(' · WBS '+esc(c.terceira_wbs)):'')+'</span>'
-      + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'">✎</button>' : '')
-    + '</div></div>';
+  renderTabela(list);
+  renderPareto(daSemana(BASE).filter(function(c){ return c.coluna === 'nao_concluida'; }));
 }
 
 function renderKpis(list){
   var p = ppcDe(list);
   var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
   var fail = list.filter(function(c){ return c.coluna === 'nao_concluida'; }).length;
-  var exec = list.filter(function(c){ return c.coluna === 'execucao'; }).length;
-  var prog = list.filter(function(c){ return c.coluna === 'programada'; }).length;
+  var validadas = list.filter(function(c){ return c.validado; });
+  var pendentes = list.length - validadas.length;
+
+  var prevVals = list.map(pctPrevistoDoCard).filter(function(v){ return v != null; });
+  var prevMedio = prevVals.length ? Math.round(prevVals.reduce(function(a,b){return a+b;},0)/prevVals.length) : null;
+  var realVals = validadas.map(function(c){ return c.pct_realizado; }).filter(function(v){ return v != null; });
+  var realMedio = realVals.length ? Math.round(realVals.reduce(function(a,b){return a+b;},0)/realVals.length) : null;
 
   var hist = [];
   for(var i = 4; i >= 1; i--){
@@ -350,34 +387,133 @@ function renderKpis(list){
   }
   var media = hist.length ? Math.round(hist.reduce(function(a,b){ return a+b; },0)/hist.length) : null;
 
-  // KPIs de peso (Fase 3) — só se PTA/REGRAS carregados
   var K = window.PTA ? PTA.kpisSemana(list, REGRAS) : null;
-  var kpiPpcPeso = K ? kpi('b-blue',   (K.ppcPeso==null?'—':K.ppcPeso+'%'),          'PPC peso',       'concluído / programado (R$)') : '';
+  var kpiPpcPeso = K ? kpi('b-blue', (K.ppcPeso==null?'—':K.ppcPeso+'%'), 'PPC peso', 'concluído / programado (R$)') : '';
   var kpiAder   = K ? kpi('b-violet', (K.aderenciaParcial==null?'—':K.aderenciaParcial+'%'), 'Aderência real', 'considera qtd_real ÷ qtd_prog') : '';
-  var kpiPctPrj = (K && REGRAS && REGRAS.pesoProjeto) ? kpi('b-teal', K.pctProjSemana.toFixed(2)+'%', '% do projeto', 'peso programado esta semana') : '';
-  var alertSem  = (K && K.cardsSemPeso) ? kpi('b-red', K.cardsSemPeso, 'Sem peso', 'cards não vinculados ao geral') : '';
 
   $('kpis').innerHTML =
+    kpi('b-gray', list.length, 'Na semana', 'atividades programadas') +
+    kpi('b-gold', pendentes, 'Pendentes', 'ainda não validadas') +
+    kpi('b-green', validadas.length, 'Validadas', validadas.length+' de '+list.length) +
     '<div class="kpi static b-blue"><div class="num">'+(p==null?'—':p+'%')+'</div>'
-      + '<div class="label">PPC contagem</div><div class="sub">'+done+' de '+list.length+' concluídos</div></div>' +
-    kpiPpcPeso +
-    kpiAder +
-    kpiPctPrj +
-    kpi('b-gray', prog, 'Programadas', 'ainda não iniciadas') +
-    kpi('b-violet', exec, 'Em execução', 'em andamento') +
-    kpi('b-green', done, 'Concluídas', 'compromisso cumprido') +
-    kpi('b-red', fail, 'Não concluídas', 'com causa registrada') +
-    kpi('b-gold', (media==null?'—':media+'%'), 'PPC médio', 'últimas ' + hist.length + ' semanas') +
-    alertSem;
+      + '<div class="label">PPC contagem</div><div class="sub">'+done+' concluídas · '+fail+' não concluídas</div></div>' +
+    kpiPpcPeso + kpiAder +
+    kpi('b-teal', (prevMedio==null?'—':prevMedio+'%'), '% Previsto médio', 'pela linha de base, até o fim da semana') +
+    kpi('b-violet', (realMedio==null?'—':realMedio+'%'), '% Realizado médio', 'só entre as já validadas') +
+    kpi('b-red', (media==null?'—':media+'%'), 'PPC médio', 'últimas ' + hist.length + ' semanas');
 }
 function kpi(cls, num, label, sub){
   return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
        + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
 }
 
+function renderTabela(list){
+  if(!list.length){
+    $('tb').innerHTML = '<tr><td colspan="15" class="empty"><div class="big">☰</div>'
+      + 'Nenhuma atividade programada para esta semana com esses filtros.'
+      + (EDIT ? '<br><span class="small">Use <b>+ Novo card</b> ou <b>⟳ Herdar semana anterior</b>.</span>' : '')
+      + '</td></tr>';
+    return;
+  }
+  $('tb').innerHTML = list.map(linhaHtml).join('');
+  wireLinhas();
+}
+
+function linhaHtml(c){
+  var rc = RASCUNHOS[c.id] || { coluna:c.coluna, qtd_real:'', pct_realizado:'', causa:'', obs:'' };
+  var prevPct = pctPrevistoDoCard(c);
+  var realPct = rc.pct_realizado === '' ? null : Number(rc.pct_realizado);
+  var desvio = (prevPct != null && realPct != null && realPct < prevPct - 5);
+  var precisaCausa = rc.coluna === 'nao_concluida';
+  return '<tr data-id="'+c.id+'" class="'+(c.validado?'linha-validada':'')+(desvio?' linha-desvio':'')+'">'
+    + '<td class="small"><b>'+esc(c.empresa||'—')+'</b></td>'
+    + '<td class="small">'+(c.terceira_wbs ? '<span style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(c.terceira_wbs)+'</span>' : '')+nomeHtmlPai(c)+'</td>'
+    + '<td class="small">'+esc(c.area||'—')+'</td>'
+    + '<td class="small">'+esc(c.disciplina||'—')+'</td>'
+    + '<td class="ctr">'+esc(c.un||'—')+'</td>'
+    + '<td class="ctr qtd-cell">'+(c.qtd_prog==null?'—':nf(c.qtd_prog,2))+'</td>'
+    + '<td class="ctr qtd-cell c-pct">'+(prevPct==null?'—':prevPct+'%')+'</td>'
+    + '<td class="cron-ref">'+cronogramaRefHtml(c)+'</td>'
+    + '<td><select class="cell-in sel-status">'+L.KB_COLS.map(function(k){
+        return '<option value="'+k.key+'"'+(k.key===rc.coluna?' selected':'')+'>'+esc(k.label)+'</option>';
+      }).join('')+'</select></td>'
+    + '<td class="ctr"><input class="cell-in num in-qtdreal" value="'+esc(rc.qtd_real)+'" placeholder="—"></td>'
+    + '<td class="ctr c-pct"><input class="cell-in num in-pct" value="'+esc(rc.pct_realizado)+'" placeholder="—">'
+      + (desvio ? '<span class="desvio-flag" title="Abaixo do previsto em mais de 5 pontos">⚠</span>' : '') + '</td>'
+    + '<td><select class="cell-in sel-causa"'+(precisaCausa?'':' style="opacity:.6"')+'>'
+        + '<option value=""></option>'
+        + L.CAUSAS_PPC.map(function(cz){ return '<option'+(cz===rc.causa?' selected':'')+'>'+esc(cz)+'</option>'; }).join('')
+      + '</select></td>'
+    + '<td><input class="cell-in in-obs" value="'+esc(rc.obs)+'" placeholder="Justificativa / observação"></td>'
+    + '<td class="ctr">'+(c.validado
+        ? '<span class="pill-sm val-ok" title="'+esc(c.validado_por||'')+' em '+L.fmtTS(c.validado_em)+'">✓ validado</span>'
+        : '<span class="pill-sm val-pend">pendente</span>')+'</td>'
+    + '<td class="ctr no-print">'
+        + (EDIT ? '<button class="btn sm" data-val="'+c.id+'" title="Validar esta linha">✓</button> ' : '')
+        + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'" title="Editar dados estruturais">✎</button>' : '')
+      + '</td>'
+    + '</tr>';
+}
+
+/* atualiza só o visual de desvio (ícone ⚠ + fundo da célula) sem re-renderizar a linha,
+   pra não derrubar o foco/cursor de quem está digitando */
+function atualizarDesvioVisual(tr, id){
+  var c = CARDS.filter(function(x){ return x.id === id; })[0];
+  var rc = RASCUNHOS[id];
+  if(!c || !rc) return;
+  var prevPct = pctPrevistoDoCard(c);
+  var realPct = rc.pct_realizado === '' ? null : Number(rc.pct_realizado);
+  var desvio = (prevPct != null && realPct != null && realPct < prevPct - 5);
+  tr.classList.toggle('linha-desvio', desvio);
+  var td = tr.querySelector('.in-pct').closest('td');
+  var flag = td.querySelector('.desvio-flag');
+  if(desvio && !flag){
+    flag = document.createElement('span');
+    flag.className = 'desvio-flag';
+    flag.title = 'Abaixo do previsto em mais de 5 pontos';
+    flag.textContent = '⚠';
+    td.appendChild(flag);
+  } else if(!desvio && flag){
+    flag.remove();
+  }
+}
+
+function wireLinhas(){
+  document.querySelectorAll('#tb tr[data-id]').forEach(function(tr){
+    var id = +tr.dataset.id;
+    var rc = RASCUNHOS[id]; if(!rc) return;
+
+    tr.querySelector('.sel-status').addEventListener('change', function(){
+      rc.coluna = this.value;
+      if(rc.coluna === 'concluida' && !rc.pctManual && rc.pct_realizado === ''){ rc.pct_realizado = 100; }
+      renderTabela(listaAtual());
+    });
+    tr.querySelector('.in-qtdreal').addEventListener('input', function(){
+      rc.qtd_real = this.value.trim() === '' ? '' : L.parseNum(this.value);
+      var card = CARDS.filter(function(x){ return x.id === id; })[0];
+      if(card && card.qtd_prog && !rc.pctManual){
+        rc.pct_realizado = Math.round(Math.min(100, (rc.qtd_real||0) / card.qtd_prog * 100));
+        tr.querySelector('.in-pct').value = rc.pct_realizado;
+      }
+      atualizarDesvioVisual(tr, id);
+    });
+    tr.querySelector('.in-pct').addEventListener('input', function(){
+      rc.pctManual = true;
+      rc.pct_realizado = this.value.trim() === '' ? '' : L.parseNum(this.value);
+      atualizarDesvioVisual(tr, id);
+    });
+    tr.querySelector('.sel-causa').addEventListener('change', function(){ rc.causa = this.value; });
+    tr.querySelector('.in-obs').addEventListener('change', function(){ rc.obs = this.value; });
+
+    var bv = tr.querySelector('button[data-val]');
+    if(bv) bv.addEventListener('click', function(){ validarLinha(id); });
+    var be = tr.querySelector('button[data-ed]');
+    if(be) be.addEventListener('click', function(){ abrir(id); });
+  });
+}
+
 /* ================= PARETO DE CAUSAS ================= */
-function renderPareto(list){
-  var fails = list.filter(function(c){ return c.coluna === 'nao_concluida'; });
+function renderPareto(fails){
   if(!fails.length){ $('paretoWrap').classList.add('hide'); return; }
   $('paretoWrap').classList.remove('hide');
   var g = {};
@@ -392,73 +528,118 @@ function renderPareto(list){
   }).join('');
 }
 
-/* ================= DRAG & DROP ================= */
-function wireDnD(){
-  document.querySelectorAll('.kb-card').forEach(function(el){
-    el.addEventListener('dragstart', function(ev){
-      if(!EDIT) return;
-      ev.dataTransfer.setData('text/plain', el.dataset.id);
-      ev.dataTransfer.effectAllowed = 'move';
-      el.classList.add('dragging');
-    });
-    el.addEventListener('dragend', function(){ el.classList.remove('dragging'); });
-  });
-  document.querySelectorAll('.kb-col').forEach(function(col){
-    col.addEventListener('dragover', function(ev){
-      if(!EDIT) return;
-      ev.preventDefault(); ev.dataTransfer.dropEffect = 'move';
-      col.classList.add('drag');
-    });
-    col.addEventListener('dragleave', function(){ col.classList.remove('drag'); });
-    col.addEventListener('drop', function(ev){
-      ev.preventDefault(); col.classList.remove('drag');
-      if(!EDIT) return;
-      var id = parseInt(ev.dataTransfer.getData('text/plain'), 10);
-      mover(id, col.dataset.col);
-    });
-  });
-  document.querySelectorAll('button[data-ed]').forEach(function(b){
-    b.addEventListener('click', function(ev){ ev.stopPropagation(); abrir(+b.dataset.ed); });
-  });
+/* ================= VALIDAÇÃO ================= */
+function corpoValidacao(rc, userNow){
+  return {
+    coluna: rc.coluna,
+    qtd_real: rc.qtd_real === '' ? null : rc.qtd_real,
+    pct_realizado: rc.pct_realizado === '' ? null : rc.pct_realizado,
+    causa: rc.causa || null,
+    obs: rc.obs || null,
+    validado: true,
+    validado_em: new Date().toISOString(),
+    validado_por: userNow,
+    atualizado_em: new Date().toISOString()
+  };
 }
-
-function mover(id, coluna){
-  var c = CARDS.filter(function(x){ return x.id === id; })[0];
-  if(!c || c.coluna === coluna) return;
-  if(coluna === 'nao_concluida'){
-    pendingDrop = { id:id, card:c };
-    $('causaSub').textContent = c.descricao;
-    $('qCausa').value = c.causa || '';
-    $('qObs').value = '';
-    L.openModal('mCausa');
-    return;
-  }
-  var body = { coluna:coluna, causa:null, atualizado_em:new Date().toISOString() };
-  if(coluna === 'concluida' && c.qtd_prog && c.qtd_real == null) body.qtd_real = c.qtd_prog;
-  aplicar(id, body);
-}
-function aplicar(id, body){
-  L.sb('PATCH','prog_terc_programacao?id=eq.'+id, body)
-    .then(function(){ return load(); })
+function validarLinha(id){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var rc = RASCUNHOS[id]; if(!rc) return;
+  if(rc.coluna === 'nao_concluida' && !rc.causa) return L.toast('Informe a causa do não cumprimento antes de validar.','warn');
+  L.sb('PATCH','prog_terc_programacao?id=eq.'+id, corpoValidacao(rc, L.userNome()))
+    .then(function(){ L.toast('Linha validada.','ok'); return load(); })
     .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
 }
-
-$('qOk').addEventListener('click', function(){
-  if(!pendingDrop) return;
-  var causa = $('qCausa').value;
-  if(!causa) return L.toast('Selecione a causa do não cumprimento.','warn');
-  var obs = $('qObs').value.trim();
-  var atual = pendingDrop.card.obs || '';
-  aplicar(pendingDrop.id, {
-    coluna:'nao_concluida', causa:causa,
-    obs: obs ? (atual ? atual + '\n' + obs : obs) : (atual || null),
-    atualizado_em:new Date().toISOString()
-  });
-  pendingDrop = null;
-  L.closeModal('mCausa');
+$('btnValFiltro').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var list = listaAtual();
+  if(!list.length) return L.toast('Nada visível com os filtros atuais.','warn');
+  var semCausa = list.filter(function(c){ return (RASCUNHOS[c.id]||{}).coluna === 'nao_concluida' && !(RASCUNHOS[c.id]||{}).causa; });
+  if(semCausa.length) return L.toast(semCausa.length+' linha(s) marcada(s) como "Não concluída" sem causa — preencha antes de validar em lote.','warn');
+  if(!confirm('Validar as ' + list.length + ' linha(s) visíveis com os filtros atuais?')) return;
+  var user = L.userNome();
+  Promise.all(list.map(function(c){
+    return L.sb('PATCH','prog_terc_programacao?id=eq.'+c.id, corpoValidacao(RASCUNHOS[c.id], user));
+  })).then(function(){ L.toast(list.length+' linha(s) validada(s).','ok'); return load(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
 });
-$('qCancel').addEventListener('click', function(){
-  pendingDrop = null; L.closeModal('mCausa'); render();
+
+/* ---- Revisão guiada (Validar tudo / Fechar semana) ---- */
+var REV_QUEUE = [], REV_IDX = 0;
+$('btnValTudo').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  REV_QUEUE = CARDS.filter(function(c){ return String(c.semana).slice(0,10) === BASE && !c.validado; });
+  if(!REV_QUEUE.length) return L.toast('Tudo já está validado nesta semana.','ok');
+  REV_IDX = 0;
+  L.openModal('mRev');
+  renderRevAtual();
+});
+function renderRevAtual(){
+  var c = REV_QUEUE[REV_IDX];
+  var rc = RASCUNHOS[c.id];
+  $('revProg').textContent = 'Item ' + (REV_IDX+1) + ' de ' + REV_QUEUE.length;
+  $('revSub').textContent = 'Semana de ' + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
+  $('revAtiv').innerHTML = esc(c.empresa||'') + ' — ' + nomeHtmlPai(c);
+  $('revMeta').textContent = (c.area||'—') + ' · ' + (c.disciplina||'—') + ' · Qtd. prog.: ' + (c.qtd_prog==null?'—':L.nf(c.qtd_prog,2)) + ' ' + (c.un||'');
+  $('revCron').innerHTML = cronogramaRefHtml(c);
+  var prevPct = pctPrevistoDoCard(c);
+  $('revPrevisto').textContent = prevPct==null ? '—' : prevPct+'%';
+  $('revStatus').value = rc.coluna;
+  $('revQtdReal').value = rc.qtd_real;
+  $('revPct').value = rc.pct_realizado;
+  $('revCausa').value = rc.causa;
+  $('revObs').value = rc.obs;
+  $('revCausaWrap').classList.toggle('hide', rc.coluna !== 'nao_concluida');
+}
+$('revStatus').addEventListener('change', function(){
+  var rc = RASCUNHOS[REV_QUEUE[REV_IDX].id];
+  rc.coluna = this.value;
+  if(rc.coluna === 'concluida' && !rc.pctManual && rc.pct_realizado === '') rc.pct_realizado = 100;
+  $('revPct').value = rc.pct_realizado;
+  $('revCausaWrap').classList.toggle('hide', rc.coluna !== 'nao_concluida');
+});
+$('revQtdReal').addEventListener('input', function(){
+  var c = REV_QUEUE[REV_IDX], rc = RASCUNHOS[c.id];
+  rc.qtd_real = this.value.trim() === '' ? '' : L.parseNum(this.value);
+  if(c.qtd_prog && !rc.pctManual){
+    rc.pct_realizado = Math.round(Math.min(100, (rc.qtd_real||0) / c.qtd_prog * 100));
+    $('revPct').value = rc.pct_realizado;
+  }
+});
+$('revPct').addEventListener('input', function(){
+  var rc = RASCUNHOS[REV_QUEUE[REV_IDX].id];
+  rc.pctManual = true;
+  rc.pct_realizado = this.value.trim() === '' ? '' : L.parseNum(this.value);
+});
+$('revCausa').addEventListener('change', function(){ RASCUNHOS[REV_QUEUE[REV_IDX].id].causa = this.value; });
+$('revObs').addEventListener('change', function(){ RASCUNHOS[REV_QUEUE[REV_IDX].id].obs = this.value; });
+function avancarRevisao(){
+  REV_IDX++;
+  if(REV_IDX >= REV_QUEUE.length){
+    L.closeModal('mRev'); L.toast('Revisão da semana concluída.','ok'); load(); return;
+  }
+  renderRevAtual();
+}
+$('revSkip').addEventListener('click', avancarRevisao);
+$('revOk').addEventListener('click', function(){
+  var c = REV_QUEUE[REV_IDX], rc = RASCUNHOS[c.id];
+  if(rc.coluna === 'nao_concluida' && !rc.causa) return L.toast('Informe a causa do não cumprimento.','warn');
+  L.sb('PATCH','prog_terc_programacao?id=eq.'+c.id, corpoValidacao(rc, L.userNome()))
+    .then(function(){ c.validado = true; avancarRevisao(); })
+    .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
+});
+L.wireModal('mRev');
+
+/* ================= PUXAR DO CRONOGRAMA ================= */
+$('btnPull').addEventListener('click', function(){
+  L.toast('Atualizando a partir dos cronogramas das terceiras…');
+  L.loadAtividades(true).then(function(res){
+    ATIV = res.atividades;
+    return window.PTA ? PTA.enriquecerTudo(ATIV, CARDS, true).then(function(r2){ REGRAS = r2.regras; }) : Promise.resolve();
+  }).then(function(){
+    render();
+    L.toast('Colunas de referência atualizadas com a última revisão de cada cronograma.','ok');
+  }).catch(function(e){ L.toast('Erro ao atualizar: '+e.message,'warn'); });
 });
 
 /* ================= HERDAR SEMANA ANTERIOR ================= */
@@ -490,7 +671,7 @@ $('btnHerdar').addEventListener('click', function(){
     .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
 });
 
-/* ================= MODAL CARD ================= */
+/* ================= MODAL CARD (campos estruturais) ================= */
 $('cAtiv').addEventListener('change', function(){
   var a = L.atividadePorAid($('cAtiv').value);
   if(!a) return;
@@ -499,14 +680,12 @@ $('cAtiv').addEventListener('change', function(){
   if(!$('cArea').value && a.area) $('cArea').value = a.area;
   if(!$('cDisc').value && a.disciplina) $('cDisc').value = a.disciplina;
 });
-$('cCol').addEventListener('change', function(){
-  $('causaRow').classList.toggle('hide', this.value !== 'nao_concluida');
-});
 
 function abrir(id){
   editando = id ? CARDS.filter(function(c){ return c.id === id; })[0] : null;
-  $('mTitle').textContent = editando ? 'Editar card' : 'Novo card';
-  $('mSub').textContent = 'Semana de ' + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
+  $('mTitle').textContent = editando ? 'Editar dados do card' : 'Novo card';
+  $('mSub').textContent = 'Semana de ' + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6))
+    + ' — status, qtd. real, % realizado e causa são editados direto na tabela.';
   $('mDel').style.display = editando ? '' : 'none';
   var c = editando || {};
   $('cAtiv').value = (c.cronograma_id != null && c.terceira_uid != null) ? L.aidOf(c.cronograma_id, c.terceira_uid) : '';
@@ -517,13 +696,8 @@ function abrir(id){
   $('cResp').value = c.responsavel || '';
   $('cEquipe').value = c.equipe || '';
   $('cQtdP').value = c.qtd_prog == null ? '' : L.nf(c.qtd_prog,2);
-  $('cQtdR').value = c.qtd_real == null ? '' : L.nf(c.qtd_real,2);
   $('cUn').value = c.un || '';
-  $('cCol').value = c.coluna || 'programada';
   $('cSem').value = c.semana ? String(c.semana).slice(0,10) : BASE;
-  $('cCausa').value = c.causa || '';
-  $('cObs').value = c.obs || '';
-  $('causaRow').classList.toggle('hide', $('cCol').value !== 'nao_concluida');
   L.openModal('mC');
 }
 
@@ -532,9 +706,6 @@ $('mSave').addEventListener('click', function(){
   var d = $('cDesc').value.trim();
   if(!d) return L.toast('Descreva o que será feito.','warn');
   if(!$('cEmp').value.trim()) return L.toast('Informe a empresa responsável.','warn');
-  var col = $('cCol').value;
-  if(col === 'nao_concluida' && !$('cCausa').value)
-    return L.toast('Cards não concluídos precisam de uma causa.','warn');
 
   var a = L.atividadePorAid($('cAtiv').value);
   var body = {
@@ -549,17 +720,14 @@ $('mSave').addEventListener('click', function(){
     responsavel: $('cResp').value.trim() || null,
     equipe: $('cEquipe').value.trim() || null,
     qtd_prog: $('cQtdP').value.trim() ? L.parseNum($('cQtdP').value) : null,
-    qtd_real: $('cQtdR').value.trim() ? L.parseNum($('cQtdR').value) : null,
     un: $('cUn').value.trim() || null,
-    coluna: col,
-    causa: col === 'nao_concluida' ? $('cCausa').value : null,
-    obs: $('cObs').value.trim() || null,
     atualizado_em: new Date().toISOString()
   };
+  if(!editando){ body.coluna = 'programada'; body.criado_por = L.userNome(); }
 
   var p = editando
     ? L.sb('PATCH','prog_terc_programacao?id=eq.'+editando.id, body)
-    : L.sb('POST','prog_terc_programacao', L.comTag(Object.assign(body,{criado_por:L.userNome()})));
+    : L.sb('POST','prog_terc_programacao', L.comTag(body));
   p.then(function(){ L.closeModal('mC'); L.toast('Card salvo.','ok'); return load(); })
    .catch(function(e){
      if(L.isMissingTable(e)) L.toast('Rode o supabase_prog_terc.sql para criar as tabelas.','warn');
@@ -574,41 +742,111 @@ $('mDel').addEventListener('click', function(){
     .then(function(){ L.closeModal('mC'); L.toast('Card excluído.','ok'); return load(); })
     .catch(function(e){ L.toast('Erro: '+e.message,'warn'); });
 });
+L.wireModal('mC');
 
-/* ================= EXPORT ================= */
-$('btnXls').addEventListener('click', function(){
-  var list = daSemana(BASE);
-  var head = ['Empresa','Coluna','O que será feito','Fase','CWA','CWP','Área','Disciplina','Responsável','Equipe',
-              'Qtd prog','Qtd real','Un.','Peso % projeto','Peso R$','Causa','WBS terceira','Observações'];
+/* ================= RELATÓRIOS ================= */
+$('btnGerarProg').addEventListener('click', function(){
+  var list = listaAtual();
+  if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
+  var head = ['Empresa','Atividade','WBS','Área','Disciplina','Un','Qtd Programada','% Previsto (fim da semana)'];
   var aoa = [head];
-  var colLabel = {};
-  L.KB_COLS.forEach(function(c){ colLabel[c.key] = c.label; });
   list.forEach(function(c){
+    aoa.push([c.empresa, nomeTextoPai(c), c.terceira_wbs||'', c.area||'', c.disciplina||'', c.un||'',
+      c.qtd_prog==null?'':Number(c.qtd_prog),
+      (function(){ var p = pctPrevistoDoCard(c); return p==null?'':p/100; })()]);
+  });
+  L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa,
+    cols:[{wch:20},{wch:46},{wch:12},{wch:12},{wch:14},{wch:7},{wch:14},{wch:16}] }],
+    'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+$('btnGerarRel').addEventListener('click', function(){
+  var list = listaAtual();
+  if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
+  var colLabel = {}; L.KB_COLS.forEach(function(k){ colLabel[k.key] = k.label; });
+  var head = ['Empresa','Atividade','WBS','Área','Disciplina','Status','Qtd Prog','Qtd Real',
+    '% Previsto','% Realizado','Causa do desvio','Justificativa','Validado','Validado em'];
+  var aoa = [head];
+  list.forEach(function(c){
+    var p = pctPrevistoDoCard(c);
+    aoa.push([c.empresa, nomeTextoPai(c), c.terceira_wbs||'', c.area||'', c.disciplina||'',
+      colLabel[c.coluna]||c.coluna,
+      c.qtd_prog==null?'':Number(c.qtd_prog), c.qtd_real==null?'':Number(c.qtd_real),
+      p==null?'':p/100, c.pct_realizado==null?'':c.pct_realizado/100,
+      c.causa||'', c.obs||'', c.validado?'Sim':'Não', L.fmtTS(c.validado_em)]);
+  });
+  L.exportXlsx([{ nome:'Relatório '+L.weekLabel(BASE), aoa:aoa,
+    cols:[{wch:20},{wch:46},{wch:12},{wch:12},{wch:14},{wch:14},{wch:10},{wch:10},
+          {wch:11},{wch:11},{wch:26},{wch:30},{wch:9},{wch:16}] }],
+    'ProgTerc_relatorio_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+/* grade exportável com uma coluna de Previsto e outra de Realizado por dia da semana,
+   semana começando na quinta-feira — células em branco pra preencher à mão depois de impressa.
+   OBS: os cards continuam agrupados pela "semana" do sistema (segunda-feira, BASE); a quinta
+   usada aqui é a quinta anterior a essa segunda (BASE - 4 dias), só para nomear/datar as colunas
+   do jeito que é preenchido em campo. */
+$('btnGrade').addEventListener('click', function(){
+  var list = listaAtual();
+  if(!list.length) return L.toast('Nenhum card para exportar nesta semana.','warn');
+  var thu = L.addDays(BASE, -4);
+  var dow = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'];
+  var head = ['Empresa','Atividade','Área','Disciplina','Responsável','Equipe','Un'];
+  for(var i=0;i<7;i++){
+    var d = L.addDays(thu, i);
+    head.push(dow[i]+' '+L.fmtBr(d).slice(0,5)+' · Previsto');
+    head.push(dow[i]+' '+L.fmtBr(d).slice(0,5)+' · Realizado');
+  }
+  var aoa = [head];
+  list.forEach(function(c){
+    var row = [c.empresa, nomeTextoPai(c), c.area||'', c.disciplina||'', c.responsavel||'', c.equipe||'', c.un||''];
+    for(var i=0;i<7;i++){ row.push(''); row.push(''); }
+    aoa.push(row);
+  });
+  var cols = [{wch:18},{wch:40},{wch:12},{wch:14},{wch:16},{wch:14},{wch:7}];
+  for(var i=0;i<7;i++){ cols.push({wch:11}); cols.push({wch:11}); }
+  L.exportXlsx([{ nome:'Grade '+L.weekLabel(BASE), aoa:aoa, cols:cols }],
+    'ProgTerc_grade_semana_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+$('btnXls').addEventListener('click', function(){
+  var list = listaAtual();
+  var colLabel = {}; L.KB_COLS.forEach(function(k){ colLabel[k.key] = k.label; });
+  var head = ['Empresa','Status','O que será feito','Fase','CWA','CWP','Área','Disciplina','Responsável','Equipe',
+              'Qtd prog','Qtd real','% Previsto','% Realizado','Un.','Peso % projeto','Peso R$',
+              'Causa','WBS terceira','Observações','Validado','Validado em','Validado por'];
+  var aoa = [head];
+  list.forEach(function(c){
+    var p = pctPrevistoDoCard(c);
     aoa.push([c.empresa, colLabel[c.coluna]||c.coluna, c.descricao,
       c.fase ? (FASE_LABELS[c.fase] || c.fase) : '',
       c.cwa || '', c.cwp || '',
       c.area, c.disciplina, c.responsavel, c.equipe,
       c.qtd_prog==null?'':Number(c.qtd_prog),
-      c.qtd_real==null?'':Number(c.qtd_real), c.un,
+      c.qtd_real==null?'':Number(c.qtd_real),
+      p==null?'':p/100, c.pct_realizado==null?'':c.pct_realizado/100, c.un,
       c.peso_pct_projeto ? Number(Number(c.peso_pct_projeto).toFixed(4)) : '',
       c.peso_lb_abs ? Math.round(Number(c.peso_lb_abs)) : '',
-      c.causa, c.terceira_wbs, c.obs]);
+      c.causa, c.terceira_wbs, c.obs, c.validado?'Sim':'Não', L.fmtTS(c.validado_em), c.validado_por||'']);
   });
   L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa,
     cols:[{wch:20},{wch:14},{wch:50},{wch:14},{wch:34},{wch:14},{wch:12},{wch:16},{wch:18},{wch:14},
-          {wch:10},{wch:10},{wch:7},{wch:14},{wch:14},{wch:26},{wch:14},{wch:30}] }],
+          {wch:10},{wch:10},{wch:11},{wch:11},{wch:7},{wch:14},{wch:14},{wch:26},{wch:14},{wch:30},
+          {wch:9},{wch:16},{wch:18}] }],
     'ProgTerc_semana_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
 });
 
 /* ================= EVENTOS ================= */
-['fArea','fEmpresa','fFase','fCwa'].forEach(function(id){ $(id).addEventListener('change', render); });
+['fArea','fEmpresa','fFase','fCwa','fValid'].forEach(function(id){ $(id).addEventListener('change', render); });
 $('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
 $('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
 $('btnNovo').addEventListener('click', function(){ abrir(null); });
-L.wireModal('mC'); L.wireModal('mCausa');
-if(!EDIT){ $('btnNovo').style.display='none'; $('btnHerdar').style.display='none'; }
+if(!EDIT){
+  $('btnNovo').style.display='none'; $('btnHerdar').style.display='none';
+  $('btnValFiltro').style.display='none'; $('btnValTudo').style.display='none';
+}
 
 load();
 })();
