@@ -144,16 +144,40 @@
     return toISO(d);
   }
 
-  function weekLabel(isoMonday) {
-    var d = dt(isoMonday); if (!d) return '';
-    var jan1 = new Date(d.getFullYear(), 0, 1);
-    var wk = Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7);
+  /* Semana da obra: começa na quinta-feira e termina na quarta-feira seguinte.
+     Dado qualquer data, devolve a quinta-feira da semana em que ela cai (hoje ou
+     a quinta anterior mais próxima). É o "âncora de semana" usado pelas telas de
+     Cronogramas, Lookahead e Programação Semanal (cada uma guarda isso como BASE). */
+  function quintaOf(iso) {
+    var d = dt(iso || todayISO()); if (!d) return null;
+    var wd = d.getDay(); // 0=Dom,1=Seg,2=Ter,3=Qua,4=Qui,5=Sex,6=Sab
+    var delta = (wd - 4 + 7) % 7;
+    d.setDate(d.getDate() - delta);
+    return toISO(d);
+  }
+
+  /* quinta-feira que inicia a semana 1 do ano (mesma técnica usada em
+     validacao_cronogramas.html pro padrão Supria, só que ancorada na quinta
+     em vez da quarta). */
+  function quintaInicialDoAno(ano) {
+    var jan1 = new Date(ano, 0, 1);
+    var wd = jan1.getDay();
+    var add = (4 - wd + 7) % 7;
+    return new Date(ano, 0, 1 + add);
+  }
+
+  function weekLabel(isoQuinta) {
+    var d = dt(isoQuinta); if (!d) return '';
+    var ano = d.getFullYear();
+    var start = quintaInicialDoAno(ano);
+    if (d < start) { ano -= 1; start = quintaInicialDoAno(ano); }
+    var wk = Math.floor((d - start) / 86400000 / 7) + 1;
     return 'S' + wk;
   }
 
-  function weekRangeLabel(isoMonday) {
-    var fim = addDays(isoMonday, 6);
-    return fmtBr(isoMonday).slice(0, 5) + '–' + fmtBr(fim).slice(0, 5);
+  function weekRangeLabel(isoQuinta) {
+    var fim = addDays(isoQuinta, 6);
+    return fmtBr(isoQuinta).slice(0, 5) + '–' + fmtBr(fim).slice(0, 5);
   }
 
   /* % previsto de uma atividade numa data qualquer, interpolando linearmente a janela
@@ -680,7 +704,7 @@
     $: $, esc: esc, parseNum: parseNum, nf: nf, deacc: deacc,
     todayISO: todayISO, toISO: toISO, dt: dt, fmtBr: fmtBr, fmtBrDash: fmtBrDash,
     fmtTS: fmtTS, addDays: addDays, diffDays: diffDays, pctPrevistoEm: pctPrevistoEm,
-    mondayOf: mondayOf, weekLabel: weekLabel, weekRangeLabel: weekRangeLabel,
+    mondayOf: mondayOf, quintaOf: quintaOf, weekLabel: weekLabel, weekRangeLabel: weekRangeLabel,
     sb: sb, sbGetAll: sbGetAll, sbInsertChunked: sbInsertChunked,
     isMissingTable: isMissingTable, setupNotice: setupNotice,
     requireAuth: requireAuth, canEdit: canEdit,
