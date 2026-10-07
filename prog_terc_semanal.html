@@ -76,7 +76,7 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
   </div>
 
   <div class="toolbar no-print">
-    <button class="btn" id="btnGerarProg" title="PDF/Excel com o % previsto para o fim da semana, por atividade — o compromisso da semana">📋 Gerar Programação</button>
+    <button class="btn" id="btnGerarProg" title="Excel com o % previsto para o fim da semana e Previsto/Realizado por dia (Qui–Qua), por atividade — o compromisso da semana">📋 Gerar Programação</button>
     <button class="btn" id="btnGerarRel" title="PDF/Excel com os % obtidos e as justificativas de desvio — o resultado da semana">📄 Gerar Relatório da Programação</button>
     <button class="btn" id="btnGrade" title="Grade em branco, uma coluna Previsto/Realizado por dia (Qui–Qua), para preencher à mão em campo">🗓 Grade em branco (Qui–Qua)</button>
     <button class="btn" id="btnXls" title="Dump completo de todos os campos, para quem quiser conferir tudo">⤓ Excel (dados brutos)</button>
@@ -265,6 +265,36 @@ function nomeTextoPai(c){
   var a = ativDoCard(c);
   var pai = a && a.pai ? a.pai : '';
   return (pai ? pai + ' · ' : '') + (c.descricao || (a ? a.nome : '') || '');
+}
+
+/* ---- Estrutura completa da atividade (pra exportação, não pra tela) ----
+   A tela continua mostrando só 1 nível acima (nomeTextoPai, igual sempre foi).
+   Pro Excel "Gerar Programação" o Marcos pediu a árvore inteira: carrega sob
+   demanda (e em cache) o tarefas_json completo de cada contrato envolvido,
+   monta o mapa wbs->tarefa e tira a cadeia de ancestrais de cada atividade. */
+function carregarEstruturas(list){
+  var ids = [];
+  list.forEach(function(c){
+    if(c.cronograma_id != null && ids.indexOf(c.cronograma_id) === -1) ids.push(c.cronograma_id);
+  });
+  var cache = {};
+  if(!window.PTA || !ids.length) return Promise.resolve(cache);
+  return Promise.all(ids.map(function(id){
+    return PTA.loadTarefasCronograma(id).then(function(tarefas){
+      cache[id] = L.construirPorWbs(tarefas);
+    }).catch(function(){ cache[id] = null; });
+  })).then(function(){ return cache; });
+}
+function estruturaCompletaDoCard(c, porWbsCache){
+  var a = ativDoCard(c);
+  var folha = c.descricao || (a ? a.nome : '') || '';
+  var wbs = c.terceira_wbs || (a ? a.wbs : '');
+  var porWbs = c.cronograma_id != null ? porWbsCache[c.cronograma_id] : null;
+  if(!porWbs || !wbs) return nomeTextoPai(c); // sem WBS/árvore disponível: cai no mesmo texto da tela
+  var cadeia = L.wbsAncestros(wbs, porWbs);
+  var nomes = cadeia.map(function(t){ return t.name || ''; }).filter(Boolean);
+  nomes.push(folha);
+  return nomes.join(' · ');
 }
 function pctPrevistoDoCard(c){
   var a = ativDoCard(c);
@@ -745,19 +775,47 @@ $('mDel').addEventListener('click', function(){
 L.wireModal('mC');
 
 /* ================= RELATÓRIOS ================= */
+/* "Gerar Programação": além do WBS/atividade de sempre, exporta a Estrutura da
+   Atividade (árvore completa até o nível acima, sem limite de níveis — Fase 3.12)
+   e a Atividade (só o nível final) em colunas separadas, mais um par de colunas
+   Previsto/Realizado por dia (Qui-Qua, mesmo recorte da semana). O Previsto por
+   dia é calculado (L.pctPrevistoEm na data do dia, igual ao % Previsto da semana
+   inteira) e fica em branco só quando a atividade não tem início/término no
+   cronograma pra interpolar. O Realizado por dia não existe em nenhum lugar do
+   sistema (só o acumulado da semana, em qtd_real/pct_realizado) — fica sempre em
+   branco, como célula pra preencher à mão (mesmo papel que a antiga grade
+   "Qui-Qua" cumpria à parte; agora as duas coisas saem juntas neste relatório). */
 $('btnGerarProg').addEventListener('click', function(){
   var list = listaAtual();
   if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
-  var head = ['Empresa','Atividade','WBS','Área','Disciplina','Un','Qtd Programada','% Previsto (fim da semana)'];
-  var aoa = [head];
-  list.forEach(function(c){
-    aoa.push([c.empresa, nomeTextoPai(c), c.terceira_wbs||'', c.area||'', c.disciplina||'', c.un||'',
-      c.qtd_prog==null?'':Number(c.qtd_prog),
-      (function(){ var p = pctPrevistoDoCard(c); return p==null?'':p/100; })()]);
+  carregarEstruturas(list).then(function(porWbsCache){
+    var dow = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'];
+    var head = ['Empresa','Estrutura da Atividade','Atividade','WBS','Área','Disciplina','Un',
+      'Qtd Programada','% Previsto (fim da semana)'];
+    for(var i=0;i<7;i++){
+      var dh = L.addDays(BASE, i);
+      head.push(dow[i]+' '+L.fmtBr(dh).slice(0,5)+' · Previsto');
+      head.push(dow[i]+' '+L.fmtBr(dh).slice(0,5)+' · Realizado');
+    }
+    var aoa = [head];
+    list.forEach(function(c){
+      var a = ativDoCard(c);
+      var row = [c.empresa, estruturaCompletaDoCard(c, porWbsCache), c.descricao || (a?a.nome:'') || '',
+        c.terceira_wbs||'', c.area||'', c.disciplina||'', c.un||'',
+        c.qtd_prog==null?'':Number(c.qtd_prog),
+        (function(){ var p = pctPrevistoDoCard(c); return p==null?'':p/100; })()];
+      for(var i=0;i<7;i++){
+        var pv = a ? L.pctPrevistoEm(a, L.addDays(BASE, i)) : null;
+        row.push(pv==null?'':pv/100);
+        row.push(''); // Realizado por dia: sem fonte automática no sistema, fica em branco pra preencher
+      }
+      aoa.push(row);
+    });
+    var cols = [{wch:20},{wch:55},{wch:30},{wch:12},{wch:12},{wch:14},{wch:7},{wch:14},{wch:16}];
+    for(var i=0;i<7;i++){ cols.push({wch:11}); cols.push({wch:11}); }
+    L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa, cols:cols }],
+      'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
   });
-  L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa,
-    cols:[{wch:20},{wch:46},{wch:12},{wch:12},{wch:14},{wch:7},{wch:14},{wch:16}] }],
-    'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
 });
 
 $('btnGerarRel').addEventListener('click', function(){
