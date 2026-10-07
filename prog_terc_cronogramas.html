@@ -197,7 +197,7 @@ var SELECTED = null;      // contrato (val_cronogramas) atualmente selecionado
 var TAREFAS = [];         // tarefas_json bruto (inclui resumos) do cronograma selecionado
 var NOS = {}, NOS_BY_UID = {}, RAIZES = [];
 var COLLAPSED = {};       // { wbs: true } — nó recolhido
-var BASE = L.mondayOf(), NW = 6;
+var BASE = L.quintaOf(), NW = 6;
 var editandoRestr = null;
 $('wkBase').value = BASE;
 
@@ -450,7 +450,7 @@ function linhasVisiveis(){
 function render(){
   if(!SELECTED) return;
   var wks = weeks();
-  var hoje = L.mondayOf();
+  var hoje = L.quintaOf();
 
   var head = [];
   if(EDIT) head.push('<th class="ctr no-print" style="width:80px;min-width:80px">Ações</th>');
@@ -865,10 +865,10 @@ $('q').addEventListener('input', render);
 $('fEscopo').addEventListener('change', render);
 $('fInclNaoExec').addEventListener('change', render);
 $('nWeeks').addEventListener('change', function(){ NW = parseInt(this.value,10); render(); });
-$('wkBase').addEventListener('change', function(){ BASE = L.mondayOf(this.value); this.value = BASE; render(); });
+$('wkBase').addEventListener('change', function(){ BASE = L.quintaOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
-$('wkHoje').addEventListener('click', function(){ BASE = L.mondayOf(); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.quintaOf(); $('wkBase').value = BASE; render(); });
 
 loadBase();
 })();
