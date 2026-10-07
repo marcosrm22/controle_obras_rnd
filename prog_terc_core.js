@@ -156,6 +156,22 @@
     return fmtBr(isoMonday).slice(0, 5) + '–' + fmtBr(fim).slice(0, 5);
   }
 
+  /* % previsto de uma atividade numa data qualquer, interpolando linearmente a janela
+     de referência (linha de base se existir, senão a data "tendência" — mesmos campos
+     .inicio/.termino já resolvidos em atividadeDe()/refIni/refFim). Usado pra saber,
+     numa data futura (ex.: o fim da semana programada), quanto do cronograma da terceira
+     already previa estar concluído até lá — não depende de E/pct (realizado), só das datas. */
+  function pctPrevistoEm(a, dataISO) {
+    if (!a || !a.inicio || !a.termino || !dataISO) return null;
+    if (dataISO <= a.inicio) return 0;
+    if (dataISO >= a.termino) return 100;
+    var total = diffDays(a.inicio, a.termino);
+    if (total == null || total <= 0) return 100;
+    var passado = diffDays(a.inicio, dataISO);
+    if (passado == null) return null;
+    return Math.round(Math.max(0, Math.min(100, (passado / total) * 100)));
+  }
+
   /* ================================================================
      2. SUPABASE
      ================================================================ */
@@ -540,6 +556,30 @@
     return '';
   }
 
+  /* mapa wbs -> tarefa (objeto completo, inclusive resumos) a partir de um
+     tarefas_json cru (ex.: o retorno de PTA.loadTarefasCronograma) — usado
+     pra montar a cadeia de hierarquia de uma atividade sob demanda */
+  function construirPorWbs(tarefas) {
+    var map = {};
+    (tarefas || []).forEach(function (t) { if (t && t.wbs) map[String(t.wbs)] = t; });
+    return map;
+  }
+
+  /* cadeia COMPLETA de ancestrais de uma tarefa, da raiz até o pai imediato
+     (não inclui a própria tarefa) — testa cada prefixo do WBS e devolve só
+     os níveis que de fato existem no cronograma, cobrindo buracos na
+     numeração. Use com construirPorWbs(). */
+  function wbsAncestros(wbs, porWbs) {
+    var partes = String(wbs || '').split('.');
+    var cadeia = [];
+    for (var i = 1; i < partes.length; i++) {
+      var prefixo = partes.slice(0, i).join('.');
+      var t = porWbs[prefixo];
+      if (t != null) cadeia.push(t);
+    }
+    return cadeia;
+  }
+
   /* monta uma atividade a partir de uma tarefa-folha + contrato */
   function atividadeDe(t, contrato, paiNome) {
     var E = (t.E == null ? (t.pct || 0) : t.E);
@@ -639,7 +679,7 @@
     MOD_KEY: MOD_KEY, MOD_TITLE: MOD_TITLE, PAGES: PAGES,
     $: $, esc: esc, parseNum: parseNum, nf: nf, deacc: deacc,
     todayISO: todayISO, toISO: toISO, dt: dt, fmtBr: fmtBr, fmtBrDash: fmtBrDash,
-    fmtTS: fmtTS, addDays: addDays, diffDays: diffDays,
+    fmtTS: fmtTS, addDays: addDays, diffDays: diffDays, pctPrevistoEm: pctPrevistoEm,
     mondayOf: mondayOf, weekLabel: weekLabel, weekRangeLabel: weekRangeLabel,
     sb: sb, sbGetAll: sbGetAll, sbInsertChunked: sbInsertChunked,
     isMissingTable: isMissingTable, setupNotice: setupNotice,
@@ -657,7 +697,8 @@
     classificar: classificar, estaAtrasada: estaAtrasada,
     loadAtividades: loadAtividades, atividadesCache: atividadesCache,
     contratosCache: contratosCache, revInfoCache: revInfoCache,
-    atividadePorAid: atividadePorAid
+    atividadePorAid: atividadePorAid, paiNomeDe: paiNomeDe,
+    construirPorWbs: construirPorWbs, wbsAncestros: wbsAncestros
   };
 
   global.PT = API;
