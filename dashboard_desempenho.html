@@ -76,6 +76,17 @@ table.wk-tbl .esc{color:var(--text-mute);font-weight:600}
 .mini-btn:disabled{opacity:.5;cursor:not-allowed}
 .mini-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
 .mini-btn.gold:hover{filter:brightness(.95);background:var(--gold)}
+/* nuvem de tags · Acompanhamento da semana (Fase 3.16) */
+.tag-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:10.5px;color:var(--text-dim);margin-bottom:12px;align-items:center;font-weight:600}
+.tag-legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.tag-legend .dot.g{background:var(--green)}
+.tag-legend .dot.b{background:var(--blue)}
+.tag-legend .dot.y{background:var(--gold)}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:7px}
+.tag-env{font-size:11px;padding:3px 9px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.tag-env.g{background:var(--green-soft);border-color:#a9c99a;color:var(--green)}
+.tag-env.b{background:var(--blue-soft);border-color:#b0c0da;color:var(--blue)}
+.tag-env.y{background:#FEF3C7;border-color:#f0c87a;color:#7c4a00}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -318,14 +329,47 @@ function buildSemanas(){
 }
 function fmtDFull(d){const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:'—';}
 
+/* Classifica um contrato para a nuvem de tags do Acompanhamento da semana (Fase 3.16):
+   'concluido' (verde) — escopo já fechado em 100% na revisão mais recente, independente da semana
+   'enviado'   (azul)  — subiu uma revisão com data_corte igual à semana selecionada
+   'pendente'  (amarelo) — tem histórico, mas não se encaixa nos casos acima
+   null — contrato sem nenhuma revisão (fica fora da nuvem) */
+function statusEnvioContrato(c, wk){
+  const s=serie(c.id);
+  if(!s.length) return null;
+  const ult=s[s.length-1];
+  if(ult.real!=null && !isNaN(ult.real) && Math.round(ult.real)>=100) return 'concluido';
+  if(s.some(r=>String(r.data_corte).slice(0,10)===wk)) return 'enviado';
+  return 'pendente';
+}
+
+/* Monta a nuvem de tags (todas as empresas, coloridas por status) em #pendentes-box */
+function renderTagsEnvio(concluidos, enviados, pendentes){
+  const total=concluidos.length+enviados.length+pendentes.length;
+  if(!total){ $('pendentes-box').innerHTML=''; return; }
+  const tag=(c,cls)=>`<span class="tag-env ${cls}" title="${esc(cLabel(c))}">${esc(cLabel(c))}</span>`;
+  $('pendentes-box').innerHTML = `
+    <div class="pend-card" style="border-left-color:var(--blue)">
+      <div class="tag-legend">
+        <span><span class="dot g"></span>Concluído (100%)</span>
+        <span><span class="dot b"></span>Enviado nesta semana</span>
+        <span><span class="dot y"></span>Não enviado nesta semana</span>
+      </div>
+      <div class="tag-cloud">
+        ${concluidos.map(c=>tag(c,'g')).join('')}
+        ${enviados.map(c=>tag(c,'b')).join('')}
+        ${pendentes.map(c=>tag(c,'y')).join('')}
+      </div>
+    </div>`;
+}
+
 function renderSemana(){
   const wk=$('sel-semana').value; if(!wk) return;
-  const linhas=[], pendentes=[];
+  const linhas=[];
   cronos.forEach(c=>{
     const s=serie(c.id);
     const idx=s.findIndex(r=>String(r.data_corte).slice(0,10)===wk);
     if(idx>=0) linhas.push({c, r:s[idx]});
-    else if(s.length) pendentes.push(c);        // contrato existe mas não subiu nesta semana
   });
   // ordena: piores desempenhos primeiro
   linhas.sort((a,b)=>(a.r.desvio??0)-(b.r.desvio??0));
@@ -343,17 +387,26 @@ function renderSemana(){
     <td class="num ${clsNum(r.desemp)}"><b>${nf(r.desemp,2)}</b></td>
   </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--text-mute);padding:24px">Nenhum escopo atualizado nesta semana.</td></tr>';
 
-  // resumo + pendentes
-  const totalC=cronos.filter(c=>(byC[c.id]||[]).length).length;
+  // classificação completa (todas as empresas com histórico) — para a nuvem de tags e exportações
+  const withHist=cronos.filter(c=>(byC[c.id]||[]).length);
+  const concluidos=[], enviados=[], pendentes=[];
+  withHist.forEach(c=>{
+    const st=statusEnvioContrato(c, wk);
+    if(st==='concluido') concluidos.push(c);
+    else if(st==='enviado') enviados.push(c);
+    else if(st==='pendente') pendentes.push(c);
+  });
+  [concluidos, enviados, pendentes].forEach(arr=>arr.sort((a,b)=>cLabel(a).localeCompare(cLabel(b),'pt-BR')));
+
+  // resumo
+  const totalC=withHist.length;
   const desv=linhas.map(l=>l.r.desvio).filter(v=>v!=null&&!isNaN(v));
   const media=desv.length?desv.reduce((a,b)=>a+b,0)/desv.length:null;
-  SEMANA_STATE={wk, linhas, pendentes, totalC, media};   // usado pelas exportações
+  SEMANA_STATE={wk, linhas, concluidos, enviados, pendentes, totalC, media};   // usado pelas exportações
   $('semana-resumo').innerHTML=`<b>${linhas.length}</b> de <b>${totalC}</b> escopos atualizados`+
     (media!=null?` &nbsp;·&nbsp; desvio médio <b class="${clsNum(media)}">${nf(media,2)}</b>`:'');
-  $('pendentes-box').innerHTML = pendentes.length
-    ? `<div class="pend-card"><div class="pend-title">⏳ Aguardando atualização nesta semana (${pendentes.length})</div>
-        <div class="pend-list">${pendentes.map(c=>`<span class="pend-item">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')}</div></div>`
-    : `<div class="pend-card" style="border-left-color:var(--green)"><div class="pend-title" style="color:var(--green)">✓ Todos os escopos já atualizaram nesta semana</div></div>`;
+
+  renderTagsEnvio(concluidos, enviados, pendentes);
 }
 
 /* ---------- Exportações do Acompanhamento da semana ---------- */
@@ -393,6 +446,10 @@ function exportSemanaExcel(){
     ['Desvio médio', (st.media!=null?Number(st.media.toFixed(2)):'—')],
     ['Gerado em', new Date().toLocaleString('pt-BR')]
   ];
+  if(st.concluidos&&st.concluidos.length){
+    resumo.push([]); resumo.push(['Escopo concluído (100%) ('+st.concluidos.length+')']);
+    st.concluidos.forEach(c=>resumo.push([(c.empresa||'')+(c.escopo?(' · '+c.escopo):'')]));
+  }
   if(st.pendentes&&st.pendentes.length){
     resumo.push([]); resumo.push(['Aguardando atualização nesta semana ('+st.pendentes.length+')']);
     st.pendentes.forEach(c=>resumo.push([(c.empresa||'')+(c.escopo?(' · '+c.escopo):'')]));
@@ -426,10 +483,14 @@ function exportSemanaPDF(){
   const resumo=`<b>${st.linhas.length}</b> de <b>${st.totalC}</b> escopos atualizados`+
     (st.media!=null?` &nbsp;·&nbsp; desvio médio <b style="color:${col(st.media)}">${nf(st.media,2)}</b>`:'');
 
+  const concl=(st.concluidos&&st.concluidos.length)
+    ? `<div class="pend concl"><div class="pend-t concl">Escopo concluído — 100% (${st.concluidos.length})</div>`+
+      st.concluidos.map(c=>`<span class="pill concl">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')+`</div>`
+    : '';
   const pend=(st.pendentes&&st.pendentes.length)
     ? `<div class="pend"><div class="pend-t">Aguardando atualização nesta semana (${st.pendentes.length})</div>`+
       st.pendentes.map(c=>`<span class="pill">${esc(c.empresa)} · ${esc(c.escopo||'—')}</span>`).join('')+`</div>`
-    : `<div class="pend ok">✓ Todos os escopos já atualizaram nesta semana</div>`;
+    : (!st.concluidos||!st.concluidos.length ? `<div class="pend ok">✓ Todos os escopos já atualizaram nesta semana</div>` : '');
 
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>Acompanhamento da semana · ${esc(uni||'PCO')}</title>
@@ -452,8 +513,11 @@ function exportSemanaPDF(){
     tr:nth-child(even) td{background:#f7f9fc}
     .pend{margin-top:14px;border-left:3px solid #EAA239;background:#FEF3C7;padding:9px 12px;page-break-inside:avoid}
     .pend.ok{border-left-color:#2e7d32;background:#e8efe1;color:#2e7d32;font-weight:600}
+    .pend.concl{border-left-color:#2e7d32;background:#e8efe1;margin-bottom:10px}
     .pend-t{font-size:10px;font-weight:800;text-transform:uppercase;color:#7c4a00;margin-bottom:6px}
+    .pend-t.concl{color:#2e7d32}
     .pill{display:inline-block;font-size:10px;background:#fff;border:1px solid #f0c87a;color:#7c4a00;padding:2px 8px;margin:0 5px 5px 0}
+    .pill.concl{border-color:#a9c99a;color:#2e7d32}
     .ft{margin-top:16px;font-size:8px;color:#8a95a6;text-align:right}
     thead{display:table-header-group}
   </style></head><body>
@@ -468,6 +532,7 @@ function exportSemanaPDF(){
       <th class="num">% Prev</th><th class="num">% Concl</th><th class="num">Desvio acum.</th>
       <th class="num">Avanço prev.</th><th class="num">Avanço real</th><th class="num">Desemp. semana</th>
     </tr></thead><tbody>${body}</tbody></table>
+    ${concl}
     ${pend}
     <div class="ft">Gerado em ${new Date().toLocaleString('pt-BR')} · PCO Digital</div>
   </body></html>`;
