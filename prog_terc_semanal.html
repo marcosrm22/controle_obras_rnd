@@ -29,6 +29,32 @@ select.cell-in{min-width:118px}
 .cron-ref{font-size:10.5px;color:var(--text-mute);line-height:1.5}
 .cron-ref b{color:var(--text-dim)}
 .cron-ref .atr{color:var(--terracota);font-weight:700}
+.cron-ref .hist{display:block;margin-top:2px;padding-top:2px;border-top:1px dotted var(--border-2)}
+.cron-ref .hist .up{color:var(--green);font-weight:700}
+.cron-ref .hist .down{color:var(--red);font-weight:700}
+
+/* ---- filtros de coluna (Fase 3.14) ---- */
+.grid thead th{position:relative;white-space:nowrap}
+.th-f-btn{border:none;background:transparent;cursor:pointer;font-size:10px;color:var(--text-mute,#9aa1ab);
+  padding:1px 3px;margin-left:3px;vertical-align:middle;border-radius:2px}
+.th-f-btn:hover{color:var(--text-dim,#444);background:rgba(0,0,0,.05)}
+.th-f-btn.ativo{color:var(--blue);font-weight:700;background:var(--blue-soft)}
+.col-filter-pop{position:fixed;z-index:60;background:#fff;border:1px solid var(--border-2);
+  box-shadow:0 8px 22px rgba(0,0,0,.16);padding:10px;min-width:210px;max-width:290px;font-size:12px;
+  border-radius:3px}
+.col-filter-pop .cfp-title{font-weight:700;margin-bottom:6px;font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--text-mute)}
+.col-filter-pop .cfp-list{max-height:220px;overflow:auto;margin-bottom:8px;border:1px solid var(--border-2);
+  padding:4px 8px}
+.col-filter-pop label{display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:12px}
+.col-filter-pop label input{margin:0}
+.col-filter-pop .cfp-actions{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.col-filter-pop .cfp-mini{background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;
+  padding:0;text-decoration:underline}
+.col-filter-pop input[type=number],.col-filter-pop input[type=text]{width:100%;padding:6px 7px;
+  border:1px solid var(--border-2);font-size:12px;box-sizing:border-box;margin-bottom:8px}
+.col-filter-pop .cfp-range{display:flex;gap:6px}
+.col-filter-pop .cfp-range input{width:50%;margin-bottom:8px}
 .desvio-flag{color:var(--terracota);font-weight:700;font-size:11px;margin-left:4px}
 tr.linha-validada td{background:#fafdf8}
 tr.linha-desvio td.c-pct{background:var(--gold-soft)}
@@ -36,6 +62,18 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
 .rev-field label{display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;
   color:var(--text-mute);font-weight:700;margin-bottom:4px}
 .rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ---- largura total da tela (Fase 3.17) ----
+   Esta tela tem 14 colunas na grade + filtros — o teto de 1480px do .page
+   compartilhado (lps_ei_core.css) sobra muita régua lateral sem uso em monitores
+   largos e ainda assim obriga rolagem horizontal. Só aqui soltamos esse teto. */
+.page{max-width:none;padding-left:18px;padding-right:18px}
+
+/* ---- selo de frescor do "Cronograma informa" (Fase 3.17) ---- */
+.tag-fresco{display:inline-block;font-size:9.5px;font-weight:700;font-family:var(--mono);
+  padding:1px 6px;border:1px solid;white-space:nowrap;margin-left:4px;vertical-align:middle}
+.tag-fresco.fresco-ok{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
+.tag-fresco.fresco-velho{background:var(--gold-soft,#FEF3C7);color:#7c4a00;border-color:#f0c87a}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -55,15 +93,13 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
     <button class="btn sm" id="wkNext">Próxima semana →</button>
     <button class="btn sm" id="wkHoje">Semana atual</button>
     <span class="small muted" id="wkInfo" style="margin-right:auto"></span>
-    <select class="f" id="fArea"><option value="">Todas as áreas</option></select>
-    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
     <select class="f" id="fFase"><option value="">Todas as fases</option></select>
     <select class="f" id="fCwa"><option value="">Todos os CWAs</option></select>
-    <select class="f" id="fValid">
-      <option value="">Validadas e pendentes</option>
-      <option value="pendente">Só pendentes</option>
-      <option value="validado">Só validadas</option>
-    </select>
+    <button class="btn sm" id="btnLimparFiltros" style="display:none" title="Remove todos os filtros de coluna aplicados na tabela abaixo">✕ Limpar filtros de coluna</button>
+  </div>
+  <div class="notice src-note no-print" style="padding:6px 10px;font-size:11px">
+    Clique na setinha <b>▾</b> ao lado do nome de cada coluna da tabela pra filtrar só pelos valores que
+    interessam (ex.: Cronograma informa → só "100% concluída", ou só "✓ Avanço atualizado nesta semana").
   </div>
 
   <div class="toolbar no-print">
@@ -93,25 +129,26 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
   <div class="tablewrap">
     <table class="grid">
       <thead><tr>
-        <th style="min-width:110px">Empresa</th>
-        <th style="min-width:260px">Atividade</th>
-        <th style="min-width:100px">Área</th>
-        <th style="min-width:100px">Disciplina</th>
-        <th class="ctr" style="min-width:55px">Un</th>
-        <th class="ctr" style="min-width:80px">Qtd Prog.</th>
-        <th class="ctr" style="min-width:80px" title="Avanço esperado até o fim desta semana, pela linha de base do cronograma">% Previsto</th>
-        <th style="min-width:150px" title="Última leitura do cronograma da terceira — só referência, não é o que fica validado">Cronograma informa</th>
-        <th style="min-width:130px">Status</th>
-        <th class="ctr" style="min-width:75px">Qtd Real</th>
-        <th class="ctr" style="min-width:80px">% Realizado</th>
-        <th style="min-width:150px">Causa do desvio</th>
-        <th style="min-width:160px">Justificativa</th>
-        <th class="ctr" style="min-width:95px">Validado</th>
+        <th style="min-width:110px">Empresa<button type="button" class="th-f-btn" data-colf="empresa" title="Filtrar por Empresa">▾</button></th>
+        <th style="min-width:260px">Atividade<button type="button" class="th-f-btn" data-colf="atividade" title="Buscar na Atividade">▾</button></th>
+        <th style="min-width:100px">Área<button type="button" class="th-f-btn" data-colf="area" title="Filtrar por Área">▾</button></th>
+        <th style="min-width:100px">Disciplina<button type="button" class="th-f-btn" data-colf="disciplina" title="Filtrar por Disciplina">▾</button></th>
+        <th class="ctr" style="min-width:55px">Un<button type="button" class="th-f-btn" data-colf="un" title="Filtrar por Unidade">▾</button></th>
+        <th class="ctr" style="min-width:80px">Qtd Prog.<button type="button" class="th-f-btn" data-colf="qtdprog" title="Filtrar por Qtd Programada">▾</button></th>
+        <th class="ctr" style="min-width:80px" title="Avanço esperado até o fim desta semana, pela linha de base do cronograma">% Previsto<button type="button" class="th-f-btn" data-colf="prevpct" title="Filtrar por % Previsto">▾</button></th>
+        <th style="min-width:150px" title="Última leitura do cronograma da terceira — só referência, não é o que fica validado. O selo ✓/⚠ ao lado da % indica se essa leitura é da própria semana em exibição ou de uma semana mais antiga.">Cronograma informa<button type="button" class="th-f-btn" data-colf="cronoinfo" title="Filtrar por Cronograma informa">▾</button></th>
+        <th style="min-width:130px">Status<button type="button" class="th-f-btn" data-colf="status" title="Filtrar por Status">▾</button></th>
+        <th class="ctr" style="min-width:75px">Qtd Real<button type="button" class="th-f-btn" data-colf="qtdreal" title="Filtrar por Qtd Real">▾</button></th>
+        <th class="ctr" style="min-width:80px">% Realizado<button type="button" class="th-f-btn" data-colf="realpct" title="Filtrar por % Realizado">▾</button></th>
+        <th style="min-width:150px">Causa do desvio<button type="button" class="th-f-btn" data-colf="causa" title="Filtrar por Causa">▾</button></th>
+        <th style="min-width:160px">Justificativa<button type="button" class="th-f-btn" data-colf="obs" title="Buscar na Justificativa">▾</button></th>
+        <th class="ctr" style="min-width:95px">Validado<button type="button" class="th-f-btn" data-colf="validado" title="Filtrar por Validado">▾</button></th>
         <th class="ctr no-print" style="width:60px"></th>
       </tr></thead>
       <tbody id="tb"><tr><td colspan="15" class="loading-line">Carregando…</td></tr></tbody>
     </table>
   </div>
+  <div id="colFilterPop" class="col-filter-pop" style="display:none"></div>
 
   <div id="paretoWrap" class="hide">
     <div class="section-label">Causas de não cumprimento · semana</div>
@@ -212,6 +249,7 @@ var CARDS = [], ATIV = [], editando = null;
 var BASE = L.quintaOf();
 $('wkBase').value = BASE;
 var RASCUNHOS = {};   // id -> {coluna, qtd_real, pct_realizado, causa, obs, pctManual}
+var REV_ANTERIOR_CACHE = {};   // cronograma_id -> {revisao, rotulo, data_corte, byUid} | null | undefined (ainda não tentou)
 
 /* ================= CARGA ================= */
 var REGRAS = null;
@@ -301,7 +339,90 @@ function pctPrevistoDoCard(c){
   if(!a) return null;
   return L.pctPrevistoEm(a, L.addDays(BASE,6));
 }
+
+/* ---- Comparação com a revisão anterior do cronograma (Fase 3.13) ----
+   "Cronograma informa" até aqui só mostrava o acumulado da revisão mais recente.
+   O Marcos pediu pra também aparecer o que a revisão ANTERIOR dizia e quanto
+   avançou de uma pra outra, só nos itens que de fato mudaram (senão não tem
+   "avanço da semana" nenhum pra reportar). Reaproveita o mesmo par
+   atual/anterior que `validacao_cronogramas.html` já usa no Mapa Semanal
+   (val_revisoes ordenado por `revisao`, pegando a revisão imediatamente
+   anterior à que já está carregada em L.revInfoCache()) — carregado sob
+   demanda e em cache por contrato, não por semana: enquanto o cronograma não
+   subir uma revisão nova, o par fica o mesmo em qualquer semana navegada. */
+function carregarRevisaoAnteriorDe(cronograma_id){
+  if(REV_ANTERIOR_CACHE[cronograma_id] !== undefined) return Promise.resolve(REV_ANTERIOR_CACHE[cronograma_id]);
+  var info = (L.revInfoCache()||{})[cronograma_id];
+  var curRev = info && info.revisao;
+  if(curRev == null){ REV_ANTERIOR_CACHE[cronograma_id] = null; return Promise.resolve(null); }
+  var q = 'val_revisoes?cronograma_id=eq.'+cronograma_id+'&revisao=lt.'+curRev
+    + '&tarefas_json=not.is.null&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1';
+  return L.sb('GET', L.comUnidade(q)).then(function(rows){
+    if(!rows || !rows.length){ REV_ANTERIOR_CACHE[cronograma_id] = null; return null; }
+    var tj = rows[0].tarefas_json;
+    if(typeof tj === 'string'){ try{ tj = JSON.parse(tj); }catch(_){ tj = []; } }
+    if(!Array.isArray(tj)) tj = [];
+    var byUid = {};
+    tj.forEach(function(t){ if(t && t.uid != null) byUid[String(t.uid)] = t; });
+    var out = { revisao: rows[0].revisao, rotulo: rows[0].rotulo, data_corte: rows[0].data_corte, byUid: byUid };
+    REV_ANTERIOR_CACHE[cronograma_id] = out;
+    return out;
+  }).catch(function(){ REV_ANTERIOR_CACHE[cronograma_id] = null; return null; });
+}
+function carregarRevisoesAnteriores(cards){
+  var ids = [];
+  cards.forEach(function(c){ if(c.cronograma_id != null && ids.indexOf(c.cronograma_id) === -1) ids.push(c.cronograma_id); });
+  return Promise.all(ids.map(carregarRevisaoAnteriorDe));
+}
+/* linha extra com "semana anterior: X% concl. (+Y pp)" — só aparece quando a
+   tarefa existia na revisão anterior E o % concluído mudou desde então (ou
+   seja, só nos itens que de fato foram atualizados); enquanto a revisão
+   anterior ainda não carregou, a linha simplesmente não aparece ainda (ela
+   entra sozinha quando o re-render disparado por carregarRevisoesAnteriores
+   chega). */
+function cronogramaHistoricoHtml(c, a){
+  if(!c.cronograma_id || !c.terceira_uid) return '';
+  var ant = REV_ANTERIOR_CACHE[c.cronograma_id];
+  if(!ant) return '';
+  var tB = ant.byUid[String(c.terceira_uid)];
+  if(!tB) return '';
+  var eA = a.pct == null ? 0 : a.pct;
+  var eB = tB.E == null ? (tB.pct || 0) : tB.E;
+  var avanco = Math.round((eA - eB) * 10) / 10;
+  if(!avanco) return '';
+  var sinal = avanco > 0 ? '+' : '';
+  var cls = avanco > 0 ? 'up' : 'down';
+  var tituloRev = esc(ant.rotulo || ('REV ' + ant.revisao)) + (ant.data_corte ? ' · corte ' + L.fmtBrDash(ant.data_corte) : '');
+  return '<span class="hist" title="'+tituloRev+'">semana anterior: '+Math.round(eB)+'% concl. '
+    + '<span class="'+cls+'">('+sinal+avanco+' pp nesta atualização)</span></span>';
+}
 var EXEC_LABELS = { concluida:'concluída', execucao:'em execução', planejada:'planejada' };
+
+/* ---- Frescor da revisão de cronograma vinculada ao card (Fase 3.17) ----
+   `L.revInfoCache()[cronograma_id]` guarda a revisão mais recente COM detalhe
+   daquele contrato — a mesma que alimenta `a.pct`/`a.prev` acima. Aqui só
+   traduzimos a data de corte dessa revisão pra "semana da obra" (quinta-a-quarta,
+   mesma âncora de BASE) e comparamos com a semana que está sendo exibida: se
+   bater, a leitura é desta semana (verde); senão, mostra de qual semana ela é
+   de fato (amarelo) — o caso mais comum é a semana imediatamente anterior, mas
+   qualquer semana mais antiga cai no mesmo selo. */
+function frescorCronograma(c){
+  if(c.cronograma_id == null) return null;
+  var info = (L.revInfoCache()||{})[c.cronograma_id];
+  if(!info || !info.data_corte) return null;
+  var semRev = L.quintaOf(info.data_corte);
+  if(!semRev) return null;
+  return { semana: semRev, atual: semRev === BASE };
+}
+function tagFrescorHtml(c){
+  var f = frescorCronograma(c);
+  if(!f) return '';
+  var rotulo = esc(L.weekLabel(f.semana));
+  if(f.atual){
+    return ' <span class="tag-fresco fresco-ok" title="A última leitura do cronograma para esta atividade é da própria semana em exibição.">✓ '+rotulo+'</span>';
+  }
+  return ' <span class="tag-fresco fresco-velho" title="A última leitura do cronograma para esta atividade é da semana '+rotulo+' — mais antiga que a semana em exibição. Pode estar desatualizada.">⚠ '+rotulo+'</span>';
+}
 function cronogramaRefHtml(c){
   var a = ativDoCard(c);
   if(!a) return '<span class="muted">sem vínculo</span>';
@@ -309,7 +430,9 @@ function cronogramaRefHtml(c){
   var prev = a.prev == null ? null : Math.round(a.prev);
   return '<b>'+(pct==null?'—':pct+'%')+'</b> concl. · prev '+(prev==null?'—':prev+'%')
     + (a.atrasada ? ' <span class="atr">⚠ atrasada</span>' : '')
-    + '<br><span class="muted">'+esc(EXEC_LABELS[a.execStatus]||a.execStatus||'')+'</span>';
+    + tagFrescorHtml(c)
+    + '<br><span class="muted">'+esc(EXEC_LABELS[a.execStatus]||a.execStatus||'')+'</span>'
+    + cronogramaHistoricoHtml(c, a);
 }
 var COL_COLORS = {
   programada:     { bg:'#eef0f2', fg:'#4b5563' },
@@ -336,18 +459,7 @@ function fillSelects(){
   ATIV.forEach(function(a){ if(a.empresa && emps.indexOf(a.empresa) < 0) emps.push(a.empresa); });
   CARDS.forEach(function(c){ if(c.empresa && emps.indexOf(c.empresa) < 0) emps.push(c.empresa); });
   emps.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
-  var cur = $('fEmpresa').value;
-  $('fEmpresa').innerHTML = '<option value="">Todas as empresas</option>'
-    + emps.map(function(e){ return '<option'+(e===cur?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   $('empresas').innerHTML = emps.map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
-
-  var areas = [];
-  ATIV.forEach(function(a){ if(a.area && areas.indexOf(a.area) < 0) areas.push(a.area); });
-  CARDS.forEach(function(c){ if(c.area && areas.indexOf(c.area) < 0) areas.push(c.area); });
-  areas.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
-  var ca = $('fArea').value;
-  $('fArea').innerHTML = '<option value="">Todas as áreas</option>'
-    + areas.map(function(e){ return '<option'+(e===ca?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
 
   var fases = [];
   ATIV.forEach(function(a){ if(a.fase && fases.indexOf(a.fase) < 0) fases.push(a.fase); });
@@ -366,21 +478,258 @@ function fillSelects(){
 }
 
 /* ================= SELEÇÃO DA SEMANA / FILTROS ================= */
-function daSemana(wk){
-  var fa = $('fArea').value, fe = $('fEmpresa').value;
-  var ff = $('fFase').value, fc = $('fCwa').value, fv = $('fValid').value;
+/* fFase/fCwa continuam sendo os 2 únicos filtros de "contexto" na toolbar —
+   não têm coluna própria na tabela. Todo o resto (Empresa, Atividade, Área,
+   Disciplina, Un, Qtd Prog., % Previsto, Cronograma informa, Status, Qtd
+   Real, % Realizado, Causa, Justificativa, Validado) virou filtro de coluna
+   (Fase 3.14, ver bloco "FILTROS DE COLUNA" logo abaixo). */
+function daSemana(wk, excludeColKey){
+  var ff = $('fFase').value, fc = $('fCwa').value;
   return CARDS.filter(function(c){
     if(String(c.semana).slice(0,10) !== wk) return false;
-    if(fa && c.area !== fa) return false;
-    if(fe && c.empresa !== fe) return false;
     if(ff && c.fase !== ff) return false;
     if(fc && c.cwa !== fc) return false;
-    if(fv === 'pendente' && c.validado) return false;
-    if(fv === 'validado' && !c.validado) return false;
-    return true;
+    return passaFiltrosColuna(c, excludeColKey);
   });
 }
 function listaAtual(){ return daSemana(BASE); }
+
+/* ================= FILTROS DE COLUNA (Fase 3.14) ================= */
+/* Cada coluna da tabela fica filtrável clicando na setinha ▾ do cabeçalho:
+   categórica (lista de valores com checkbox, tipo 'cat'), categórica de
+   categorias fixas pra uma célula composta (tipo 'cat-multi', só usado em
+   "Cronograma informa"), numérica (mín/máx, tipo 'num') ou texto livre
+   (busca "contém", tipo 'texto'). COL_FILTERS[key] fica null/ausente
+   enquanto a coluna não tem filtro ativo. */
+var COL_FILTERS = {};
+
+function statusLabelDoCard(c){
+  var rc = RASCUNHOS[c.id];
+  var key = rc ? rc.coluna : c.coluna;
+  var found = L.KB_COLS.filter(function(k){ return k.key === key; })[0];
+  return found ? found.label : (key || '—');
+}
+function causaDoCard(c){
+  var rc = RASCUNHOS[c.id];
+  return (rc ? rc.causa : c.causa) || '(sem causa)';
+}
+function qtdRealDoCard(c){
+  var rc = RASCUNHOS[c.id];
+  var v = rc ? rc.qtd_real : c.qtd_real;
+  return (v === '' || v == null) ? null : Number(v);
+}
+function pctRealizadoDoCard(c){
+  var rc = RASCUNHOS[c.id];
+  var v = rc ? rc.pct_realizado : c.pct_realizado;
+  return (v === '' || v == null) ? null : Number(v);
+}
+function obsDoCard(c){
+  var rc = RASCUNHOS[c.id];
+  return (rc ? rc.obs : c.obs) || '';
+}
+/* categorias sintéticas da célula "Cronograma informa" — uma atividade pode
+   bater em mais de uma (ex.: "< 100% concluída" + "avançou na última
+   atualização" ao mesmo tempo), por isso é uma lista, não um valor único. */
+function tagsCronogramaInfo(c){
+  var a = ativDoCard(c);
+  if(!a) return ['sem_vinculo'];
+  var tags = [];
+  var pct = a.pct == null ? null : Math.round(a.pct);
+  tags.push(pct != null && pct >= 100 ? 'concl_100' : 'concl_parcial');
+  if(a.atrasada) tags.push('atrasada');
+  var ant = c.cronograma_id != null ? REV_ANTERIOR_CACHE[c.cronograma_id] : null;
+  if(ant && c.terceira_uid != null){
+    var tB = ant.byUid[String(c.terceira_uid)];
+    if(tB){
+      var eA = a.pct == null ? 0 : a.pct;
+      var eB = tB.E == null ? (tB.pct || 0) : tB.E;
+      if(Math.round((eA - eB) * 10) / 10) tags.push('avancou');
+    }
+  }
+  var f = frescorCronograma(c);
+  if(f) tags.push(f.atual ? 'atualizado_semana' : 'desatualizado');
+  return tags;
+}
+var CRONOINFO_OPCOES = [
+  { key:'concl_100',         label:'100% concluída' },
+  { key:'concl_parcial',     label:'< 100% concluída' },
+  { key:'atrasada',          label:'Atrasada' },
+  { key:'avancou',           label:'Avançou na última atualização' },
+  { key:'atualizado_semana', label:'✓ Avanço atualizado nesta semana' },
+  { key:'desatualizado',     label:'⚠ Cronograma desatualizado (semana anterior ou mais antiga)' },
+  { key:'sem_vinculo',       label:'Sem vínculo com cronograma' }
+];
+
+var COL_DEFS = [
+  { key:'empresa',    tipo:'cat',       valor:function(c){ return c.empresa || '—'; } },
+  { key:'atividade',  tipo:'texto',     valor:function(c){ return nomeTextoPai(c) + ' ' + (c.terceira_wbs||''); } },
+  { key:'area',       tipo:'cat',       valor:function(c){ return c.area || '—'; } },
+  { key:'disciplina', tipo:'cat',       valor:function(c){ return c.disciplina || '—'; } },
+  { key:'un',         tipo:'cat',       valor:function(c){ return c.un || '—'; } },
+  { key:'qtdprog',    tipo:'num',       valor:function(c){ return c.qtd_prog==null?null:Number(c.qtd_prog); } },
+  { key:'prevpct',    tipo:'num',       valor:function(c){ return pctPrevistoDoCard(c); } },
+  { key:'cronoinfo',  tipo:'cat-multi', opcoesFixas:CRONOINFO_OPCOES, valores:tagsCronogramaInfo },
+  { key:'status',     tipo:'cat',       valor:statusLabelDoCard },
+  { key:'qtdreal',    tipo:'num',       valor:qtdRealDoCard },
+  { key:'realpct',    tipo:'num',       valor:pctRealizadoDoCard },
+  { key:'causa',      tipo:'cat',       valor:causaDoCard },
+  { key:'obs',        tipo:'texto',     valor:obsDoCard },
+  { key:'validado',   tipo:'cat',       valor:function(c){ return c.validado ? 'Validado' : 'Pendente'; } }
+];
+function colDef(key){ return COL_DEFS.filter(function(d){ return d.key === key; })[0]; }
+
+function passaFiltrosColuna(c, excludeColKey){
+  for(var i=0;i<COL_DEFS.length;i++){
+    var def = COL_DEFS[i];
+    if(def.key === excludeColKey) continue;
+    var filtro = COL_FILTERS[def.key];
+    if(filtro == null) continue;
+    if(def.tipo === 'cat'){
+      if(filtro.indexOf(def.valor(c)) === -1) return false;
+    } else if(def.tipo === 'cat-multi'){
+      var tags = def.valores(c) || [];
+      if(!tags.some(function(t){ return filtro.indexOf(t) !== -1; })) return false;
+    } else if(def.tipo === 'num'){
+      var n = def.valor(c);
+      if(filtro.min != null && (n == null || n < filtro.min)) return false;
+      if(filtro.max != null && (n == null || n > filtro.max)) return false;
+    } else if(def.tipo === 'texto'){
+      if(filtro.q){
+        var txt = L.deacc(String(def.valor(c)||'').toLowerCase());
+        if(txt.indexOf(L.deacc(filtro.q.toLowerCase())) === -1) return false;
+      }
+    }
+  }
+  return true;
+}
+function limparFiltrosColuna(){
+  COL_FILTERS = {};
+  atualizarBotoesFiltro();
+  render();
+}
+function atualizarBotoesFiltro(){
+  document.querySelectorAll('[data-colf]').forEach(function(btn){
+    btn.classList.toggle('ativo', COL_FILTERS[btn.dataset.colf] != null);
+  });
+  var algum = Object.keys(COL_FILTERS).some(function(k){ return COL_FILTERS[k] != null; });
+  var lim = $('btnLimparFiltros');
+  if(lim) lim.style.display = algum ? '' : 'none';
+}
+
+/* ---- popover de filtro (um único elemento compartilhado, reposicionado a cada abertura) ---- */
+var CFP_KEY = null;
+function fecharPopoverColuna(){
+  var pop = $('colFilterPop');
+  if(pop) pop.style.display = 'none';
+  CFP_KEY = null;
+}
+function abrirPopoverColuna(key, btn){
+  if(CFP_KEY === key){ fecharPopoverColuna(); return; }
+  var def = colDef(key);
+  if(!def) return;
+  var pop = $('colFilterPop');
+  var html = '';
+  if(def.tipo === 'cat' || def.tipo === 'cat-multi'){
+    var opcoes;
+    if(def.tipo === 'cat-multi'){
+      opcoes = def.opcoesFixas.map(function(o){ return o.key; });
+    } else {
+      var vistos = [];
+      // lista os valores considerando os OUTROS filtros já aplicados (menos o desta própria
+      // coluna), pra não listar opção que já não existe mais com o resto dos filtros ativos
+      daSemana(BASE, key).forEach(function(c){
+        var v = def.valor(c);
+        if(v != null && vistos.indexOf(v) === -1) vistos.push(v);
+      });
+      vistos.sort(function(a,b){ return String(a).localeCompare(String(b),'pt-BR'); });
+      opcoes = vistos;
+    }
+    var atual = COL_FILTERS[key] || opcoes.slice();
+    html += '<div class="cfp-title">Filtrar</div><div class="cfp-list">'
+      + (opcoes.length ? opcoes.map(function(ok){
+          var lbl = def.tipo === 'cat-multi' ? ((def.opcoesFixas.filter(function(o){ return o.key===ok; })[0])||{}).label : ok;
+          var marcado = atual.indexOf(ok) !== -1;
+          return '<label><input type="checkbox" value="'+esc(ok)+'"'+(marcado?' checked':'')+'> '+esc(lbl||ok)+'</label>';
+        }).join('') : '<div class="small muted">Nenhum valor nesta semana.</div>')
+      + '</div>'
+      + '<div class="cfp-actions"><span>'
+        + '<button type="button" class="cfp-mini" data-cfp-all>Todos</button> · '
+        + '<button type="button" class="cfp-mini" data-cfp-none>Nenhum</button></span>'
+        + '<span><button type="button" class="btn sm" data-cfp-limpar>Limpar</button> '
+        + '<button type="button" class="btn sm solid" data-cfp-aplicar>Aplicar</button></span></div>';
+  } else if(def.tipo === 'num'){
+    var fAtual = COL_FILTERS[key] || {};
+    html += '<div class="cfp-title">Filtrar (mín / máx)</div><div class="cfp-range">'
+      + '<input type="number" step="any" placeholder="mín" id="cfpMin" value="'+(fAtual.min==null?'':fAtual.min)+'">'
+      + '<input type="number" step="any" placeholder="máx" id="cfpMax" value="'+(fAtual.max==null?'':fAtual.max)+'"></div>'
+      + '<div class="cfp-actions"><span></span><span><button type="button" class="btn sm" data-cfp-limpar>Limpar</button> '
+      + '<button type="button" class="btn sm solid" data-cfp-aplicar>Aplicar</button></span></div>';
+  } else if(def.tipo === 'texto'){
+    var qAtual = (COL_FILTERS[key]||{}).q || '';
+    html += '<div class="cfp-title">Buscar (contém)</div>'
+      + '<input type="text" id="cfpTexto" placeholder="Digite e aperte Enter…" value="'+esc(qAtual)+'">'
+      + '<div class="cfp-actions"><span></span><span><button type="button" class="btn sm" data-cfp-limpar>Limpar</button> '
+      + '<button type="button" class="btn sm solid" data-cfp-aplicar>Aplicar</button></span></div>';
+  }
+  pop.innerHTML = html;
+  pop.style.display = 'block';
+  var r = btn.getBoundingClientRect();
+  pop.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - 260)) + 'px';
+  var left = r.left;
+  if(left + 290 > window.innerWidth) left = window.innerWidth - 300;
+  pop.style.left = Math.max(8, left) + 'px';
+  CFP_KEY = key;
+
+  pop.querySelectorAll('[data-cfp-all]').forEach(function(b){
+    b.addEventListener('click', function(){ pop.querySelectorAll('.cfp-list input[type=checkbox]').forEach(function(cb){ cb.checked = true; }); });
+  });
+  pop.querySelectorAll('[data-cfp-none]').forEach(function(b){
+    b.addEventListener('click', function(){ pop.querySelectorAll('.cfp-list input[type=checkbox]').forEach(function(cb){ cb.checked = false; }); });
+  });
+  pop.querySelectorAll('[data-cfp-limpar]').forEach(function(b){
+    b.addEventListener('click', function(){ delete COL_FILTERS[key]; fecharPopoverColuna(); atualizarBotoesFiltro(); render(); });
+  });
+  pop.querySelectorAll('[data-cfp-aplicar]').forEach(function(b){
+    b.addEventListener('click', function(){ aplicarFiltroPopover(key, def); });
+  });
+  if(def.tipo === 'texto'){
+    var inp = $('cfpTexto');
+    inp.focus();
+    inp.addEventListener('keydown', function(ev){ if(ev.key === 'Enter') aplicarFiltroPopover(key, def); });
+  }
+}
+function aplicarFiltroPopover(key, def){
+  var pop = $('colFilterPop');
+  if(def.tipo === 'cat' || def.tipo === 'cat-multi'){
+    var marcados = Array.prototype.map.call(pop.querySelectorAll('.cfp-list input[type=checkbox]:checked'), function(cb){ return cb.value; });
+    var total = pop.querySelectorAll('.cfp-list input[type=checkbox]').length;
+    COL_FILTERS[key] = (!total || marcados.length === total) ? null : marcados;
+  } else if(def.tipo === 'num'){
+    var min = $('cfpMin').value, max = $('cfpMax').value;
+    min = min === '' ? null : Number(min); max = max === '' ? null : Number(max);
+    COL_FILTERS[key] = (min == null && max == null) ? null : { min:min, max:max };
+  } else if(def.tipo === 'texto'){
+    var q = $('cfpTexto').value.trim();
+    COL_FILTERS[key] = q ? { q:q } : null;
+  }
+  fecharPopoverColuna();
+  atualizarBotoesFiltro();
+  render();
+}
+document.addEventListener('click', function(ev){
+  var pop = $('colFilterPop');
+  if(!pop || pop.style.display === 'none') return;
+  if(pop.contains(ev.target)) return;
+  if(ev.target.closest && ev.target.closest('[data-colf]')) return;
+  fecharPopoverColuna();
+});
+document.querySelectorAll('[data-colf]').forEach(function(btn){
+  btn.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    abrirPopoverColuna(btn.dataset.colf, btn);
+  });
+});
+$('btnLimparFiltros').addEventListener('click', limparFiltrosColuna);
 function ppcDe(list){
   if(!list.length) return null;
   var done = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
@@ -390,11 +739,18 @@ function ppcDe(list){
 /* ================= RENDER ================= */
 function render(){
   var list = listaAtual();
+  atualizarBotoesFiltro();
   $('wkInfo').innerHTML = 'Semana <b>' + L.weekLabel(BASE) + '</b> · '
     + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
   renderKpis(list);
   renderTabela(list);
   renderPareto(daSemana(BASE).filter(function(c){ return c.coluna === 'nao_concluida'; }));
+  /* dispara em paralelo (sem travar o render acima) a busca da revisão anterior
+     só dos contratos desta semana que ainda não foram tentados; ao chegar,
+     re-renderiza só a tabela pra "Cronograma informa" ganhar a comparação. */
+  if(list.some(function(c){ return c.cronograma_id != null && REV_ANTERIOR_CACHE[c.cronograma_id] === undefined; })){
+    carregarRevisoesAnteriores(list).then(function(){ renderTabela(listaAtual()); });
+  }
 }
 
 function renderKpis(list){
@@ -665,6 +1021,9 @@ $('btnPull').addEventListener('click', function(){
   L.toast('Atualizando a partir dos cronogramas das terceiras…');
   L.loadAtividades(true).then(function(res){
     ATIV = res.atividades;
+    // a revisão "mais recente" de cada contrato pode ter mudado agora — invalida o cache
+    // da revisão anterior pra ele ser recalculado a partir da nova revisão atual, não da antiga.
+    REV_ANTERIOR_CACHE = {};
     return window.PTA ? PTA.enriquecerTudo(ATIV, CARDS, true).then(function(r2){ REGRAS = r2.regras; }) : Promise.resolve();
   }).then(function(){
     render();
@@ -894,7 +1253,7 @@ $('btnXls').addEventListener('click', function(){
 });
 
 /* ================= EVENTOS ================= */
-['fArea','fEmpresa','fFase','fCwa','fValid'].forEach(function(id){ $(id).addEventListener('change', render); });
+['fFase','fCwa'].forEach(function(id){ $(id).addEventListener('change', render); });
 $('wkBase').addEventListener('change', function(){ BASE = L.quintaOf(this.value); this.value = BASE; render(); });
 $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
