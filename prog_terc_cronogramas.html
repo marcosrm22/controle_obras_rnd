@@ -371,6 +371,18 @@ function jaValidada(t){
         && String(p.semana).slice(0,10) === BASE;
   });
 }
+/* Fase 3.15: a atividade (ainda pendente) já tinha sido programada na semana ANTERIOR (qualquer
+   coluna/status — concluída ou não lá na Programação Semanal, o que importa aqui é só que ela estava
+   no compromisso da semana passada e continua sem concluir no cronograma agora). Ajuda o analista a
+   enxergar, direto na árvore de Cronogramas, quem é candidata a reprogramar nesta semana. */
+function programadaSemanaAnterior(t){
+  if(!SELECTED) return false;
+  var semAnterior = L.addDays(BASE, -7);
+  return PROG.some(function(p){
+    return p.cronograma_id === SELECTED.id && String(p.terceira_uid) === String(t.uid)
+        && String(p.semana).slice(0,10) === semAnterior;
+  });
+}
 function isNaoExec(t){
   return !!(window.PTA && REGRAS && PTA.isNaoExecutavel(SELECTED.id, t.uid, REGRAS));
 }
@@ -529,6 +541,12 @@ function renderRow(no, depth, wks, filtrando){
   var pillRestr = (!isSum && rs.length)
     ? ' <span class="pill '+(rs.length>2?'r':'y')+'" title="'+esc(rs.map(function(r){return r.descricao;}).join(' | '))+'">⚑ '+rs.length+'</span>' : '';
   var pillNE = isNE ? ' <span class="pill n">não executável</span>' : '';
+  // Fase 3.15: só pendente (não concluída) + já estava programada na semana anterior.
+  var progSemAnt = (!isSum && exec !== 'concluida' && programadaSemanaAnterior(t));
+  var pillProgAnt = progSemAnt
+    ? ' <span class="pill y" title="Esta atividade já estava na Programação Semanal da semana de '
+      + esc(L.fmtBr(L.addDays(BASE,-7))) + ' e continua pendente no cronograma agora — avalie se reprograma de novo nesta semana.">PROG SEM ANTERIOR</span>'
+    : '';
 
   var prod = PRODUT[no.uid] || {};
   var qtyCells = isSum
@@ -554,7 +572,7 @@ function renderRow(no, depth, wks, filtrando){
       + chev
       + (no.wbs ? '<span class="wbs-mono">'+esc(no.wbs)+'</span> ' : '')
       + '<b>'+esc(no.name)+'</b>'
-      + '<div class="small">'+pillStatus+pillProg+pillRestr+pillNE+'</div>'
+      + '<div class="small">'+pillStatus+pillProg+pillProgAnt+pillRestr+pillNE+'</div>'
     + '</td>'
     + '<td class="ctr">'+L.fmtBrDash(t.lbStart)+'</td>'
     + '<td class="ctr">'+L.fmtBrDash(t.lbFinish)+'</td>'
