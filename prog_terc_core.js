@@ -378,6 +378,9 @@
           '<a class="btn" href="validacao_cronogramas.html" ' +
             'title="Abrir o histórico de cronogramas (tela de Validação de Cronogramas)" ' +
             'style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">📋 Histórico de Cronogramas</a>' +
+          '<a class="btn" href="dashboard_desempenho.html" ' +
+            'title="Abrir o Dashboard de Desempenho das empresas" ' +
+            'style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">📈 Dashboard de Desempenho</a>' +
           '<button class="btn" id="btn-print-shell" title="Imprimir ou salvar esta tela como PDF">⎙ Imprimir</button>' +
         '</div>' +
       '</header>' +
