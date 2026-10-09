@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Aderência da Programação · Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+.page{max-width:none;padding-left:18px;padding-right:18px}
+
+/* ---- filtros multi-seleção (Empresa / Disciplina) ---- */
+.msel-wrap{position:relative;display:inline-block}
+.msel-btn{white-space:nowrap}
+.msel-pop{position:absolute;top:100%;left:0;margin-top:4px;z-index:50;background:#fff;
+  border:1px solid var(--border-2);box-shadow:0 8px 22px rgba(0,0,0,.16);padding:10px;
+  min-width:230px;max-width:320px;border-radius:3px}
+.msel-pop .mp-list{max-height:260px;overflow:auto;border:1px solid var(--border-2);padding:4px 8px;margin-bottom:8px}
+.msel-pop label{display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:12px}
+.msel-pop label input{margin:0}
+.msel-pop .mp-actions{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.msel-pop .mp-mini{background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0;text-decoration:underline}
+
+/* ---- tabela por empresa ---- */
+tr.linha-geral td{background:#f4f7f9;font-weight:700;border-bottom:2px solid var(--border)}
+td.qtd-cell{font-family:var(--mono);font-weight:700}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <button class="btn sm" id="wkPrev">← Semana anterior</button>
+    <input type="date" class="f" id="wkBase" style="max-width:160px">
+    <button class="btn sm" id="wkNext">Próxima semana →</button>
+    <button class="btn sm" id="wkHoje">Semana atual</button>
+    <span class="small muted" id="wkInfo" style="margin-right:auto"></span>
+
+    <div class="msel-wrap">
+      <button type="button" class="btn sm msel-btn" id="btnFiltroDisc">Disciplinas: <b id="discResumo">todas</b> ▾</button>
+      <div class="msel-pop" id="discPop" style="display:none"></div>
+    </div>
+    <div class="msel-wrap">
+      <button type="button" class="btn sm msel-btn" id="btnFiltroEmp">Empresas: <b id="empResumo">todas</b> ▾</button>
+      <div class="msel-pop" id="empPop" style="display:none"></div>
+    </div>
+    <label class="chk" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:0 4px">
+      <input type="checkbox" id="fSoValidados"/> só itens validados
+    </label>
+  </div>
+
+  <div class="notice src-note" style="padding:6px 10px;font-size:11px">
+    Indicadores calculados <b>só com o que já está na Programação Semanal</b> (status, % Realizado e
+    Validado) — ainda sem peso de quantitativo, já que a quantidade prevista/realizada por atividade não
+    está implantada com preenchimento manual. Filtrar por <b>Disciplina</b> já restringe as opções de
+    <b>Empresa</b> às que têm atividade naquela disciplina na semana selecionada. Marcar <b>"só itens
+    validados"</b> deixa de considerar o que ainda está como rascunho (não confirmado com ✓ nem em
+    "Revisar tudo / Fechar semana").
+  </div>
+
+  <div class="section-label">Indicadores sugeridos (complementares aos pedidos)</div>
+  <div class="kpis" id="kpis2"></div>
+
+  <div class="section-label">Por empresa</div>
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr>
+        <th>Empresa</th>
+        <th class="ctr">Programadas</th>
+        <th class="ctr">Concluídas</th>
+        <th class="ctr">Em execução</th>
+        <th class="ctr">Não iniciadas</th>
+        <th class="ctr">Não concluídas</th>
+        <th class="ctr">Validadas</th>
+        <th class="ctr" title="Média do % Realizado — considera 0% para quem ainda não informou">% Avanço médio</th>
+        <th class="ctr" title="Concluídas ÷ Programadas">PPC</th>
+      </tr></thead>
+      <tbody id="tbEmp"><tr><td colspan="9" class="loading-line">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc;
+
+L.renderShell({
+  page:'aderencia',
+  title:'Aderência da Programação',
+  subtitle:'Quanto do que foi programado na semana avançou, concluiu ou ficou parado — por empresa e disciplina'
+});
+
+var CARDS = [];
+var BASE = L.quintaOf();
+$('wkBase').value = BASE;
+var SEL_DISC = [];   // [] = todas
+var SEL_EMP  = [];   // [] = todas
+var SO_VALIDADOS = false;
+
+/* ================= CARGA ================= */
+function load(){
+  return L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&order=semana.desc'))
+    .then(function(rows){
+      CARDS = rows || [];
+      $('setup').style.display = 'none';
+      renderPopDisciplina();
+      renderPopEmpresa();
+      atualizarResumoFiltros();
+      render();
+    }).catch(function(err){
+      L.setupNotice('setup', err);
+      $('tbEmp').innerHTML = '<tr><td colspan="9" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+    });
+}
+
+/* ================= FILTROS (Disciplina → Empresa em cascata) ================= */
+function todasDisciplinas(){
+  var t = [];
+  CARDS.forEach(function(c){ var d = c.disciplina || '—'; if(t.indexOf(d) === -1) t.push(d); });
+  t.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  return t;
+}
+function empresasDisponiveis(){
+  var t = [];
+  CARDS.forEach(function(c){
+    if(!c.empresa) return;
+    var d = c.disciplina || '—';
+    if(SEL_DISC.length && SEL_DISC.indexOf(d) === -1) return;
+    if(t.indexOf(c.empresa) === -1) t.push(c.empresa);
+  });
+  t.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  return t;
+}
+function mselPopHtml(opcoes, selecionados, ns){
+  var list = opcoes.map(function(o){
+    var chk = selecionados.indexOf(o) !== -1 ? ' checked' : '';
+    return '<label><input type="checkbox" class="mp-chk" data-ns="'+ns+'" value="'+esc(o)+'"'+chk+'>'+esc(o)+'</label>';
+  }).join('') || '<div class="small muted" style="padding:6px 0">Nenhuma opção disponível com os outros filtros atuais.</div>';
+  return '<div class="mp-list">'+list+'</div>'
+    + '<div class="mp-actions">'
+      + '<span><button type="button" class="mp-mini" data-act="todos" data-ns="'+ns+'">Todos</button> · '
+        + '<button type="button" class="mp-mini" data-act="nenhum" data-ns="'+ns+'">Nenhum</button></span>'
+      + '<button type="button" class="btn sm" data-act="fechar" data-ns="'+ns+'">Fechar</button>'
+    + '</div>';
+}
+function renderPopDisciplina(){
+  $('discPop').innerHTML = mselPopHtml(todasDisciplinas(), SEL_DISC, 'disc');
+}
+function renderPopEmpresa(){
+  $('empPop').innerHTML = mselPopHtml(empresasDisponiveis(), SEL_EMP, 'emp');
+}
+function atualizarResumoFiltros(){
+  $('discResumo').textContent = SEL_DISC.length ? (SEL_DISC.length+' selecionada'+(SEL_DISC.length>1?'s':'')) : 'todas';
+  $('empResumo').textContent  = SEL_EMP.length  ? (SEL_EMP.length+' selecionada'+(SEL_EMP.length>1?'s':''))   : 'todas';
+}
+/* troca de disciplina: recalcula o universo de empresas e descarta da seleção
+   de empresa quem não existir mais nesse universo (cascata, igual o Marcos pediu) */
+function onDiscChange(novo){
+  SEL_DISC = novo;
+  var disp = empresasDisponiveis();
+  SEL_EMP = SEL_EMP.filter(function(e){ return disp.indexOf(e) !== -1; });
+  renderPopDisciplina();
+  renderPopEmpresa();
+  atualizarResumoFiltros();
+  render();
+}
+function onEmpChange(novo){
+  SEL_EMP = novo;
+  renderPopEmpresa();
+  atualizarResumoFiltros();
+  render();
+}
+function togglePop(id){
+  var el = $(id);
+  var abrir = el.style.display === 'none';
+  fecharPops();
+  if(abrir) el.style.display = '';
+}
+function fecharPops(){ $('discPop').style.display = 'none'; $('empPop').style.display = 'none'; }
+
+$('btnFiltroDisc').addEventListener('click', function(ev){ ev.stopPropagation(); togglePop('discPop'); });
+$('btnFiltroEmp').addEventListener('click', function(ev){ ev.stopPropagation(); togglePop('empPop'); });
+document.addEventListener('change', function(e){
+  if(!e.target.classList || !e.target.classList.contains('mp-chk')) return;
+  var ns = e.target.dataset.ns, val = e.target.value;
+  var base = ns === 'disc' ? SEL_DISC : SEL_EMP;
+  var arr = base.slice();
+  var i = arr.indexOf(val);
+  if(e.target.checked){ if(i === -1) arr.push(val); }
+  else { if(i !== -1) arr.splice(i,1); }
+  if(ns === 'disc') onDiscChange(arr); else onEmpChange(arr);
+});
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('[data-act]');
+  if(btn){
+    var ns = btn.dataset.ns, act = btn.dataset.act;
+    if(act === 'fechar'){ fecharPops(); return; }
+    if(ns === 'disc'){
+      if(act === 'todos') onDiscChange(todasDisciplinas());
+      else if(act === 'nenhum') onDiscChange([]);
+    } else {
+      if(act === 'todos') onEmpChange(empresasDisponiveis());
+      else if(act === 'nenhum') onEmpChange([]);
+    }
+    return;
+  }
+  if(!e.target.closest('.msel-wrap')) fecharPops();
+});
+$('fSoValidados').addEventListener('change', function(){ SO_VALIDADOS = this.checked; render(); });
+
+/* ================= SELEÇÃO DA SEMANA ================= */
+function listaFiltrada(){
+  return CARDS.filter(function(c){
+    if(String(c.semana).slice(0,10) !== BASE) return false;
+    var d = c.disciplina || '—';
+    if(SEL_DISC.length && SEL_DISC.indexOf(d) === -1) return false;
+    if(SEL_EMP.length && SEL_EMP.indexOf(c.empresa||'—') === -1) return false;
+    if(SO_VALIDADOS && !c.validado) return false;
+    return true;
+  });
+}
+
+/* ================= RENDER ================= */
+function render(){
+  $('wkInfo').innerHTML = 'Semana <b>' + L.weekLabel(BASE) + '</b> · '
+    + L.fmtBr(BASE) + ' a ' + L.fmtBr(L.addDays(BASE,6));
+  var list = listaFiltrada();
+  renderKpis(list);
+  renderTabelaEmpresas(list);
+}
+
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+function renderKpis(list){
+  var total = list.length;
+  var concl    = list.filter(function(c){ return c.coluna === 'concluida'; }).length;
+  var exec     = list.filter(function(c){ return c.coluna === 'execucao'; }).length;
+  var naoIni   = list.filter(function(c){ return c.coluna === 'programada'; }).length;
+  var naoConcl = list.filter(function(c){ return c.coluna === 'nao_concluida'; }).length;
+  var validadas = list.filter(function(c){ return c.validado; }).length;
+
+  var somaPct = list.reduce(function(s,c){ return s + (c.pct_realizado == null ? 0 : Number(c.pct_realizado)); }, 0);
+  var avgGeral = total ? Math.round(somaPct / total) : null;
+
+  $('kpis').innerHTML =
+    kpi('b-gray', total, 'Atividades programadas', 'no filtro atual') +
+    kpi('b-green', concl, 'Concluídas na semana', total ? Math.round(concl/total*100)+'% do total' : '—') +
+    kpi('b-blue', exec, 'Com avanço (sem conclusão)', 'status "Em execução"') +
+    kpi('b-gold', naoIni, 'Não iniciadas', 'status "Programada" · sem avanço registrado') +
+    kpi('b-violet', (avgGeral==null?'—':avgGeral+'%'), '% Avanço médio geral', 'considera 0% pra quem ainda não informou');
+
+  var ppc = total ? Math.round(concl/total*100) : null;
+  var pctValidado = total ? Math.round(validadas/total*100) : null;
+  var comCausa = naoConcl ? list.filter(function(c){ return c.coluna === 'nao_concluida' && c.causa; }).length : 0;
+  var pctCausa = naoConcl ? Math.round(comCausa/naoConcl*100) : null;
+
+  $('kpis2').innerHTML =
+    kpi('b-red', naoConcl, 'Não concluídas', 'status "Não concluída" (precisaram de causa)') +
+    kpi('b-teal', (ppc==null?'—':ppc+'%'), 'PPC — sugestão', 'concluídas ÷ programadas, clássico do Last Planner') +
+    kpi('b-gray', validadas+' de '+total, 'Validadas — sugestão', (pctValidado==null?'—':pctValidado+'%')+' do filtro já confirmado') +
+    kpi('b-gray', (pctCausa==null?'—':pctCausa+'%'), 'Causa registrada — sugestão', 'entre as não concluídas, já com causa do desvio preenchida');
+}
+
+function renderTabelaEmpresas(list){
+  var porEmp = {};
+  list.forEach(function(c){
+    var e = c.empresa || '—';
+    if(!porEmp[e]) porEmp[e] = { total:0, concl:0, exec:0, naoIni:0, naoConcl:0, validadas:0, somaPct:0 };
+    var g = porEmp[e];
+    g.total++;
+    if(c.coluna === 'concluida') g.concl++;
+    else if(c.coluna === 'execucao') g.exec++;
+    else if(c.coluna === 'programada') g.naoIni++;
+    else if(c.coluna === 'nao_concluida') g.naoConcl++;
+    if(c.validado) g.validadas++;
+    g.somaPct += (c.pct_realizado == null ? 0 : Number(c.pct_realizado));
+  });
+  var nomes = Object.keys(porEmp).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  if(!nomes.length){
+    $('tbEmp').innerHTML = '<tr><td colspan="9" class="empty"><div class="big">☰</div>'
+      + 'Nenhuma atividade programada para esta semana com esses filtros.</td></tr>';
+    return;
+  }
+  function linha(nome, g, cls){
+    var media = g.total ? Math.round(g.somaPct/g.total) : null;
+    var ppcE  = g.total ? Math.round(g.concl/g.total*100) : null;
+    return '<tr'+(cls?(' class="'+cls+'"'):'')+'>'
+      + '<td>'+(cls?('<b>'+esc(nome)+'</b>'):esc(nome))+'</td>'
+      + '<td class="ctr qtd-cell">'+g.total+'</td>'
+      + '<td class="ctr qtd-cell">'+g.concl+'</td>'
+      + '<td class="ctr qtd-cell">'+g.exec+'</td>'
+      + '<td class="ctr qtd-cell">'+g.naoIni+'</td>'
+      + '<td class="ctr qtd-cell">'+g.naoConcl+'</td>'
+      + '<td class="ctr qtd-cell">'+g.validadas+'</td>'
+      + '<td class="ctr qtd-cell">'+(media==null?'—':media+'%')+'</td>'
+      + '<td class="ctr qtd-cell">'+(ppcE==null?'—':ppcE+'%')+'</td>'
+      + '</tr>';
+  }
+  var geral = { total:0, concl:0, exec:0, naoIni:0, naoConcl:0, validadas:0, somaPct:0 };
+  nomes.forEach(function(e){
+    var g = porEmp[e];
+    geral.total += g.total; geral.concl += g.concl; geral.exec += g.exec;
+    geral.naoIni += g.naoIni; geral.naoConcl += g.naoConcl; geral.validadas += g.validadas;
+    geral.somaPct += g.somaPct;
+  });
+  $('tbEmp').innerHTML = linha('Geral (todas as empresas no filtro)', geral, 'linha-geral')
+    + nomes.map(function(e){ return linha(e, porEmp[e], ''); }).join('');
+}
+
+/* ================= EVENTOS DE SEMANA ================= */
+$('wkBase').addEventListener('change', function(){ BASE = L.quintaOf(this.value); this.value = BASE; render(); });
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; render(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; render(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.quintaOf(); $('wkBase').value = BASE; render(); });
+
+load();
+})();
+</script>
+</body>
+</html>

@@ -46,6 +46,7 @@
     { href: 'prog_terc_restricoes.html',       key: 'restricoes',      ic: '⚑', label: 'Restrições' },
     { href: 'prog_terc_pre_programacao.html',  key: 'pre_programacao', ic: '☑', label: 'Pré-Programação' },
     { href: 'prog_terc_semanal.html',          key: 'semanal',         ic: '▥', label: 'Programação Semanal' },
+    { href: 'prog_terc_aderencia.html',        key: 'aderencia',       ic: '◉', label: 'Aderência' },
     { href: 'prog_terc_produtividade.html',    key: 'produtividade',   ic: '⏱', label: 'Produtividade' }
   ];
 
