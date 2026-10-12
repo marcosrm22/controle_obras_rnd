@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Produtividade · PCO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#fff; --border:#d8dde4;
+  --text:#1a2332; --text-dim:#546175; --text-mute:#8a95a6;
+  --blue:#304F7E; --blue-dark:#223a60; --blue-soft:#eef2f8;
+  --gold:#EAA239;
+  --green:#609346; --green-soft:#e8efe1;
+  --orange:#D97706; --orange-soft:#FEF3C7;
+  --red:#CC5121;
+  --neutral:#BDBFC1;
+  --shadow:0 4px 24px -4px rgba(26,35,50,0.13);
+  --shadow-lg:0 16px 48px -12px rgba(26,35,50,0.22);
+  --shadow-hover:0 12px 40px -8px rgba(48,79,126,0.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
+
+/* ── LAYOUT ── */
+.page{max-width:1100px;margin:0 auto;padding:48px 28px 80px}
+
+/* ── HEADER ── */
+.site-header{
+  border-bottom:3px solid var(--blue);
+  padding-bottom:20px;margin-bottom:48px;
+  display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;
+}
+.site-header .eyebrow{
+  font-size:9px;color:var(--blue);letter-spacing:3px;
+  text-transform:uppercase;font-weight:700;margin-bottom:5px;
+}
+.site-header h1{font-size:26px;font-weight:800;letter-spacing:-0.5px;line-height:1.15}
+.site-header h1 span{color:var(--text-dim);font-weight:500}
+.site-header .subtitle{
+  font-size:12px;color:var(--text-dim);margin-top:6px;line-height:1.6;
+}
+.version-tag{
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;
+  background:var(--bg);border:1px solid var(--border);
+  padding:5px 10px;white-space:nowrap;
+}
+
+/* ── SECTION TITLE ── */
+.section-label{
+  font-size:9px;color:var(--text-mute);letter-spacing:2px;
+  text-transform:uppercase;font-weight:700;
+  margin-bottom:18px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+
+/* ── CARDS GRID ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:48px}
+
+.card{
+  background:var(--panel);border:1px solid var(--border);
+  text-decoration:none;color:inherit;
+  display:flex;flex-direction:column;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-hover);
+  border-color:#b0bfd4;
+}
+.card:hover .card-arrow{transform:translateX(4px)}
+
+/* colored top bar */
+.card-bar{height:5px;width:100%}
+
+.card-body{padding:24px 24px 20px;flex:1}
+.card-icon{
+  width:44px;height:44px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;
+}
+.card-icon svg{width:22px;height:22px}
+
+.card-tag{
+  font-size:9px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:6px;
+}
+.card-title{font-size:19px;font-weight:800;letter-spacing:-0.3px;margin-bottom:8px;line-height:1.2}
+.card-desc{font-size:12px;color:var(--text-dim);line-height:1.65;margin-bottom:18px}
+
+.card-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0}
+.chip{
+  font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:3px 9px;border:1px solid;
+}
+
+.card-footer{
+  padding:12px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  background:#fafbfc;
+}
+.card-cta{
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
+.card-arrow{
+  display:inline-block;font-size:18px;font-weight:300;
+  transition:transform .18s ease;color:var(--text-mute);
+}
+
+/* card color variants */
+.card.blue .card-bar  {background:linear-gradient(90deg,var(--blue),#4a6fa5)}
+.card.blue .card-icon {background:var(--blue-soft)}
+.card.blue .card-icon svg{stroke:var(--blue)}
+.card.blue .card-tag  {color:var(--blue)}
+.card.blue .card-cta  {color:var(--blue)}
+
+.card.green .card-bar  {background:linear-gradient(90deg,var(--green),#7db35a)}
+.card.green .card-icon {background:var(--green-soft)}
+.card.green .card-icon svg{stroke:var(--green)}
+.card.green .card-tag  {color:var(--green)}
+.card.green .card-cta  {color:var(--green)}
+
+.card.orange .card-bar  {background:linear-gradient(90deg,var(--orange),#f0a030)}
+.card.orange .card-icon {background:var(--orange-soft)}
+.card.orange .card-icon svg{stroke:var(--orange)}
+.card.orange .card-tag  {color:var(--orange)}
+.card.orange .card-cta  {color:var(--orange)}
+
+/* chip color helpers */
+.chip-blue  {background:var(--blue-soft);border-color:#b0c0da;color:var(--blue)}
+.chip-green {background:var(--green-soft);border-color:#a8c990;color:#3a6229}
+.chip-orange{background:var(--orange-soft);border-color:#f0c87a;color:#7c4a00}
+.chip-gray  {background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
+
+
+/* ── CARD DASHBOARD KPIs ── */
+.card-kpis{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  margin:0 0 16px;
+}
+.card-kpi{
+  padding:12px 14px;text-align:center;
+  border-right:1px solid var(--border);
+}
+.card-kpi:last-child{border-right:none}
+.card-kpi-val{
+  font-size:22px;font-weight:800;letter-spacing:-1px;
+  color:var(--text);line-height:1;margin-bottom:3px;
+}
+.card-kpi-val.loading{
+  font-size:14px;color:var(--text-mute);font-weight:400;letter-spacing:0;
+  animation:pulse 1.2s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.card-kpi-label{
+  font-size:8px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-mute);
+}
+
+/* progress bar inside card */
+.card-progress{padding:0 20px 16px}
+.card-progress-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:5px;
+  font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
+.card-progress-label{color:var(--text-mute)}
+.card-progress-pct{font-family:'JetBrains Mono',monospace;font-size:10px}
+.card-prog-bar{height:7px;background:#eef0f3;overflow:hidden;border-radius:0}
+.card-prog-fill{display:flex;height:100%;transition:width .6s ease}
+.prog-done{background:var(--green)}
+.prog-wip {background:var(--gold)}
+.prog-pend{background:var(--neutral)}
+.prog-blue{background:var(--blue)}
+
+/* last-update timestamp */
+.card-updated{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  color:var(--text-mute);padding:0 20px 12px;
+}
+
+/* ── COMING SOON CARD ── */
+.card.soon{opacity:.55;pointer-events:none}
+.card.soon .card-bar{background:linear-gradient(90deg,var(--neutral),#d0d4d9)}
+.card.soon .card-tag{color:var(--text-mute)}
+.card.soon .card-cta{color:var(--text-mute)}
+.soon-badge{
+  position:absolute;top:16px;right:16px;
+  font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+  background:var(--neutral);color:#fff;padding:3px 8px;
+}
+
+/* ── INFO ROW ── */
+.info-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;margin-bottom:48px;
+}
+.info-box{
+  background:var(--panel);border:1px solid var(--border);
+  border-left:3px solid var(--blue);
+  padding:14px 16px;box-shadow:var(--shadow);
+}
+.info-box.gold  {border-left-color:var(--gold)}
+.info-box.green {border-left-color:var(--green)}
+.info-box .info-title{
+  font-size:9px;color:var(--text-mute);letter-spacing:1.5px;
+  text-transform:uppercase;font-weight:700;margin-bottom:5px;
+}
+.info-box .info-text{font-size:12px;color:var(--text-dim);line-height:1.6}
+.info-box .info-text strong{color:var(--text);font-weight:700}
+.info-box code{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:#f3f4f6;padding:1px 5px;border:1px solid var(--border);
+}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);padding-top:20px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+}
+footer .foot-left{font-size:10px;color:var(--text-mute);line-height:1.7}
+footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase}
+
+/* config form */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:600px){.config-grid{grid-template-columns:1fr}}
+.config-field label{font-size:9px;color:var(--text-mute);letter-spacing:1px;
+  text-transform:uppercase;font-weight:700;margin-bottom:4px;display:block}
+.config-field input{
+  width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;
+  border:1px solid var(--border);padding:7px 9px;outline:none;
+  background:var(--bg);transition:border-color .15s;
+}
+.config-field input:focus{border-color:var(--blue)}
+.config-field.span2{grid-column:1/-1}
+
+
+/* ── USER BAR ── */
+.user-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.user-chip{
+  display:flex;align-items:center;gap:7px;
+  background:var(--blue-soft);border:1px solid #b0c0da;
+  padding:5px 11px;font-size:11px;font-weight:600;color:var(--blue);
+}
+.user-chip .user-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--blue);color:#fff;
+  font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+.user-role{
+  font-size:8px;font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;text-transform:uppercase;
+  background:#fff;border:1px solid var(--border);
+  padding:2px 6px;color:var(--text-mute);
+}
+.logout-btn{
+  font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;
+  border:1px solid var(--border-2);background:var(--panel);
+  color:var(--text-dim);cursor:pointer;transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.logout-btn svg{width:12px;height:12px}
+
+/* card disabled state */
+.card.no-access{opacity:.4;pointer-events:none;filter:grayscale(1)}
+.card.no-access::after{
+  content:'Sem acesso';
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.6);color:#fff;padding:5px 14px;
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+}
+
+
+/* ── BREADCRUMB (painel produtividade) ── */
+.breadcrumb{font-size:11px;color:var(--text-mute);margin:-28px 0 28px;font-weight:600}
+.breadcrumb a{color:var(--blue);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div>
+      <div class="eyebrow">PCO Digital · Controle de Execução</div>
+      <h1>Produtividade <span>· Frentes de Obra</span></h1>
+      <p class="subtitle">Avanço físico por frente de serviço · integrado ao Supabase</p>
+    </div>
+    <div class="user-bar" id="user-bar">
+      <span id="unidade-switcher"></span>
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div id="user-nome" style="font-size:11px;font-weight:700">Carregando...</div>
+          <div id="user-email" style="font-size:9px;color:var(--text-mute);font-family:'JetBrains Mono',monospace"></div>
+        </div>
+      </div>
+      <span class="user-role" id="user-role">viewer</span>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5l3 3-3 3M13 8H6"/><path d="M6 3H3v10h3"/></svg>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <div class="breadcrumb"><a href="index.html">← Painel de ferramentas</a> &nbsp;/&nbsp; Produtividade</div>
+
+  <div class="section-label">Ferramentas de produtividade</div>
+  <div class="cards">
+
+    <!-- DRENAGEM -->
+    <a class="card blue" href="drenagem_controle_v3.html">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 12c0 4 3 7 9 7s9-3 9-7M3 12c0-4 3-7 9-7s9 3 9 7"/>
+            <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="card-tag">Infraestrutura · Drenagem</div>
+        <div class="card-title">Redes de Drenagem</div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-total">—</div>
+          <div class="card-kpi-label">Trechos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-done">—</div>
+          <div class="card-kpi-label">Concluídos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="dr-boxes">—</div>
+          <div class="card-kpi-label">Caixas PV</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço — Trechos</span>
+          <span class="card-progress-pct blue" id="dr-pct" style="color:var(--blue)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-blue" id="dr-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço — Caixas PV</span>
+          <span class="card-progress-pct blue" id="dr-pct-boxes" style="color:var(--blue)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div class="prog-blue" id="dr-bar-boxes" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="dr-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- TERRAPLANAGEM -->
+    <a class="card green" href="terraplanagem_controle.html">
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="13" rx="2"/>
+            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+            <line x1="12" y1="12" x2="12" y2="16"/>
+            <line x1="10" y1="14" x2="14" y2="14"/>
+          </svg>
+        </div>
+        <div class="card-tag">Movimentação de Terra</div>
+        <div class="card-title">Terraplanagem</div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-total">—</div>
+          <div class="card-kpi-label">Total Áreas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-done">—</div>
+          <div class="card-kpi-label">Finalizadas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="tr-wip">—</div>
+          <div class="card-kpi-label">Em Andamento</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço geral</span>
+          <span class="card-progress-pct" id="tr-pct" style="color:var(--green)">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill" id="tr-bar-wrap">
+            <div class="prog-done" id="tr-bar-done" style="width:0%"></div>
+            <div class="prog-wip"  id="tr-bar-wip"  style="width:0%"></div>
+            <div class="prog-pend" id="tr-bar-pend" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Áreas atrasadas</span>
+          <span class="card-progress-pct" id="tr-late" style="color:var(--red)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="tr-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- BASES CIVIS -->
+    <a class="card teal" href="bases_civis.html" id="card-bases-civis" style="--teal:#007D77">
+      <div class="card-bar" style="background:linear-gradient(90deg,#007D77,#2eada7)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e0f2f1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#007D77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#007D77">Obras Civis · Bases</div>
+        <div class="card-title">Controle de Bases Civis</div>
+      </div>
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-total">—</div>
+          <div class="card-kpi-label">Elementos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-done">—</div>
+          <div class="card-kpi-label">Finalizados</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="bc-pct">—</div>
+          <div class="card-kpi-label">Avanço Peso</div>
+        </div>
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço por peso ponderado</span>
+          <span id="bc-pct-label" style="color:#007D77;font-size:9px;font-weight:700">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#007D77;height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
+            <div style="background:var(--yellow);height:100%;width:0%;transition:width .6s" id="bc-bar-wip"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="bc-updated"></div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#007D77">Ver bases civis</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- ISOMÉTRICOS (TUBULAÇÕES) -->
+    <a class="card" href="produtividade.html" id="card-produtividade" style="--prod:#304F7E">
+      <div class="card-bar" style="background:linear-gradient(90deg,#304F7E,#007D77)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#eef2f8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#304F7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 20h18"/>
+            <rect x="4" y="12" width="3.5" height="6" rx="0.5"/>
+            <rect x="10.25" y="8" width="3.5" height="10" rx="0.5"/>
+            <rect x="16.5" y="4" width="3.5" height="14" rx="0.5"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#304F7E">Tubulações · Memoriais</div>
+        <div class="card-title">Isométricos</div>
+        <div class="card-desc">Avanço semanal das contratadas a partir dos memoriais de cálculo. Começa por Tubulações — carbono e inox, fabricação, montagem, suportes e pintura — com controle de cobertura da lista de materiais.</div>
+        <div class="card-chips">
+          <span class="chip chip-blue">Tubulações</span>
+          <span class="chip chip-green">Avanço semanal</span>
+          <span class="chip chip-gray">Memorial · Excel</span>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="pr-emp">—</div>
+          <div class="card-kpi-label">Empresas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="pr-iso">—</div>
+          <div class="card-kpi-label">Isométricos</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="pr-sem">—</div>
+          <div class="card-kpi-label">Semanas</div>
+        </div>
+      </div>
+
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço ponderado — tubulações</span>
+          <span class="card-progress-pct" id="pr-pct" style="color:#304F7E">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div id="pr-bar" style="background:#304F7E;height:100%;width:0%;transition:width .6s"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="padding-top:0">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Avanço na última semana</span>
+          <span class="card-progress-pct" id="pr-delta" style="color:var(--green)">—</span>
+        </div>
+      </div>
+      <div class="card-updated" id="pr-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#304F7E">Abrir isométricos</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
+    <div class="card orange soon">
+      <div class="soon-badge">Em breve</div>
+      <div class="card-bar"></div>
+      <div class="card-body">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="18" rx="2"/>
+            <path d="M2 9h20M2 15h20M9 3v18M15 3v18"/>
+          </svg>
+        </div>
+        <div class="card-tag">Infraestrutura</div>
+        <div class="card-title">Pavimentação</div>
+        <div class="card-desc">Controle de execução de pavimentos por trecho, tipo de revestimento, espessuras e ensaios de compactação.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Trechos</span>
+          <span class="chip chip-gray">Ensaios</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta">Disponível em breve</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+
+    <!-- COMPARATIVO DE COMPRAS (por unidade) -->
+    <a class="card steel" href="#" id="card-compras" style="--steel-accent:#1F4E6B">
+      <div class="card-bar" style="background:linear-gradient(90deg,#1F4E6B,#4d7d9e)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e7f0f5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1F4E6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/>
+            <path d="M2.5 3h3l2.6 12.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 8H6.1"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#1F4E6B">Suprimentos · Compras</div>
+        <div class="card-title">Comparativo de Compras</div>
+        <div class="card-desc" id="compras-desc">Compara as listas de material e quantidades compradas entre unidades de referência, com rastreamento por categoria, projeto e disciplina.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Listas de material</span>
+          <span class="chip chip-gray">Gaps de compra</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#1F4E6B" id="compras-cta">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="foot-left">
+      Ferramentas de controle visual · dados salvos no Supabase<br>
+      Abra cada ferramenta e preencha <code style="font-family:'JetBrains Mono',monospace;font-size:9px;background:#f3f4f6;padding:1px 5px;border:1px solid #d8dde4">SB_URL</code> e <code style="font-family:'JetBrains Mono',monospace;font-size:9px;background:#f3f4f6;padding:1px 5px;border:1px solid #d8dde4">SB_KEY</code> para conectar ao banco
+    </div>
+    <div class="foot-right">PCO · v1.0 · 2026</div>
+  </footer>
+
+</div>
+
+<script>
+/* ================================================================
+   PRODUTIVIDADE — indicadores dos cards de frentes de obra
+   ================================================================ */
+(function(){
+  const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
+  const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
+  const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
+  const today  = new Date().toISOString().slice(0,10);
+
+  function pct(a,b){ return b ? Math.round(a/b*100) : 0 }
+  function fmt(n)  { return n != null ? String(n) : '0' }
+  function timeAgo(){
+    return 'atualizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  async function sbGet(path){
+    const res = await fetch(SB_URL + '/rest/v1/' + pcoComUnidade(path), {
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + TOKEN,
+        'Prefer': 'count=exact',
+      }
+    });
+    const text = await res.text();
+    const count = res.headers.get('content-range')
+      ? parseInt(res.headers.get('content-range').split('/')[1]) : null;
+    let data;
+    try{ data = JSON.parse(text) } catch(_){ data = [] }
+    return { data: Array.isArray(data) ? data : [], count };
+  }
+
+  function setEl(id, val){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = val;
+    el.classList.remove('loading');
+  }
+
+  /* ── DRENAGEM ── */
+  async function loadDrenagem(){
+    try{
+      const { data } = await sbGet('drain_elements?select=id,kind,status,length_m');
+      const pipes  = data.filter(e=>e.kind==='pipe');
+      const boxes  = data.filter(e=>e.kind==='box');
+      const donePipes = pipes.filter(e=>e.status==='done');
+      const doneBoxes = boxes.filter(e=>e.status==='done');
+      const pp = pct(donePipes.length, pipes.length);
+      const bp = pct(doneBoxes.length, boxes.length);
+
+      setEl('dr-total', fmt(pipes.length));
+      setEl('dr-done',  fmt(donePipes.length));
+      setEl('dr-boxes', fmt(boxes.length));
+      setEl('dr-pct',   pp + '%');
+      setEl('dr-pct-boxes', bp + '%');
+      setEl('dr-updated', timeAgo());
+
+      const barP = document.getElementById('dr-bar');
+      const barB = document.getElementById('dr-bar-boxes');
+      if(barP) barP.style.width = pp + '%';
+      if(barB) barB.style.width = bp + '%';
+    } catch(_){}
+  }
+
+  /* ── TERRAPLANAGEM ── */
+  async function loadTerra(){
+    try{
+      const { data } = await sbGet('terra_areas?select=id,status,prev_fim');
+      const total = data.length;
+      const done  = data.filter(e=>e.status==='done').length;
+      const wip   = data.filter(e=>e.status==='wip').length;
+      const pend  = data.filter(e=>e.status==='pend').length;
+      const late  = data.filter(e=>
+        e.status!=='done' && e.prev_fim && e.prev_fim < today
+      ).length;
+      const dp = pct(done,  total);
+      const wp = pct(wip,   total);
+      const pp = pct(pend,  total);
+
+      setEl('tr-total', fmt(total));
+      setEl('tr-done',  fmt(done));
+      setEl('tr-wip',   fmt(wip));
+      setEl('tr-pct',   dp + '% finalizadas');
+      setEl('tr-late',  late > 0 ? late + ' área' + (late>1?'s':'') + ' atrasada' + (late>1?'s':'') : 'Nenhuma atrasada');
+      setEl('tr-updated', timeAgo());
+
+      const bDone = document.getElementById('tr-bar-done');
+      const bWip  = document.getElementById('tr-bar-wip');
+      const bPend = document.getElementById('tr-bar-pend');
+      if(bDone) bDone.style.width = dp + '%';
+      if(bWip)  bWip.style.width  = wp + '%';
+      if(bPend) bPend.style.width = pp + '%';
+
+      // color of late indicator
+      const lateEl = document.getElementById('tr-late');
+      if(lateEl) lateEl.style.color = late > 0 ? 'var(--red)' : 'var(--green)';
+    } catch(_){}
+  }
+
+  /* ── BASES CIVIS ── */
+  async function loadBasesCivis(){
+    try{
+      const { data } = await sbGet('bases_civis_elementos?select=id,status,peso');
+      const total = data.length;
+      const done  = data.filter(e=>e.status==='done').length;
+      const wip   = data.filter(e=>e.status==='wip').length;
+      const totP  = data.reduce((a,e)=>a+(e.peso||0),0);
+      const donP  = data.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
+      const wipP  = data.filter(e=>e.status==='wip').reduce((a,e)=>a+(e.peso||0),0);
+      const pp    = pct(donP,totP);
+      const wp    = pct(wipP,totP);
+
+      setEl('bc-total', fmt(total));
+      setEl('bc-done',  fmt(done));
+      setEl('bc-pct',   pp+'%');
+      setEl('bc-pct-label', pp+'%');
+      setEl('bc-updated', timeAgo());
+
+      const bd = document.getElementById('bc-bar-done');
+      const bw = document.getElementById('bc-bar-wip');
+      if(bd) bd.style.width = pp+'%';
+      if(bw) bw.style.width = wp+'%';
+    } catch(_){}
+  }
+
+  /* ── PRODUTIVIDADE · TUBULAÇÕES ── */
+  async function loadProdutividade(){
+    try{
+      const [emp, mem] = await Promise.all([
+        sbGet('tub_empresas?select=id&ativo=eq.true'),
+        sbGet('tub_memoriais?select=empresa_id,semana,qtd_itens,avanco_total&order=semana.asc')
+      ]);
+      const memo = mem.data || [];
+      setEl('pr-emp', fmt((emp.data||[]).length));
+      const semanas = [...new Set(memo.map(m=>m.semana))].sort();
+      setEl('pr-sem', fmt(semanas.length));
+
+      const ult = {};
+      memo.forEach(m=>{ if(!ult[m.empresa_id] || m.semana > ult[m.empresa_id].semana) ult[m.empresa_id]=m });
+      const fotos = Object.values(ult);
+      setEl('pr-iso', fmt(fotos.reduce((a,m)=>a+(m.qtd_itens||0),0)));
+      if(!fotos.length){ setEl('pr-pct','—'); setEl('pr-delta','sem memoriais'); return }
+
+      const media = fotos.reduce((a,m)=>a+(m.avanco_total||0),0)/fotos.length;
+      setEl('pr-pct', Math.round(media*1000)/10 + '%');
+      const bar = document.getElementById('pr-bar');
+      if(bar) bar.style.width = (media*100) + '%';
+
+      if(semanas.length >= 2){
+        const s1=semanas[semanas.length-1], s0=semanas[semanas.length-2];
+        const a1=memo.filter(m=>m.semana===s1), a0=memo.filter(m=>m.semana===s0);
+        if(a1.length && a0.length){
+          const m1=a1.reduce((a,m)=>a+(m.avanco_total||0),0)/a1.length;
+          const m0=a0.reduce((a,m)=>a+(m.avanco_total||0),0)/a0.length;
+          const d=(m1-m0)*100;
+          setEl('pr-delta', (d>=0?'+':'') + (Math.round(d*100)/100) + ' p.p.');
+        }
+      } else setEl('pr-delta','1ª semana');
+      setEl('pr-updated','última semana importada: ' + semanas[semanas.length-1]);
+    } catch(_){ setEl('pr-pct','—'); setEl('pr-delta','módulo não configurado') }
+  }
+
+  window.addEventListener('load', ()=>{
+    loadDrenagem();
+    loadTerra();
+    loadBasesCivis();
+    loadProdutividade();
+  });
+})();
+</script>
+
+<script>
+/* ================================================================
+   SESSION GUARD — produtividade_painel.html
+   ================================================================ */
+(function(){
+  const token  = sessionStorage.getItem('pco_token');
+  const nome   = sessionStorage.getItem('pco_nome')   || '';
+  const email  = sessionStorage.getItem('pco_email')  || '';
+  const perfil = sessionStorage.getItem('pco_perfil') || '';
+  const perms  = JSON.parse(sessionStorage.getItem('pco_perms') || '{}');
+
+  if(!token){
+    window.location.href = 'login.html';
+    return;
+  }
+  if(!sessionStorage.getItem('pco_unidade')){
+    sessionStorage.setItem('pco_unidade', 'RDN');
+  }
+  if(!sessionStorage.getItem('pco_unidades_acesso')){
+    sessionStorage.setItem('pco_unidades_acesso', JSON.stringify(['RDN']));
+  }
+  pcoRenderSwitcher('unidade-switcher');
+
+  // ---- Comparativo de Compras: página específica por unidade ----
+  // Ao criar a versão de outra unidade, basta adicionar aqui:
+  //   RVD: 'comparativo_compras_rvd.html', NMT: 'comparativo_compras_nmt.html'
+  const COMPRAS_PAGES = {
+    RDN: 'comparativo_compras_rdn.html',
+  };
+  (function(){
+    const card = document.getElementById('card-compras');
+    if(!card) return;
+    const un   = sessionStorage.getItem('pco_unidade') || 'RDN';
+    const page = COMPRAS_PAGES[un];
+    if(page){
+      card.setAttribute('href', page);
+    }else{
+      card.removeAttribute('href');
+      card.classList.add('soon');
+      const cta = document.getElementById('compras-cta');
+      if(cta) cta.textContent = 'Em breve para esta unidade';
+    }
+  })();
+
+  // Populate user bar
+  const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-nome').textContent   = nome || email;
+  document.getElementById('user-email').textContent  = email;
+  document.getElementById('user-role').textContent   = perfil;
+
+  // Hide cards user has no access to
+  if(!perms.drenagem && perfil !== 'admin'){
+    document.querySelector('a[href="drenagem_controle_v3.html"]')?.classList.add('no-access');
+  }
+  if(!perms.terraplanagem && perfil !== 'admin'){
+    document.querySelector('a[href="terraplanagem_controle.html"]')?.classList.add('no-access');
+  }
+
+})();
+
+function doLogout(){
+  sessionStorage.clear();
+  window.location.href = 'login.html';
+}
+</script>
+
+</body>
+</html>
