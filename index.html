@@ -311,178 +311,184 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     </div>
   </header>
 
-  <!-- TOOLS -->
-  <div class="section-label">Ferramentas disponíveis</div>
+  <!-- PLANEJAMENTO -->
+  <div class="section-label">Planejamento</div>
   <div class="cards">
 
-    <!-- DRENAGEM -->
-    <a class="card blue" href="drenagem_controle_v3.html">
-      <div class="card-bar"></div>
+    <!-- VALIDAÇÃO DE CRONOGRAMAS -->
+    <a class="card violet" href="validacao_cronogramas.html" style="--violet-accent:#6B4FA0">
+      <div class="card-bar" style="background:linear-gradient(90deg,#6B4FA0,#9678c4)"></div>
       <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h18M3 12c0 4 3 7 9 7s9-3 9-7M3 12c0-4 3-7 9-7s9 3 9 7"/>
-            <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
+        <div class="card-icon" style="background:#efe9f7">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#6B4FA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
           </svg>
         </div>
-        <div class="card-tag">Infraestrutura · Drenagem</div>
-        <div class="card-title">Redes de Drenagem</div>
-      </div>
-
-      <!-- KPI strip -->
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="dr-total">—</div>
-          <div class="card-kpi-label">Trechos</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="dr-done">—</div>
-          <div class="card-kpi-label">Concluídos</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="dr-boxes">—</div>
-          <div class="card-kpi-label">Caixas PV</div>
+        <div class="card-tag" style="color:#6B4FA0">Planejamento · Contratadas</div>
+        <div class="card-title">Validação de Cronogramas</div>
+        <div class="card-desc">Valida os cronogramas enviados pelas empresas contratadas contra o cronograma-mestre — status, datas de início/término e gera o relatório em PDF por revisão.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Por empresa</span>
+          <span class="chip chip-gray">Relatório PDF</span>
         </div>
       </div>
-
-      <!-- Progress bar -->
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço — Trechos</span>
-          <span class="card-progress-pct blue" id="dr-pct" style="color:var(--blue)">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div class="prog-blue" id="dr-bar" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-progress" style="padding-top:0">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço — Caixas PV</span>
-          <span class="card-progress-pct blue" id="dr-pct-boxes" style="color:var(--blue)">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div class="prog-blue" id="dr-bar-boxes" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-updated" id="dr-updated"></div>
-
       <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
+        <span class="card-cta" style="color:#6B4FA0">Abrir ferramenta</span>
         <span class="card-arrow">→</span>
       </div>
     </a>
 
-    <!-- TERRAPLANAGEM -->
-    <a class="card green" href="terraplanagem_controle.html">
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="20" height="13" rx="2"/>
-            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-            <line x1="12" y1="12" x2="12" y2="16"/>
-            <line x1="10" y1="14" x2="14" y2="14"/>
-          </svg>
-        </div>
-        <div class="card-tag">Movimentação de Terra</div>
-        <div class="card-title">Terraplanagem</div>
-      </div>
-
-      <!-- KPI strip -->
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="tr-total">—</div>
-          <div class="card-kpi-label">Total Áreas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="tr-done">—</div>
-          <div class="card-kpi-label">Finalizadas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="tr-wip">—</div>
-          <div class="card-kpi-label">Em Andamento</div>
-        </div>
-      </div>
-
-      <!-- Progress bar -->
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço geral</span>
-          <span class="card-progress-pct" id="tr-pct" style="color:var(--green)">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill" id="tr-bar-wrap">
-            <div class="prog-done" id="tr-bar-done" style="width:0%"></div>
-            <div class="prog-wip"  id="tr-bar-wip"  style="width:0%"></div>
-            <div class="prog-pend" id="tr-bar-pend" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-progress" style="padding-top:0">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Áreas atrasadas</span>
-          <span class="card-progress-pct" id="tr-late" style="color:var(--red)">—</span>
-        </div>
-      </div>
-      <div class="card-updated" id="tr-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- BASES CIVIS -->
-    <a class="card teal" href="bases_civis.html" id="card-bases-civis" style="--teal:#007D77">
-      <div class="card-bar" style="background:linear-gradient(90deg,#007D77,#2eada7)"></div>
+    <!-- PROGRAMAÇÃO SEMANAL · TERCEIRAS -->
+    <a class="card" href="prog_terc_cronogramas.html" id="card-progterc" style="--pt:#007D77">
+      <div class="card-bar" style="background:linear-gradient(90deg,#007D77,#4a6ea8)"></div>
       <div class="card-body">
         <div class="card-icon" style="background:#e0f2f1">
           <svg viewBox="0 0 24 24" fill="none" stroke="#007D77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/><rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M3 10h18M8 2v4M16 2v4"/>
+            <path d="M8 14l2.5 2.5L16 12"/>
           </svg>
         </div>
-        <div class="card-tag" style="color:#007D77">Obras Civis · Bases</div>
-        <div class="card-title">Controle de Bases Civis</div>
+        <div class="card-tag" style="color:#007D77">Last Planner System · Terceiras</div>
+        <div class="card-title">Programação Semanal — Terceiras</div>
+        <div class="card-desc">Cronogramas: veja a árvore completa (inclusive resumos) de cada terceira antes de decidir o que entra no lookahead. Lookahead das atividades enviadas pelas empresas contratadas (última revisão de cada cronograma validado): mostra o que está atrasado e o que entra nas próximas 6 semanas, filtra pelas restrições e monta o kanban da programação semanal com PPC. Usa a mesma base da Validação de Cronogramas.</div>
       </div>
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="bc-total">—</div>
-          <div class="card-kpi-label">Elementos</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="bc-done">—</div>
-          <div class="card-kpi-label">Finalizados</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="bc-pct">—</div>
-          <div class="card-kpi-label">Avanço Peso</div>
-        </div>
-      </div>
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço por peso ponderado</span>
-          <span id="bc-pct-label" style="color:#007D77;font-size:9px;font-weight:700">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div style="background:#007D77;height:100%;width:0%;transition:width .6s" id="bc-bar-done"></div>
-            <div style="background:var(--yellow);height:100%;width:0%;transition:width .6s" id="bc-bar-wip"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-updated" id="bc-updated"></div>
+
       <div class="card-footer">
-        <span class="card-cta" style="color:#007D77">Ver bases civis</span>
+        <span class="card-cta" style="color:#007D77">Abrir módulo</span>
         <span class="card-arrow">→</span>
       </div>
     </a>
+
+    <!-- PRODUTIVIDADE (painel de controle de execução) -->
+    <a class="card" href="produtividade_painel.html" id="card-produtividade-hub" style="--prod:#304F7E">
+      <div class="card-bar" style="background:linear-gradient(90deg,#304F7E,#609346)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#eef2f8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#304F7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 20h18"/>
+            <rect x="4" y="12" width="3.5" height="6" rx="0.5"/>
+            <rect x="10.25" y="8" width="3.5" height="10" rx="0.5"/>
+            <rect x="16.5" y="4" width="3.5" height="14" rx="0.5"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#304F7E">Controle de Execução · Frentes</div>
+        <div class="card-title">Produtividade</div>
+        <div class="card-desc">Painel das ferramentas de controle físico das frentes de obra — drenagem, terraplanagem, bases civis, isométricos de tubulação, pavimentação e comparativo de compras.</div>
+        <div class="card-chips">
+          <span class="chip chip-blue">Drenagem</span>
+          <span class="chip chip-green">Terraplanagem</span>
+          <span class="chip chip-gray">Bases Civis</span>
+          <span class="chip chip-blue">Isométricos</span>
+          <span class="chip chip-gray">Pavimentação</span>
+          <span class="chip chip-gray">Compras</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#304F7E">Abrir painel</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- ANÁLISE DE CRONOGRAMAS -->
+    <a class="card gold" href="analise_cronograma.html" style="--gold-accent:#EAA239">
+      <div class="card-bar" style="background:linear-gradient(90deg,#EAA239,#f0c26b)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#fdf1de">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#b5791f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>
+            <path d="M7 13l3 3 6-6"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#b5791f">Planejamento · Cronograma</div>
+        <div class="card-title">Análise de Cronogramas</div>
+        <div class="card-desc">Compara versões do cronograma-base (linha de base × revisão atual), aponta atrasos, adiantamentos e indícios de avanço fictício por tarefa e por categoria.</div>
+        <div class="card-chips">
+          <span class="chip chip-gray">Comparação de versões</span>
+          <span class="chip chip-gray">Regressões</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cta" style="color:#b5791f">Abrir ferramenta</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- LPS · ELÉTRICA E INSTRUMENTAÇÃO -->
+    <a class="card lpsei" href="lps_ei.html" id="card-lpsei" style="--lps:#B45309">
+      <div class="card-bar" style="background:linear-gradient(90deg,#B45309,#e0912f)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#fdf0dd">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#B45309">Last Planner System · E&amp;I</div>
+        <div class="card-title">LPS — Elétrica e Instrumentação</div>
+        <div class="card-desc">Controle por área das quatro frentes de liberação — atividades, contratação das empresas, chegada dos materiais e liberação dos projetos executivos. Inclui lookahead, controle de restrições e kanban da programação semanal.</div>
+      </div>
+
+      <div class="card-kpis">
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="lps-areas">—</div>
+          <div class="card-kpi-label">Áreas</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="lps-restr">—</div>
+          <div class="card-kpi-label">Restrições</div>
+        </div>
+        <div class="card-kpi">
+          <div class="card-kpi-val loading" id="lps-ppc">—</div>
+          <div class="card-kpi-label">PPC semana</div>
+        </div>
+      </div>
+
+      <div class="card-progress">
+        <div class="card-progress-head">
+          <span class="card-progress-label">Áreas liberadas para execução</span>
+          <span class="card-progress-pct" id="lps-pct-label" style="color:#B45309">—</span>
+        </div>
+        <div class="card-prog-bar">
+          <div class="card-prog-fill">
+            <div style="background:#B45309;height:100%;width:0%;transition:width .6s" id="lps-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-updated" id="lps-updated"></div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#B45309">Abrir módulo</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <!-- CRONOGRAMA EXECUTIVO GERAL · AWP -->
+    <a class="card" href="cron_geral.html" id="card-crongeral" style="--cg:#0f6b48">
+      <div class="card-bar" style="background:linear-gradient(90deg,#0f6b48,#007D77)"></div>
+      <div class="card-body">
+        <div class="card-icon" style="background:#e6efe9">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f6b48" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 3v18"/>
+            <path d="M13 13h5M13 17h5"/>
+          </svg>
+        </div>
+        <div class="card-tag" style="color:#0f6b48">AWP · Baseline pesado</div>
+        <div class="card-title">Cronograma Executivo Geral</div>
+        <div class="card-desc">Cadastro do cronograma geral por Fase, Tipo (Projetos / Fornecimentos / Execução / Comissionamentos), CWA, Disciplina e Empresa. Alimentado por upload de Excel, guarda o Custo LB de cada atividade para virar peso ponderado nas atividades das terceiras.</div>
+      </div>
+
+      <div class="card-footer">
+        <span class="card-cta" style="color:#0f6b48">Abrir módulo</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- GESTÃO -->
+  <div class="section-label">Gestão</div>
+  <div class="cards">
 
     <!-- ADMIN: USUÁRIOS (only shown for admins) -->
     <a class="card blue" href="admin_usuarios.html" id="card-admin" style="display:none">
@@ -528,53 +534,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       <div class="card-footer">
         <span class="card-cta">Gerenciar usuários</span>
         <span class="card-arrow" id="admin-notif">→</span>
-      </div>
-    </a>
-
-    <!-- ANÁLISE DE CRONOGRAMAS -->
-    <a class="card gold" href="analise_cronograma.html" style="--gold-accent:#EAA239">
-      <div class="card-bar" style="background:linear-gradient(90deg,#EAA239,#f0c26b)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#fdf1de">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#b5791f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>
-            <path d="M7 13l3 3 6-6"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#b5791f">Planejamento · Cronograma</div>
-        <div class="card-title">Análise de Cronogramas</div>
-        <div class="card-desc">Compara versões do cronograma-base (linha de base × revisão atual), aponta atrasos, adiantamentos e indícios de avanço fictício por tarefa e por categoria.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Comparação de versões</span>
-          <span class="chip chip-gray">Regressões</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta" style="color:#b5791f">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- VALIDAÇÃO DE CRONOGRAMAS -->
-    <a class="card violet" href="validacao_cronogramas.html" style="--violet-accent:#6B4FA0">
-      <div class="card-bar" style="background:linear-gradient(90deg,#6B4FA0,#9678c4)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#efe9f7">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#6B4FA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#6B4FA0">Planejamento · Contratadas</div>
-        <div class="card-title">Validação de Cronogramas</div>
-        <div class="card-desc">Valida os cronogramas enviados pelas empresas contratadas contra o cronograma-mestre — status, datas de início/término e gera o relatório em PDF por revisão.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Por empresa</span>
-          <span class="chip chip-gray">Relatório PDF</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta" style="color:#6B4FA0">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
       </div>
     </a>
 
@@ -694,124 +653,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
-    <!-- COMPARATIVO DE COMPRAS (por unidade) -->
-    <a class="card steel" href="#" id="card-compras" style="--steel-accent:#1F4E6B">
-      <div class="card-bar" style="background:linear-gradient(90deg,#1F4E6B,#4d7d9e)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#e7f0f5">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#1F4E6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/>
-            <path d="M2.5 3h3l2.6 12.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 8H6.1"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#1F4E6B">Suprimentos · Compras</div>
-        <div class="card-title">Comparativo de Compras</div>
-        <div class="card-desc" id="compras-desc">Compara as listas de material e quantidades compradas entre unidades de referência, com rastreamento por categoria, projeto e disciplina.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Listas de material</span>
-          <span class="chip chip-gray">Gaps de compra</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta" style="color:#1F4E6B" id="compras-cta">Abrir ferramenta</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- LPS · ELÉTRICA E INSTRUMENTAÇÃO -->
-    <a class="card lpsei" href="lps_ei.html" id="card-lpsei" style="--lps:#B45309">
-      <div class="card-bar" style="background:linear-gradient(90deg,#B45309,#e0912f)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#fdf0dd">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#B45309">Last Planner System · E&amp;I</div>
-        <div class="card-title">LPS — Elétrica e Instrumentação</div>
-        <div class="card-desc">Controle por área das quatro frentes de liberação — atividades, contratação das empresas, chegada dos materiais e liberação dos projetos executivos. Inclui lookahead, controle de restrições e kanban da programação semanal.</div>
-      </div>
-
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="lps-areas">—</div>
-          <div class="card-kpi-label">Áreas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="lps-restr">—</div>
-          <div class="card-kpi-label">Restrições</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="lps-ppc">—</div>
-          <div class="card-kpi-label">PPC semana</div>
-        </div>
-      </div>
-
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Áreas liberadas para execução</span>
-          <span class="card-progress-pct" id="lps-pct-label" style="color:#B45309">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div style="background:#B45309;height:100%;width:0%;transition:width .6s" id="lps-bar"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-updated" id="lps-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#B45309">Abrir módulo</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- PROGRAMAÇÃO SEMANAL · TERCEIRAS -->
-    <a class="card" href="prog_terc_cronogramas.html" id="card-progterc" style="--pt:#007D77">
-      <div class="card-bar" style="background:linear-gradient(90deg,#007D77,#4a6ea8)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#e0f2f1">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#007D77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <path d="M3 10h18M8 2v4M16 2v4"/>
-            <path d="M8 14l2.5 2.5L16 12"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#007D77">Last Planner System · Terceiras</div>
-        <div class="card-title">Programação Semanal — Terceiras</div>
-        <div class="card-desc">Cronogramas: veja a árvore completa (inclusive resumos) de cada terceira antes de decidir o que entra no lookahead. Lookahead das atividades enviadas pelas empresas contratadas (última revisão de cada cronograma validado): mostra o que está atrasado e o que entra nas próximas 6 semanas, filtra pelas restrições e monta o kanban da programação semanal com PPC. Usa a mesma base da Validação de Cronogramas.</div>
-      </div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#007D77">Abrir módulo</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- CRONOGRAMA EXECUTIVO GERAL · AWP -->
-<!-- Cole este bloco no index.html DEPOIS do bloco "PROGRAMAÇÃO SEMANAL · TERCEIRAS"       -->
-<!-- (por volta da linha 790 hoje; entre </a> do prog_terc e o comentário RELATÓRIO GERENCIAL). -->
-    <a class="card" href="cron_geral.html" id="card-crongeral" style="--cg:#0f6b48">
-      <div class="card-bar" style="background:linear-gradient(90deg,#0f6b48,#007D77)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#e6efe9">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#0f6b48" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="M3 9h18M9 3v18"/>
-            <path d="M13 13h5M13 17h5"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#0f6b48">AWP · Baseline pesado</div>
-        <div class="card-title">Cronograma Executivo Geral</div>
-        <div class="card-desc">Cadastro do cronograma geral por Fase, Tipo (Projetos / Fornecimentos / Execução / Comissionamentos), CWA, Disciplina e Empresa. Alimentado por upload de Excel, guarda o Custo LB de cada atividade para virar peso ponderado nas atividades das terceiras.</div>
-      </div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#0f6b48">Abrir módulo</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
     <!-- RELATÓRIO GERENCIAL -->
     <a class="card" href="relatorio_gerencial.html" id="card-relatorio" style="--rep:#0f3a54">
       <div class="card-bar" style="background:linear-gradient(90deg,#0f3a54,#c9922b)"></div>
@@ -865,94 +706,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
       </div>
     </a>
 
-    <!-- PRODUTIVIDADE -->
-    <a class="card" href="produtividade.html" id="card-produtividade" style="--prod:#304F7E">
-      <div class="card-bar" style="background:linear-gradient(90deg,#304F7E,#007D77)"></div>
-      <div class="card-body">
-        <div class="card-icon" style="background:#eef2f8">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#304F7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 20h18"/>
-            <rect x="4" y="12" width="3.5" height="6" rx="0.5"/>
-            <rect x="10.25" y="8" width="3.5" height="10" rx="0.5"/>
-            <rect x="16.5" y="4" width="3.5" height="14" rx="0.5"/>
-          </svg>
-        </div>
-        <div class="card-tag" style="color:#304F7E">Produtividade · Memoriais</div>
-        <div class="card-title">Produtividade</div>
-        <div class="card-desc">Avanço semanal das contratadas a partir dos memoriais de cálculo. Começa por Tubulações — carbono e inox, fabricação, montagem, suportes e pintura — com controle de cobertura da lista de materiais.</div>
-        <div class="card-chips">
-          <span class="chip chip-blue">Tubulações</span>
-          <span class="chip chip-green">Avanço semanal</span>
-          <span class="chip chip-gray">Memorial · Excel</span>
-        </div>
-      </div>
-
-      <!-- KPI strip -->
-      <div class="card-kpis">
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="pr-emp">—</div>
-          <div class="card-kpi-label">Empresas</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="pr-iso">—</div>
-          <div class="card-kpi-label">Isométricos</div>
-        </div>
-        <div class="card-kpi">
-          <div class="card-kpi-val loading" id="pr-sem">—</div>
-          <div class="card-kpi-label">Semanas</div>
-        </div>
-      </div>
-
-      <div class="card-progress">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço ponderado — tubulações</span>
-          <span class="card-progress-pct" id="pr-pct" style="color:#304F7E">—</span>
-        </div>
-        <div class="card-prog-bar">
-          <div class="card-prog-fill">
-            <div id="pr-bar" style="background:#304F7E;height:100%;width:0%;transition:width .6s"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-progress" style="padding-top:0">
-        <div class="card-progress-head">
-          <span class="card-progress-label">Avanço na última semana</span>
-          <span class="card-progress-pct" id="pr-delta" style="color:var(--green)">—</span>
-        </div>
-      </div>
-      <div class="card-updated" id="pr-updated"></div>
-
-      <div class="card-footer">
-        <span class="card-cta" style="color:#304F7E">Abrir produtividade</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- PLACEHOLDER: PAVIMENTAÇÃO -->
-    <div class="card orange soon">
-      <div class="soon-badge">Em breve</div>
-      <div class="card-bar"></div>
-      <div class="card-body">
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="18" rx="2"/>
-            <path d="M2 9h20M2 15h20M9 3v18M15 3v18"/>
-          </svg>
-        </div>
-        <div class="card-tag">Infraestrutura</div>
-        <div class="card-title">Pavimentação</div>
-        <div class="card-desc">Controle de execução de pavimentos por trecho, tipo de revestimento, espessuras e ensaios de compactação.</div>
-        <div class="card-chips">
-          <span class="chip chip-gray">Trechos</span>
-          <span class="chip chip-gray">Ensaios</span>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="card-cta">Disponível em breve</span>
-        <span class="card-arrow">→</span>
-      </div>
-    </div>
-
   </div>
 
 
@@ -979,7 +732,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   const SB_URL = (window.PCO_CONFIG||{}).supabase?.url || '';
   const SB_KEY = (window.PCO_CONFIG||{}).supabase?.key || '';
   const TOKEN  = sessionStorage.getItem('pco_token') || SB_KEY;
-  const today  = new Date().toISOString().slice(0,10);
 
   function pct(a,b){ return b ? Math.round(a/b*100) : 0 }
   function fmt(n)  { return n != null ? String(n) : '0' }
@@ -1028,66 +780,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     el.classList.remove('loading');
   }
 
-  /* ── DRENAGEM ── */
-  async function loadDrenagem(){
-    try{
-      const { data } = await sbGet('drain_elements?select=id,kind,status,length_m');
-      const pipes  = data.filter(e=>e.kind==='pipe');
-      const boxes  = data.filter(e=>e.kind==='box');
-      const donePipes = pipes.filter(e=>e.status==='done');
-      const doneBoxes = boxes.filter(e=>e.status==='done');
-      const pp = pct(donePipes.length, pipes.length);
-      const bp = pct(doneBoxes.length, boxes.length);
-
-      setEl('dr-total', fmt(pipes.length));
-      setEl('dr-done',  fmt(donePipes.length));
-      setEl('dr-boxes', fmt(boxes.length));
-      setEl('dr-pct',   pp + '%');
-      setEl('dr-pct-boxes', bp + '%');
-      setEl('dr-updated', timeAgo());
-
-      const barP = document.getElementById('dr-bar');
-      const barB = document.getElementById('dr-bar-boxes');
-      if(barP) barP.style.width = pp + '%';
-      if(barB) barB.style.width = bp + '%';
-    } catch(_){}
-  }
-
-  /* ── TERRAPLANAGEM ── */
-  async function loadTerra(){
-    try{
-      const { data } = await sbGet('terra_areas?select=id,status,prev_fim');
-      const total = data.length;
-      const done  = data.filter(e=>e.status==='done').length;
-      const wip   = data.filter(e=>e.status==='wip').length;
-      const pend  = data.filter(e=>e.status==='pend').length;
-      const late  = data.filter(e=>
-        e.status!=='done' && e.prev_fim && e.prev_fim < today
-      ).length;
-      const dp = pct(done,  total);
-      const wp = pct(wip,   total);
-      const pp = pct(pend,  total);
-
-      setEl('tr-total', fmt(total));
-      setEl('tr-done',  fmt(done));
-      setEl('tr-wip',   fmt(wip));
-      setEl('tr-pct',   dp + '% finalizadas');
-      setEl('tr-late',  late > 0 ? late + ' área' + (late>1?'s':'') + ' atrasada' + (late>1?'s':'') : 'Nenhuma atrasada');
-      setEl('tr-updated', timeAgo());
-
-      const bDone = document.getElementById('tr-bar-done');
-      const bWip  = document.getElementById('tr-bar-wip');
-      const bPend = document.getElementById('tr-bar-pend');
-      if(bDone) bDone.style.width = dp + '%';
-      if(bWip)  bWip.style.width  = wp + '%';
-      if(bPend) bPend.style.width = pp + '%';
-
-      // color of late indicator
-      const lateEl = document.getElementById('tr-late');
-      if(lateEl) lateEl.style.color = late > 0 ? 'var(--red)' : 'var(--green)';
-    } catch(_){}
-  }
-
   /* ── USUÁRIOS (admin only) ── */
   async function loadAdmin(){
     const adminCard = document.getElementById('card-admin');
@@ -1112,32 +804,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
 
       const lbl = document.getElementById('adm-pend-label');
       if(lbl) lbl.style.color = pend > 0 ? 'var(--gold)' : 'var(--green)';
-    } catch(_){}
-  }
-
-  /* ── BASES CIVIS ── */
-  async function loadBasesCivis(){
-    try{
-      const { data } = await sbGet('bases_civis_elementos?select=id,status,peso');
-      const total = data.length;
-      const done  = data.filter(e=>e.status==='done').length;
-      const wip   = data.filter(e=>e.status==='wip').length;
-      const totP  = data.reduce((a,e)=>a+(e.peso||0),0);
-      const donP  = data.filter(e=>e.status==='done').reduce((a,e)=>a+(e.peso||0),0);
-      const wipP  = data.filter(e=>e.status==='wip').reduce((a,e)=>a+(e.peso||0),0);
-      const pp    = pct(donP,totP);
-      const wp    = pct(wipP,totP);
-
-      setEl('bc-total', fmt(total));
-      setEl('bc-done',  fmt(done));
-      setEl('bc-pct',   pp+'%');
-      setEl('bc-pct-label', pp+'%');
-      setEl('bc-updated', timeAgo());
-
-      const bd = document.getElementById('bc-bar-done');
-      const bw = document.getElementById('bc-bar-wip');
-      if(bd) bd.style.width = pp+'%';
-      if(bw) bw.style.width = wp+'%';
     } catch(_){}
   }
 
@@ -1253,52 +919,11 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     } catch(_){}
   }
 
-  /* ── PRODUTIVIDADE · TUBULAÇÕES ── */
-  async function loadProdutividade(){
-    try{
-      const [emp, mem] = await Promise.all([
-        sbGet('tub_empresas?select=id&ativo=eq.true'),
-        sbGet('tub_memoriais?select=empresa_id,semana,qtd_itens,avanco_total&order=semana.asc')
-      ]);
-      const memo = mem.data || [];
-      setEl('pr-emp', fmt((emp.data||[]).length));
-      const semanas = [...new Set(memo.map(m=>m.semana))].sort();
-      setEl('pr-sem', fmt(semanas.length));
-
-      const ult = {};
-      memo.forEach(m=>{ if(!ult[m.empresa_id] || m.semana > ult[m.empresa_id].semana) ult[m.empresa_id]=m });
-      const fotos = Object.values(ult);
-      setEl('pr-iso', fmt(fotos.reduce((a,m)=>a+(m.qtd_itens||0),0)));
-      if(!fotos.length){ setEl('pr-pct','—'); setEl('pr-delta','sem memoriais'); return }
-
-      const media = fotos.reduce((a,m)=>a+(m.avanco_total||0),0)/fotos.length;
-      setEl('pr-pct', Math.round(media*1000)/10 + '%');
-      const bar = document.getElementById('pr-bar');
-      if(bar) bar.style.width = (media*100) + '%';
-
-      if(semanas.length >= 2){
-        const s1=semanas[semanas.length-1], s0=semanas[semanas.length-2];
-        const a1=memo.filter(m=>m.semana===s1), a0=memo.filter(m=>m.semana===s0);
-        if(a1.length && a0.length){
-          const m1=a1.reduce((a,m)=>a+(m.avanco_total||0),0)/a1.length;
-          const m0=a0.reduce((a,m)=>a+(m.avanco_total||0),0)/a0.length;
-          const d=(m1-m0)*100;
-          setEl('pr-delta', (d>=0?'+':'') + (Math.round(d*100)/100) + ' p.p.');
-        }
-      } else setEl('pr-delta','1ª semana');
-      setEl('pr-updated','última semana importada: ' + semanas[semanas.length-1]);
-    } catch(_){ setEl('pr-pct','—'); setEl('pr-delta','módulo não configurado') }
-  }
-
   // Run all loaders on page load
   window.addEventListener('load', ()=>{
-    loadDrenagem();
-    loadTerra();
-    loadBasesCivis();
     loadLpsEi();
     loadRso();
     loadDesvio();
-    loadProdutividade();
     setTimeout(loadAdmin, 300);
   });
 })();
@@ -1341,27 +966,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
   }
   pcoRenderSwitcher('unidade-switcher');
 
-  // ---- Comparativo de Compras: página específica por unidade ----
-  // Ao criar a versão de outra unidade, basta adicionar aqui:
-  //   RVD: 'comparativo_compras_rvd.html', NMT: 'comparativo_compras_nmt.html'
-  const COMPRAS_PAGES = {
-    RDN: 'comparativo_compras_rdn.html',
-  };
-  (function(){
-    const card = document.getElementById('card-compras');
-    if(!card) return;
-    const un   = sessionStorage.getItem('pco_unidade') || 'RDN';
-    const page = COMPRAS_PAGES[un];
-    if(page){
-      card.setAttribute('href', page);
-    }else{
-      card.removeAttribute('href');
-      card.classList.add('soon');
-      const cta = document.getElementById('compras-cta');
-      if(cta) cta.textContent = 'Em breve para esta unidade';
-    }
-  })();
-
   // Populate user bar
   const initials = nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
   document.getElementById('user-avatar').textContent = initials;
@@ -1375,14 +979,6 @@ footer .foot-right{font-family:'JetBrains Mono',monospace;font-size:9px;color:va
     if(adminCard) adminCard.style.display = '';
     // check pending users for badge
     checkPendingUsers();
-  }
-
-  // Hide cards user has no access to
-  if(!perms.drenagem && perfil !== 'admin'){
-    document.querySelector('a[href="drenagem_controle_v3.html"]')?.classList.add('no-access');
-  }
-  if(!perms.terraplanagem && perfil !== 'admin'){
-    document.querySelector('a[href="terraplanagem_controle.html"]')?.classList.add('no-access');
   }
 
   async function checkPendingUsers(){
