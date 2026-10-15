@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Acompanhamento Diário · Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+.page{max-width:none;padding-left:18px;padding-right:18px}
+.grid thead th{white-space:nowrap}
+th.dia{min-width:92px;text-align:center}
+th.dia.hoje{background:var(--gold-soft,#FEF3C7)}
+th.dia .dsub{display:block;font-size:9.5px;font-weight:500;opacity:.75}
+td.dia{text-align:center;padding:3px 4px}
+td.dia.hoje{background:#fffaf0}
+.dia-sel{width:100%;min-width:84px;font-size:11px;padding:3px 4px;border:1px solid var(--border-2);
+  background:#fff;font-family:inherit;cursor:pointer}
+.dia-sel:disabled{cursor:not-allowed;opacity:.45;background:#f6f7f8}
+.dia-sel.s-avanco{background:var(--blue-soft);color:var(--blue);border-color:#b0c0da;font-weight:700}
+.dia-sel.s-sem_avanco{background:#f3f4f6;color:#4b5563;border-color:#d1d5db;font-weight:600}
+.dia-sel.s-restricao{background:var(--red-soft);color:#8c2b1f;border-color:#e8b4ac;font-weight:700}
+.st-pill{display:inline-block;font-size:10px;font-weight:700;font-family:var(--mono);padding:2px 8px;
+  border:1px solid;white-space:nowrap}
+.st-programada{background:#f3f4f6;color:#4b5563;border-color:#d1d5db}
+.st-execucao{background:var(--blue-soft);color:var(--blue);border-color:#b0c0da}
+.st-concluida{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
+.st-nao_concluida{background:var(--red-soft);color:#8c2b1f;border-color:#e8b4ac}
+.restr-flag{display:block;margin-top:4px;font-size:10.5px;color:#8c2b1f;line-height:1.35;max-width:220px}
+.restr-flag b{font-family:var(--mono)}
+.val-flag{display:block;margin-top:3px;font-size:9.5px;color:#2b6027;font-family:var(--mono)}
+.ult{font-size:10.5px;color:var(--text-mute);line-height:1.4}
+tr.sem-hoje td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
+.chk-concl{transform:scale(1.25);cursor:pointer}
+.cmp-cell{font-family:var(--mono);font-weight:700;text-align:center;font-size:11.5px}
+.cmp-ok{background:var(--green-soft);color:#2b6027}
+.cmp-mid{background:var(--gold-soft,#FEF3C7);color:#7c4a00}
+.cmp-bad{background:var(--red-soft);color:#8c2b1f}
+.cmp-na{color:var(--text-mute);font-weight:400}
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:11px}
+.legend span.sw{display:inline-block;width:12px;height:12px;border:1px solid;vertical-align:-2px;margin-right:4px}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar no-print">
+    <button class="btn sm" id="wkPrev">← Semana anterior</button>
+    <input type="date" class="f" id="wkBase" style="max-width:160px">
+    <button class="btn sm" id="wkNext">Próxima semana →</button>
+    <button class="btn sm" id="wkHoje">Semana atual</button>
+    <span class="small muted" id="wkInfo" style="margin-right:auto"></span>
+    <button class="btn sm" id="btnReload" title="Recarrega os apontamentos (inclusive os feitos por outros analistas agora há pouco)">⟳ Atualizar</button>
+    <button class="btn sm" id="btnXls">⤓ Excel</button>
+  </div>
+  <div class="toolbar no-print">
+    <select class="f" id="fAnalista"><option value="">Todos os analistas</option></select>
+    <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fStatus">
+      <option value="">Todos os status</option>
+      <option value="programada">Pendente</option>
+      <option value="execucao">Em execução</option>
+      <option value="concluida">Concluída</option>
+      <option value="nao_concluida">Não concluída</option>
+      <option value="restricao">Com restrição na semana</option>
+    </select>
+    <input class="f" id="fBusca" placeholder="Buscar atividade / WBS…" style="min-width:220px">
+    <label class="small" style="display:flex;align-items:center;gap:5px;cursor:pointer">
+      <input type="checkbox" id="fSemHoje"> só sem apontamento hoje</label>
+  </div>
+
+  <div class="notice src-note no-print">
+    <div class="legend">
+      <span>Para cada dia, marque:</span>
+      <span><span class="sw" style="background:var(--blue-soft);border-color:#b0c0da"></span><b>▲ Avanço</b> — teve avanço no dia</span>
+      <span><span class="sw" style="background:#f3f4f6;border-color:#d1d5db"></span><b>○ Sem avanço</b> — acompanhado, não avançou</span>
+      <span><span class="sw" style="background:var(--red-soft);border-color:#e8b4ac"></span><b>⚑ Restrição</b> — pede justificativa e registra na aba Restrições</span>
+      <span>Célula vazia = dia ainda não acompanhado.</span>
+    </div>
+    <div style="margin-top:4px">O status da atividade (aqui e na Programação Semanal) muda sozinho: algum dia com avanço →
+      <b>Em execução</b>; nenhum avanço → <b>Pendente</b>; caixa <b>Concluída</b> marcada → <b>Concluída</b>.
+      Todo apontamento novo numa linha já validada volta ela para <i>a validar</i> na Programação Semanal.</div>
+  </div>
+
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr id="thead-row"></tr></thead>
+      <tbody id="tb"><tr><td colspan="20" class="loading-line">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:22px">Acompanhamento pelos analistas · semana</div>
+  <div class="toolbar no-print" style="margin-top:0">
+    <span class="small muted" style="margin-right:auto">Atividades com algum apontamento no dia ÷ atividades programadas na semana,
+      agrupadas pelo Analista de Planejamento do contrato (cadastro no Histórico de Cronogramas). Só dias até hoje.</span>
+    <label class="small" style="display:flex;align-items:center;gap:5px;cursor:pointer">
+      <input type="checkbox" id="fFds"> considerar sábado e domingo</label>
+  </div>
+  <div class="tablewrap">
+    <table class="grid">
+      <thead><tr id="cmp-head"></tr></thead>
+      <tbody id="cmp-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== MODAL RESTRIÇÃO ===== -->
+<div class="modal" id="mRestr"><div class="modal-box">
+  <div class="modal-head">
+    <div><h3>Sinalizar restrição</h3><div class="mh-sub" id="rSub"></div></div>
+    <button class="modal-close" id="rClose">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow">
+      <div class="field"><label>Categoria *</label><select id="rCat"></select></div>
+      <div class="field"><label>Responsável pela remoção</label><input id="rResp" placeholder="Opcional"></div>
+      <div class="field"><label>Precisa ser removida até</label><input type="date" id="rNec"></div>
+    </div>
+    <div class="frow"><div class="field" style="grid-column:1/-1">
+      <label>Justificativa *</label>
+      <textarea id="rJust" rows="3" placeholder="O que está impedindo a execução desta atividade?"></textarea>
+      <div class="hint">A restrição também é criada na aba Restrições (status Aberta), vinculada a esta atividade.</div>
+    </div></div>
+  </div>
+  <div class="modal-foot">
+    <span class="spacer"></span>
+    <button class="btn" id="rCancel">Cancelar</button>
+    <button class="btn solid" id="rOk">⚑ Registrar restrição</button>
+  </div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc, nf = L.nf;
+
+L.renderShell({
+  page:'acomp_diario',
+  title:'Acompanhamento Diário',
+  subtitle:'Apontamento dia a dia da Programação Semanal — panorama da semana sem esperar a atualização do cronograma'
+});
+
+var EDIT = L.canEdit();
+var BASE = L.quintaOf();
+$('wkBase').value = BASE;
+var HOJE = L.todayISO();
+var DOW = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'];
+var SIT = {
+  avanco:     { label:'▲ Avanço',     txt:'Avanço' },
+  sem_avanco: { label:'○ Sem avanço', txt:'Sem avanço' },
+  restricao:  { label:'⚑ Restrição',  txt:'Restrição' }
+};
+var COL_LABEL = {}; L.KB_COLS.forEach(function(k){ COL_LABEL[k.key] = k.label; });
+
+var ATIV = [], CARDS = [], ACOMP = {};   // ACOMP[programacao_id][data] = row
+var ANALISTA_POR_CRONO = {};
+var SALVANDO = {};                       // programacao_id -> true enquanto grava
+
+/* ================= REGRAS (puras — testáveis fora do navegador) ================= */
+/* Status geral da atividade a partir dos apontamentos do dia:
+   concluída marcada → 'concluida'; algum dia com avanço → 'execucao';
+   nenhum avanço → 'programada' (rótulo "Pendente"). */
+function statusPorApontamentos(rowsDoCard, concluida){
+  if(concluida) return 'concluida';
+  var algumAvanco = Object.keys(rowsDoCard || {}).some(function(d){ return rowsDoCard[d] && rowsDoCard[d].situacao === 'avanco'; });
+  return algumAvanco ? 'execucao' : 'programada';
+}
+function diasDaSemana(base){ var o=[]; for(var i=0;i<7;i++) o.push(L.addDays(base,i)); return o; }
+function ehFds(iso){ var d = L.dt(iso); var w = d.getDay(); return w === 0 || w === 6; }
+
+/* ================= CARGA ================= */
+function load(){
+  $('tb').innerHTML = '<tr><td colspan="20" class="loading-line">Carregando…</td></tr>';
+  return Promise.all([
+    L.loadAtividades(false),
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&semana=eq.'+BASE+'&order=empresa.asc,id.asc')),
+    L.sbGetAll(L.comUnidade('prog_terc_acomp_diario?select=*&semana=eq.'+BASE))
+  ]).then(function(r){
+    ATIV = r[0].atividades || [];
+    CARDS = r[1] || [];
+    ACOMP = {};
+    (r[2] || []).forEach(function(a){
+      (ACOMP[a.programacao_id] = ACOMP[a.programacao_id] || {})[String(a.data).slice(0,10)] = a;
+    });
+    ANALISTA_POR_CRONO = {};
+    (L.contratosCache() || []).forEach(function(c){ ANALISTA_POR_CRONO[c.id] = c.analista_planejamento || ''; });
+    $('setup').style.display = 'none';
+    fillFiltros(); render();
+  }).catch(function(err){
+    if(/prog_terc_acomp_diario/.test(String(err && err.message)) || L.isMissingTable(err)){
+      $('setup').className = 'notice warn';
+      $('setup').innerHTML = '<b>Tabela do acompanhamento diário ainda não existe.</b> Rode o script '
+        + '<code>supabase_acomp_diario.sql</code> no SQL Editor do Supabase e recarregue esta página.';
+      $('setup').style.display = '';
+    } else L.setupNotice('setup', err);
+    $('tb').innerHTML = '<tr><td colspan="20" class="empty"><div class="big">⚠️</div>'+esc(err.message)+'</td></tr>';
+  });
+}
+
+function ativDoCard(c){
+  if(c.cronograma_id == null || c.terceira_uid == null) return null;
+  return ATIV.filter(function(x){ return x.cronograma_id === c.cronograma_id && String(x.uid) === String(c.terceira_uid); })[0] || null;
+}
+function nomeTextoPai(c){
+  var a = ativDoCard(c);
+  return ((a && a.pai) ? a.pai + ' · ' : '') + (c.descricao || (a ? a.nome : '') || '');
+}
+function analistaDoCard(c){ return (c.cronograma_id != null && ANALISTA_POR_CRONO[c.cronograma_id]) || '(sem analista)'; }
+function restricoesDoCard(c){
+  var rows = ACOMP[c.id] || {};
+  return Object.keys(rows).sort().map(function(d){ return rows[d]; }).filter(function(r){ return r.situacao === 'restricao'; });
+}
+function ultimoRegistro(c){
+  var rows = ACOMP[c.id] || {}, best = null;
+  Object.keys(rows).forEach(function(d){
+    var r = rows[d];
+    if(!best || String(r.atualizado_em||'') > String(best.atualizado_em||'')) best = r;
+  });
+  return best;
+}
+
+/* ================= FILTROS ================= */
+function fillFiltros(){
+  function opts(sel, vals, todos){
+    var cur = $(sel).value;
+    $(sel).innerHTML = '<option value="">'+todos+'</option>' + vals.map(function(v){
+      return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }).join('');
+  }
+  var an = [], em = [];
+  CARDS.forEach(function(c){
+    var a = analistaDoCard(c); if(an.indexOf(a) < 0) an.push(a);
+    if(c.empresa && em.indexOf(c.empresa) < 0) em.push(c.empresa);
+  });
+  an.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  em.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  opts('fAnalista', an, 'Todos os analistas');
+  opts('fEmpresa', em, 'Todas as empresas');
+}
+function listaAtual(){
+  var fa = $('fAnalista').value, fe = $('fEmpresa').value, fs = $('fStatus').value;
+  var q = L.deacc($('fBusca').value || '');
+  var semHoje = $('fSemHoje').checked;
+  return CARDS.filter(function(c){
+    if(fa && analistaDoCard(c) !== fa) return false;
+    if(fe && c.empresa !== fe) return false;
+    if(fs === 'restricao'){ if(!restricoesDoCard(c).length) return false; }
+    else if(fs && c.coluna !== fs) return false;
+    if(q && L.deacc(nomeTextoPai(c) + ' ' + (c.terceira_wbs||'') + ' ' + (c.empresa||'')).indexOf(q) < 0) return false;
+    if(semHoje && (ACOMP[c.id]||{})[HOJE]) return false;
+    return true;
+  });
+}
+
+/* ================= RENDER ================= */
+function render(){
+  HOJE = L.todayISO();
+  $('wkInfo').innerHTML = 'Semana <b>'+L.weekLabel(BASE)+'</b> · '+L.fmtBr(BASE)+' a '+L.fmtBr(L.addDays(BASE,6));
+  var hojeNaSemana = HOJE >= BASE && HOJE <= L.addDays(BASE,6);
+  $('fSemHoje').disabled = !hojeNaSemana;
+  if(!hojeNaSemana) $('fSemHoje').checked = false;
+  var list = listaAtual();
+  renderKpis(list);
+  renderHead();
+  renderTabela(list);
+  renderCompliance();
+}
+
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+function renderKpis(list){
+  var cnt = function(k){ return list.filter(function(c){ return c.coluna === k; }).length; };
+  var comRestr = list.filter(function(c){ return restricoesDoCard(c).length; }).length;
+  var hojeNaSemana = HOJE >= BASE && HOJE <= L.addDays(BASE,6);
+  var apHoje = list.filter(function(c){ return (ACOMP[c.id]||{})[HOJE]; }).length;
+  var kHoje = hojeNaSemana
+    ? kpi('b-gold', apHoje+' / '+list.length, 'Apontadas hoje', list.length ? Math.round(apHoje/list.length*100)+'% das atividades da lista' : '—')
+    : kpi('b-gold', '—', 'Apontadas hoje', 'semana em exibição não é a atual');
+  $('kpis').innerHTML =
+    kpi('b-gray', list.length, 'Na semana', 'atividades programadas') +
+    kpi('b-gray', cnt('programada'), 'Pendentes', 'nenhum avanço apontado') +
+    kpi('b-blue', cnt('execucao'), 'Em execução', 'algum dia com avanço') +
+    kpi('b-green', cnt('concluida'), 'Concluídas', 'marcadas como concluídas') +
+    kpi('b-red', comRestr, 'Com restrição', 'sinalizada nesta semana') + kHoje;
+}
+
+function renderHead(){
+  var h = '<th style="min-width:110px">Empresa</th><th style="min-width:250px">Atividade</th>'
+    + '<th style="min-width:90px">Área</th><th style="min-width:110px">Analista</th>'
+    + '<th class="ctr" style="min-width:80px">Qtd Prog.</th><th class="ctr" title="Avanço esperado até o fim da semana pela linha de base">% Prev.</th>'
+    + '<th style="min-width:120px">Status</th>';
+  diasDaSemana(BASE).forEach(function(d, i){
+    h += '<th class="dia'+(d===HOJE?' hoje':'')+'">'+DOW[i]+'<span class="dsub">'+L.fmtBr(d).slice(0,5)+(d===HOJE?' · hoje':'')+'</span></th>';
+  });
+  h += '<th class="ctr" title="Status geral: marca a atividade como concluída">Concluída</th><th style="min-width:130px">Último apontamento</th>';
+  $('thead-row').innerHTML = h;
+}
+
+function renderTabela(list){
+  if(!list.length){
+    $('tb').innerHTML = '<tr><td colspan="20" class="empty"><div class="big">☰</div>'
+      + (CARDS.length ? 'Nenhuma atividade com esses filtros.' : 'Nenhuma atividade na Programação Semanal desta semana.')
+      + '</td></tr>';
+    return;
+  }
+  $('tb').innerHTML = list.map(linhaHtml).join('');
+  wire();
+}
+
+function linhaHtml(c){
+  var a = ativDoCard(c);
+  var prev = a ? L.pctPrevistoEm(a, L.addDays(BASE,6)) : null;
+  var rows = ACOMP[c.id] || {};
+  var hojeNaSemana = HOJE >= BASE && HOJE <= L.addDays(BASE,6);
+  var restr = restricoesDoCard(c);
+  var ult = ultimoRegistro(c);
+  var travado = !EDIT || SALVANDO[c.id];
+
+  var tds = diasDaSemana(BASE).map(function(d){
+    var r = rows[d];
+    var sit = r ? r.situacao : '';
+    var futuro = d > HOJE;
+    var tip = r ? (SIT[sit].txt + ' · ' + (r.registrado_por||'') + ' em ' + L.fmtTS(r.atualizado_em)
+              + (r.justificativa ? '\n' + r.justificativa : '')) : (futuro ? 'Dia ainda não chegou' : 'Não acompanhado');
+    return '<td class="dia'+(d===HOJE?' hoje':'')+'"><select class="dia-sel'+(sit?' s-'+sit:'')+'" data-id="'+c.id+'" data-dia="'+d+'"'
+      + ((travado || futuro) ? ' disabled' : '') + ' title="'+esc(tip)+'">'
+      + '<option value=""'+(sit?'':' selected')+'>'+(futuro?'':'—')+'</option>'
+      + Object.keys(SIT).map(function(k){ return '<option value="'+k+'"'+(k===sit?' selected':'')+'>'+SIT[k].label+'</option>'; }).join('')
+      + '</select></td>';
+  }).join('');
+
+  var restrHtml = restr.length ? '<span class="restr-flag">⚑ <b>'+L.fmtBr(restr[restr.length-1].data).slice(0,5)+'</b> '
+      + esc(restr[restr.length-1].justificativa||'') + (restr.length>1 ? ' <i>(+'+(restr.length-1)+' dia(s))</i>' : '') + '</span>' : '';
+  var semHoje = hojeNaSemana && !rows[HOJE];
+
+  return '<tr data-id="'+c.id+'" class="'+(semHoje?'sem-hoje':'')+'">'
+    + '<td class="small"><b>'+esc(c.empresa||'—')+'</b></td>'
+    + '<td class="small">'+(c.terceira_wbs ? '<span style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(c.terceira_wbs)+'</span>' : '')+esc(nomeTextoPai(c)||'—')+'</td>'
+    + '<td class="small">'+esc(c.area||'—')+'</td>'
+    + '<td class="small">'+esc(analistaDoCard(c))+'</td>'
+    + '<td class="ctr" style="font-family:var(--mono)">'+(c.qtd_prog==null?'—':nf(c.qtd_prog,2)+' '+esc(c.un||''))+'</td>'
+    + '<td class="ctr" style="font-family:var(--mono);font-weight:700">'+(prev==null?'—':prev+'%')+'</td>'
+    + '<td><span class="st-pill st-'+esc(c.coluna||'programada')+'">'+esc(COL_LABEL[c.coluna]||c.coluna||'—')+'</span>'
+      + (c.validado ? '<span class="val-flag">✓ validado</span>' : '') + restrHtml + '</td>'
+    + tds
+    + '<td class="ctr"><input type="checkbox" class="chk-concl" data-id="'+c.id+'"'+(c.coluna==='concluida'?' checked':'')+(travado?' disabled':'')+' title="Marcar a atividade como concluída"></td>'
+    + '<td class="ult">'+(ult ? esc(ult.registrado_por||'—')+'<br>'+L.fmtTS(ult.atualizado_em) : '<span class="muted">nenhum</span>')+'</td>'
+    + '</tr>';
+}
+
+function wire(){
+  document.querySelectorAll('#tb .dia-sel').forEach(function(sel){
+    sel.addEventListener('change', function(){ onDiaChange(+sel.dataset.id, sel.dataset.dia, sel.value, sel); });
+  });
+  document.querySelectorAll('#tb .chk-concl').forEach(function(cb){
+    cb.addEventListener('change', function(){ onConcluida(+cb.dataset.id, cb.checked); });
+  });
+}
+
+/* ================= ACOMPANHAMENTO DOS ANALISTAS ================= */
+function renderCompliance(){
+  var dias = diasDaSemana(BASE).filter(function(d){ return d <= HOJE && ($('fFds').checked || !ehFds(d)); });
+  var head = '<th style="min-width:160px">Analista</th><th class="ctr">Atividades</th>';
+  dias.forEach(function(d){
+    var i = diasDaSemana(BASE).indexOf(d);
+    head += '<th class="ctr" style="min-width:76px">'+DOW[i]+' '+L.fmtBr(d).slice(0,5)+'</th>';
+  });
+  head += '<th class="ctr">Semana</th><th style="min-width:170px">Último apontamento</th>';
+  $('cmp-head').innerHTML = head;
+
+  if(!CARDS.length){ $('cmp-body').innerHTML = '<tr><td colspan="'+(dias.length+4)+'" class="empty">Sem atividades nesta semana.</td></tr>'; return; }
+  if(!dias.length){ $('cmp-body').innerHTML = '<tr><td colspan="4" class="empty">A semana em exibição ainda não começou.</td></tr>'; return; }
+
+  var grupos = {};
+  CARDS.forEach(function(c){ var k = analistaDoCard(c); (grupos[k] = grupos[k] || []).push(c); });
+  function cls(p){ return p == null ? 'cmp-na' : (p >= 90 ? 'cmp-ok' : (p >= 50 ? 'cmp-mid' : 'cmp-bad')); }
+  function linha(nome, cards, bold){
+    var tot = 0, feitos = 0, ult = null;
+    var cells = dias.map(function(d){
+      var n = cards.filter(function(c){ return (ACOMP[c.id]||{})[d]; }).length;
+      tot += cards.length; feitos += n;
+      var p = cards.length ? Math.round(n/cards.length*100) : null;
+      return '<td class="cmp-cell '+cls(p)+'" title="'+n+' de '+cards.length+' atividades com apontamento">'+n+'/'+cards.length+'<br>'+(p==null?'—':p+'%')+'</td>';
+    }).join('');
+    cards.forEach(function(c){ var u = ultimoRegistro(c); if(u && (!ult || String(u.atualizado_em) > String(ult.atualizado_em))) ult = u; });
+    var pt = tot ? Math.round(feitos/tot*100) : null;
+    return '<tr'+(bold?' style="font-weight:700;background:#f8f9fb"':'')+'><td>'+esc(nome)+'</td><td class="ctr">'+cards.length+'</td>'+cells
+      + '<td class="cmp-cell '+cls(pt)+'">'+(pt==null?'—':pt+'%')+'</td>'
+      + '<td class="ult">'+(ult ? esc(ult.registrado_por||'—')+' · '+L.fmtTS(ult.atualizado_em) : '<span class="muted">nenhum apontamento</span>')+'</td></tr>';
+  }
+  var nomes = Object.keys(grupos).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  $('cmp-body').innerHTML = linha('Geral', CARDS, true) + nomes.map(function(n){ return linha(n, grupos[n]); }).join('');
+}
+
+/* ================= GRAVAÇÃO ================= */
+function upsertAcomp(row){
+  return fetch(L.SB_URL + '/rest/v1/prog_terc_acomp_diario?on_conflict=' + encodeURIComponent('programacao_id,data'), {
+    method:'POST',
+    headers:{ apikey:L.SB_KEY, Authorization:'Bearer '+L.SB_KEY, 'Content-Type':'application/json',
+              Prefer:'return=representation,resolution=merge-duplicates' },
+    body: JSON.stringify([L.comTag(row)])
+  }).then(function(res){
+    return res.text().then(function(txt){
+      if(!res.ok) throw new Error(res.status+': '+txt.slice(0,300));
+      var rows; try{ rows = JSON.parse(txt); }catch(_){ rows = []; }
+      return rows[0] || null;
+    });
+  });
+}
+
+/* Relê do banco os apontamentos e o card (outro analista pode ter mexido no mesmo
+   card agora há pouco), recalcula o status e grava em prog_terc_programacao.
+   Qualquer apontamento novo tira a validação (volta para "a validar"). */
+function sincronizarStatus(id, forcarConcluida){
+  return Promise.all([
+    L.sb('GET', 'prog_terc_acomp_diario?programacao_id=eq.'+id+'&select=*'),
+    L.sb('GET', 'prog_terc_programacao?id=eq.'+id+'&select=*')
+  ]).then(function(r){
+    var rows = {};
+    (r[0]||[]).forEach(function(a){ rows[String(a.data).slice(0,10)] = a; });
+    ACOMP[id] = rows;
+    var card = (r[1]||[])[0];
+    if(!card) return null;
+    var concluida = forcarConcluida != null ? forcarConcluida : card.coluna === 'concluida';
+    var novo = statusPorApontamentos(rows, concluida);
+    var patch = { coluna: novo, atualizado_em: new Date().toISOString() };
+    if(card.validado){ patch.validado = false; patch.validado_em = null; patch.validado_por = null; }
+    return L.sb('PATCH', 'prog_terc_programacao?id=eq.'+id, patch).then(function(res){
+      var upd = (res && res[0]) || Object.assign({}, card, patch);
+      CARDS = CARDS.map(function(c){ return c.id === id ? upd : c; });
+      return upd;
+    });
+  });
+}
+
+function concluir(id, promise, okMsg){
+  SALVANDO[id] = true; render();
+  return promise
+    .then(function(){ return sincronizarStatus(id); })
+    .then(function(){ if(okMsg) L.toast(okMsg,'ok'); })
+    .catch(function(e){ L.toast('Erro ao salvar: '+e.message,'warn'); })
+    .then(function(){ delete SALVANDO[id]; render(); });
+}
+
+function onDiaChange(id, dia, valor, sel){
+  if(!EDIT) return;
+  var card = CARDS.filter(function(c){ return c.id === id; })[0]; if(!card) return;
+  var anterior = (ACOMP[id]||{})[dia];
+  if(valor === 'restricao'){ abrirRestricao(card, dia, sel, anterior); return; }
+  var p;
+  if(!valor){
+    p = anterior ? L.sb('DELETE', 'prog_terc_acomp_diario?id=eq.'+anterior.id) : Promise.resolve();
+  } else {
+    p = upsertAcomp({ programacao_id:id, semana:BASE, data:dia, situacao:valor, justificativa:null, restricao_id:null,
+                      registrado_por:L.userNome(), atualizado_em:new Date().toISOString() });
+  }
+  var msg = (anterior && anterior.situacao === 'restricao' && anterior.restricao_id)
+    ? 'Salvo. A restrição registrada continua aberta na aba Restrições — remova por lá quando for o caso.' : null;
+  concluir(id, p, msg);
+}
+
+function onConcluida(id, marcado){
+  if(!EDIT) return;
+  SALVANDO[id] = true; render();
+  sincronizarStatus(id, marcado)
+    .then(function(){ L.toast(marcado ? 'Atividade marcada como concluída.' : 'Conclusão desmarcada — status recalculado pelos apontamentos.','ok'); })
+    .catch(function(e){ L.toast('Erro ao salvar: '+e.message,'warn'); })
+    .then(function(){ delete SALVANDO[id]; render(); });
+}
+
+/* ---- restrição ---- */
+var RESTR_CTX = null;
+$('rCat').innerHTML = '<option value=""></option>' + L.RESTR_CATEGORIAS.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+function abrirRestricao(card, dia, sel, anterior){
+  RESTR_CTX = { card:card, dia:dia, sel:sel, anterior:anterior };
+  $('rSub').textContent = (card.empresa||'') + ' — ' + nomeTextoPai(card) + ' · dia ' + L.fmtBr(dia);
+  $('rCat').value = ''; $('rResp').value = ''; $('rNec').value = ''; $('rJust').value = '';
+  L.openModal('mRestr');
+  setTimeout(function(){ $('rJust').focus(); }, 50);
+}
+function cancelarRestricao(){
+  if(RESTR_CTX && RESTR_CTX.sel) RESTR_CTX.sel.value = RESTR_CTX.anterior ? RESTR_CTX.anterior.situacao : '';
+  RESTR_CTX = null;
+  L.closeModal('mRestr');
+}
+$('rCancel').addEventListener('click', cancelarRestricao);
+$('rClose').addEventListener('click', cancelarRestricao);
+$('mRestr').addEventListener('click', function(ev){ if(ev.target === $('mRestr')) cancelarRestricao(); });
+document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && RESTR_CTX) cancelarRestricao(); });
+$('rOk').addEventListener('click', function(){
+  var ctx = RESTR_CTX; if(!ctx) return;
+  var just = $('rJust').value.trim();
+  if(!$('rCat').value) return L.toast('Escolha a categoria da restrição.','warn');
+  if(!just) return L.toast('Escreva a justificativa.','warn');
+  var c = ctx.card, a = ativDoCard(c);
+  var cat = $('rCat').value, resp = $('rResp').value.trim() || null, nec = $('rNec').value || null;
+  RESTR_CTX = null;
+  L.closeModal('mRestr');
+  var p = L.sb('GET', L.comUnidade('prog_terc_restricoes?select=num&order=num.desc.nullslast&limit=1'))
+    .then(function(rows){
+      var num = ((rows && rows[0] && rows[0].num) || 0) + 1;
+      return L.sb('POST', 'prog_terc_restricoes', L.comTag({
+        num:num, descricao:just, categoria:cat, status:'Aberta', area:c.area || (a?a.area:null) || null,
+        cronograma_id:c.cronograma_id || null, terceira_uid:c.terceira_uid != null ? String(c.terceira_uid) : null,
+        terceira_nome:a ? a.nome : (c.descricao||null), terceira_wbs:c.terceira_wbs || (a?a.wbs:null) || null,
+        empresa:c.empresa || null, responsavel:resp, data_identificacao:ctx.dia, data_necessidade:nec,
+        obs:'Sinalizada no Acompanhamento Diário (Programação Semanal '+L.weekLabel(BASE)+').',
+        criado_por:L.userNome(), atualizado_em:new Date().toISOString()
+      }));
+    }).then(function(res){
+      var rid = res && res[0] ? res[0].id : null;
+      return upsertAcomp({ programacao_id:c.id, semana:BASE, data:ctx.dia, situacao:'restricao', justificativa:just,
+                           restricao_id:rid, registrado_por:L.userNome(), atualizado_em:new Date().toISOString() });
+    });
+  concluir(c.id, p, 'Restrição registrada (também na aba Restrições).');
+});
+
+/* ================= EXCEL ================= */
+$('btnXls').addEventListener('click', function(){
+  var list = listaAtual();
+  if(!list.length) return L.toast('Nada pra exportar com os filtros atuais.','warn');
+  var dias = diasDaSemana(BASE);
+  var head = ['Empresa','Atividade','WBS','Área','Disciplina','Analista','Qtd Prog','Un','% Previsto','Status'];
+  dias.forEach(function(d,i){ head.push(DOW[i]+' '+L.fmtBr(d).slice(0,5)); });
+  head.push('Restrições (justificativa)','Último apontamento','Por');
+  var aoa = [head];
+  list.forEach(function(c){
+    var a = ativDoCard(c), prev = a ? L.pctPrevistoEm(a, L.addDays(BASE,6)) : null, rows = ACOMP[c.id] || {}, u = ultimoRegistro(c);
+    var row = [c.empresa||'', nomeTextoPai(c), c.terceira_wbs||'', c.area||'', c.disciplina||'', analistaDoCard(c),
+      c.qtd_prog==null?'':Number(c.qtd_prog), c.un||'', prev==null?'':prev/100, COL_LABEL[c.coluna]||c.coluna||''];
+    dias.forEach(function(d){ var r = rows[d]; row.push(r ? SIT[r.situacao].txt : ''); });
+    row.push(restricoesDoCard(c).map(function(r){ return L.fmtBr(r.data).slice(0,5)+': '+(r.justificativa||''); }).join(' | '));
+    row.push(u ? L.fmtTS(u.atualizado_em) : ''); row.push(u ? (u.registrado_por||'') : '');
+    aoa.push(row);
+  });
+  var cols = [{wch:20},{wch:50},{wch:12},{wch:12},{wch:14},{wch:18},{wch:10},{wch:6},{wch:10},{wch:14}];
+  dias.forEach(function(){ cols.push({wch:12}); });
+  cols.push({wch:50},{wch:16},{wch:18});
+  L.exportXlsx([{ nome:'Acompanhamento '+L.weekLabel(BASE), aoa:aoa, cols:cols }],
+    'ProgTerc_acomp_diario_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+/* ================= EVENTOS ================= */
+['fAnalista','fEmpresa','fStatus','fSemHoje'].forEach(function(id){ $(id).addEventListener('change', render); });
+$('fBusca').addEventListener('input', render);
+$('fFds').addEventListener('change', renderCompliance);
+$('btnReload').addEventListener('click', load);
+$('wkBase').addEventListener('change', function(){ BASE = L.quintaOf(this.value); this.value = BASE; load(); });
+$('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('wkBase').value = BASE; load(); });
+$('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; load(); });
+$('wkHoje').addEventListener('click', function(){ BASE = L.quintaOf(); $('wkBase').value = BASE; load(); });
+
+window.__ACOMP_TEST__ = { statusPorApontamentos: statusPorApontamentos };
+load();
+})();
+</script>
+</body>
+</html>
