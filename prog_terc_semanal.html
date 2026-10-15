@@ -81,6 +81,13 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
 .tag-fresco{display:inline-block;font-size:9.5px;font-weight:700;font-family:var(--mono);
   padding:1px 6px;border:1px solid;white-space:nowrap;margin-left:4px;vertical-align:middle}
 .tag-fresco.fresco-ok{background:var(--green-soft);color:#2b6027;border-color:#a8c990}
+.acomp-dias{display:flex;gap:2px;margin-top:4px}
+.acomp-dias i{display:inline-block;width:13px;height:13px;border:1px solid #d1d5db;background:#fff;
+  font-style:normal;font-size:8px;line-height:11px;text-align:center;color:#6b7280;font-family:var(--mono)}
+.acomp-dias i.avanco{background:var(--blue-soft);border-color:#b0c0da;color:var(--blue)}
+.acomp-dias i.sem_avanco{background:#e5e7eb;border-color:#c4c8ce}
+.acomp-dias i.restricao{background:var(--red-soft);border-color:#e8b4ac;color:#8c2b1f}
+.restr-acomp{display:block;margin-top:3px;font-size:10.5px;color:#8c2b1f;line-height:1.35;max-width:220px}
 .tag-fresco.fresco-velho{background:var(--gold-soft,#FEF3C7);color:#7c4a00;border-color:#f0c87a}
 </style>
 <script src="config.js"></script>
@@ -133,6 +140,8 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
     <b>Validar filtrado</b> pra confirmar em lote o que você acabou de revisar com um filtro aplicado, e
     <b>Revisar tudo / Fechar semana</b> pra passar item por item por tudo que ainda sobrou no fim da semana.
     <b>⤓ Puxar do cronograma</b> só atualiza as colunas de referência (não muda nada que você já validou).
+    Os quadradinhos embaixo do Status mostram o <a href="prog_terc_acomp_diario.html">Acompanhamento Diário</a>
+    (▲ avanço · ○ sem avanço · ⚑ restrição) — é lá que os analistas apontam dia a dia, e o Status muda sozinho.
   </div>
 
   <div class="tablewrap">
@@ -258,6 +267,7 @@ var CARDS = [], ATIV = [], editando = null;
 var BASE = L.quintaOf();
 $('wkBase').value = BASE;
 var RASCUNHOS = {};   // id -> {coluna, qtd_real, pct_realizado, causa, obs, pctManual}
+var ACOMP_SEM = {};   // semana -> { programacao_id: { data: row } } — Acompanhamento Diário (Fase 3.21)
 var REV_ANTERIOR_CACHE = {};   // cronograma_id -> {revisao, rotulo, data_corte, byUid} | null | undefined (ainda não tentou)
 
 /* ================= CARGA ================= */
@@ -268,6 +278,7 @@ function load(){
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&order=ordem.asc,id.asc'))
   ]).then(function(r){
     ATIV = r[0].atividades; CARDS = r[1];
+    ACOMP_SEM = {}; ACOMP_PROMISE = {};
     seedRascunhos();
     return window.PTA
       ? PTA.enriquecerTudo(ATIV, CARDS, true).then(function(res){ REGRAS = res.regras; })
@@ -443,6 +454,53 @@ function cronogramaRefHtml(c){
     + '<br><span class="muted">'+esc(EXEC_LABELS[a.execStatus]||a.execStatus||'')+'</span>'
     + cronogramaHistoricoHtml(c, a);
 }
+/* ---- Acompanhamento Diário (Fase 3.21) ----
+   Os analistas apontam, dia a dia, em prog_terc_acomp_diario.html (avanço / sem
+   avanço / restrição). O status (coluna) já chega gravado por aquela tela; aqui
+   só lemos os apontamentos da semana pra mostrar os 7 quadradinhos Qui–Qua, a
+   tarja de restrição com a justificativa e preencher o "Realizado" por dia do
+   Excel "Gerar Programação". Carregado sob demanda e em cache por semana. */
+var ACOMP_PROMISE = {};
+function carregarAcompSemana(wk){
+  if(ACOMP_SEM[wk]) return Promise.resolve(ACOMP_SEM[wk]);
+  if(ACOMP_SEM[wk] === null && ACOMP_PROMISE[wk]) return ACOMP_PROMISE[wk];
+  ACOMP_SEM[wk] = null;
+  return ACOMP_PROMISE[wk] = L.sbGetAll(L.comUnidade('prog_terc_acomp_diario?select=*&semana=eq.'+wk)).then(function(rows){
+    var m = {};
+    (rows||[]).forEach(function(a){ (m[a.programacao_id] = m[a.programacao_id] || {})[String(a.data).slice(0,10)] = a; });
+    ACOMP_SEM[wk] = m;
+    return m;
+  }).catch(function(){ ACOMP_SEM[wk] = {}; return {}; }); // tabela ainda não criada: segue sem acompanhamento
+}
+var ACOMP_TXT = { avanco:'Com avanço', sem_avanco:'Sem avanço', restricao:'Restrição' };
+var ACOMP_ICO = { avanco:'▲', sem_avanco:'○', restricao:'⚑' };
+function acompDoCard(c){
+  var m = ACOMP_SEM[String(c.semana).slice(0,10)];
+  return (m && m[c.id]) || {};
+}
+function restricoesAcompDoCard(c){
+  var rows = acompDoCard(c);
+  return Object.keys(rows).sort().map(function(d){ return rows[d]; }).filter(function(r){ return r.situacao === 'restricao'; });
+}
+function acompDiasHtml(c){
+  var m = ACOMP_SEM[String(c.semana).slice(0,10)];
+  if(!m) return '';
+  var rows = m[c.id] || {}, dow = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'], base = String(c.semana).slice(0,10);
+  var out = '<span class="acomp-dias" title="Acompanhamento diário (Qui–Qua)">';
+  for(var i=0;i<7;i++){
+    var d = L.addDays(base, i), r = rows[d];
+    out += '<i class="'+(r?r.situacao:'')+'" title="'+dow[i]+' '+L.fmtBr(d).slice(0,5)+': '
+      + (r ? esc(ACOMP_TXT[r.situacao]+' · '+(r.registrado_por||'')) : 'não acompanhado')+'">'+(r?ACOMP_ICO[r.situacao]:'')+'</i>';
+  }
+  out += '</span>';
+  var rs = restricoesAcompDoCard(c);
+  if(rs.length){
+    var u = rs[rs.length-1];
+    out += '<span class="restr-acomp" title="Restrição sinalizada no acompanhamento diário depois de programada">⚑ <b>'
+      + L.fmtBr(u.data).slice(0,5)+'</b> '+esc(u.justificativa||'')+(rs.length>1?' <i>(+'+(rs.length-1)+')</i>':'')+'</span>';
+  }
+  return out;
+}
 var COL_COLORS = {
   programada:     { bg:'#eef0f2', fg:'#4b5563' },
   execucao:       { bg:'var(--blue-soft)', fg:'var(--blue)' },
@@ -560,13 +618,13 @@ function tagsCronogramaInfo(c){
   return tags;
 }
 var CRONOINFO_OPCOES = [
-  { key:'concl_100',         label:'100% concluída' },
-  { key:'concl_parcial',     label:'< 100% concluída' },
-  { key:'atrasada',          label:'Atrasada' },
-  { key:'avancou',           label:'Avançou na última atualização' },
-  { key:'atualizado_semana', label:'✓ Avanço atualizado nesta semana' },
-  { key:'desatualizado',     label:'⚠ Cronograma desatualizado (semana anterior ou mais antiga)' },
-  { key:'sem_vinculo',       label:'Sem vínculo com cronograma' }
+  { key:'concl_100',         label:'100% concluída', grupo:'concl' },
+  { key:'concl_parcial',     label:'< 100% concluída', grupo:'concl' },
+  { key:'atrasada',          label:'Atrasada', grupo:'atraso' },
+  { key:'avancou',           label:'Avançou na última atualização', grupo:'avanco' },
+  { key:'atualizado_semana', label:'✓ Avanço atualizado nesta semana', grupo:'fresco' },
+  { key:'desatualizado',     label:'⚠ Cronograma desatualizado (semana anterior ou mais antiga)', grupo:'fresco' },
+  { key:'sem_vinculo',       label:'Sem vínculo com cronograma', grupo:'vinculo' }
 ];
 
 var COL_DEFS = [
@@ -583,7 +641,7 @@ var COL_DEFS = [
   { key:'realpct',    tipo:'num',       valor:pctRealizadoDoCard },
   { key:'causa',      tipo:'cat',       valor:causaDoCard },
   { key:'obs',        tipo:'texto',     valor:obsDoCard },
-  { key:'validado',   tipo:'cat',       valor:function(c){ return c.validado ? 'Validado' : 'Pendente'; } }
+  { key:'validado',   tipo:'cat',       valor:function(c){ return c.validado ? 'Validado' : 'A validar'; } }
 ];
 function colDef(key){ return COL_DEFS.filter(function(d){ return d.key === key; })[0]; }
 
@@ -596,8 +654,19 @@ function passaFiltrosColuna(c, excludeColKey){
     if(def.tipo === 'cat'){
       if(filtro.indexOf(def.valor(c)) === -1) return false;
     } else if(def.tipo === 'cat-multi'){
+      /* Fase 3.20: opções do MESMO grupo combinam com "ou"; grupos DIFERENTES com "e"
+         (ex.: "100% concluída" + "✓ atualizada nesta semana" exige as duas coisas). */
       var tags = def.valores(c) || [];
-      if(!tags.some(function(t){ return filtro.indexOf(t) !== -1; })) return false;
+      var porGrupo = {};
+      filtro.forEach(function(k){
+        var o = (def.opcoesFixas||[]).filter(function(x){ return x.key === k; })[0];
+        var g = (o && o.grupo) || k;
+        (porGrupo[g] = porGrupo[g] || []).push(k);
+      });
+      var okTodos = Object.keys(porGrupo).every(function(g){
+        return porGrupo[g].some(function(k){ return tags.indexOf(k) !== -1; });
+      });
+      if(!okTodos) return false;
     } else if(def.tipo === 'num'){
       var n = def.valor(c);
       if(filtro.min != null && (n == null || n < filtro.min)) return false;
@@ -656,7 +725,9 @@ function abrirPopoverColuna(key, btn){
     var atual = COL_FILTERS[key] || opcoes.slice();
     html += '<div class="cfp-title">Filtrar</div>'
       + '<div class="small muted" style="margin:-2px 0 7px">Toque em <b>só esta</b> pra ver só esse valor.'
-        + ' Pra combinar mais de um, marque as caixinhas e use Aplicar.</div>'
+        + ' Pra combinar mais de um, marque as caixinhas e use Aplicar.'
+        + (def.tipo === 'cat-multi' ? ' Marcar 2 opções parecidas mostra qualquer uma das duas; marcar opções de tipos diferentes exige as duas ao mesmo tempo.' : '')
+        + '</div>'
       + '<div class="cfp-list">'
       + (opcoes.length ? opcoes.map(function(ok){
           var lbl = def.tipo === 'cat-multi' ? ((def.opcoesFixas.filter(function(o){ return o.key===ok; })[0])||{}).label : ok;
@@ -772,6 +843,9 @@ function render(){
   /* dispara em paralelo (sem travar o render acima) a busca da revisão anterior
      só dos contratos desta semana que ainda não foram tentados; ao chegar,
      re-renderiza só a tabela pra "Cronograma informa" ganhar a comparação. */
+  if(ACOMP_SEM[BASE] === undefined){
+    carregarAcompSemana(BASE).then(function(){ renderTabela(listaAtual()); });
+  }
   if(list.some(function(c){ return c.cronograma_id != null && REV_ANTERIOR_CACHE[c.cronograma_id] === undefined; })){
     carregarRevisoesAnteriores(list).then(function(){ renderTabela(listaAtual()); });
   }
@@ -803,7 +877,7 @@ function renderKpis(list){
 
   $('kpis').innerHTML =
     kpi('b-gray', list.length, 'Na semana', 'atividades programadas') +
-    kpi('b-gold', pendentes, 'Pendentes', 'ainda não validadas') +
+    kpi('b-gold', pendentes, 'A validar', 'ainda não validadas') +
     kpi('b-green', validadas.length, 'Validadas', validadas.length+' de '+list.length) +
     '<div class="kpi static b-blue"><div class="num">'+(p==null?'—':p+'%')+'</div>'
       + '<div class="label">PPC contagem</div><div class="sub">'+done+' concluídas · '+fail+' não concluídas</div></div>' +
@@ -846,7 +920,7 @@ function linhaHtml(c){
     + '<td class="cron-ref">'+cronogramaRefHtml(c)+'</td>'
     + '<td><select class="cell-in sel-status">'+L.KB_COLS.map(function(k){
         return '<option value="'+k.key+'"'+(k.key===rc.coluna?' selected':'')+'>'+esc(k.label)+'</option>';
-      }).join('')+'</select></td>'
+      }).join('')+'</select>'+acompDiasHtml(c)+'</td>'
     + '<td class="ctr"><input class="cell-in num in-qtdreal" value="'+esc(rc.qtd_real)+'" placeholder="—"></td>'
     + '<td class="ctr c-pct"><input class="cell-in num in-pct" value="'+esc(rc.pct_realizado)+'" placeholder="—">'
       + (desvio ? '<span class="desvio-flag" title="Abaixo do previsto em mais de 5 pontos">⚠</span>' : '') + '</td>'
@@ -857,7 +931,7 @@ function linhaHtml(c){
     + '<td><input class="cell-in in-obs" value="'+esc(rc.obs)+'" placeholder="Justificativa / observação"></td>'
     + '<td class="ctr">'+(c.validado
         ? '<span class="pill-sm val-ok" title="'+esc(c.validado_por||'')+' em '+L.fmtTS(c.validado_em)+'">✓ validado</span>'
-        : '<span class="pill-sm val-pend">pendente</span>')+'</td>'
+        : '<span class="pill-sm val-pend">a validar</span>')+'</td>'
     + '<td class="ctr no-print">'
         + (EDIT ? '<button class="btn sm" data-val="'+c.id+'" title="Validar esta linha">✓</button> ' : '')
         + (EDIT ? '<button class="btn sm" data-ed="'+c.id+'" title="Editar dados estruturais">✎</button>' : '')
@@ -1171,7 +1245,8 @@ L.wireModal('mC');
 $('btnGerarProg').addEventListener('click', function(){
   var list = listaAtual();
   if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
-  carregarEstruturas(list).then(function(porWbsCache){
+  Promise.all([carregarEstruturas(list), carregarAcompSemana(BASE)]).then(function(rr){
+    var porWbsCache = rr[0];
     var dow = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'];
     var head = ['Empresa','Estrutura da Atividade','Atividade','WBS','Área','Disciplina','Un',
       'Qtd Programada','% Previsto (fim da semana)'];
@@ -1190,12 +1265,14 @@ $('btnGerarProg').addEventListener('click', function(){
       for(var i=0;i<7;i++){
         var pv = a ? L.pctPrevistoEm(a, L.addDays(BASE, i)) : null;
         row.push(pv==null?'':pv/100);
-        row.push(''); // Realizado por dia: sem fonte automática no sistema, fica em branco pra preencher
+        // Realizado por dia: vem do Acompanhamento Diário (Fase 3.21); dia não acompanhado fica em branco
+        var ra = acompDoCard(c)[L.addDays(BASE, i)];
+        row.push(ra ? ACOMP_TXT[ra.situacao] + (ra.situacao === 'restricao' && ra.justificativa ? ': ' + ra.justificativa : '') : '');
       }
       aoa.push(row);
     });
     var cols = [{wch:20},{wch:55},{wch:30},{wch:12},{wch:12},{wch:14},{wch:7},{wch:14},{wch:16}];
-    for(var i=0;i<7;i++){ cols.push({wch:11}); cols.push({wch:11}); }
+    for(var i=0;i<7;i++){ cols.push({wch:11}); cols.push({wch:13}); }
     L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa, cols:cols }],
       'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
   });
@@ -1204,9 +1281,10 @@ $('btnGerarProg').addEventListener('click', function(){
 $('btnGerarRel').addEventListener('click', function(){
   var list = listaAtual();
   if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
+  if(!ACOMP_SEM[BASE]){ carregarAcompSemana(BASE).then(function(){ if(ACOMP_SEM[BASE]) $('btnGerarRel').click(); }); return; }
   var colLabel = {}; L.KB_COLS.forEach(function(k){ colLabel[k.key] = k.label; });
   var head = ['Empresa','Atividade','WBS','Área','Disciplina','Status','Qtd Prog','Qtd Real',
-    '% Previsto','% Realizado','Causa do desvio','Justificativa','Validado','Validado em'];
+    '% Previsto','% Realizado','Causa do desvio','Justificativa','Restrição sinalizada (acomp. diário)','Validado','Validado em'];
   var aoa = [head];
   list.forEach(function(c){
     var p = pctPrevistoDoCard(c);
@@ -1214,11 +1292,13 @@ $('btnGerarRel').addEventListener('click', function(){
       colLabel[c.coluna]||c.coluna,
       c.qtd_prog==null?'':Number(c.qtd_prog), c.qtd_real==null?'':Number(c.qtd_real),
       p==null?'':p/100, c.pct_realizado==null?'':c.pct_realizado/100,
-      c.causa||'', c.obs||'', c.validado?'Sim':'Não', L.fmtTS(c.validado_em)]);
+      c.causa||'', c.obs||'',
+      restricoesAcompDoCard(c).map(function(r){ return L.fmtBr(r.data).slice(0,5)+': '+(r.justificativa||''); }).join(' | '),
+      c.validado?'Sim':'Não', L.fmtTS(c.validado_em)]);
   });
   L.exportXlsx([{ nome:'Relatório '+L.weekLabel(BASE), aoa:aoa,
     cols:[{wch:20},{wch:46},{wch:12},{wch:12},{wch:14},{wch:14},{wch:10},{wch:10},
-          {wch:11},{wch:11},{wch:26},{wch:30},{wch:9},{wch:16}] }],
+          {wch:11},{wch:11},{wch:26},{wch:30},{wch:40},{wch:9},{wch:16}] }],
     'ProgTerc_relatorio_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
 });
 
