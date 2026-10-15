@@ -103,7 +103,7 @@ tr.sem-hoje td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
   <div class="section-label" style="margin-top:22px">Acompanhamento pelos analistas · semana</div>
   <div class="toolbar no-print" style="margin-top:0">
     <span class="small muted" style="margin-right:auto">Atividades com algum apontamento no dia ÷ atividades programadas na semana,
-      agrupadas pelo Analista de Planejamento do contrato (cadastro no Histórico de Cronogramas). Só dias até hoje.</span>
+      agrupadas pelo analista que acompanha a área (configurado em <a href="prog_terc_analistas_area.html">👥 Analistas por Área</a>). Só dias até hoje.</span>
     <label class="small" style="display:flex;align-items:center;gap:5px;cursor:pointer">
       <input type="checkbox" id="fFds"> considerar sábado e domingo</label>
   </div>
@@ -166,7 +166,7 @@ var SIT = {
 var COL_LABEL = {}; L.KB_COLS.forEach(function(k){ COL_LABEL[k.key] = k.label; });
 
 var ATIV = [], CARDS = [], ACOMP = {};   // ACOMP[programacao_id][data] = row
-var ANALISTA_POR_CRONO = {};
+var AN_CFG_ERRO = null;   // tabelas de analistas por área ainda não criadas
 var SALVANDO = {};                       // programacao_id -> true enquanto grava
 
 /* ================= REGRAS (puras — testáveis fora do navegador) ================= */
@@ -187,7 +187,8 @@ function load(){
   return Promise.all([
     L.loadAtividades(false),
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&semana=eq.'+BASE+'&order=empresa.asc,id.asc')),
-    L.sbGetAll(L.comUnidade('prog_terc_acomp_diario?select=*&semana=eq.'+BASE))
+    L.sbGetAll(L.comUnidade('prog_terc_acomp_diario?select=*&semana=eq.'+BASE)),
+    L.loadAnalistasArea(true)
   ]).then(function(r){
     ATIV = r[0].atividades || [];
     CARDS = r[1] || [];
@@ -195,9 +196,13 @@ function load(){
     (r[2] || []).forEach(function(a){
       (ACOMP[a.programacao_id] = ACOMP[a.programacao_id] || {})[String(a.data).slice(0,10)] = a;
     });
-    ANALISTA_POR_CRONO = {};
-    (L.contratosCache() || []).forEach(function(c){ ANALISTA_POR_CRONO[c.id] = c.analista_planejamento || ''; });
-    $('setup').style.display = 'none';
+    AN_CFG_ERRO = r[3] && r[3].erro;
+    if(AN_CFG_ERRO){
+      $('setup').className = 'notice warn';
+      $('setup').innerHTML = '<b>Analistas por área ainda não configurados.</b> Rode o script '
+        + '<code>supabase_analistas_area.sql</code> no Supabase — até lá a coluna Analista fica como "(área sem analista)".';
+      $('setup').style.display = '';
+    } else $('setup').style.display = 'none';
     fillFiltros(); render();
   }).catch(function(err){
     if(/prog_terc_acomp_diario/.test(String(err && err.message)) || L.isMissingTable(err)){
@@ -218,7 +223,20 @@ function nomeTextoPai(c){
   var a = ativDoCard(c);
   return ((a && a.pai) ? a.pai + ' · ' : '') + (c.descricao || (a ? a.nome : '') || '');
 }
-function analistaDoCard(c){ return (c.cronograma_id != null && ANALISTA_POR_CRONO[c.cronograma_id]) || '(sem analista)'; }
+/* Analista = quem acompanha a ÁREA da atividade (Fase 3.22, tela Analistas por Área) —
+   não o analista do contrato nem quem efetivou a pré-programação. Área do card, ou a
+   área do contrato da atividade quando o card não tem área própria. */
+function areaDoCard(c){
+  if(c.area) return c.area;
+  var a = ativDoCard(c); if(a && a.area) return a.area;
+  var ct = c.cronograma_id != null ? (L.contratosCache()||[]).filter(function(x){ return x.id === c.cronograma_id; })[0] : null;
+  return (ct && ct.area) || '';
+}
+function analistaDoCard(c){
+  var area = areaDoCard(c);
+  if(!area) return '(sem área)';
+  return L.analistaDaArea(area) || '(área sem analista)';
+}
 function restricoesDoCard(c){
   var rows = ACOMP[c.id] || {};
   return Object.keys(rows).sort().map(function(d){ return rows[d]; }).filter(function(r){ return r.situacao === 'restricao'; });
@@ -300,7 +318,7 @@ function renderKpis(list){
 
 function renderHead(){
   var h = '<th style="min-width:110px">Empresa</th><th style="min-width:250px">Atividade</th>'
-    + '<th style="min-width:90px">Área</th><th style="min-width:110px">Analista</th>'
+    + '<th style="min-width:90px">Área</th><th style="min-width:110px" title="Analista que acompanha a área (👥 Analistas por Área)">Analista</th>'
     + '<th class="ctr" style="min-width:80px">Qtd Prog.</th><th class="ctr" title="Avanço esperado até o fim da semana pela linha de base">% Prev.</th>'
     + '<th style="min-width:120px">Status</th>';
   diasDaSemana(BASE).forEach(function(d, i){
@@ -350,7 +368,7 @@ function linhaHtml(c){
   return '<tr data-id="'+c.id+'" class="'+(semHoje?'sem-hoje':'')+'">'
     + '<td class="small"><b>'+esc(c.empresa||'—')+'</b></td>'
     + '<td class="small">'+(c.terceira_wbs ? '<span style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(c.terceira_wbs)+'</span>' : '')+esc(nomeTextoPai(c)||'—')+'</td>'
-    + '<td class="small">'+esc(c.area||'—')+'</td>'
+    + '<td class="small">'+esc(areaDoCard(c)||'—')+'</td>'
     + '<td class="small">'+esc(analistaDoCard(c))+'</td>'
     + '<td class="ctr" style="font-family:var(--mono)">'+(c.qtd_prog==null?'—':nf(c.qtd_prog,2)+' '+esc(c.un||''))+'</td>'
     + '<td class="ctr" style="font-family:var(--mono);font-weight:700">'+(prev==null?'—':prev+'%')+'</td>'
@@ -540,7 +558,7 @@ $('btnXls').addEventListener('click', function(){
   var aoa = [head];
   list.forEach(function(c){
     var a = ativDoCard(c), prev = a ? L.pctPrevistoEm(a, L.addDays(BASE,6)) : null, rows = ACOMP[c.id] || {}, u = ultimoRegistro(c);
-    var row = [c.empresa||'', nomeTextoPai(c), c.terceira_wbs||'', c.area||'', c.disciplina||'', analistaDoCard(c),
+    var row = [c.empresa||'', nomeTextoPai(c), c.terceira_wbs||'', areaDoCard(c), c.disciplina||'', analistaDoCard(c),
       c.qtd_prog==null?'':Number(c.qtd_prog), c.un||'', prev==null?'':prev/100, COL_LABEL[c.coluna]||c.coluna||''];
     dias.forEach(function(d){ var r = rows[d]; row.push(r ? SIT[r.situacao].txt : ''); });
     row.push(restricoesDoCard(c).map(function(r){ return L.fmtBr(r.data).slice(0,5)+': '+(r.justificativa||''); }).join(' | '));
