@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Analistas por Área · Terceiras · PCO</title>
+<script>
+(function(){ if(!sessionStorage.getItem('pco_token')) window.location.href='login.html'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lps_ei_core.css">
+<style>
+.cfg-grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:22px;align-items:start}
+@media (max-width:900px){.cfg-grid{grid-template-columns:1fr}}
+.cell-in{width:100%;font-size:12px;padding:5px 7px;border:1px solid var(--border-2);background:#fff;font-family:inherit;box-sizing:border-box}
+.cell-in:disabled{background:#f6f7f8}
+tr.inativo td{opacity:.55}
+.add-row{display:flex;gap:6px;margin-top:8px}
+.add-row input{flex:1}
+.ult{font-size:10.5px;color:var(--text-mute)}
+.orig{font-size:10.5px;color:var(--text-mute);font-family:var(--mono)}
+tr.sem td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
+</style>
+<script src="config.js"></script>
+<script src="unidade.js"></script>
+<script src="prog_terc_core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="prog-shell"></div>
+  <div id="setup" class="notice" style="display:none"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="notice src-note">
+    Defina aqui o analista de planejamento que <b>acompanha</b> cada área no dia a dia. É ele que aparece como
+    responsável no <a href="prog_terc_acomp_diario.html">Acompanhamento Diário</a> — independente do analista que
+    efetivou a pré-programação ou do "Analista de Planejamento" cadastrado no contrato. As alterações salvam na hora.
+  </div>
+
+  <div class="cfg-grid">
+    <div>
+      <div class="section-label">Analistas</div>
+      <div class="tablewrap">
+        <table class="grid">
+          <thead><tr><th>Nome</th><th class="ctr">Áreas</th><th class="ctr">Ativo</th></tr></thead>
+          <tbody id="tbAn"><tr><td colspan="3" class="loading-line">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="add-row no-print" id="addAnWrap">
+        <input class="f" id="novoAn" placeholder="Nome do novo analista">
+        <button class="btn solid" id="btnAddAn">+ Adicionar</button>
+      </div>
+      <div class="small muted" style="margin-top:6px">Clique no nome para corrigir. Desmarcar "Ativo" tira o analista das
+        opções de área sem apagar o histórico.</div>
+    </div>
+
+    <div>
+      <div class="section-label">Áreas</div>
+      <div class="toolbar no-print" style="margin-top:0">
+        <input class="f" id="fBusca" placeholder="Buscar área…" style="min-width:200px">
+        <select class="f" id="fAn"><option value="">Todos os analistas</option></select>
+        <label class="small" style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" id="fSem"> só áreas sem analista</label>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn sm" id="btnXls">⤓ Excel</button>
+      </div>
+      <div class="tablewrap">
+        <table class="grid">
+          <thead><tr>
+            <th style="min-width:200px">Área</th>
+            <th title="Onde a área aparece: contratos (Histórico de Cronogramas) e atividades da Programação Semanal">Origem</th>
+            <th style="min-width:180px">Analista que acompanha</th>
+            <th>Última alteração</th>
+          </tr></thead>
+          <tbody id="tbArea"><tr><td colspan="4" class="loading-line">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="add-row no-print" id="addAreaWrap" style="max-width:520px">
+        <input class="f" id="novaArea" placeholder="Área que ainda não aparece na lista">
+        <button class="btn" id="btnAddArea">+ Adicionar área</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var L = window.PT;
+if(!L.requireAuth()) return;
+var $ = L.$, esc = L.esc;
+
+L.renderShell({
+  page:'analistas_area',
+  title:'Analistas por Área',
+  subtitle:'Configuração — quem acompanha cada área na Programação Semanal das terceiras'
+});
+
+var EDIT = L.canEdit();
+var AN = [], VINC = [], AREAS = [];   // AREAS: [{area, chave, contratos, atividades, extra}]
+
+function sbUpsert(table, conflict, row){
+  return fetch(L.SB_URL + '/rest/v1/' + table + '?on_conflict=' + encodeURIComponent(conflict), {
+    method:'POST',
+    headers:{ apikey:L.SB_KEY, Authorization:'Bearer '+L.SB_KEY, 'Content-Type':'application/json',
+              Prefer:'return=representation,resolution=merge-duplicates' },
+    body: JSON.stringify([L.comTag(row)])
+  }).then(function(res){
+    return res.text().then(function(txt){
+      if(!res.ok) throw new Error(res.status+': '+txt.slice(0,300));
+      return txt;
+    });
+  });
+}
+
+/* ================= CARGA ================= */
+function load(){
+  return Promise.all([
+    L.loadAnalistasArea(true),
+    L.sbGetAll(L.comUnidade('val_cronogramas?select=area')).catch(function(){ return []; }),
+    L.sbGetAll(L.comUnidade('prog_terc_programacao?select=area&ativo=eq.true')).catch(function(){ return []; })
+  ]).then(function(r){
+    var cfg = r[0];
+    if(cfg.erro){
+      $('setup').className = 'notice warn';
+      $('setup').innerHTML = '<b>Tabelas de analistas ainda não existem.</b> Rode o script '
+        + '<code>supabase_analistas_area.sql</code> no SQL Editor do Supabase e recarregue esta página.';
+      $('setup').style.display = '';
+    } else $('setup').style.display = 'none';
+    AN = cfg.analistas.slice().sort(function(a,b){ return a.nome.localeCompare(b.nome,'pt-BR'); });
+    VINC = cfg.vinculos;
+    montarAreas(r[1], r[2]);
+    render();
+  });
+}
+
+function montarAreas(contratos, cards){
+  var m = {};
+  function add(area, campo){
+    area = String(area == null ? '' : area).trim();
+    if(!area) return;
+    var k = L.deacc(area);
+    if(!m[k]) m[k] = { area:area, chave:k, contratos:0, atividades:0, extra:false };
+    if(campo) m[k][campo]++;
+  }
+  (contratos||[]).forEach(function(c){ add(c.area, 'contratos'); });
+  (cards||[]).forEach(function(c){ add(c.area, 'atividades'); });
+  VINC.forEach(function(v){ add(v.area, null); });
+  (AREAS||[]).forEach(function(a){ if(a.extra && !m[a.chave]) m[a.chave] = a; });  // áreas digitadas nesta sessão, ainda sem analista
+  AREAS = Object.keys(m).map(function(k){ return m[k]; })
+    .sort(function(a,b){ return a.area.localeCompare(b.area,'pt-BR'); });
+}
+function vincDaArea(chave){ return VINC.filter(function(v){ return L.deacc(v.area) === chave; })[0] || null; }
+function areasDoAnalista(id){ return VINC.filter(function(v){ return v.analista_id === id; }).length; }
+
+/* ================= RENDER ================= */
+function render(){
+  var semAn = AREAS.filter(function(a){ return !vincDaArea(a.chave); }).length;
+  var ativos = AN.filter(function(a){ return a.ativo !== false; }).length;
+  $('kpis').innerHTML =
+    kpi('b-gray', AREAS.length, 'Áreas', 'em contratos e na programação') +
+    kpi('b-green', AREAS.length - semAn, 'Com analista', 'área configurada') +
+    kpi('b-gold', semAn, 'Sem analista', 'aparecem como "(área sem analista)"') +
+    kpi('b-blue', ativos, 'Analistas ativos', AN.length + ' cadastrados');
+  renderAnalistas();
+  renderAreas();
+  ['addAnWrap','addAreaWrap'].forEach(function(id){ $(id).style.display = EDIT ? '' : 'none'; });
+}
+function kpi(cls, num, label, sub){
+  return '<div class="kpi static '+cls+'"><div class="num">'+num+'</div>'
+       + '<div class="label">'+label+'</div><div class="sub">'+esc(sub)+'</div></div>';
+}
+
+function renderAnalistas(){
+  if(!AN.length){ $('tbAn').innerHTML = '<tr><td colspan="3" class="empty">Nenhum analista cadastrado.</td></tr>'; }
+  else $('tbAn').innerHTML = AN.map(function(a){
+    return '<tr class="'+(a.ativo===false?'inativo':'')+'">'
+      + '<td><input class="cell-in an-nome" data-id="'+a.id+'" value="'+esc(a.nome)+'"'+(EDIT?'':' disabled')+'></td>'
+      + '<td class="ctr" style="font-family:var(--mono);font-weight:700">'+areasDoAnalista(a.id)+'</td>'
+      + '<td class="ctr"><input type="checkbox" class="an-ativo" data-id="'+a.id+'"'+(a.ativo!==false?' checked':'')+(EDIT?'':' disabled')+'></td>'
+      + '</tr>';
+  }).join('');
+  document.querySelectorAll('.an-nome').forEach(function(inp){ inp.addEventListener('change', function(){ renomear(+inp.dataset.id, inp.value); }); });
+  document.querySelectorAll('.an-ativo').forEach(function(cb){ cb.addEventListener('change', function(){ ativar(+cb.dataset.id, cb.checked); }); });
+
+  var cur = $('fAn').value;
+  $('fAn').innerHTML = '<option value="">Todos os analistas</option>'
+    + AN.map(function(a){ return '<option value="'+a.id+'"'+(String(a.id)===cur?' selected':'')+'>'+esc(a.nome)+'</option>'; }).join('');
+}
+
+function listaAreas(){
+  var q = L.deacc($('fBusca').value||''), fa = $('fAn').value, sem = $('fSem').checked;
+  return AREAS.filter(function(a){
+    var v = vincDaArea(a.chave);
+    if(q && a.chave.indexOf(q) < 0) return false;
+    if(sem && v) return false;
+    if(fa && (!v || String(v.analista_id) !== fa)) return false;
+    return true;
+  });
+}
+function renderAreas(){
+  var list = listaAreas();
+  if(!list.length){ $('tbArea').innerHTML = '<tr><td colspan="4" class="empty">Nenhuma área com esses filtros.</td></tr>'; return; }
+  $('tbArea').innerHTML = list.map(function(a){
+    var v = vincDaArea(a.chave);
+    var opts = '<option value="">— sem analista —</option>' + AN.filter(function(x){
+        return x.ativo !== false || (v && v.analista_id === x.id);
+      }).map(function(x){
+        return '<option value="'+x.id+'"'+(v && v.analista_id===x.id?' selected':'')+'>'+esc(x.nome)+(x.ativo===false?' (inativo)':'')+'</option>';
+      }).join('');
+    var orig = [];
+    if(a.contratos) orig.push(a.contratos+' contrato(s)');
+    if(a.atividades) orig.push(a.atividades+' atividade(s)');
+    return '<tr class="'+(v?'':'sem')+'">'
+      + '<td><b>'+esc(a.area)+'</b></td>'
+      + '<td class="orig">'+(orig.join(' · ') || 'adicionada manualmente')+'</td>'
+      + '<td><select class="cell-in area-sel" data-chave="'+esc(a.chave)+'"'+(EDIT?'':' disabled')+'>'+opts+'</select></td>'
+      + '<td class="ult">'+(v ? esc(v.atualizado_por||'')+(v.atualizado_em?' · '+L.fmtTS(v.atualizado_em):'') : '—')+'</td>'
+      + '</tr>';
+  }).join('');
+  document.querySelectorAll('.area-sel').forEach(function(sel){
+    sel.addEventListener('change', function(){ definirAnalista(sel.dataset.chave, sel.value); });
+  });
+}
+
+/* ================= AÇÕES ================= */
+function erro(e){
+  var msg = String(e && e.message || e);
+  if(/23505|duplicate key/i.test(msg)) L.toast('Já existe um analista com esse nome.','warn');
+  else L.toast('Erro ao salvar: '+msg,'warn');
+}
+function recarregar(msg){ return load().then(function(){ if(msg) L.toast(msg,'ok'); }); }
+
+$('btnAddAn').addEventListener('click', function(){
+  if(!EDIT) return;
+  var nome = $('novoAn').value.trim();
+  if(!nome) return L.toast('Digite o nome do analista.','warn');
+  if(AN.some(function(a){ return L.deacc(a.nome) === L.deacc(nome); })) return L.toast('Esse nome já está cadastrado.','warn');
+  L.sb('POST','prog_terc_analistas', L.comTag({ nome:nome, ativo:true }))
+    .then(function(){ $('novoAn').value = ''; return recarregar('Analista adicionado.'); })
+    .catch(erro);
+});
+$('novoAn').addEventListener('keydown', function(ev){ if(ev.key === 'Enter') $('btnAddAn').click(); });
+
+function renomear(id, nome){
+  nome = String(nome||'').trim();
+  if(!nome){ L.toast('O nome não pode ficar vazio.','warn'); return render(); }
+  if(AN.some(function(a){ return a.id !== id && L.deacc(a.nome) === L.deacc(nome); })){ L.toast('Esse nome já está cadastrado.','warn'); return render(); }
+  L.sb('PATCH','prog_terc_analistas?id=eq.'+id, { nome:nome, atualizado_em:new Date().toISOString() })
+    .then(function(){ return recarregar('Nome atualizado (as áreas dele continuam vinculadas).'); })
+    .catch(function(e){ erro(e); render(); });
+}
+function ativar(id, ativo){
+  var n = areasDoAnalista(id);
+  if(!ativo && n && !confirm('Este analista acompanha '+n+' área(s). Ele continua aparecendo nelas até você trocar o analista de cada uma. Desativar mesmo assim?')){ return render(); }
+  L.sb('PATCH','prog_terc_analistas?id=eq.'+id, { ativo:ativo, atualizado_em:new Date().toISOString() })
+    .then(function(){ return recarregar(ativo ? 'Analista reativado.' : 'Analista desativado.'); })
+    .catch(function(e){ erro(e); render(); });
+}
+function definirAnalista(chave, analistaId){
+  var a = AREAS.filter(function(x){ return x.chave === chave; })[0]; if(!a) return;
+  var v = vincDaArea(chave);
+  var p;
+  if(!analistaId){
+    p = v ? L.sb('DELETE','prog_terc_area_analista?id=eq.'+v.id) : Promise.resolve();
+  } else if(v){
+    p = L.sb('PATCH','prog_terc_area_analista?id=eq.'+v.id, { analista_id:+analistaId,
+      atualizado_por:L.userNome(), atualizado_em:new Date().toISOString() });
+  } else {
+    p = sbUpsert('prog_terc_area_analista', 'unidade,area', { area:a.area, analista_id:+analistaId,
+      atualizado_por:L.userNome(), atualizado_em:new Date().toISOString() });
+  }
+  p.then(function(){ return recarregar('Área "'+a.area+'" atualizada.'); }).catch(function(e){ erro(e); render(); });
+}
+$('btnAddArea').addEventListener('click', function(){
+  if(!EDIT) return;
+  var area = $('novaArea').value.trim();
+  if(!area) return L.toast('Digite o nome da área.','warn');
+  var k = L.deacc(area);
+  if(AREAS.some(function(a){ return a.chave === k; })){ L.toast('Essa área já está na lista.','warn'); $('fBusca').value = area; return renderAreas(); }
+  AREAS.push({ area:area, chave:k, contratos:0, atividades:0, extra:true });
+  AREAS.sort(function(a,b){ return a.area.localeCompare(b.area,'pt-BR'); });
+  $('novaArea').value = '';
+  render();
+  L.toast('Área adicionada — escolha o analista na lista para salvar.','ok');
+});
+$('novaArea').addEventListener('keydown', function(ev){ if(ev.key === 'Enter') $('btnAddArea').click(); });
+
+$('btnXls').addEventListener('click', function(){
+  var aoa = [['Área','Contratos','Atividades programadas','Analista','Alterado por','Alterado em']];
+  AREAS.forEach(function(a){
+    var v = vincDaArea(a.chave), an = v ? (AN.filter(function(x){ return x.id === v.analista_id; })[0]||{}).nome : '';
+    aoa.push([a.area, a.contratos, a.atividades, an||'', v ? (v.atualizado_por||'') : '', v ? L.fmtTS(v.atualizado_em) : '']);
+  });
+  L.exportXlsx([{ nome:'Analistas por área', aoa:aoa, cols:[{wch:30},{wch:10},{wch:12},{wch:18},{wch:18},{wch:16}] }],
+    'ProgTerc_analistas_area_' + L.stamp() + '.xlsx');
+});
+
+['fAn','fSem'].forEach(function(id){ $(id).addEventListener('change', renderAreas); });
+$('fBusca').addEventListener('input', renderAreas);
+
+load();
+})();
+</script>
+</body>
+</html>
