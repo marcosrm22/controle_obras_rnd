@@ -380,6 +380,9 @@
           '<a class="btn" href="validacao_cronogramas.html" ' +
             'title="Abrir o histórico de cronogramas (tela de Validação de Cronogramas)" ' +
             'style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">📋 Histórico de Cronogramas</a>' +
+          '<a class="btn" href="prog_terc_analistas_area.html" ' +
+            'title="Configurar o analista de planejamento que acompanha cada área" ' +
+            'style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">👥 Analistas por Área</a>' +
           '<a class="btn" href="dashboard_desempenho.html" ' +
             'title="Abrir o Dashboard de Desempenho das empresas" ' +
             'style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">📈 Dashboard de Desempenho</a>' +
@@ -700,6 +703,43 @@
   }
 
   /* ================================================================
+     ANALISTAS POR ÁREA (Fase 3.22)
+     ----------------------------------------------------------------
+     Quem ACOMPANHA cada área (prog_terc_analistas + prog_terc_area_analista,
+     configurado em prog_terc_analistas_area.html). Não confundir com
+     val_cronogramas.analista_planejamento (quem efetiva a pré-programação).
+     Casamento por área sem acento/caixa (deacc). Se as tabelas ainda não
+     existirem, devolve vazio com .erro preenchido — a tela segue funcionando.
+     ================================================================ */
+  var _analistasArea = null;
+  function loadAnalistasArea(force) {
+    if (_analistasArea && !force) return Promise.resolve(_analistasArea);
+    return Promise.all([
+      sbGetAll(comUnidade('prog_terc_analistas?select=*&order=nome.asc')),
+      sbGetAll(comUnidade('prog_terc_area_analista?select=*&order=area.asc'))
+    ]).then(function (r) {
+      var analistas = r[0] || [], vinculos = r[1] || [];
+      var porId = {}, porArea = {};
+      analistas.forEach(function (a) { porId[a.id] = a; });
+      vinculos.forEach(function (v) {
+        var a = porId[v.analista_id];
+        if (a) porArea[deacc(v.area)] = a;
+      });
+      _analistasArea = { analistas: analistas, vinculos: vinculos, porId: porId, porArea: porArea, erro: null };
+      return _analistasArea;
+    }).catch(function (e) {
+      _analistasArea = { analistas: [], vinculos: [], porId: {}, porArea: {}, erro: e };
+      return _analistasArea;
+    });
+  }
+  /* nome do analista que acompanha a área ('' se a área não tem analista) */
+  function analistaDaArea(area) {
+    if (!_analistasArea || !area) return '';
+    var a = _analistasArea.porArea[deacc(area)];
+    return a ? a.nome : '';
+  }
+
+  /* ================================================================
      EXPORT
      ================================================================ */
 
@@ -727,7 +767,8 @@
     loadAtividades: loadAtividades, atividadesCache: atividadesCache,
     contratosCache: contratosCache, revInfoCache: revInfoCache,
     atividadePorAid: atividadePorAid, paiNomeDe: paiNomeDe,
-    construirPorWbs: construirPorWbs, wbsAncestros: wbsAncestros
+    construirPorWbs: construirPorWbs, wbsAncestros: wbsAncestros,
+    loadAnalistasArea: loadAnalistasArea, analistaDaArea: analistaDaArea
   };
 
   global.PT = API;
