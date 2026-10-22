@@ -168,6 +168,9 @@ tr.grp .gm{margin-left:14px;color:rgba(255,255,255,.78);font-size:12px}
 tr.grp .gm b{color:var(--orange-2)}
 .atv{min-width:260px;max-width:440px}
 .atv .pai{display:block;font-size:11px;color:var(--muted);line-height:1.3}
+.estr{min-width:220px;max-width:360px;font-size:11.5px;line-height:1.4;color:var(--ink-2)}
+.estr .sep{color:var(--orange);font-weight:700;margin:0 4px}
+.estr .lv:last-child{color:var(--ink);font-weight:600}
 .atv .wbs{font-size:10.5px;color:var(--muted)}
 .emp{font-weight:650}
 .st{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-weight:600;font-size:11.5px;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
@@ -268,7 +271,7 @@ var DIM = {}; DIMS.forEach(function(d){ DIM[d.key] = d; });
 
 var LINHAS = D.linhas.map(function(r, i){
   r._i = i;
-  r._busca = norm([r.emp, r.pai, r.atv, r.wbs, r.area, r.disc, r.sup, r.resp, r.equipe, r.causa, r.obs].join(' '));
+  r._busca = norm([r.emp, (r.estr || []).join(' '), r.pai, r.atv, r.wbs, r.area, r.disc, r.sup, r.resp, r.equipe, r.causa, r.obs].join(' '));
   return r;
 });
 
@@ -317,7 +320,7 @@ function shell(){
     + '</div></header>'
     + '<section class="fbar" id="fbar"><div class="fbar-row">'
     +   DIMS.map(function(d){ return '<div class="fgrp" data-dim="' + d.key + '"><label>' + esc(d.label) + '</label><button type="button" class="fsel" data-dim="' + d.key + '"><span></span><i>▼</i></button></div>'; }).join('')
-    +   '<div class="fgrp fsearch no-print"><label>Buscar atividade</label><input id="q" type="search" placeholder="Atividade, WBS, responsável, justificativa…"></div>'
+    +   '<div class="fgrp fsearch no-print"><label>Buscar atividade</label><input id="q" type="search" placeholder="Atividade, estrutura, WBS, responsável…"></div>'
     +   '<button type="button" class="fclear no-print" id="b-clr">Limpar filtros</button>'
     + '</div><div class="fchips" id="chips"></div></section>'
     + '<div class="kstrip" id="kpis"></div>'
@@ -459,7 +462,8 @@ function renderDist(){
 
 var COLS = [
   { k:'emp',  t:'Empresa',       v:function(r){ return r.emp || ''; } },
-  { k:'atv',  t:'Atividade',     v:function(r){ return (r.pai ? r.pai + ' · ' : '') + (r.atv || ''); } },
+  { k:'estr', t:'Estrutura da Atividade', v:function(r){ return (r.estr && r.estr.length ? r.estr : (r.pai ? [r.pai] : [])).join(' › '); } },
+  { k:'atv',  t:'Atividade',     v:function(r){ return r.atv || ''; } },
   { k:'area', t:'Área',          v:function(r){ return r.area || ''; } },
   { k:'disc', t:'Disciplina',    v:function(r){ return r.disc || ''; } },
   { k:'sup',  t:'Supervisor',    v:function(r){ return r.sup || ''; } },
@@ -484,6 +488,11 @@ function renderHead(){
     renderTabela();
   }; });
 }
+function estrHtml(r){
+  var niveis = (r.estr && r.estr.length) ? r.estr : (r.pai ? [r.pai] : []);
+  if(!niveis.length) return '<span class="muted">—</span>';
+  return niveis.map(function(n){ return '<span class="lv">' + esc(n) + '</span>'; }).join('<span class="sep">›</span>');
+}
 function linha(r){
   var s = ST[r.st] || ST.programada;
   var dias = '';
@@ -496,7 +505,8 @@ function linha(r){
   var abaixo = r.prev != null && r.real != null && r.real < r.prev;
   return '<tr class="row">'
     + '<td class="emp">' + esc(r.emp || '—') + '</td>'
-    + '<td class="atv">' + (r.pai ? '<span class="pai">' + esc(r.pai) + '</span>' : '') + esc(r.atv || '—') + (r.wbs ? ' <span class="wbs">WBS ' + esc(r.wbs) + '</span>' : '') + '</td>'
+    + '<td class="estr">' + estrHtml(r) + '</td>'
+    + '<td class="atv">' + esc(r.atv || '—') + (r.wbs ? ' <span class="wbs">WBS ' + esc(r.wbs) + '</span>' : '') + '</td>'
     + '<td>' + esc(r.area || '—') + '</td>'
     + '<td>' + esc(r.disc || '—') + '</td>'
     + '<td>' + esc(r.sup || '—') + '</td>'

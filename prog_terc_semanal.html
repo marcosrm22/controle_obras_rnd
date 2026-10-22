@@ -1363,7 +1363,17 @@ $('btnXls').addEventListener('click', function(){
    Disciplina, no visual do OnePage Marcos de Entrega. O layout mora em
    prog_terc_semanal_tpl.html; aqui só montamos o JSON e trocamos o marcador.
    Supervisor = val_cronogramas.supervisor do contrato vinculado ao card; card
-   sem vínculo herda o supervisor da empresa quando ela tem um só. */
+   sem vínculo herda o supervisor da empresa quando ela tem um só.
+   Estrutura da Atividade (Fase 3.24): mesma árvore WBS do Excel "Gerar
+   Programação", mas só os níveis ACIMA da tarefa (a tarefa vai na coluna
+   Atividade), como lista — o HTML desenha os níveis separados por ›. */
+function estruturaPaisDoCard(c, porWbsCache){
+  var a = ativDoCard(c);
+  var wbs = c.terceira_wbs || (a ? a.wbs : '');
+  var porWbs = c.cronograma_id != null ? porWbsCache[c.cronograma_id] : null;
+  if(!porWbs || !wbs) return (a && a.pai) ? [a.pai] : [];   // sem árvore: cai no pai de 1 nível, igual à tela
+  return L.wbsAncestros(wbs, porWbs).map(function(t){ return t.name || ''; }).filter(Boolean);
+}
 function supervisorDoCard(c){
   var cs = L.contratosCache() || [];
   if(c.cronograma_id != null){
@@ -1399,18 +1409,19 @@ $('btnHtml').addEventListener('click', function(){
   var btn = this; btn.disabled = true;
   Promise.all([
     carregarAcompSemana(BASE),
+    carregarEstruturas(list),
     fetch('prog_terc_semanal_tpl.html', { cache:'no-cache' }).then(function(r){
       if(!r.ok) throw new Error('modelo prog_terc_semanal_tpl.html não encontrado (' + r.status + ')');
       return r.text();
     })
   ]).then(function(rr){
-    var tpl = rr[1];
+    var porWbsCache = rr[1], tpl = rr[2];
     var dias = []; for(var i=0;i<7;i++) dias.push(L.addDays(BASE, i));
     var linhas = list.map(function(c){
       var a = ativDoCard(c), ac = acompDoCard(c);
       var num = function(v){ return (v === '' || v == null || isNaN(Number(v))) ? null : Number(v); };
       return {
-        emp: c.empresa || '', pai: (a && a.pai) || '', atv: c.descricao || (a ? a.nome : '') || '',
+        emp: c.empresa || '', pai: (a && a.pai) || '', estr: estruturaPaisDoCard(c, porWbsCache), atv: c.descricao || (a ? a.nome : '') || '',
         wbs: c.terceira_wbs || '', area: c.area || '', disc: c.disciplina || '',
         sup: supervisorDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
         fase: c.fase ? (FASE_LABELS[c.fase] || c.fase) : '', cwa: c.cwa || '',
