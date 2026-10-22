@@ -132,6 +132,7 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
     <button class="btn" id="btnGerarRel" title="PDF/Excel com os % obtidos e as justificativas de desvio — o resultado da semana">📄 Gerar Relatório da Programação</button>
     <button class="btn" id="btnGrade" title="Grade em branco, uma coluna Previsto/Realizado por dia (Qui–Qua), para preencher à mão em campo">🗓 Grade em branco (Qui–Qua)</button>
     <button class="btn" id="btnXls" title="Dump completo de todos os campos, para quem quiser conferir tudo">⤓ Excel (dados brutos)</button>
+    <button class="btn" id="btnHtml" title="HTML autocontido com a programação da semana, filtrável por Área, Empresa, Supervisor Responsável e Disciplina — pra mandar por e-mail/WhatsApp ou abrir offline">🌐 HTML filtrável</button>
   </div>
 
   <div class="notice src-note">
@@ -1354,6 +1355,95 @@ $('btnXls').addEventListener('click', function(){
           {wch:10},{wch:10},{wch:11},{wch:11},{wch:7},{wch:14},{wch:14},{wch:26},{wch:14},{wch:30},
           {wch:9},{wch:16},{wch:18}] }],
     'ProgTerc_semana_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
+});
+
+/* ---- "🌐 HTML filtrável" (Fase 3.23) ----
+   Gera um HTML autocontido (imagens da marca embutidas, sem Supabase) com a
+   programação da semana e filtros por Área, Empresa, Supervisor Responsável e
+   Disciplina, no visual do OnePage Marcos de Entrega. O layout mora em
+   prog_terc_semanal_tpl.html; aqui só montamos o JSON e trocamos o marcador.
+   Supervisor = val_cronogramas.supervisor do contrato vinculado ao card; card
+   sem vínculo herda o supervisor da empresa quando ela tem um só. */
+function supervisorDoCard(c){
+  var cs = L.contratosCache() || [];
+  if(c.cronograma_id != null){
+    var k = cs.filter(function(x){ return x.id === c.cronograma_id; })[0];
+    if(k && k.supervisor) return String(k.supervisor).trim();
+  }
+  var emp = L.deacc(c.empresa), sups = [];
+  cs.forEach(function(x){
+    var s = x.supervisor ? String(x.supervisor).trim() : '';
+    if(s && L.deacc(x.empresa) === emp && sups.indexOf(s) < 0) sups.push(s);
+  });
+  return sups.length === 1 ? sups[0] : '';
+}
+function recorteDescricao(){
+  var partes = [];
+  if($('fFase').value) partes.push('Fase: ' + $('fFase').selectedOptions[0].textContent);
+  if($('fCwa').value) partes.push('CWA: ' + $('fCwa').selectedOptions[0].textContent);
+  return partes;
+}
+$('btnHtml').addEventListener('click', function(){
+  // semana com Fase/CWA da barra, mas SEM os filtros de coluna da tabela
+  var ff = $('fFase').value, fc = $('fCwa').value;
+  var todas = CARDS.filter(function(c){
+    return String(c.semana).slice(0,10) === BASE && (!ff || c.fase === ff) && (!fc || c.cwa === fc);
+  });
+  var list = listaAtual();
+  var temFiltroCol = Object.keys(COL_FILTERS).some(function(k){ return COL_FILTERS[k] != null; });
+  if(temFiltroCol && list.length !== todas.length){
+    // filtros de coluna ativos: pergunta se o HTML sai só com o recorte ou com a semana toda
+    if(!confirm('Há filtros de coluna ativos na tabela.\n\nOK = gerar só as ' + list.length + ' linhas filtradas\nCancelar = gerar a semana inteira (' + todas.length + ' linhas)')) list = todas;
+  }
+  if(!list.length) return L.toast('Nada pra gerar nesta semana.','warn');
+  var btn = this; btn.disabled = true;
+  Promise.all([
+    carregarAcompSemana(BASE),
+    fetch('prog_terc_semanal_tpl.html', { cache:'no-cache' }).then(function(r){
+      if(!r.ok) throw new Error('modelo prog_terc_semanal_tpl.html não encontrado (' + r.status + ')');
+      return r.text();
+    })
+  ]).then(function(rr){
+    var tpl = rr[1];
+    var dias = []; for(var i=0;i<7;i++) dias.push(L.addDays(BASE, i));
+    var linhas = list.map(function(c){
+      var a = ativDoCard(c), ac = acompDoCard(c);
+      var num = function(v){ return (v === '' || v == null || isNaN(Number(v))) ? null : Number(v); };
+      return {
+        emp: c.empresa || '', pai: (a && a.pai) || '', atv: c.descricao || (a ? a.nome : '') || '',
+        wbs: c.terceira_wbs || '', area: c.area || '', disc: c.disciplina || '',
+        sup: supervisorDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
+        fase: c.fase ? (FASE_LABELS[c.fase] || c.fase) : '', cwa: c.cwa || '',
+        qp: num(c.qtd_prog), qr: num(c.qtd_real),
+        prev: (function(){ var p = pctPrevistoDoCard(c); return p == null ? null : Math.round(p * 10) / 10; })(),
+        real: num(c.pct_realizado),
+        st: c.coluna || 'programada', causa: c.causa || '', obs: c.obs || '', val: !!c.validado,
+        acomp: dias.map(function(d){ return ac[d] ? ac[d].situacao : null; }),
+        restr: restricoesAcompDoCard(c).map(function(r){ return { d: String(r.data).slice(0,10), j: r.justificativa || '' }; })
+      };
+    });
+    var recorte = recorteDescricao();
+    if(list.length !== todas.length) recorte.push(list.length + ' de ' + todas.length + ' cards da semana');
+    var dados = {
+      versao: 1, unidade: L.unidadeNome(), semana: L.weekLabel(BASE),
+      semanaIni: BASE, semanaFim: L.addDays(BASE, 6), dias: dias,
+      geradoEm: L.fmtTS(new Date().toISOString()), geradoPor: L.userNome(),
+      recorte: recorte.length ? 'Recorte exportado da tela: ' + recorte.join(' · ') + '. Gerado por ' + L.userNome() + '.' : 'Gerado por ' + L.userNome() + '.',
+      linhas: linhas
+    };
+    // "</" escapado pra nenhum texto de justificativa fechar a <script> do JSON
+    var json = JSON.stringify(dados).replace(/</g, '\\u003c');
+    if(tpl.indexOf('__PROG_DADOS__') < 0) throw new Error('modelo sem o marcador __PROG_DADOS__');
+    var html = tpl.split('__PROG_DADOS__').join(json);
+    var blob = new Blob([html], { type:'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob), lk = document.createElement('a');
+    lk.href = url; lk.download = 'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.html';
+    document.body.appendChild(lk); lk.click(); lk.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    L.toast('HTML gerado com ' + linhas.length + ' atividades.','ok');
+  }).catch(function(e){
+    L.toast('Erro ao gerar HTML: ' + e.message,'warn');
+  }).then(function(){ btn.disabled = false; });
 });
 
 /* ================= EVENTOS ================= */
