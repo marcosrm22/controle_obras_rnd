@@ -553,13 +553,16 @@
   function refIni(t) { return t.lbStart  || t.start  || null; }
   function refFim(t) { return t.lbFinish || t.finish || null; }
 
-  /* classificação de execução da atividade-folha */
+  /* classificação de execução da atividade-folha
+     Só o % mapeado na importação (E) decide "concluída". O Término real
+     (ActualFinish) NÃO conta sozinho: o MS Project o preenche quando o
+     % concluído de DURAÇÃO chega a 100%, mesmo com o % físico/mapeado abaixo
+     disso — e aí a atividade aparecia como Concluída e sumia dos filtros de
+     pendentes. Término real com E < 100 agora fica como "em execução". */
   function classificar(t) {
-    var hoje = todayISO();
     var E = (t.E == null ? (t.pct || 0) : t.E);
-    var concluida = (E >= 100) || !!t.aFinish;
-    if (concluida) return 'concluida';
-    if (t.aStart) return 'execucao';
+    if (E >= 100) return 'concluida';
+    if (t.aStart || t.aFinish || E > 0) return 'execucao';
     return 'planejada';
   }
 
@@ -568,7 +571,7 @@
   function estaAtrasada(t) {
     var hoje = todayISO();
     var E = (t.E == null ? (t.pct || 0) : t.E);
-    if (E >= 100 || t.aFinish) return false;
+    if (E >= 100) return false;   // término real com % < 100 continua podendo atrasar
     var fim = refFim(t), ini = refIni(t);
     if (fim && fim < hoje) return true;
     if (!t.aStart && ini && ini < hoje) return true;
