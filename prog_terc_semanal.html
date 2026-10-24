@@ -128,11 +128,9 @@ tr.linha-desvio td.c-pct{background:var(--gold-soft)}
   </div>
 
   <div class="toolbar no-print">
-    <button class="btn" id="btnGerarProg" title="Excel com o % previsto para o fim da semana e Previsto/Realizado por dia (Qui–Qua), por atividade — o compromisso da semana">📋 Gerar Programação</button>
-    <button class="btn" id="btnGerarRel" title="PDF/Excel com os % obtidos e as justificativas de desvio — o resultado da semana">📄 Gerar Relatório da Programação</button>
+    <button class="btn solid" id="btnRelatorio" title="HTML autocontido com 3 abas — Programação da Semana, Semana Anterior e Restrições — e painel de indicadores clicáveis (programadas, executadas, iniciadas, concluídas, por supervisor e por disciplina). Pra mandar por e-mail/WhatsApp ou abrir offline">📊 Gerar Relatório</button>
     <button class="btn" id="btnGrade" title="Grade em branco, uma coluna Previsto/Realizado por dia (Qui–Qua), para preencher à mão em campo">🗓 Grade em branco (Qui–Qua)</button>
     <button class="btn" id="btnXls" title="Dump completo de todos os campos, para quem quiser conferir tudo">⤓ Excel (dados brutos)</button>
-    <button class="btn" id="btnHtml" title="HTML autocontido com a programação da semana, filtrável por Área, Empresa, Supervisor Responsável e Disciplina — pra mandar por e-mail/WhatsApp ou abrir offline">🌐 HTML filtrável</button>
   </div>
 
   <div class="notice src-note">
@@ -1233,75 +1231,9 @@ $('mDel').addEventListener('click', function(){
 L.wireModal('mC');
 
 /* ================= RELATÓRIOS ================= */
-/* "Gerar Programação": além do WBS/atividade de sempre, exporta a Estrutura da
-   Atividade (árvore completa até o nível acima, sem limite de níveis — Fase 3.12)
-   e a Atividade (só o nível final) em colunas separadas, mais um par de colunas
-   Previsto/Realizado por dia (Qui-Qua, mesmo recorte da semana). O Previsto por
-   dia é calculado (L.pctPrevistoEm na data do dia, igual ao % Previsto da semana
-   inteira) e fica em branco só quando a atividade não tem início/término no
-   cronograma pra interpolar. O Realizado por dia não existe em nenhum lugar do
-   sistema (só o acumulado da semana, em qtd_real/pct_realizado) — fica sempre em
-   branco, como célula pra preencher à mão (mesmo papel que a antiga grade
-   "Qui-Qua" cumpria à parte; agora as duas coisas saem juntas neste relatório). */
-$('btnGerarProg').addEventListener('click', function(){
-  var list = listaAtual();
-  if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
-  Promise.all([carregarEstruturas(list), carregarAcompSemana(BASE)]).then(function(rr){
-    var porWbsCache = rr[0];
-    var dow = ['Qui','Sex','Sáb','Dom','Seg','Ter','Qua'];
-    var head = ['Empresa','Estrutura da Atividade','Atividade','WBS','Área','Disciplina','Un',
-      'Qtd Programada','% Previsto (fim da semana)'];
-    for(var i=0;i<7;i++){
-      var dh = L.addDays(BASE, i);
-      head.push(dow[i]+' '+L.fmtBr(dh).slice(0,5)+' · Previsto');
-      head.push(dow[i]+' '+L.fmtBr(dh).slice(0,5)+' · Realizado');
-    }
-    var aoa = [head];
-    list.forEach(function(c){
-      var a = ativDoCard(c);
-      var row = [c.empresa, estruturaCompletaDoCard(c, porWbsCache), c.descricao || (a?a.nome:'') || '',
-        c.terceira_wbs||'', c.area||'', c.disciplina||'', c.un||'',
-        c.qtd_prog==null?'':Number(c.qtd_prog),
-        (function(){ var p = pctPrevistoDoCard(c); return p==null?'':p/100; })()];
-      for(var i=0;i<7;i++){
-        var pv = a ? L.pctPrevistoEm(a, L.addDays(BASE, i)) : null;
-        row.push(pv==null?'':pv/100);
-        // Realizado por dia: vem do Acompanhamento Diário (Fase 3.21); dia não acompanhado fica em branco
-        var ra = acompDoCard(c)[L.addDays(BASE, i)];
-        row.push(ra ? ACOMP_TXT[ra.situacao] + (ra.situacao === 'restricao' && ra.justificativa ? ': ' + ra.justificativa : '') : '');
-      }
-      aoa.push(row);
-    });
-    var cols = [{wch:20},{wch:55},{wch:30},{wch:12},{wch:12},{wch:14},{wch:7},{wch:14},{wch:16}];
-    for(var i=0;i<7;i++){ cols.push({wch:11}); cols.push({wch:13}); }
-    L.exportXlsx([{ nome:'Programação '+L.weekLabel(BASE), aoa:aoa, cols:cols }],
-      'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
-  });
-});
-
-$('btnGerarRel').addEventListener('click', function(){
-  var list = listaAtual();
-  if(!list.length) return L.toast('Nada pra gerar com os filtros atuais.','warn');
-  if(!ACOMP_SEM[BASE]){ carregarAcompSemana(BASE).then(function(){ if(ACOMP_SEM[BASE]) $('btnGerarRel').click(); }); return; }
-  var colLabel = {}; L.KB_COLS.forEach(function(k){ colLabel[k.key] = k.label; });
-  var head = ['Empresa','Atividade','WBS','Área','Disciplina','Status','Qtd Prog','Qtd Real',
-    '% Previsto','% Realizado','Causa do desvio','Justificativa','Restrição sinalizada (acomp. diário)','Validado','Validado em'];
-  var aoa = [head];
-  list.forEach(function(c){
-    var p = pctPrevistoDoCard(c);
-    aoa.push([c.empresa, nomeTextoPai(c), c.terceira_wbs||'', c.area||'', c.disciplina||'',
-      colLabel[c.coluna]||c.coluna,
-      c.qtd_prog==null?'':Number(c.qtd_prog), c.qtd_real==null?'':Number(c.qtd_real),
-      p==null?'':p/100, c.pct_realizado==null?'':c.pct_realizado/100,
-      c.causa||'', c.obs||'',
-      restricoesAcompDoCard(c).map(function(r){ return L.fmtBr(r.data).slice(0,5)+': '+(r.justificativa||''); }).join(' | '),
-      c.validado?'Sim':'Não', L.fmtTS(c.validado_em)]);
-  });
-  L.exportXlsx([{ nome:'Relatório '+L.weekLabel(BASE), aoa:aoa,
-    cols:[{wch:20},{wch:46},{wch:12},{wch:12},{wch:14},{wch:14},{wch:10},{wch:10},
-          {wch:11},{wch:11},{wch:26},{wch:30},{wch:40},{wch:9},{wch:16}] }],
-    'ProgTerc_relatorio_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
-});
+/* Fase 3.25: "📋 Gerar Programação", "📄 Gerar Relatório da Programação" e
+   "🌐 HTML filtrável" foram unificados no botão "📊 Gerar Relatório" (ver mais
+   abaixo). Ficaram só a Grade em branco e o Excel de dados brutos. */
 
 /* grade exportável com uma coluna de Previsto e outra de Realizado por dia da semana,
    semana começando na quinta-feira — células em branco pra preencher à mão depois de impressa.
@@ -1357,7 +1289,10 @@ $('btnXls').addEventListener('click', function(){
     'ProgTerc_semana_' + L.weekLabel(BASE) + '_' + L.stamp() + '.xlsx');
 });
 
-/* ---- "🌐 HTML filtrável" (Fase 3.23) ----
+/* ---- "📊 Gerar Relatório" (Fase 3.25 — antes "🌐 HTML filtrável", Fase 3.23) ----
+   Unifica os antigos Gerar Programação / Gerar Relatório da Programação / HTML
+   filtrável num HTML só, com abas Programação da Semana / Semana Anterior /
+   Restrições. Abaixo, o texto original da Fase 3.23 sobre o modelo: 
    Gera um HTML autocontido (imagens da marca embutidas, sem Supabase) com a
    programação da semana e filtros por Área, Empresa, Supervisor Responsável e
    Disciplina, no visual do OnePage Marcos de Entrega. O layout mora em
@@ -1393,54 +1328,106 @@ function recorteDescricao(){
   if($('fCwa').value) partes.push('CWA: ' + $('fCwa').selectedOptions[0].textContent);
   return partes;
 }
-$('btnHtml').addEventListener('click', function(){
+/* % previsto até o fim de uma semana qualquer (pctPrevistoDoCard é fixo em BASE
+   e é usado em .map(), por isso não ganhou parâmetro). */
+function pctPrevistoNaSemana(c, wk){
+  var a = ativDoCard(c);
+  if(!a) return null;
+  return L.pctPrevistoEm(a, L.addDays(wk, 6));
+}
+function linhaRelatorio(c, wk, porWbsCache){
+  var a = ativDoCard(c), ac = acompDoCard(c);
+  var num = function(v){ return (v === '' || v == null || isNaN(Number(v))) ? null : Number(v); };
+  var p = pctPrevistoNaSemana(c, wk);
+  var dias = []; for(var i=0;i<7;i++) dias.push(L.addDays(wk, i));
+  return {
+    emp: c.empresa || '', pai: (a && a.pai) || '', estr: estruturaPaisDoCard(c, porWbsCache), atv: c.descricao || (a ? a.nome : '') || '',
+    wbs: c.terceira_wbs || '', area: c.area || '', disc: c.disciplina || '',
+    sup: supervisorDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
+    fase: c.fase ? (FASE_LABELS[c.fase] || c.fase) : '', cwa: c.cwa || '',
+    qp: num(c.qtd_prog), qr: num(c.qtd_real),
+    prev: p == null ? null : Math.round(p * 10) / 10,
+    real: num(c.pct_realizado),
+    st: c.coluna || 'programada', causa: c.causa || '', obs: c.obs || '', val: !!c.validado,
+    acomp: dias.map(function(d){ return ac[d] ? ac[d].situacao : null; }),
+    restr: restricoesAcompDoCard(c).map(function(r){ return { d: String(r.data).slice(0,10), j: r.justificativa || '' }; })
+  };
+}
+function semanaRelatorio(wk, list, porWbsCache){
+  var dias = []; for(var i=0;i<7;i++) dias.push(L.addDays(wk, i));
+  return { semana: L.weekLabel(wk), ini: wk, fim: L.addDays(wk, 6), dias: dias,
+    linhas: list.map(function(c){ return linhaRelatorio(c, wk, porWbsCache); }) };
+}
+/* Restrições (prog_terc_restricoes) que entram no relatório: todas em aberto,
+   as removidas/canceladas a partir do início da semana anterior e qualquer uma
+   ligada a atividade programada numa das duas semanas. `prog` diz em quais
+   semanas a atividade impactada foi programada. */
+function restricoesRelatorio(rows, listAtual, listAnt, wkAnt){
+  var aidSem = {};
+  [[listAtual, L.weekLabel(BASE)], [listAnt, L.weekLabel(wkAnt)]].forEach(function(par){
+    par[0].forEach(function(c){
+      if(c.cronograma_id == null || c.terceira_uid == null) return;
+      var k = c.cronograma_id + '::' + c.terceira_uid;
+      (aidSem[k] = aidSem[k] || []);
+      if(aidSem[k].indexOf(par[1]) < 0) aidSem[k].push(par[1]);
+    });
+  });
+  var d10 = function(v){ return v ? String(v).slice(0,10) : ''; };
+  return (rows || []).map(function(r){
+    var k = (r.cronograma_id != null && r.terceira_uid != null) ? r.cronograma_id + '::' + r.terceira_uid : null;
+    var a = k ? ATIV.filter(function(x){ return x.cronograma_id === r.cronograma_id && String(x.uid) === String(r.terceira_uid); })[0] : null;
+    return {
+      num: r.num, desc: r.descricao || '', cat: r.categoria || '', status: r.status || 'Aberta',
+      area: r.area || (a ? a.area : '') || '', emp: r.empresa || (a ? a.empresa : '') || '',
+      atv: a ? ((a.pai ? a.pai + ' · ' : '') + a.nome) : (r.terceira_nome || ''), wbs: r.terceira_wbs || (a ? a.wbs : '') || '',
+      resp: r.responsavel || '', setor: r.setor || '',
+      ident: d10(r.data_identificacao), nec: d10(r.data_necessidade), prom: d10(r.data_prometida), rem: d10(r.data_remocao),
+      impacto: r.impacto || '', acao: r.acao || '', obs: r.obs || '',
+      prog: k ? (aidSem[k] || []) : []
+    };
+  }).filter(function(r){
+    var ab = r.status !== 'Removida' && r.status !== 'Cancelada';
+    return ab || r.prog.length || (r.rem && r.rem >= wkAnt);
+  });
+}
+$('btnRelatorio').addEventListener('click', function(){
   // semana com Fase/CWA da barra, mas SEM os filtros de coluna da tabela
   var ff = $('fFase').value, fc = $('fCwa').value;
-  var todas = CARDS.filter(function(c){
-    return String(c.semana).slice(0,10) === BASE && (!ff || c.fase === ff) && (!fc || c.cwa === fc);
-  });
+  var daSemanaBarra = function(wk){
+    return CARDS.filter(function(c){
+      return String(c.semana).slice(0,10) === wk && (!ff || c.fase === ff) && (!fc || c.cwa === fc);
+    });
+  };
+  var wkAnt = L.addDays(BASE, -7);
+  var todas = daSemanaBarra(BASE), listAnt = daSemanaBarra(wkAnt);
   var list = listaAtual();
   var temFiltroCol = Object.keys(COL_FILTERS).some(function(k){ return COL_FILTERS[k] != null; });
   if(temFiltroCol && list.length !== todas.length){
-    // filtros de coluna ativos: pergunta se o HTML sai só com o recorte ou com a semana toda
-    if(!confirm('Há filtros de coluna ativos na tabela.\n\nOK = gerar só as ' + list.length + ' linhas filtradas\nCancelar = gerar a semana inteira (' + todas.length + ' linhas)')) list = todas;
+    // filtros de coluna ativos: pergunta se a aba da semana sai só com o recorte ou com a semana toda
+    if(!confirm('Há filtros de coluna ativos na tabela.\n\nOK = a aba da semana sai só com as ' + list.length + ' linhas filtradas\nCancelar = sai a semana inteira (' + todas.length + ' linhas)\n\nA aba "Semana Anterior" sai sempre completa.')) list = todas;
   }
-  if(!list.length) return L.toast('Nada pra gerar nesta semana.','warn');
+  if(!list.length && !listAnt.length) return L.toast('Nada pra gerar nesta semana nem na anterior.','warn');
   var btn = this; btn.disabled = true;
   Promise.all([
     carregarAcompSemana(BASE),
-    carregarEstruturas(list),
+    carregarAcompSemana(wkAnt),
+    carregarEstruturas(list.concat(listAnt)),
     fetch('prog_terc_semanal_tpl.html', { cache:'no-cache' }).then(function(r){
       if(!r.ok) throw new Error('modelo prog_terc_semanal_tpl.html não encontrado (' + r.status + ')');
       return r.text();
-    })
+    }),
+    L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=*&ativo=eq.true&order=num.asc')).catch(function(){ return []; })
   ]).then(function(rr){
-    var porWbsCache = rr[1], tpl = rr[2];
-    var dias = []; for(var i=0;i<7;i++) dias.push(L.addDays(BASE, i));
-    var linhas = list.map(function(c){
-      var a = ativDoCard(c), ac = acompDoCard(c);
-      var num = function(v){ return (v === '' || v == null || isNaN(Number(v))) ? null : Number(v); };
-      return {
-        emp: c.empresa || '', pai: (a && a.pai) || '', estr: estruturaPaisDoCard(c, porWbsCache), atv: c.descricao || (a ? a.nome : '') || '',
-        wbs: c.terceira_wbs || '', area: c.area || '', disc: c.disciplina || '',
-        sup: supervisorDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
-        fase: c.fase ? (FASE_LABELS[c.fase] || c.fase) : '', cwa: c.cwa || '',
-        qp: num(c.qtd_prog), qr: num(c.qtd_real),
-        prev: (function(){ var p = pctPrevistoDoCard(c); return p == null ? null : Math.round(p * 10) / 10; })(),
-        real: num(c.pct_realizado),
-        st: c.coluna || 'programada', causa: c.causa || '', obs: c.obs || '', val: !!c.validado,
-        acomp: dias.map(function(d){ return ac[d] ? ac[d].situacao : null; }),
-        restr: restricoesAcompDoCard(c).map(function(r){ return { d: String(r.data).slice(0,10), j: r.justificativa || '' }; })
-      };
-    });
+    var porWbsCache = rr[2], tpl = rr[3], restrRows = rr[4];
     var recorte = recorteDescricao();
-    if(list.length !== todas.length) recorte.push(list.length + ' de ' + todas.length + ' cards da semana');
+    if(list.length !== todas.length) recorte.push('aba da semana com ' + list.length + ' de ' + todas.length + ' cards');
     var dados = {
-      versao: 1, unidade: L.unidadeNome(), semana: L.weekLabel(BASE),
-      semanaIni: BASE, semanaFim: L.addDays(BASE, 6), dias: dias,
+      versao: 2, unidade: L.unidadeNome(), hoje: L.todayISO(),
       geradoEm: L.fmtTS(new Date().toISOString()), geradoPor: L.userNome(),
       recorte: recorte.length ? 'Recorte exportado da tela: ' + recorte.join(' · ') + '. Gerado por ' + L.userNome() + '.' : 'Gerado por ' + L.userNome() + '.',
-      linhas: linhas
+      atual: semanaRelatorio(BASE, list, porWbsCache),
+      anterior: semanaRelatorio(wkAnt, listAnt, porWbsCache),
+      restricoes: restricoesRelatorio(restrRows, list, listAnt, wkAnt)
     };
     // "</" escapado pra nenhum texto de justificativa fechar a <script> do JSON
     var json = JSON.stringify(dados).replace(/</g, '\\u003c');
@@ -1448,12 +1435,12 @@ $('btnHtml').addEventListener('click', function(){
     var html = tpl.split('__PROG_DADOS__').join(json);
     var blob = new Blob([html], { type:'text/html;charset=utf-8' });
     var url = URL.createObjectURL(blob), lk = document.createElement('a');
-    lk.href = url; lk.download = 'ProgTerc_programacao_' + L.weekLabel(BASE) + '_' + L.stamp() + '.html';
+    lk.href = url; lk.download = 'ProgTerc_relatorio_' + L.weekLabel(BASE) + '_' + L.stamp() + '.html';
     document.body.appendChild(lk); lk.click(); lk.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-    L.toast('HTML gerado com ' + linhas.length + ' atividades.','ok');
+    L.toast('Relatório gerado: ' + dados.atual.linhas.length + ' atividades na semana, ' + dados.anterior.linhas.length + ' na anterior, ' + dados.restricoes.length + ' restrições.','ok');
   }).catch(function(e){
-    L.toast('Erro ao gerar HTML: ' + e.message,'warn');
+    L.toast('Erro ao gerar relatório: ' + e.message,'warn');
   }).then(function(){ btn.disabled = false; });
 });
 
