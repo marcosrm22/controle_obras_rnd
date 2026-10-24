@@ -331,6 +331,33 @@ table.mapa td.col-acoes{white-space:nowrap}
 .link-task-row .ltw{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--text-mute)}
 .link-task-row.is-sum .ltn::before{content:"Σ ";color:var(--blue)}
 .link-empty{padding:30px;text-align:center;color:var(--text-mute);font-size:12px}
+/* ================= MATRIZ DE RESPONSABILIDADES (Fase 3.26) ================= */
+table.mapa.mz{min-width:1180px}
+table.mapa.mz tbody td{vertical-align:top}
+table.mapa.mz tr.mz-novo td{border-top:2px solid #c9d2e0}
+table.mapa.mz tr.mz-semarea td.mz-area-td{background:var(--orange-soft)}
+table.mapa.mz .mz-chk{width:30px;text-align:center}
+table.mapa.mz .mz-chk input{width:15px;height:15px;cursor:pointer}
+.mz-emp{font-weight:700;white-space:nowrap}
+.mz-rep{color:var(--text-mute);font-weight:500}
+.mz-ctr{font-weight:600;max-width:200px}
+.mz-sub{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.mz-atv{min-width:260px;max-width:380px}
+.mz-trilha{font-size:10px;color:var(--text-mute);line-height:1.3;margin-bottom:2px}
+.mz-nome{font-weight:600}
+.mz-wbs{font-size:9.5px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.mz-in{font-family:inherit;font-size:11.5px;border:1px solid var(--border);padding:5px 7px;background:#fff;width:100%;min-width:140px;outline:none}
+.mz-in:focus{border-color:var(--blue)}
+.mz-in::placeholder{color:#9aa4b3;font-style:italic}
+select.mz-area{min-width:210px;max-width:260px}
+select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
+.mz-herd{color:#9aa4b3;font-style:italic}
+.mz-foot{font-size:11px;color:var(--text-mute);margin-top:8px}
+.mz-bulk{position:sticky;bottom:12px;z-index:30;margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--blue-dark);color:#fff;padding:10px 12px;box-shadow:var(--shadow-lg);border-top:3px solid var(--gold)}
+.mz-bulk select,.mz-bulk input:not([type=checkbox]){font-family:inherit;font-size:12px;border:1px solid transparent;padding:6px 9px;background:#fff;color:var(--text)}
+.mz-b-n{font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-right:4px}
+.mz-b-f{display:inline-flex;align-items:center;gap:4px}
+.mz-b-f label{font-size:10px;display:inline-flex;align-items:center;gap:3px;opacity:.85;cursor:pointer}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -372,6 +399,7 @@ table.mapa td.col-acoes{white-space:nowrap}
     <button class="tab active" data-view="historico" onclick="switchView('historico')">Histórico de Cronogramas</button>
     <button class="tab" data-view="analise" onclick="switchView('analise')">Nova Análise / Subir Revisão</button>
     <button class="tab" data-view="mapa" onclick="switchView('mapa')">Mapa Semanal</button>
+    <button class="tab" data-view="matriz" onclick="switchView('matriz')">Matriz de Responsabilidades</button>
   </div>
 
   <!-- ============ VIEW: HISTÓRICO ============ -->
@@ -619,6 +647,55 @@ table.mapa td.col-acoes{white-space:nowrap}
     </div>
 
     <div id="mapa-content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+  </section>
+
+  <!-- ============ VIEW: MATRIZ DE RESPONSABILIDADES (Fase 3.26) ============ -->
+  <section class="view" id="view-matriz">
+    <div class="notice no-print">
+      Uma linha por atividade de <b>3º nível</b> do cronograma de cada contrato do Histórico (revisão mais recente com detalhe de tarefas).
+      Defina a <b>Área</b> (lista fixa de CWAs do <a href="cron_geral.html">Cronograma Geral</a>) e os responsáveis de cada trecho —
+      campo de pessoa vazio herda o responsável cadastrado no contrato (aparece em cinza). Salva sozinho ao sair do campo.
+      Marque várias linhas para preencher em lote.
+    </div>
+    <div id="mz-setup-notice" class="notice warn" style="display:none">
+      <b>Tabela ainda não criada.</b> Rode o script <code>supabase_matriz_responsabilidades.sql</code> no SQL Editor do Supabase para poder gravar a matriz. Até lá, a tela só mostra os níveis do cronograma e os responsáveis do contrato.
+    </div>
+    <div id="mz-cwa-notice" class="notice warn" style="display:none">
+      <b>Nenhum CWA encontrado no Cronograma Geral desta unidade.</b> Importe o cronograma geral em <a href="cron_geral.html">cron_geral.html</a> para liberar as opções de Área.
+    </div>
+    <div id="mz-semdet-notice" class="notice warn" style="display:none"></div>
+
+    <div class="mapa-kpis" id="mz-kpis"></div>
+
+    <div class="mapa-toolbar no-print">
+      <input id="mz-search" type="search" placeholder="🔎 Empresa, contrato, atividade, WBS, pessoa…" style="min-width:240px;flex:1" oninput="renderMatriz()">
+      <select id="mz-f-status" onchange="mzOnFiltroContrato()">
+        <option value="Ativo" selected>Contratos ativos</option>
+        <option value="Inativo">Contratos inativos</option>
+        <option value="Concluído">Contratos concluídos</option>
+        <option value="">Todos os contratos</option>
+      </select>
+      <select id="mz-f-emp" onchange="mzOnFiltroContrato()"><option value="">Todas as empresas</option></select>
+      <select id="mz-f-area" onchange="renderMatriz()" style="max-width:260px"><option value="">Todas as áreas</option></select>
+      <select id="mz-f-ana" onchange="renderMatriz()"><option value="">Todos os analistas</option></select>
+      <button class="btn ghost" onclick="mzRecarregar()" title="Relê contratos, CWAs, a matriz salva e a revisão mais recente de cada cronograma">🔄 Recarregar</button>
+      <button class="btn gold" onclick="exportMatrizExcel()">⬇ Exportar Excel</button>
+    </div>
+
+    <div id="mz-content"><div class="empty"><div class="big">⏳</div>Carregando…</div></div>
+
+    <div class="mz-bulk no-print" id="mz-bulk" style="display:none">
+      <span class="mz-b-n" id="mz-b-n"></span>
+      <select id="mz-b-area" style="max-width:240px"><option value="">(não alterar)</option></select>
+      <span class="mz-b-f"><input id="mz-b-analista_planejamento" list="dl-mz-analistas" placeholder="Analista"><label title="Apagar (volta a herdar do contrato)"><input type="checkbox" id="mz-b-analista_planejamento-x">limpar</label></span>
+      <span class="mz-b-f"><input id="mz-b-especialista" list="dl-mz-especialistas" placeholder="Especialista"><label title="Apagar (volta a herdar do contrato)"><input type="checkbox" id="mz-b-especialista-x">limpar</label></span>
+      <span class="mz-b-f"><input id="mz-b-supervisor" list="dl-mz-supervisores" placeholder="Supervisor"><label title="Apagar (volta a herdar do contrato)"><input type="checkbox" id="mz-b-supervisor-x">limpar</label></span>
+      <button class="btn green sm" id="mz-b-ok" onclick="mzAplicarLote()">Aplicar às selecionadas</button>
+      <button class="btn ghost sm" onclick="mzLimparSelecao()">Cancelar</button>
+    </div>
+    <datalist id="dl-mz-analistas"></datalist>
+    <datalist id="dl-mz-especialistas"></datalist>
+    <datalist id="dl-mz-supervisores"></datalist>
   </section>
 
 </div><!-- /page -->
@@ -2960,6 +3037,335 @@ function exportMapaExcel(){
   XLSX.writeFile(wb,`Mapa_Semanal_${new Date().toISOString().slice(0,10)}.xlsx`);
   const excluidas=MAPA_LINHAS.length-linhasExport.length;
   toast('Excel exportado ✓ ('+linhasExport.length+' linha(s)'+(excluidas?', '+excluidas+' "A CONTRATAR" excluída(s)':'')+')','ok');
+}
+</script>
+
+<script>
+/* ================================================================
+   MATRIZ DE RESPONSABILIDADES (Fase 3.26)
+   Uma linha por atividade de 3º nível (OutlineLevel 3) da revisão mais
+   recente COM detalhe de cada contrato do Histórico — um contrato pode
+   cobrir várias áreas, e o analista/especialista/supervisor muda por área.
+   Ramos que terminam antes do 3º nível entram pela própria folha.
+   Área: lista fechada = CWAs distintos de cron_geral_atividades (mesma
+   lista do filtro "CWA" da tela cron_geral.html).
+   Pessoas: campo vazio herda o responsável cadastrado no contrato
+   (val_cronogramas) — aparece em cinza/itálico como placeholder.
+   Gravação: val_matriz_resp, chave (unidade, cronograma_id, terceira_uid).
+   ================================================================ */
+const MZ_NIVEL=3;
+const MZ_CAMPOS=[
+  {k:'analista_planejamento', t:'Analista de Planejamento', dl:'dl-analistas'},
+  {k:'especialista',          t:'Especialista',             dl:'dl-especialistas'},
+  {k:'supervisor',            t:'Supervisor',               dl:'dl-supervisores'}
+];
+let MZ_LOADED=false, MZ_DB=true;
+let MZ_CONTRATOS=[], MZ_CWA=[], MZ_RESP={}, MZ_TREE={}, MZ_SEL=new Set();
+let MZ_LOADING=false, MZ_ANA_AREA=[];
+
+function mzKey(cId,uid){ return cId+'::'+uid; }
+function mzDeacc(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
+function mzEscA(s){ return esc(String(s==null?'':s)).replace(/"/g,'&quot;'); }
+function mzUser(){ return sessionStorage.getItem('pco_nome')||sessionStorage.getItem('pco_email')||''; }
+function mzContrato(id){ return MZ_CONTRATOS.find(c=>c.id===id); }
+
+const _switchViewMz=switchView;
+switchView=function(v){
+  _switchViewMz(v);
+  if(v==='matriz' && !MZ_LOADED){ MZ_LOADED=true; initMatriz(); }
+};
+
+async function initMatriz(){
+  $('mz-content').innerHTML='<div class="empty"><div class="big">⏳</div>Carregando contratos, CWAs e matriz…</div>';
+  try{
+    const r=await Promise.all([
+      sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc')),
+      sbGetAll(pcoComUnidade('cron_geral_atividades?select=cwa&cwa=not.is.null&order=id.asc')).catch(()=>[]),
+      sbGetAll(pcoComUnidade('val_matriz_resp?select=*&order=id.asc')).catch(e=>{
+        if(/42P01|PGRST205|does not exist/i.test(e.message)){ MZ_DB=false; return []; }
+        throw e;
+      }),
+      sb('GET',pcoComUnidade('prog_terc_analistas?select=nome&ativo=eq.true&order=nome.asc')).catch(()=>[])
+    ]);
+    MZ_CONTRATOS=r[0]||[];
+    MZ_CWA=[...new Set((r[1]||[]).map(x=>String(x.cwa||'').trim()).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+    MZ_RESP={}; (r[2]||[]).forEach(x=>{ MZ_RESP[mzKey(x.cronograma_id,x.terceira_uid)]=x; });
+    $('mz-setup-notice').style.display=MZ_DB?'none':'';
+    $('mz-cwa-notice').style.display=MZ_CWA.length?'none':'';
+    MZ_ANA_AREA=(r[3]||[]).map(x=>x.nome);
+    mzFillPessoas();
+    mzFillFiltros();
+    await mzCarregarArvores();
+  }catch(e){
+    $('mz-content').innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar a matriz: '+esc(e.message)+'</div>';
+  }
+}
+
+/* datalists de pessoas: o que já está nos contratos + na matriz + analistas cadastrados por área */
+function mzFillPessoas(){
+  const analistasArea=MZ_ANA_AREA;
+  const junta=(campo,extra)=>[...new Set([
+    ...MZ_CONTRATOS.map(c=>c[campo]),
+    ...Object.values(MZ_RESP).map(x=>x[campo]),
+    ...(extra||[])
+  ].map(v=>String(v||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const dl=(id,vals)=>{ const el=$(id); if(el) el.innerHTML=vals.map(x=>`<option value="${mzEscA(x)}">`).join(''); };
+  dl('dl-mz-analistas', junta('analista_planejamento',analistasArea));
+  dl('dl-mz-especialistas', junta('especialista'));
+  dl('dl-mz-supervisores', junta('supervisor'));
+}
+
+function mzFillFiltros(){
+  const sel=(id,first,vals)=>{
+    const el=$(id), cur=el.value;
+    el.innerHTML=first+vals.map(v=>`<option value="${mzEscA(v)}">${esc(v)}</option>`).join('');
+    if(cur && [...el.options].some(o=>o.value===cur)) el.value=cur;
+  };
+  sel('mz-f-emp','<option value="">Todas as empresas</option>',
+    [...new Set(MZ_CONTRATOS.map(c=>c.empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')));
+  sel('mz-f-area','<option value="">Todas as áreas</option><option value="__sem">— sem área definida —</option>',MZ_CWA);
+  sel('mz-b-area','<option value="">(não alterar)</option><option value="__limpar">✕ limpar área</option>',MZ_CWA);
+  const pessoas=new Set();
+  Object.values(MZ_RESP).forEach(x=>x.analista_planejamento&&pessoas.add(x.analista_planejamento));
+  MZ_CONTRATOS.forEach(c=>c.analista_planejamento&&pessoas.add(c.analista_planejamento));
+  sel('mz-f-ana','<option value="">Todos os analistas</option><option value="__sem">— sem analista —</option>',
+    [...pessoas].sort((a,b)=>a.localeCompare(b,'pt-BR')));
+}
+
+/* contratos que entram conforme o filtro de status/empresa (as árvores só são
+   baixadas para eles — tarefas_json é pesado) */
+function mzContratosVisiveis(){
+  const st=$('mz-f-status').value, emp=$('mz-f-emp').value;
+  return MZ_CONTRATOS.filter(c=>(!st || (c.status||'Ativo')===st) && (!emp || c.empresa===emp));
+}
+
+async function mzCarregarArvores(force){
+  if(MZ_LOADING) return;
+  const alvo=mzContratosVisiveis().filter(c=>force || MZ_TREE[c.id]===undefined);
+  if(!alvo.length){ renderMatriz(); return; }
+  MZ_LOADING=true;
+  let feitos=0;
+  const prog=()=>{ $('mz-content').innerHTML=`<div class="empty"><div class="big">⏳</div>Abrindo cronogramas até o ${MZ_NIVEL}º nível… ${feitos}/${alvo.length}</div>`; };
+  prog();
+  const fila=alvo.slice();
+  const worker=async()=>{
+    while(fila.length){
+      const c=fila.shift();
+      try{ MZ_TREE[c.id]=await mzCarregarArvore(c.id); }
+      catch(e){ MZ_TREE[c.id]={erro:e.message, linhas:[]}; }
+      feitos++; prog();
+    }
+  };
+  try{ await Promise.all([worker(),worker(),worker(),worker()]); }
+  finally{ MZ_LOADING=false; }
+  renderMatriz();
+}
+
+async function mzCarregarArvore(cronoId){
+  const revs=await sb('GET',pcoComUnidade(`val_revisoes?cronograma_id=eq.${cronoId}&tarefas_json=not.is.null&select=revisao,rotulo,data_corte,tarefas_json&order=revisao.desc&limit=1`));
+  if(!revs.length) return {semDetalhe:true, linhas:[]};
+  const r=revs[0];
+  let tj=r.tarefas_json; if(typeof tj==='string'){ try{tj=JSON.parse(tj);}catch(_){tj=[];} }
+  return {revisao:r.revisao, rotulo:r.rotulo, data_corte:r.data_corte, linhas:mzExtrairNivel(tj||[])};
+}
+
+/* tarefas na ordem do cronograma → linhas do nível MZ_NIVEL (com a trilha
+   dos níveis acima). Folha que termina antes do nível também entra. */
+function mzExtrairNivel(tarefas){
+  const ts=tarefas.filter(t=>t && t.level!=null && t.level>=1 && t.level<99 && t.active!==false);
+  const out=[], stack=[];
+  ts.forEach((t,i)=>{
+    while(stack.length && stack[stack.length-1].level>=t.level) stack.pop();
+    const prox=ts[i+1];
+    const folha=!prox || prox.level<=t.level;
+    if(t.level===MZ_NIVEL || (t.level<MZ_NIVEL && folha)){
+      out.push({uid:String(t.uid), wbs:t.wbs||'', nome:t.name||'(sem nome)', level:t.level,
+        trilha:stack.filter(s=>s.level>1).map(s=>s.name)});
+    }
+    stack.push({level:t.level, name:t.name});
+  });
+  return out;
+}
+
+/* ---------- valores efetivos ---------- */
+function mzLinhas(){
+  const out=[];
+  mzContratosVisiveis().forEach(c=>{
+    const tr=MZ_TREE[c.id]; if(!tr) return;
+    tr.linhas.forEach(l=>{
+      const s=MZ_RESP[mzKey(c.id,l.uid)]||{};
+      const ef={}; const herd={};
+      MZ_CAMPOS.forEach(f=>{ ef[f.k]=(s[f.k]||'').trim()||(c[f.k]||'').trim(); herd[f.k]=!(s[f.k]||'').trim() && !!(c[f.k]||'').trim(); });
+      out.push({c, l, s, key:mzKey(c.id,l.uid), area:(s.area||'').trim(), ef, herd});
+    });
+  });
+  return out;
+}
+function mzFiltradas(){
+  const q=mzDeacc($('mz-search').value), area=$('mz-f-area').value, ana=$('mz-f-ana').value;
+  return mzLinhas().filter(x=>{
+    if(area==='__sem' ? x.area : (area && x.area!==area)) return false;
+    if(ana==='__sem' ? x.ef.analista_planejamento : (ana && x.ef.analista_planejamento!==ana)) return false;
+    if(q){
+      const bag=mzDeacc([x.c.empresa,x.c.escopo,x.c.numero_contrato,x.l.wbs,x.l.nome,x.l.trilha.join(' '),x.area,
+        x.ef.analista_planejamento,x.ef.especialista,x.ef.supervisor].join(' '));
+      if(q.split(/\s+/).some(t=>bag.indexOf(t)===-1)) return false;
+    }
+    return true;
+  });
+}
+
+function renderMatriz(){
+  if(MZ_LOADING) return;
+  const todas=mzLinhas(), lista=mzFiltradas();
+  const vis=mzContratosVisiveis();
+  const semDet=vis.filter(c=>MZ_TREE[c.id] && (MZ_TREE[c.id].semDetalhe || MZ_TREE[c.id].erro));
+  const kpi=(v,l,warn)=>`<div class="mapa-kpi${warn?' warn':''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  $('mz-kpis').innerHTML=
+      kpi(vis.length,'Contratos')
+    + kpi(todas.length,'Atividades de '+MZ_NIVEL+'º nível')
+    + kpi(todas.filter(x=>x.area).length,'Com área definida')
+    + kpi(todas.filter(x=>!x.area).length,'Sem área',true)
+    + kpi(todas.filter(x=>!x.ef.analista_planejamento).length,'Sem analista',true)
+    + kpi(todas.filter(x=>!x.ef.supervisor).length,'Sem supervisor',true);
+  $('mz-semdet-notice').style.display=semDet.length?'':'none';
+  $('mz-semdet-notice').innerHTML=semDet.length?('<b>'+semDet.length+' contrato(s) sem detalhe de tarefas</b> (nenhuma revisão com o cronograma completo guardado) — reenvie o XML em <b>Nova Análise</b> para abrir os níveis: '
+    + semDet.map(c=>esc(c.empresa+(c.escopo?' · '+c.escopo:''))).join('; ')):'';
+  [...MZ_SEL].forEach(k=>{ if(!todas.some(x=>x.key===k)) MZ_SEL.delete(k); });
+
+  const box=$('mz-content');
+  if(!lista.length){
+    box.innerHTML='<div class="empty"><div class="big">🔍</div>'+(todas.length?'Nenhuma linha com esses filtros.':'Nenhuma atividade de '+MZ_NIVEL+'º nível nos contratos deste filtro.')+'</div>';
+    mzAtualizarBulk(); return;
+  }
+  const ed=CAN_UPLOAD && MZ_DB;
+  const areaOpts=(cur)=>{
+    let h='<option value="">— definir área —</option>';
+    if(cur && MZ_CWA.indexOf(cur)===-1) h+=`<option value="${mzEscA(cur)}" selected>⚠ ${esc(cur)} (fora da lista)</option>`;
+    return h+MZ_CWA.map(a=>`<option value="${mzEscA(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join('');
+  };
+  let ultimo=null;
+  const rows=lista.map(x=>{
+    const novo=x.c.id!==ultimo; ultimo=x.c.id;
+    const tr=MZ_TREE[x.c.id]||{};
+    const contrato=`<div class="mz-ctr">${esc(x.c.escopo||'—')}</div>`
+      + (x.c.numero_contrato?`<div class="mz-sub">nº ${esc(x.c.numero_contrato)}</div>`:'')
+      + (novo && tr.revisao!=null?`<div class="mz-sub">REV ${String(tr.revisao).padStart(2,'0')}${tr.data_corte?' · corte '+fmtD(tr.data_corte):''}</div>`:'');
+    const atv=(x.l.trilha.length?`<div class="mz-trilha">${x.l.trilha.map(esc).join(' › ')}</div>`:'')
+      + `<div class="mz-nome">${esc(x.l.nome)}</div><div class="mz-wbs">WBS ${esc(x.l.wbs||'—')}${x.l.level<MZ_NIVEL?' · folha nível '+x.l.level:''}</div>`;
+    const area=ed
+      ? `<select class="mz-in mz-area${x.area?'':' vazio'}" data-key="${mzEscA(x.key)}" data-f="area">${areaOpts(x.area)}</select>`
+      : (x.area?esc(x.area):'<span class="mz-herd">— sem área —</span>');
+    const pessoas=MZ_CAMPOS.map(f=>{
+      const own=(x.s[f.k]||'').trim(), herd=(x.c[f.k]||'').trim();
+      if(ed) return `<td><input class="mz-in" data-key="${mzEscA(x.key)}" data-f="${f.k}" list="dl-mz-${f.k==='analista_planejamento'?'analistas':f.k==='especialista'?'especialistas':'supervisores'}" value="${mzEscA(own)}" placeholder="${mzEscA(herd?herd+' (contrato)':'—')}" title="${herd?'Vazio = herda do contrato: '+mzEscA(herd):'Sem responsável no contrato'}"></td>`;
+      return `<td>${own?esc(own):(herd?`<span class="mz-herd" title="herdado do contrato">${esc(herd)}</span>`:'<span class="mz-herd">—</span>')}</td>`;
+    }).join('');
+    return `<tr class="${novo?'mz-novo':''}${x.area?'':' mz-semarea'}">
+      ${ed?`<td class="mz-chk"><input type="checkbox" data-sel="${mzEscA(x.key)}"${MZ_SEL.has(x.key)?' checked':''}></td>`:''}
+      <td class="mz-emp">${novo?esc(x.c.empresa||'—'):'<span class="mz-rep">'+esc(x.c.empresa||'—')+'</span>'}</td>
+      <td>${contrato}</td>
+      <td class="mz-atv">${atv}</td>
+      <td class="mz-area-td">${area}</td>${pessoas}</tr>`;
+  }).join('');
+  box.innerHTML=`<div class="mapa-wrap mz-wrap"><table class="mapa mz">
+    <thead><tr>${ed?'<th class="mz-chk"><input type="checkbox" id="mz-sel-all" title="Selecionar todas as linhas visíveis"></th>':''}
+      <th>Empresa</th><th>Contrato</th><th>Atividade (${MZ_NIVEL}º nível)</th><th>Área (CWA)</th>
+      <th>Analista de Planejamento</th><th>Especialista</th><th>Supervisor</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <div class="mz-foot">${lista.length} de ${todas.length} linha(s). Nome em <span class="mz-herd">cinza</span> = herdado do responsável cadastrado no contrato (apague o campo para voltar a herdar).</div>`;
+  if(ed){
+    box.querySelectorAll('.mz-in').forEach(el=>el.addEventListener('change',()=>mzSalvarCampo(el.dataset.key, el.dataset.f, el.value, el)));
+    box.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('change',()=>{ el.checked?MZ_SEL.add(el.dataset.sel):MZ_SEL.delete(el.dataset.sel); mzAtualizarBulk(); }));
+    const all=$('mz-sel-all');
+    all.checked=lista.every(x=>MZ_SEL.has(x.key));
+    all.addEventListener('change',()=>{ lista.forEach(x=>all.checked?MZ_SEL.add(x.key):MZ_SEL.delete(x.key)); renderMatriz(); });
+  }
+  mzAtualizarBulk();
+}
+
+/* ---------- gravação ---------- */
+function mzPayload(key, patch){
+  const i=key.indexOf('::'), cId=key.slice(0,i), uid=key.slice(i+2);
+  const tr=MZ_TREE[cId], l=tr?tr.linhas.find(x=>x.uid===uid):null;
+  const cur=MZ_RESP[key]||{};
+  const p={cronograma_id:cId, terceira_uid:uid, wbs:l?l.wbs:(cur.wbs||null), atividade:l?l.nome:(cur.atividade||null),
+    area:cur.area||null, analista_planejamento:cur.analista_planejamento||null,
+    especialista:cur.especialista||null, supervisor:cur.supervisor||null,
+    atualizado_por:mzUser(), atualizado_em:new Date().toISOString()};
+  Object.keys(patch).forEach(k=>{ const v=String(patch[k]==null?'':patch[k]).trim(); p[k]=v||null; });
+  return p;
+}
+async function mzSalvar(rows){
+  await sbUpsert('val_matriz_resp?on_conflict=unidade,cronograma_id,terceira_uid', rows);
+  rows.forEach(p=>{ MZ_RESP[mzKey(p.cronograma_id,p.terceira_uid)]=Object.assign({},MZ_RESP[mzKey(p.cronograma_id,p.terceira_uid)]||{},p); });
+}
+async function mzSalvarCampo(key, campo, valor, el){
+  const p=mzPayload(key,{[campo]:valor});
+  if(el) el.disabled=true;
+  try{
+    await mzSalvar([p]);
+    toast('Matriz atualizada ✓','ok');
+    if(campo==='area' || campo==='analista_planejamento') mzFillFiltros();
+    mzFillPessoas();
+  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
+  renderMatriz();
+}
+
+/* ---------- edição em lote ---------- */
+function mzAtualizarBulk(){
+  const b=$('mz-bulk'); if(!b) return;
+  b.style.display=(CAN_UPLOAD && MZ_DB && MZ_SEL.size)?'':'none';
+  $('mz-b-n').textContent=MZ_SEL.size+' linha(s) selecionada(s)';
+}
+async function mzAplicarLote(){
+  if(!MZ_SEL.size) return;
+  const patch={}, area=$('mz-b-area').value;
+  if(area) patch.area=area==='__limpar'?'':area;
+  MZ_CAMPOS.forEach(f=>{
+    const v=$('mz-b-'+f.k).value.trim(), lim=$('mz-b-'+f.k+'-x').checked;
+    if(lim) patch[f.k]=''; else if(v) patch[f.k]=v;
+  });
+  if(!Object.keys(patch).length) return toast('Escolha a área e/ou preencha algum responsável para aplicar.','err');
+  if(!confirm('Aplicar às '+MZ_SEL.size+' linhas selecionadas?')) return;
+  const btn=$('mz-b-ok'); btn.disabled=true;
+  try{
+    const rows=[...MZ_SEL].map(k=>mzPayload(k,patch));
+    for(let i=0;i<rows.length;i+=200) await mzSalvar(rows.slice(i,i+200));
+    toast(rows.length+' linha(s) atualizada(s) ✓','ok');
+    MZ_SEL.clear(); mzLimparLote(); mzFillFiltros(); mzFillPessoas(); renderMatriz();
+  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
+  btn.disabled=false;
+}
+function mzLimparLote(){
+  $('mz-b-area').value='';
+  MZ_CAMPOS.forEach(f=>{ $('mz-b-'+f.k).value=''; $('mz-b-'+f.k+'-x').checked=false; });
+}
+function mzLimparSelecao(){ MZ_SEL.clear(); renderMatriz(); }
+
+function mzOnFiltroContrato(){ mzCarregarArvores(); }
+function mzRecarregar(){ MZ_TREE={}; MZ_SEL.clear(); MZ_LOADED=true; initMatriz(); }
+
+function exportMatrizExcel(){
+  const lista=mzFiltradas();
+  if(!lista.length) return toast('Nada para exportar com esses filtros.','err');
+  const aoa=[['Empresa','Contrato','Nº contrato','Revisão','WBS','Estrutura (níveis acima)','Atividade','Área (CWA)',
+    'Analista de Planejamento','Especialista','Supervisor','Herdado do contrato','Atualizado por','Atualizado em']];
+  lista.forEach(x=>{
+    const tr=MZ_TREE[x.c.id]||{};
+    aoa.push([x.c.empresa||'', x.c.escopo||'', x.c.numero_contrato||'', tr.rotulo||(tr.revisao!=null?'REV '+tr.revisao:''),
+      x.l.wbs, x.l.trilha.join(' › '), x.l.nome, x.area,
+      x.ef.analista_planejamento, x.ef.especialista, x.ef.supervisor,
+      MZ_CAMPOS.filter(f=>x.herd[f.k]).map(f=>f.t).join(', '),
+      x.s.atualizado_por||'', x.s.atualizado_em?new Date(x.s.atualizado_em).toLocaleString('pt-BR'):'']);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[22,28,14,10,10,45,45,34,24,24,24,30,20,18].map(w=>({wch:w}));
+  ws['!autofilter']={ref:'A1:N'+aoa.length};
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Matriz');
+  const hoje=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb,'Matriz_Responsabilidades_'+pcoUnidadeAtual()+'_'+hoje+'.xlsx');
 }
 </script>
 </body>
