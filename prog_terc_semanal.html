@@ -1309,12 +1309,34 @@ function estruturaPaisDoCard(c, porWbsCache){
   if(!porWbs || !wbs) return (a && a.pai) ? [a.pai] : [];   // sem árvore: cai no pai de 1 nível, igual à tela
   return L.wbsAncestros(wbs, porWbs).map(function(t){ return t.name || ''; }).filter(Boolean);
 }
-function especialistaDoCard(c){
+/* Fase 3.28: supervisor/especialista do card seguem a mesma regra do relatório
+   ao vivo (prog_terc_semanal_tpl.html → respDe): linha da Matriz de
+   Responsabilidades da tarefa de 3º nível acima do card → contrato → empresa.
+   Antes a foto embutida no HTML usava só o contrato. */
+var MZ_REL = {};
+function matrizDoCard(c, porWbsCache){
+  if(c.cronograma_id == null || !porWbsCache) return null;
+  var porWbs = porWbsCache[c.cronograma_id], a = ativDoCard(c);
+  var wbs = c.terceira_wbs || (a ? a.wbs : '');
+  if(!porWbs || !wbs) return null;
+  var self = porWbs[String(wbs)], uid3 = null;
+  if(self && self.level != null && self.level <= 3) uid3 = self.uid;
+  else {
+    var a3 = L.wbsAncestros(wbs, porWbs).filter(function(t){ return t.level === 3; })[0];
+    uid3 = a3 ? a3.uid : null;
+  }
+  return uid3 != null ? (MZ_REL[c.cronograma_id + '::' + uid3] || null) : null;
+}
+function especialistaDoCard(c, porWbsCache){
+  var m = matrizDoCard(c, porWbsCache);
+  if(m && m.especialista) return String(m.especialista).trim();
   var cs = L.contratosCache() || [];
   var k = c.cronograma_id != null ? cs.filter(function(x){ return x.id === c.cronograma_id; })[0] : null;
   return k && k.especialista ? String(k.especialista).trim() : '';
 }
-function supervisorDoCard(c){
+function supervisorDoCard(c, porWbsCache){
+  var m = matrizDoCard(c, porWbsCache);
+  if(m && m.supervisor) return String(m.supervisor).trim();
   var cs = L.contratosCache() || [];
   if(c.cronograma_id != null){
     var k = cs.filter(function(x){ return x.id === c.cronograma_id; })[0];
@@ -1348,7 +1370,7 @@ function linhaRelatorio(c, wk, porWbsCache){
   return {
     emp: c.empresa || '', pai: (a && a.pai) || '', estr: estruturaPaisDoCard(c, porWbsCache), atv: c.descricao || (a ? a.nome : '') || '',
     wbs: c.terceira_wbs || '', area: c.area || '', disc: c.disciplina || '',
-    sup: supervisorDoCard(c), esp: especialistaDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
+    sup: supervisorDoCard(c, porWbsCache), esp: especialistaDoCard(c, porWbsCache), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
     fase: c.fase ? (FASE_LABELS[c.fase] || c.fase) : '', cwa: c.cwa || '',
     // foto da emissão (reserva offline): o HTML recalcula tudo ao vivo pelas revisões
     prevA: p == null ? null : Math.round(p * 10) / 10, prevD: null, concA: null,
@@ -1419,9 +1441,11 @@ $('btnRelatorio').addEventListener('click', function(){
       if(!r.ok) throw new Error('modelo prog_terc_semanal_tpl.html não encontrado (' + r.status + ')');
       return r.text();
     }),
-    L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=*&ativo=eq.true&order=num.asc')).catch(function(){ return []; })
+    L.sbGetAll(L.comUnidade('prog_terc_restricoes?select=*&ativo=eq.true&order=num.asc')).catch(function(){ return []; }),
+    L.sbGetAll(L.comUnidade('val_matriz_resp?select=cronograma_id,terceira_uid,especialista,supervisor&order=id.asc')).catch(function(){ return []; })
   ]).then(function(rr){
     var porWbsCache = rr[2], tpl = rr[3], restrRows = rr[4];
+    MZ_REL = {}; (rr[5] || []).forEach(function(m){ MZ_REL[m.cronograma_id + '::' + m.terceira_uid] = m; });
     var recorte = recorteDescricao();
     var fcMap = null;
     if(ff || fc){ fcMap = {}; CARDS.forEach(function(c){ fcMap[c.id] = [c.fase || '', c.cwa || '']; }); }

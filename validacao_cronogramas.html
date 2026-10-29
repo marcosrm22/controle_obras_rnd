@@ -358,6 +358,39 @@ select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
 .mz-b-n{font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-right:4px}
 .mz-b-f{display:inline-flex;align-items:center;gap:4px}
 .mz-b-f label{font-size:10px;display:inline-flex;align-items:center;gap:3px;opacity:.85;cursor:pointer}
+/* Fase 3.28 — selects de pessoa, atribuição em massa, cadastro de responsáveis */
+select.mz-pes{min-width:150px;max-width:200px}
+select.mz-herdsel{color:#8a95a6;font-style:italic}
+select.mz-fora{border-color:#f0c87a;background:#fff8ec}
+td.mz-fora-td{background:#fff8ec}
+.mzm-alc{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.mzm-rad{font-size:12.5px;display:flex;align-items:center;gap:7px;cursor:pointer}
+.mzm-filt{font-size:11px;color:var(--text-mute);margin-bottom:14px;line-height:1.4}
+.mzm-resumo{font-size:12px;background:var(--bg);border:1px solid var(--border-2);padding:10px 12px;line-height:1.6}
+.mzm-resumo ul{margin:0 0 6px 18px;padding:0}
+.mzm-n{color:var(--text-mute);font-size:11px;margin-left:6px}
+.modal-box.wide3{max-width:1020px}
+.resp-body{padding:14px 22px;max-height:64vh;overflow:auto}
+.resp-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.resp-tab{font-family:inherit;font-size:12px;font-weight:700;padding:7px 12px;border:1px solid var(--border);background:#fff;color:var(--text-dim);cursor:pointer}
+.resp-tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.resp-cnt{font-weight:500;opacity:.75;margin-left:3px}
+.resp-pend{margin-left:6px;background:var(--gold);color:#3a2c00;padding:0 5px;font-size:10px}
+.resp-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.resp-bar input[type=search],.resp-bar input[type=text]{font-family:inherit;font-size:12px;border:1px solid var(--border);padding:7px 10px;outline:none}
+.resp-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.resp-tbl th{text-align:left;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-mute);padding:6px 8px;border-bottom:2px solid var(--border)}
+.resp-tbl td{padding:7px 8px;border-bottom:1px solid var(--border-2);vertical-align:top}
+.resp-nome{font-weight:700}
+.resp-onde,.resp-at{font-size:11px;color:var(--text-dim)}
+.resp-st{font-size:10.5px;font-weight:700;padding:2px 6px;white-space:nowrap}
+.resp-st.ok{background:var(--green-soft);color:var(--green)}
+.resp-st.ina{background:#eef0f3;color:#8a95a6}
+.resp-st.pend{background:var(--orange-soft);color:#7c4a00}
+tr.resp-ina td.resp-nome{color:#8a95a6;text-decoration:line-through}
+.resp-acoes{white-space:nowrap}
+.resp-acoes .mini-btn{margin-right:4px}
+.resp-act{font-family:inherit;font-size:11px;border:1px solid var(--border);padding:4px 5px;margin-right:4px;max-width:150px;background:#fff}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -655,7 +688,11 @@ select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
       Uma linha por atividade de <b>3º nível</b> do cronograma de cada contrato do Histórico (revisão mais recente com detalhe de tarefas).
       Defina a <b>Área</b> (lista fixa de CWAs do <a href="cron_geral.html">Cronograma Geral</a>) e os responsáveis de cada trecho —
       campo de pessoa vazio herda o responsável cadastrado no contrato (aparece em cinza). Salva sozinho ao sair do campo.
-      Marque várias linhas para preencher em lote.
+      Use <b>⚡ Atribuir em massa</b> para aplicar Área e responsáveis a tudo o que está filtrado (ou às linhas marcadas).
+      Os nomes vêm do <b>👥 Cadastro de Responsáveis</b> — só quem está cadastrado pode ser escolhido.
+    </div>
+    <div id="mz-resp-notice" class="notice warn" style="display:none">
+      <b>Cadastro de Responsáveis ainda não criado.</b> Rode <code>supabase_responsaveis.sql</code> no SQL Editor do Supabase. Até lá, as opções de pessoa são os nomes já usados.
     </div>
     <div id="mz-setup-notice" class="notice warn" style="display:none">
       <b>Tabela ainda não criada.</b> Rode o script <code>supabase_matriz_responsabilidades.sql</code> no SQL Editor do Supabase para poder gravar a matriz. Até lá, a tela só mostra os níveis do cronograma e os responsáveis do contrato.
@@ -677,7 +714,11 @@ select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
       </select>
       <select id="mz-f-emp" onchange="mzOnFiltroContrato()"><option value="">Todas as empresas</option></select>
       <select id="mz-f-area" onchange="renderMatriz()" style="max-width:260px"><option value="">Todas as áreas</option></select>
-      <select id="mz-f-ana" onchange="renderMatriz()"><option value="">Todos os analistas</option></select>
+      <select id="mz-f-ana" onchange="renderMatriz()" style="max-width:200px"><option value="">Todos: analistas</option></select>
+      <select id="mz-f-esp" onchange="renderMatriz()" style="max-width:200px"><option value="">Todos: especialistas</option></select>
+      <select id="mz-f-sup" onchange="renderMatriz()" style="max-width:200px"><option value="">Todos: supervisores</option></select>
+      <button class="btn" id="mz-btn-massa" onclick="mzAbrirMassa('filtro')" style="display:none" title="Aplica Área / Analista / Especialista / Supervisor a todas as linhas filtradas na tela">⚡ Atribuir em massa</button>
+      <button class="btn ghost" onclick="respAbrir()" title="Lista todos os nomes já lançados e cadastra/padroniza analistas, especialistas e supervisores">👥 Cadastro de Responsáveis</button>
       <button class="btn ghost" onclick="mzRecarregar()" title="Relê contratos, CWAs, a matriz salva e a revisão mais recente de cada cronograma">🔄 Recarregar</button>
       <button class="btn gold" onclick="exportMatrizExcel()">⬇ Exportar Excel</button>
     </div>
@@ -686,16 +727,9 @@ select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
 
     <div class="mz-bulk no-print" id="mz-bulk" style="display:none">
       <span class="mz-b-n" id="mz-b-n"></span>
-      <select id="mz-b-area" style="max-width:240px"><option value="">(não alterar)</option></select>
-      <span class="mz-b-f"><input id="mz-b-analista_planejamento" list="dl-mz-analistas" placeholder="Analista"><label title="Apagar (volta a herdar do contrato)"><input type="checkbox" id="mz-b-analista_planejamento-x">limpar</label></span>
-      <span class="mz-b-f"><input id="mz-b-especialista" list="dl-mz-especialistas" placeholder="Especialista"><label title="Apagar (volta a herdar do contrato)"><input type="checkbox" id="mz-b-especialista-x">limpar</label></span>
-      <span class="mz-b-f"><input id="mz-b-supervisor" list="dl-mz-supervisores" placeholder="Supervisor"><label title="Apagar (volta a herdar do contrato)"><input type="checkbox" id="mz-b-supervisor-x">limpar</label></span>
-      <button class="btn green sm" id="mz-b-ok" onclick="mzAplicarLote()">Aplicar às selecionadas</button>
-      <button class="btn ghost sm" onclick="mzLimparSelecao()">Cancelar</button>
+      <button class="btn gold sm" onclick="mzAbrirMassa('sel')">⚡ Atribuir às marcadas</button>
+      <button class="btn ghost sm" onclick="mzLimparSelecao()">Desmarcar</button>
     </div>
-    <datalist id="dl-mz-analistas"></datalist>
-    <datalist id="dl-mz-especialistas"></datalist>
-    <datalist id="dl-mz-supervisores"></datalist>
   </section>
 
 </div><!-- /page -->
@@ -715,11 +749,11 @@ select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
         <div class="mf"><label>Área / CWA</label><input id="mc-area"></div>
       </div>
       <div class="mf-grid">
-        <div class="mf"><label>Supervisor</label><input id="mc-sup" list="dl-supervisores" placeholder="Nome do supervisor"></div>
-        <div class="mf"><label>Especialista</label><input id="mc-esp" list="dl-especialistas" placeholder="Nome do especialista"></div>
+        <div class="mf"><label>Supervisor</label><select id="mc-sup"></select></div>
+        <div class="mf"><label>Especialista</label><select id="mc-esp"></select></div>
       </div>
       <div class="mf-grid">
-        <div class="mf"><label>Analista de Planejamento</label><input id="mc-ana" list="dl-analistas" placeholder="Nome do analista"></div>
+        <div class="mf"><label>Analista de Planejamento</label><select id="mc-ana"></select></div>
         <div class="mf"><label>Status</label>
           <select id="mc-status">
             <option value="Ativo">Ativo</option>
@@ -731,10 +765,63 @@ select.mz-area.vazio{border-color:#f0c87a;color:#7c4a00}
       <datalist id="dl-supervisores"></datalist>
       <datalist id="dl-especialistas"></datalist>
       <datalist id="dl-analistas"></datalist>
+      <div style="font-size:11px;color:var(--text-mute)">Responsáveis: só nomes do <b>👥 Cadastro de Responsáveis</b> (aba Matriz de Responsabilidades).</div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-sec" onclick="closeContractEdit()">Cancelar</button>
       <button class="btn" id="mc-save" onclick="saveContractEdit()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: atribuir em massa (Fase 3.28) -->
+<div class="modal-overlay" id="modal-mz-massa">
+  <div class="modal-box wide2">
+    <h3>⚡ Atribuir informação em massa</h3>
+    <div class="msub">Preencha só o que quer mudar. O valor é gravado em todas as linhas do alcance escolhido; campos em “(não alterar)” ficam como estão.</div>
+    <div class="modal-body">
+      <div class="mf"><label>Aplicar em</label><div class="mzm-alc" id="mzm-alcance"></div></div>
+      <div class="mzm-filt" id="mzm-filtros"></div>
+      <div class="mf-grid">
+        <div class="mf"><label>Área (CWA)</label><select id="mzm-area" onchange="mzmResumo()"></select></div>
+        <div class="mf"><label>Analista de Planejamento</label><select id="mzm-analista_planejamento" onchange="mzmResumo()"></select></div>
+      </div>
+      <div class="mf-grid">
+        <div class="mf"><label>Especialista</label><select id="mzm-especialista" onchange="mzmResumo()"></select></div>
+        <div class="mf"><label>Supervisor</label><select id="mzm-supervisor" onchange="mzmResumo()"></select></div>
+      </div>
+      <div class="notice warn" id="mzm-aviso" style="display:none;margin-bottom:12px">Há função sem nenhum nome cadastrado — cadastre em <b>👥 Cadastro de Responsáveis</b>.</div>
+      <div class="mzm-resumo" id="mzm-resumo"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" onclick="mzFecharMassa()">Cancelar</button>
+      <button class="btn green" id="mzm-ok" onclick="mzAplicarMassa()" disabled>Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: cadastro de responsáveis (Fase 3.28) -->
+<div class="modal-overlay" id="modal-resp">
+  <div class="modal-box wide3">
+    <h3>👥 Cadastro de Responsáveis</h3>
+    <div class="msub">Todos os nomes já lançados nos contratos, na Matriz e em Analistas por Área desta unidade. <b>Cadastre</b> os corretos, <b>unifique</b> variações (troca o texto em todos os registros) e <b>mova</b> quem foi lançado na função errada — o relatório da Programação Semanal passa a sair com os nomes padronizados.</div>
+    <div class="resp-body">
+      <div id="resp-setup" class="notice warn" style="display:none"><b>Tabela não criada.</b> Rode <code>supabase_responsaveis.sql</code> no SQL Editor do Supabase para poder cadastrar.</div>
+      <div class="resp-tabs" id="resp-tabs"></div>
+      <div class="resp-bar">
+        <input type="search" id="resp-busca" placeholder="🔎 Nome…" oninput="respRender()" style="min-width:180px">
+        <label style="font-size:11.5px;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="resp-so-pend" onchange="respRender()"> só pendências</label>
+        <span id="resp-novo-box" style="display:flex;gap:6px;margin-left:auto">
+          <input type="text" id="resp-novo" placeholder="Novo nome nesta função" onkeydown="if(event.key==='Enter')respNovo()" style="min-width:200px">
+          <button class="btn sm" onclick="respNovo()">＋ Cadastrar</button>
+        </span>
+      </div>
+      <div class="resp-bar" id="resp-bulk"></div>
+      <div id="resp-lista"></div>
+    </div>
+    <div class="modal-btns">
+      <span style="font-size:11px;color:var(--text-mute);align-self:center">Desativado sai das opções, mas continua onde já estava lançado.</span>
+      <button class="btn btn-sec" onclick="respFechar()">Fechar</button>
     </div>
   </div>
 </div>
@@ -1947,8 +2034,12 @@ function fillPeopleDatalists(){
 function findCrono(id){ return histCronos.find(c=>c.id===id); }
 function findRev(id){ for(const k in histByC){ const r=(histByC[k]||[]).find(x=>x.id===id); if(r) return r; } return null; }
 
-function openContractEdit(id){
+async function openContractEdit(id){
   const c=findCrono(id); if(!c) return;
+  await respGarantir();
+  $('mc-sup').innerHTML=respOptsHtml('supervisor',c.supervisor,'<option value="">— sem supervisor —</option>');
+  $('mc-esp').innerHTML=respOptsHtml('especialista',c.especialista,'<option value="">— sem especialista —</option>');
+  $('mc-ana').innerHTML=respOptsHtml('analista_planejamento',c.analista_planejamento,'<option value="">— sem analista —</option>');
   $('mc-id').value=id;
   $('mc-emp').value=c.empresa||''; $('mc-esc').value=c.escopo||'';
   $('mc-disc').value=c.disciplina||''; $('mc-area').value=c.area||'';
@@ -3055,9 +3146,9 @@ function exportMapaExcel(){
    ================================================================ */
 const MZ_NIVEL=3;
 const MZ_CAMPOS=[
-  {k:'analista_planejamento', t:'Analista de Planejamento', dl:'dl-analistas'},
-  {k:'especialista',          t:'Especialista',             dl:'dl-especialistas'},
-  {k:'supervisor',            t:'Supervisor',               dl:'dl-supervisores'}
+  {k:'analista_planejamento', t:'Analista de Planejamento', p:'Analistas',     f:'mz-f-ana', curto:'Analista'},
+  {k:'especialista',          t:'Especialista',             p:'Especialistas', f:'mz-f-esp', curto:'Especialista'},
+  {k:'supervisor',            t:'Supervisor',               p:'Supervisores',  f:'mz-f-sup', curto:'Supervisor'}
 ];
 let MZ_LOADED=false, MZ_DB=true;
 let MZ_CONTRATOS=[], MZ_CWA=[], MZ_RESP={}, MZ_TREE={}, MZ_SEL=new Set();
@@ -3068,6 +3159,58 @@ function mzDeacc(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u03
 function mzEscA(s){ return esc(String(s==null?'':s)).replace(/"/g,'&quot;'); }
 function mzUser(){ return sessionStorage.getItem('pco_nome')||sessionStorage.getItem('pco_email')||''; }
 function mzContrato(id){ return MZ_CONTRATOS.find(c=>c.id===id); }
+function mzSort(a,b){ return a.localeCompare(b,'pt-BR'); }
+
+/* ================================================================
+   CADASTRO DE RESPONSÁVEIS (Fase 3.28)
+   val_responsaveis (unidade, funcao, nome, ativo). Só nomes cadastrados e
+   ativos aparecem como opção na Matriz, na atribuição em massa e no
+   "Editar dados do contrato". A tela de cadastro compila tudo o que já
+   está gravado (contratos + matriz + Analistas por Área) e permite
+   cadastrar, unificar variações (substitui o texto em todos os registros),
+   mover um nome lançado na função errada e renomear com propagação — é
+   isso que corrige os nomes no relatório da Programação Semanal, que lê
+   val_matriz_resp → val_cronogramas.
+   Sem a tabela (migração não rodada) as opções voltam a ser os nomes já
+   usados, como antes.
+   ================================================================ */
+let RESP_CAD=[], RESP_DB=true, RESP_LOADED=false, RESP_ABA='supervisor';
+async function respCarregar(){
+  try{ RESP_CAD=await sbGetAll(pcoComUnidade('val_responsaveis?select=*&order=nome.asc')); RESP_DB=true; }
+  catch(e){ if(/42P01|PGRST205|does not exist/i.test(e.message)){ RESP_DB=false; RESP_CAD=[]; } else throw e; }
+  RESP_LOADED=true;
+  return RESP_CAD;
+}
+async function respGarantir(){ if(!RESP_LOADED){ try{ await respCarregar(); }catch(_){ } } }
+function respFuncao(k){ return MZ_CAMPOS.find(f=>f.k===k); }
+function respNomes(f, soAtivos){
+  return [...new Set(RESP_CAD.filter(r=>r.funcao===f && (!soAtivos || r.ativo!==false)).map(r=>String(r.nome||'').trim()).filter(Boolean))].sort(mzSort);
+}
+function respCadastrado(f,nome){ nome=String(nome||'').trim(); return !nome || RESP_CAD.some(r=>r.funcao===f && r.nome===nome); }
+function respUsados(f){
+  const hc=(typeof histCronos!=='undefined'?histCronos:[]);
+  return [...new Set([...MZ_CONTRATOS.map(c=>c[f]), ...hc.map(c=>c[f]), ...Object.values(MZ_RESP).map(x=>x[f])]
+    .map(v=>String(v||'').trim()).filter(Boolean))].sort(mzSort);
+}
+/* opções oferecidas nos campos de pessoa */
+function respOpcoes(f){ return RESP_DB ? respNomes(f,true) : respUsados(f); }
+function respOptsHtml(f, cur, first){
+  cur=String(cur||'').trim();
+  const nomes=respOpcoes(f);
+  let h=first||'';
+  if(cur && nomes.indexOf(cur)===-1){
+    const ina=RESP_CAD.some(r=>r.funcao===f && r.nome===cur);
+    h+=`<option value="${mzEscA(cur)}" selected>⚠ ${esc(cur)} (${ina?'inativo':'não cadastrado'})</option>`;
+  }
+  return h+nomes.map(n=>`<option value="${mzEscA(n)}"${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+}
+/* chave pra achar variações do mesmo nome ("João  Silva." x "joao silva") */
+function respChave(s){ return mzDeacc(s).replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim(); }
+function respParecidos(a,b){
+  const ka=respChave(a), kb=respChave(b);
+  if(!ka || !kb || a===b) return false;
+  return ka===kb || kb.indexOf(ka+' ')===0 || ka.indexOf(kb+' ')===0;
+}
 
 const _switchViewMz=switchView;
 switchView=function(v){
@@ -3075,45 +3218,36 @@ switchView=function(v){
   if(v==='matriz' && !MZ_LOADED){ MZ_LOADED=true; initMatriz(); }
 };
 
+async function mzCarregarBase(){
+  const r=await Promise.all([
+    sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc')),
+    sbGetAll(pcoComUnidade('cron_geral_atividades?select=cwa&cwa=not.is.null&order=id.asc')).catch(()=>[]),
+    sbGetAll(pcoComUnidade('val_matriz_resp?select=*&order=id.asc')).catch(e=>{
+      if(/42P01|PGRST205|does not exist/i.test(e.message)){ MZ_DB=false; return []; }
+      throw e;
+    }),
+    sb('GET',pcoComUnidade('prog_terc_analistas?select=nome&ativo=eq.true&order=nome.asc')).catch(()=>[]),
+    respCarregar()
+  ]);
+  MZ_CONTRATOS=r[0]||[];
+  MZ_CWA=[...new Set((r[1]||[]).map(x=>String(x.cwa||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  MZ_RESP={}; (r[2]||[]).forEach(x=>{ MZ_RESP[mzKey(x.cronograma_id,x.terceira_uid)]=x; });
+  MZ_ANA_AREA=(r[3]||[]).map(x=>String(x.nome||'').trim()).filter(Boolean);
+  $('mz-setup-notice').style.display=MZ_DB?'none':'';
+  $('mz-resp-notice').style.display=RESP_DB?'none':'';
+  $('mz-cwa-notice').style.display=MZ_CWA.length?'none':'';
+  mzFillFiltros();
+}
+
 async function initMatriz(){
-  $('mz-content').innerHTML='<div class="empty"><div class="big">⏳</div>Carregando contratos, CWAs e matriz…</div>';
+  $('mz-content').innerHTML='<div class="empty"><div class="big">⏳</div>Carregando contratos, CWAs, matriz e cadastro de responsáveis…</div>';
   try{
-    const r=await Promise.all([
-      sb('GET',pcoComUnidade('val_cronogramas?select=*&order=empresa.asc')),
-      sbGetAll(pcoComUnidade('cron_geral_atividades?select=cwa&cwa=not.is.null&order=id.asc')).catch(()=>[]),
-      sbGetAll(pcoComUnidade('val_matriz_resp?select=*&order=id.asc')).catch(e=>{
-        if(/42P01|PGRST205|does not exist/i.test(e.message)){ MZ_DB=false; return []; }
-        throw e;
-      }),
-      sb('GET',pcoComUnidade('prog_terc_analistas?select=nome&ativo=eq.true&order=nome.asc')).catch(()=>[])
-    ]);
-    MZ_CONTRATOS=r[0]||[];
-    MZ_CWA=[...new Set((r[1]||[]).map(x=>String(x.cwa||'').trim()).filter(Boolean))]
-      .sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
-    MZ_RESP={}; (r[2]||[]).forEach(x=>{ MZ_RESP[mzKey(x.cronograma_id,x.terceira_uid)]=x; });
-    $('mz-setup-notice').style.display=MZ_DB?'none':'';
-    $('mz-cwa-notice').style.display=MZ_CWA.length?'none':'';
-    MZ_ANA_AREA=(r[3]||[]).map(x=>x.nome);
-    mzFillPessoas();
-    mzFillFiltros();
+    await mzCarregarBase();
     await mzCarregarArvores();
   }catch(e){
     $('mz-content').innerHTML='<div class="empty"><div class="big">⚠️</div>Erro ao carregar a matriz: '+esc(e.message)+'</div>';
   }
-}
-
-/* datalists de pessoas: o que já está nos contratos + na matriz + analistas cadastrados por área */
-function mzFillPessoas(){
-  const analistasArea=MZ_ANA_AREA;
-  const junta=(campo,extra)=>[...new Set([
-    ...MZ_CONTRATOS.map(c=>c[campo]),
-    ...Object.values(MZ_RESP).map(x=>x[campo]),
-    ...(extra||[])
-  ].map(v=>String(v||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  const dl=(id,vals)=>{ const el=$(id); if(el) el.innerHTML=vals.map(x=>`<option value="${mzEscA(x)}">`).join(''); };
-  dl('dl-mz-analistas', junta('analista_planejamento',analistasArea));
-  dl('dl-mz-especialistas', junta('especialista'));
-  dl('dl-mz-supervisores', junta('supervisor'));
 }
 
 function mzFillFiltros(){
@@ -3123,14 +3257,13 @@ function mzFillFiltros(){
     if(cur && [...el.options].some(o=>o.value===cur)) el.value=cur;
   };
   sel('mz-f-emp','<option value="">Todas as empresas</option>',
-    [...new Set(MZ_CONTRATOS.map(c=>c.empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')));
+    [...new Set(MZ_CONTRATOS.map(c=>c.empresa).filter(Boolean))].sort(mzSort));
   sel('mz-f-area','<option value="">Todas as áreas</option><option value="__sem">— sem área definida —</option>',MZ_CWA);
-  sel('mz-b-area','<option value="">(não alterar)</option><option value="__limpar">✕ limpar área</option>',MZ_CWA);
-  const pessoas=new Set();
-  Object.values(MZ_RESP).forEach(x=>x.analista_planejamento&&pessoas.add(x.analista_planejamento));
-  MZ_CONTRATOS.forEach(c=>c.analista_planejamento&&pessoas.add(c.analista_planejamento));
-  sel('mz-f-ana','<option value="">Todos os analistas</option><option value="__sem">— sem analista —</option>',
-    [...pessoas].sort((a,b)=>a.localeCompare(b,'pt-BR')));
+  MZ_CAMPOS.forEach(f=>{
+    sel(f.f,`<option value="">Todos: ${f.p.toLowerCase()}</option><option value="__sem">— sem ${f.curto.toLowerCase()} —</option>`
+      +(RESP_DB?'<option value="__fora">⚠ fora do cadastro</option>':''),
+      [...new Set([...respUsados(f.k), ...respNomes(f.k,false)])].sort(mzSort));
+  });
 }
 
 /* contratos que entram conforme o filtro de status/empresa (as árvores só são
@@ -3202,11 +3335,18 @@ function mzLinhas(){
   });
   return out;
 }
+function mzForaCadastro(x){ return RESP_DB && MZ_CAMPOS.some(f=>x.ef[f.k] && !respCadastrado(f.k,x.ef[f.k])); }
 function mzFiltradas(){
-  const q=mzDeacc($('mz-search').value), area=$('mz-f-area').value, ana=$('mz-f-ana').value;
+  const q=mzDeacc($('mz-search').value), area=$('mz-f-area').value;
+  const fs=MZ_CAMPOS.map(f=>[f.k,$(f.f).value]);
   return mzLinhas().filter(x=>{
     if(area==='__sem' ? x.area : (area && x.area!==area)) return false;
-    if(ana==='__sem' ? x.ef.analista_planejamento : (ana && x.ef.analista_planejamento!==ana)) return false;
+    for(const [k,v] of fs){
+      if(!v) continue;
+      if(v==='__sem'){ if(x.ef[k]) return false; }
+      else if(v==='__fora'){ if(!x.ef[k] || respCadastrado(k,x.ef[k])) return false; }
+      else if(x.ef[k]!==v) return false;
+    }
     if(q){
       const bag=mzDeacc([x.c.empresa,x.c.escopo,x.c.numero_contrato,x.l.wbs,x.l.nome,x.l.trilha.join(' '),x.area,
         x.ef.analista_planejamento,x.ef.especialista,x.ef.supervisor].join(' '));
@@ -3214,6 +3354,13 @@ function mzFiltradas(){
     }
     return true;
   });
+}
+function mzFiltrosDescricao(){
+  const p=[], so=id=>{ const el=$(id); return el.value?el.selectedOptions[0].textContent:''; };
+  p.push(so('mz-f-status')||'Todos os contratos');
+  ['mz-f-emp','mz-f-area'].concat(MZ_CAMPOS.map(f=>f.f)).forEach(id=>{ const t=so(id); if(t) p.push(t); });
+  const q=$('mz-search').value.trim(); if(q) p.push('busca "'+q+'"');
+  return p.join(' · ');
 }
 
 function renderMatriz(){
@@ -3228,11 +3375,13 @@ function renderMatriz(){
     + kpi(todas.filter(x=>x.area).length,'Com área definida')
     + kpi(todas.filter(x=>!x.area).length,'Sem área',true)
     + kpi(todas.filter(x=>!x.ef.analista_planejamento).length,'Sem analista',true)
-    + kpi(todas.filter(x=>!x.ef.supervisor).length,'Sem supervisor',true);
+    + kpi(todas.filter(x=>!x.ef.supervisor).length,'Sem supervisor',true)
+    + (RESP_DB?kpi(todas.filter(mzForaCadastro).length,'Nome fora do cadastro',true):'');
   $('mz-semdet-notice').style.display=semDet.length?'':'none';
   $('mz-semdet-notice').innerHTML=semDet.length?('<b>'+semDet.length+' contrato(s) sem detalhe de tarefas</b> (nenhuma revisão com o cronograma completo guardado) — reenvie o XML em <b>Nova Análise</b> para abrir os níveis: '
     + semDet.map(c=>esc(c.empresa+(c.escopo?' · '+c.escopo:''))).join('; ')):'';
   [...MZ_SEL].forEach(k=>{ if(!todas.some(x=>x.key===k)) MZ_SEL.delete(k); });
+  const bm=$('mz-btn-massa'); if(bm){ bm.style.display=(CAN_UPLOAD && MZ_DB)?'':'none'; bm.disabled=!lista.length; }
 
   const box=$('mz-content');
   if(!lista.length){
@@ -3244,6 +3393,17 @@ function renderMatriz(){
     let h='<option value="">— definir área —</option>';
     if(cur && MZ_CWA.indexOf(cur)===-1) h+=`<option value="${mzEscA(cur)}" selected>⚠ ${esc(cur)} (fora da lista)</option>`;
     return h+MZ_CWA.map(a=>`<option value="${mzEscA(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join('');
+  };
+  /* opções de pessoa montadas uma vez por função (o select de cada linha só troca o "selected") */
+  const optCache={};
+  MZ_CAMPOS.forEach(f=>{ optCache[f.k]=respOpcoes(f.k).map(n=>[n,`<option value="${mzEscA(n)}">${esc(n)}</option>`]); });
+  const pessoaOpts=(f,own,herd)=>{
+    let h=`<option value="">${herd?'↺ '+esc(herd)+' (contrato)':'—'}</option>`;
+    if(own && !optCache[f].some(o=>o[0]===own)){
+      const ina=RESP_CAD.some(r=>r.funcao===f && r.nome===own);
+      h+=`<option value="${mzEscA(own)}" selected>⚠ ${esc(own)} (${ina?'inativo':'não cadastrado'})</option>`;
+    }
+    return h+optCache[f].map(o=>o[0]===own?o[1].replace('<option ','<option selected '):o[1]).join('');
   };
   let ultimo=null;
   const rows=lista.map(x=>{
@@ -3259,8 +3419,10 @@ function renderMatriz(){
       : (x.area?esc(x.area):'<span class="mz-herd">— sem área —</span>');
     const pessoas=MZ_CAMPOS.map(f=>{
       const own=(x.s[f.k]||'').trim(), herd=(x.c[f.k]||'').trim();
-      if(ed) return `<td><input class="mz-in" data-key="${mzEscA(x.key)}" data-f="${f.k}" list="dl-mz-${f.k==='analista_planejamento'?'analistas':f.k==='especialista'?'especialistas':'supervisores'}" value="${mzEscA(own)}" placeholder="${mzEscA(herd?herd+' (contrato)':'—')}" title="${herd?'Vazio = herda do contrato: '+mzEscA(herd):'Sem responsável no contrato'}"></td>`;
-      return `<td>${own?esc(own):(herd?`<span class="mz-herd" title="herdado do contrato">${esc(herd)}</span>`:'<span class="mz-herd">—</span>')}</td>`;
+      const fora=RESP_DB && x.ef[f.k] && !respCadastrado(f.k,x.ef[f.k]);
+      if(ed) return `<td><select class="mz-in mz-pes${own?'':' mz-herdsel'}${fora?' mz-fora':''}" data-key="${mzEscA(x.key)}" data-f="${f.k}" title="${herd?'Vazio = herda do contrato: '+mzEscA(herd):'Sem responsável no contrato'}${fora?' · nome fora do cadastro':''}">${pessoaOpts(f.k,own,herd)}</select></td>`;
+      const tx=own?esc(own):(herd?`<span class="mz-herd" title="herdado do contrato">${esc(herd)}</span>`:'<span class="mz-herd">—</span>');
+      return `<td${fora?' class="mz-fora-td" title="nome fora do cadastro"':''}>${fora?'⚠ ':''}${tx}</td>`;
     }).join('');
     return `<tr class="${novo?'mz-novo':''}${x.area?'':' mz-semarea'}">
       ${ed?`<td class="mz-chk"><input type="checkbox" data-sel="${mzEscA(x.key)}"${MZ_SEL.has(x.key)?' checked':''}></td>`:''}
@@ -3274,7 +3436,7 @@ function renderMatriz(){
       <th>Empresa</th><th>Contrato</th><th>Atividade (${MZ_NIVEL}º nível)</th><th>Área (CWA)</th>
       <th>Analista de Planejamento</th><th>Especialista</th><th>Supervisor</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
-    <div class="mz-foot">${lista.length} de ${todas.length} linha(s). Nome em <span class="mz-herd">cinza</span> = herdado do responsável cadastrado no contrato (apague o campo para voltar a herdar).</div>`;
+    <div class="mz-foot">${lista.length} de ${todas.length} linha(s). <b>↺ nome (contrato)</b> = vazio na matriz, herda o responsável cadastrado no contrato. <b>⚠</b> = nome fora do Cadastro de Responsáveis.</div>`;
   if(ed){
     box.querySelectorAll('.mz-in').forEach(el=>el.addEventListener('change',()=>mzSalvarCampo(el.dataset.key, el.dataset.f, el.value, el)));
     box.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('change',()=>{ el.checked?MZ_SEL.add(el.dataset.sel):MZ_SEL.delete(el.dataset.sel); mzAtualizarBulk(); }));
@@ -3290,7 +3452,7 @@ function mzPayload(key, patch){
   const i=key.indexOf('::'), cId=key.slice(0,i), uid=key.slice(i+2);
   const tr=MZ_TREE[cId], l=tr?tr.linhas.find(x=>x.uid===uid):null;
   const cur=MZ_RESP[key]||{};
-  const p={cronograma_id:cId, terceira_uid:uid, wbs:l?l.wbs:(cur.wbs||null), atividade:l?l.nome:(cur.atividade||null),
+  const p={cronograma_id:cur.cronograma_id!=null?cur.cronograma_id:cId, terceira_uid:uid, wbs:l?l.wbs:(cur.wbs||null), atividade:l?l.nome:(cur.atividade||null),
     area:cur.area||null, analista_planejamento:cur.analista_planejamento||null,
     especialista:cur.especialista||null, supervisor:cur.supervisor||null,
     atualizado_por:mzUser(), atualizado_em:new Date().toISOString()};
@@ -3301,68 +3463,274 @@ async function mzSalvar(rows){
   await sbUpsert('val_matriz_resp?on_conflict=unidade,cronograma_id,terceira_uid', rows);
   rows.forEach(p=>{ MZ_RESP[mzKey(p.cronograma_id,p.terceira_uid)]=Object.assign({},MZ_RESP[mzKey(p.cronograma_id,p.terceira_uid)]||{},p); });
 }
+async function mzSalvarLotes(rows){ for(let i=0;i<rows.length;i+=200) await mzSalvar(rows.slice(i,i+200)); }
 async function mzSalvarCampo(key, campo, valor, el){
   const p=mzPayload(key,{[campo]:valor});
   if(el) el.disabled=true;
   try{
     await mzSalvar([p]);
     toast('Matriz atualizada ✓','ok');
-    if(campo==='area' || campo==='analista_planejamento') mzFillFiltros();
-    mzFillPessoas();
+    mzFillFiltros();
   }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
   renderMatriz();
 }
 
-/* ---------- edição em lote ---------- */
+/* ---------- seleção (barra fixa) ---------- */
 function mzAtualizarBulk(){
   const b=$('mz-bulk'); if(!b) return;
   b.style.display=(CAN_UPLOAD && MZ_DB && MZ_SEL.size)?'':'none';
   $('mz-b-n').textContent=MZ_SEL.size+' linha(s) selecionada(s)';
 }
-async function mzAplicarLote(){
-  if(!MZ_SEL.size) return;
-  const patch={}, area=$('mz-b-area').value;
-  if(area) patch.area=area==='__limpar'?'':area;
-  MZ_CAMPOS.forEach(f=>{
-    const v=$('mz-b-'+f.k).value.trim(), lim=$('mz-b-'+f.k+'-x').checked;
-    if(lim) patch[f.k]=''; else if(v) patch[f.k]=v;
-  });
-  if(!Object.keys(patch).length) return toast('Escolha a área e/ou preencha algum responsável para aplicar.','err');
-  if(!confirm('Aplicar às '+MZ_SEL.size+' linhas selecionadas?')) return;
-  const btn=$('mz-b-ok'); btn.disabled=true;
-  try{
-    const rows=[...MZ_SEL].map(k=>mzPayload(k,patch));
-    for(let i=0;i<rows.length;i+=200) await mzSalvar(rows.slice(i,i+200));
-    toast(rows.length+' linha(s) atualizada(s) ✓','ok');
-    MZ_SEL.clear(); mzLimparLote(); mzFillFiltros(); mzFillPessoas(); renderMatriz();
-  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); }
-  btn.disabled=false;
-}
-function mzLimparLote(){
-  $('mz-b-area').value='';
-  MZ_CAMPOS.forEach(f=>{ $('mz-b-'+f.k).value=''; $('mz-b-'+f.k+'-x').checked=false; });
-}
 function mzLimparSelecao(){ MZ_SEL.clear(); renderMatriz(); }
+
+/* ---------- ATRIBUIR EM MASSA (Fase 3.28) ----------
+   Aplica Área / Analista / Especialista / Supervisor a todas as linhas que
+   estão na tela com os filtros atuais (ou só às marcadas). Pessoas: só nomes
+   do Cadastro de Responsáveis. "↺ limpar" apaga o valor da matriz e a linha
+   volta a herdar do contrato. */
+let MZM_ALCANCE='filtro';
+function mzmLinhas(){
+  if(MZM_ALCANCE==='sel'){ const t=mzLinhas(); return t.filter(x=>MZ_SEL.has(x.key)); }
+  return mzFiltradas();
+}
+function mzAbrirMassa(alcance){
+  if(!(CAN_UPLOAD && MZ_DB)) return;
+  MZM_ALCANCE=alcance==='sel' && MZ_SEL.size ? 'sel' : 'filtro';
+  const nF=mzFiltradas().length, nS=MZ_SEL.size;
+  $('mzm-alcance').innerHTML=
+      `<label class="mzm-rad"><input type="radio" name="mzm-alc" value="filtro"${MZM_ALCANCE==='filtro'?' checked':''}> <b>${nF}</b> linha(s) filtrada(s) na tela</label>`
+    + (nS?`<label class="mzm-rad"><input type="radio" name="mzm-alc" value="sel"${MZM_ALCANCE==='sel'?' checked':''}> só as <b>${nS}</b> linha(s) marcada(s)</label>`:'');
+  $('mzm-filtros').textContent='Filtros da tela: '+mzFiltrosDescricao();
+  document.querySelectorAll('input[name="mzm-alc"]').forEach(r=>r.addEventListener('change',()=>{ MZM_ALCANCE=r.value; mzmResumo(); }));
+  const nao='<option value="">(não alterar)</option>';
+  $('mzm-area').innerHTML=nao+'<option value="__limpar">✕ limpar área</option>'+MZ_CWA.map(a=>`<option value="${mzEscA(a)}">${esc(a)}</option>`).join('');
+  MZ_CAMPOS.forEach(f=>{
+    const nomes=respOpcoes(f.k);
+    $('mzm-'+f.k).innerHTML=nao+'<option value="__limpar">↺ limpar (volta a herdar do contrato)</option>'
+      + nomes.map(n=>`<option value="${mzEscA(n)}">${esc(n)}</option>`).join('');
+  });
+  $('mzm-aviso').style.display=(RESP_DB && MZ_CAMPOS.some(f=>!respNomes(f.k,true).length))?'':'none';
+  mzmResumo();
+  $('modal-mz-massa').classList.add('visible');
+}
+function mzFecharMassa(){ $('modal-mz-massa').classList.remove('visible'); }
+function mzmPatch(){
+  const patch={}, a=$('mzm-area').value;
+  if(a) patch.area=a==='__limpar'?'':a;
+  MZ_CAMPOS.forEach(f=>{ const v=$('mzm-'+f.k).value; if(v) patch[f.k]=v==='__limpar'?'':v; });
+  return patch;
+}
+function mzmResumo(){
+  const linhas=mzmLinhas(), patch=mzmPatch(), ks=Object.keys(patch);
+  const btn=$('mzm-ok');
+  if(!ks.length){
+    $('mzm-resumo').innerHTML='Escolha pelo menos um campo para aplicar às <b>'+linhas.length+'</b> linha(s).';
+    btn.disabled=true; btn.textContent='Aplicar'; return;
+  }
+  const nome={area:'Área'}; MZ_CAMPOS.forEach(f=>nome[f.k]=f.t);
+  let mudam=0;
+  const det=ks.map(k=>{
+    const n=linhas.filter(x=>String(x.s[k]||'').trim()!==patch[k]).length;
+    return `<li><b>${nome[k]}</b> → ${patch[k]?esc(patch[k]):'<i>'+(k==='area'?'limpar':'limpar (herdar do contrato)')+'</i>'} <span class="mzm-n">${n} de ${linhas.length} linha(s) mudam</span></li>`;
+  }).join('');
+  linhas.forEach(x=>{ if(ks.some(k=>String(x.s[k]||'').trim()!==patch[k])) mudam++; });
+  $('mzm-resumo').innerHTML=`<ul>${det}</ul><div><b>${mudam}</b> linha(s) serão gravadas${linhas.length-mudam?' · '+(linhas.length-mudam)+' já estão assim':''}.</div>`;
+  btn.disabled=!mudam; btn.textContent=mudam?'Aplicar a '+mudam+' linha(s)':'Nada a alterar';
+}
+async function mzAplicarMassa(){
+  const linhas=mzmLinhas(), patch=mzmPatch(), ks=Object.keys(patch);
+  const alvo=linhas.filter(x=>ks.some(k=>String(x.s[k]||'').trim()!==patch[k]));
+  if(!alvo.length) return;
+  if(!confirm('Confirmar a atribuição em '+alvo.length+' linha(s) da Matriz?\n\n'+mzFiltrosDescricao())) return;
+  const btn=$('mzm-ok'); btn.disabled=true; const old=btn.textContent; btn.textContent='Gravando…';
+  try{
+    await mzSalvarLotes(alvo.map(x=>mzPayload(x.key,patch)));
+    toast(alvo.length+' linha(s) atualizada(s) ✓','ok');
+    if(MZM_ALCANCE==='sel') MZ_SEL.clear();
+    mzFecharMassa(); mzFillFiltros(); renderMatriz();
+  }catch(e){ toast('Erro ao salvar: '+e.message,'err'); btn.textContent=old; btn.disabled=false; }
+}
 
 function mzOnFiltroContrato(){ mzCarregarArvores(); }
 function mzRecarregar(){ MZ_TREE={}; MZ_SEL.clear(); MZ_LOADED=true; initMatriz(); }
+
+/* ---------- TELA: CADASTRO DE RESPONSÁVEIS ---------- */
+function respCompilar(){
+  /* uso[funcao][nome] = {ctr:Set ids de contrato, mz:n linhas da matriz, pta:bool} */
+  const uso={}; MZ_CAMPOS.forEach(f=>uso[f.k]={});
+  const pega=(f,nome)=>{ nome=String(nome||'').trim(); if(!nome) return null; return uso[f][nome]||(uso[f][nome]={ctr:new Set(),mz:0,pta:false}); };
+  MZ_CONTRATOS.forEach(c=>MZ_CAMPOS.forEach(f=>{ const o=pega(f.k,c[f.k]); if(o) o.ctr.add(c.id); }));
+  Object.values(MZ_RESP).forEach(m=>MZ_CAMPOS.forEach(f=>{ const o=pega(f.k,m[f.k]); if(o) o.mz++; }));
+  MZ_ANA_AREA.forEach(n=>{ const o=pega('analista_planejamento',n); if(o) o.pta=true; });
+  RESP_CAD.forEach(r=>{ pega(r.funcao,r.nome); });
+  return uso;
+}
+async function respAbrir(){
+  $('modal-resp').classList.add('visible');
+  if(!MZ_LOADED){ MZ_LOADED=true; await initMatriz(); }
+  respRender();
+}
+function respFechar(){ $('modal-resp').classList.remove('visible'); }
+function respAba(k){ RESP_ABA=k; respRender(); }
+function respRender(){
+  const ed=CAN_UPLOAD && RESP_DB;
+  const uso=respCompilar();
+  $('resp-setup').style.display=RESP_DB?'none':'';
+  $('resp-novo-box').style.display=ed?'':'none';
+  $('resp-tabs').innerHTML=MZ_CAMPOS.map(f=>{
+    const nomes=Object.keys(uso[f.k]), pend=nomes.filter(n=>!respCadastrado(f.k,n)).length;
+    return `<button class="resp-tab${RESP_ABA===f.k?' on':''}" onclick="respAba('${f.k}')">${f.p} <span class="resp-cnt">${nomes.length}</span>${pend&&RESP_DB?`<span class="resp-pend" title="não cadastrados">${pend} ⚠</span>`:''}</button>`;
+  }).join('');
+  const f=respFuncao(RESP_ABA), q=mzDeacc($('resp-busca').value), soPend=$('resp-so-pend').checked;
+  const outras=MZ_CAMPOS.filter(o=>o.k!==f.k);
+  const cadF=respNomes(f.k,false);
+  let nomes=Object.keys(uso[f.k]).sort(mzSort);
+  const linhas=nomes.map(n=>{
+    const o=uso[f.k][n], reg=RESP_CAD.find(r=>r.funcao===f.k && r.nome===n);
+    const st=reg?(reg.ativo===false?'ina':'ok'):'pend';
+    const par=nomes.filter(m=>respParecidos(n,m));
+    const tb=outras.filter(of=>Object.keys(uso[of.k]).some(m=>m===n || respParecidos(n,m)));
+    return {n,o,reg,st,par,tb,usos:o.ctr.size+o.mz};
+  }).filter(x=>(!q || mzDeacc(x.n).indexOf(q)>=0) && (!soPend || x.st!=='ok' || x.par.length || x.tb.length));
+  const nPend=nomes.filter(n=>!respCadastrado(f.k,n)).length;
+  $('resp-bulk').innerHTML=(ed && nPend)?`<button class="btn ghost sm" onclick="respCadastrarTodos()">＋ Cadastrar os ${nPend} não cadastrados de ${f.p}</button>`:'';
+  if(!linhas.length){ $('resp-lista').innerHTML='<div class="empty" style="padding:30px"><div class="big">👥</div>'+(nomes.length?'Nada com esse filtro.':'Nenhum nome lançado ou cadastrado em '+f.p+'.')+'</div>'; return; }
+  const subst=n=>`<select class="resp-act" data-acao="subst" data-nome="${mzEscA(n)}"><option value="">⇄ Unificar com…</option>${cadF.filter(m=>m!==n).map(m=>`<option value="${mzEscA(m)}">${esc(m)}</option>`).join('')}</select>`;
+  const mover=n=>`<select class="resp-act" data-acao="mover" data-nome="${mzEscA(n)}"><option value="">↪ Mover para…</option>${outras.map(of=>`<option value="${of.k}">${of.t}</option>`).join('')}</select>`;
+  $('resp-lista').innerHTML=`<table class="resp-tbl"><thead><tr><th>Nome</th><th>Situação</th><th>Onde está lançado</th><th>Atenção</th>${ed?'<th>Ações</th>':''}</tr></thead><tbody>`
+   + linhas.map(x=>{
+      const sit=x.st==='ok'?'<span class="resp-st ok">✓ cadastrado</span>':x.st==='ina'?'<span class="resp-st ina">inativo</span>':'<span class="resp-st pend">⚠ não cadastrado</span>';
+      const ondes=[x.o.ctr.size?x.o.ctr.size+' contrato(s)':'', x.o.mz?x.o.mz+' linha(s) da matriz':'', x.o.pta?'Analistas por Área':''].filter(Boolean).join(' · ')||'<span class="mz-herd">sem uso</span>';
+      const at=[x.par.length?'parecido com: <b>'+x.par.map(esc).join(', ')+'</b>':'', x.tb.length?'aparece também como <b>'+x.tb.map(o=>o.t).join(', ')+'</b>':''].filter(Boolean).join('<br>');
+      let ac='';
+      if(ed){
+        const b=[];
+        if(x.st==='pend') b.push(`<button class="mini-btn" data-acao="cad" data-nome="${mzEscA(x.n)}" title="Cadastrar este nome em ${f.p}">＋ Cadastrar</button>`);
+        else{
+          b.push(`<button class="mini-btn" data-acao="ren" data-nome="${mzEscA(x.n)}" title="Renomear aqui e em todos os contratos/linhas da matriz">✏️</button>`);
+          b.push(`<button class="mini-btn" data-acao="ativo" data-nome="${mzEscA(x.n)}" title="${x.st==='ok'?'Desativar (sai das opções, continua onde já está)':'Reativar'}">${x.st==='ok'?'⏸':'▶'}</button>`);
+          if(!x.usos) b.push(`<button class="mini-btn danger" data-acao="del" data-nome="${mzEscA(x.n)}" title="Excluir do cadastro">🗑</button>`);
+        }
+        if(x.usos || x.st!=='pend') b.push(subst(x.n));
+        if(x.usos) b.push(mover(x.n));
+        ac=`<td class="resp-acoes">${b.join('')}</td>`;
+      }
+      return `<tr class="resp-${x.st}"><td class="resp-nome">${esc(x.n)}</td><td>${sit}</td><td class="resp-onde">${ondes}</td><td class="resp-at">${at}</td>${ac}</tr>`;
+    }).join('')+'</tbody></table>';
+  if(ed){
+    $('resp-lista').querySelectorAll('button[data-acao]').forEach(b=>b.addEventListener('click',()=>respAcao(b.dataset.acao,b.dataset.nome)));
+    $('resp-lista').querySelectorAll('select.resp-act').forEach(s=>s.addEventListener('change',()=>{ const v=s.value; s.value=''; if(v) respAcao(s.dataset.acao,s.dataset.nome,v); }));
+  }
+}
+
+/* troca o texto "de" por "para" no campo f em todos os contratos e linhas da matriz desta unidade */
+async function respSubstituirUso(f, de, para){
+  const enc=encodeURIComponent(de);
+  await sb('PATCH',pcoComUnidade(`val_cronogramas?${f}=eq.${enc}`),{[f]:para||null});
+  if(MZ_DB) await sb('PATCH',pcoComUnidade(`val_matriz_resp?${f}=eq.${enc}`),{[f]:para||null, atualizado_por:mzUser(), atualizado_em:new Date().toISOString()});
+}
+/* move o nome do campo "de" para o campo "para": só onde o destino está vazio
+   ou já tem o mesmo nome; onde o destino tem outra pessoa, não mexe (conflito) */
+async function respMoverUso(de, nome, para){
+  let mov=0, conf=0;
+  for(const c of MZ_CONTRATOS.filter(c=>String(c[de]||'').trim()===nome)){
+    const dst=String(c[para]||'').trim();
+    if(dst && dst!==nome){ conf++; continue; }
+    await sb('PATCH',pcoComUnidade(`val_cronogramas?id=eq.${c.id}`),{[de]:null,[para]:nome}); mov++;
+  }
+  const up=[];
+  Object.values(MZ_RESP).filter(m=>String(m[de]||'').trim()===nome).forEach(m=>{
+    const dst=String(m[para]||'').trim();
+    if(dst && dst!==nome){ conf++; return; }
+    up.push(mzPayload(mzKey(m.cronograma_id,m.terceira_uid),{[de]:'',[para]:nome}));
+  });
+  if(up.length) await mzSalvarLotes(up);
+  return {mov:mov+up.length, conf};
+}
+async function respInserir(f, nome){
+  await sb('POST','val_responsaveis',pcoComTag({funcao:f, nome, ativo:true, atualizado_por:mzUser()}));
+}
+async function respAtualizarTudo(){
+  await mzCarregarBase();
+  if(typeof loadHistory==='function') loadHistory();
+  renderMatriz(); respRender();
+}
+async function respAcao(acao, nome, arg){
+  const f=RESP_ABA, ft=respFuncao(f), reg=RESP_CAD.find(r=>r.funcao===f && r.nome===nome);
+  try{
+    if(acao==='cad'){
+      await respInserir(f,nome); toast(nome+' cadastrado em '+ft.p+' ✓','ok');
+    }else if(acao==='ativo' && reg){
+      await sb('PATCH',pcoComUnidade(`val_responsaveis?id=eq.${reg.id}`),{ativo:reg.ativo===false, atualizado_por:mzUser(), atualizado_em:new Date().toISOString()});
+      toast(nome+(reg.ativo===false?' reativado':' desativado')+' ✓','ok');
+    }else if(acao==='del' && reg){
+      if(!confirm('Excluir "'+nome+'" do cadastro de '+ft.p+'?')) return;
+      await sb('DELETE',pcoComUnidade(`val_responsaveis?id=eq.${reg.id}`)); toast('Excluído ✓','ok');
+    }else if(acao==='ren' && reg){
+      const novo=(prompt('Novo nome para "'+nome+'" ('+ft.t+').\nO nome será trocado também em todos os contratos e linhas da matriz.',nome)||'').trim();
+      if(!novo || novo===nome) return;
+      if(RESP_CAD.some(r=>r.funcao===f && r.nome===novo)) return respAcao('subst',nome,novo);
+      await sb('PATCH',pcoComUnidade(`val_responsaveis?id=eq.${reg.id}`),{nome:novo, atualizado_por:mzUser(), atualizado_em:new Date().toISOString()});
+      await respSubstituirUso(f,nome,novo);
+      toast('Renomeado para '+novo+' ✓','ok');
+    }else if(acao==='subst'){
+      const uso=respCompilar()[f][nome]||{ctr:new Set(),mz:0};
+      if(!confirm('Unificar "'+nome+'" com "'+arg+'" em '+ft.p+'?\n\nTroca o nome em '+uso.ctr.size+' contrato(s) e '+uso.mz+' linha(s) da matriz'+(reg?' e remove "'+nome+'" do cadastro':'')+'.')) return;
+      await respSubstituirUso(f,nome,arg);
+      if(reg) await sb('DELETE',pcoComUnidade(`val_responsaveis?id=eq.${reg.id}`));
+      toast('"'+nome+'" → "'+arg+'" ✓','ok');
+    }else if(acao==='mover'){
+      const dt=respFuncao(arg);
+      if(!confirm('Mover "'+nome+'" de '+ft.t+' para '+dt.t+'?\n\nNos contratos e linhas da matriz em que '+dt.t+' está vazio (ou já é '+nome+'), o nome passa para '+dt.t+' e '+ft.t+' fica vazio. Onde '+dt.t+' tem outra pessoa, nada é alterado.')) return;
+      if(!RESP_CAD.some(r=>r.funcao===arg && r.nome===nome)) await respInserir(arg,nome);
+      const r=await respMoverUso(f,nome,arg);
+      toast(r.mov+' registro(s) movido(s)'+(r.conf?' · '+r.conf+' com conflito ficaram como estavam (filtre na matriz por '+nome+')':'')+' ✓', r.conf?'err':'ok');
+    }
+    await respAtualizarTudo();
+  }catch(e){
+    if(/23505|duplicate|unique/i.test(e.message)) toast('Esse nome já está cadastrado nessa função.','err');
+    else toast('Erro: '+e.message,'err');
+    respAtualizarTudo().catch(()=>{});
+  }
+}
+async function respNovo(){
+  const nome=$('resp-novo').value.trim().replace(/\s+/g,' ');
+  if(!nome) return;
+  const f=RESP_ABA, ft=respFuncao(f);
+  if(RESP_CAD.some(r=>r.funcao===f && r.nome===nome)) return toast(nome+' já está cadastrado em '+ft.p,'err');
+  const par=respNomes(f,false).filter(n=>respParecidos(nome,n));
+  if(par.length && !confirm('Já existe nome parecido em '+ft.p+': '+par.join(', ')+'.\nCadastrar "'+nome+'" mesmo assim?')) return;
+  try{ await respInserir(f,nome); $('resp-novo').value=''; toast(nome+' cadastrado ✓','ok'); await respAtualizarTudo(); }
+  catch(e){ toast(/23505|duplicate|unique/i.test(e.message)?'Esse nome já está cadastrado.':'Erro: '+e.message,'err'); }
+}
+async function respCadastrarTodos(){
+  const f=RESP_ABA, ft=respFuncao(f), uso=respCompilar()[f];
+  const pend=Object.keys(uso).filter(n=>!respCadastrado(f,n));
+  if(!pend.length) return;
+  if(!confirm('Cadastrar '+pend.length+' nome(s) em '+ft.p+'?\n\nUnifique antes as variações do mesmo nome (coluna "Atenção") para não cadastrar duplicados.\n\n'+pend.join('\n'))) return;
+  try{
+    await sbUpsert('val_responsaveis?on_conflict=unidade,funcao,nome', pend.map(n=>({funcao:f, nome:n, ativo:true, atualizado_por:mzUser()})));
+    toast(pend.length+' cadastrado(s) ✓','ok'); await respAtualizarTudo();
+  }catch(e){ toast('Erro: '+e.message,'err'); }
+}
 
 function exportMatrizExcel(){
   const lista=mzFiltradas();
   if(!lista.length) return toast('Nada para exportar com esses filtros.','err');
   const aoa=[['Empresa','Contrato','Nº contrato','Revisão','WBS','Estrutura (níveis acima)','Atividade','Área (CWA)',
-    'Analista de Planejamento','Especialista','Supervisor','Herdado do contrato','Atualizado por','Atualizado em']];
+    'Analista de Planejamento','Especialista','Supervisor','Herdado do contrato','Fora do cadastro','Atualizado por','Atualizado em']];
   lista.forEach(x=>{
     const tr=MZ_TREE[x.c.id]||{};
     aoa.push([x.c.empresa||'', x.c.escopo||'', x.c.numero_contrato||'', tr.rotulo||(tr.revisao!=null?'REV '+tr.revisao:''),
       x.l.wbs, x.l.trilha.join(' › '), x.l.nome, x.area,
       x.ef.analista_planejamento, x.ef.especialista, x.ef.supervisor,
       MZ_CAMPOS.filter(f=>x.herd[f.k]).map(f=>f.t).join(', '),
+      RESP_DB?MZ_CAMPOS.filter(f=>x.ef[f.k] && !respCadastrado(f.k,x.ef[f.k])).map(f=>f.t).join(', '):'',
       x.s.atualizado_por||'', x.s.atualizado_em?new Date(x.s.atualizado_em).toLocaleString('pt-BR'):'']);
   });
   const ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[22,28,14,10,10,45,45,34,24,24,24,30,20,18].map(w=>({wch:w}));
-  ws['!autofilter']={ref:'A1:N'+aoa.length};
+  ws['!cols']=[22,28,14,10,10,45,45,34,24,24,24,30,26,20,18].map(w=>({wch:w}));
+  ws['!autofilter']={ref:'A1:O'+aoa.length};
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Matriz');
   const hoje=new Date().toISOString().slice(0,10).replace(/-/g,'');
   XLSX.writeFile(wb,'Matriz_Responsabilidades_'+pcoUnidadeAtual()+'_'+hoje+'.xlsx');
