@@ -3231,8 +3231,11 @@ async function mzCarregarBase(){
     respCarregar()
   ]);
   MZ_CONTRATOS=r[0]||[];
-  MZ_CWA=[...new Set((r[1]||[]).map(x=>String(x.cwa||'').trim()).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const cwas=(r[1]||[]).map(x=>String(x.cwa||'').trim()).filter(Boolean);
+  // o Cronograma Geral só traz as CWAs da Fase I (23xx): duplica cada uma
+  // para a Fase II com o mesmo nome ("2300.A - Pipe Rack" → "2400.A - Pipe Rack")
+  cwas.slice().forEach(c=>{ if(/^23\d\d\b/.test(c)) cwas.push('24'+c.slice(2)); });
+  MZ_CWA=[...new Set(cwas)].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
   MZ_RESP={}; (r[2]||[]).forEach(x=>{ MZ_RESP[mzKey(x.cronograma_id,x.terceira_uid)]=x; });
   MZ_ANA_AREA=(r[3]||[]).map(x=>String(x.nome||'').trim()).filter(Boolean);
   $('mz-setup-notice').style.display=MZ_DB?'none':'';
