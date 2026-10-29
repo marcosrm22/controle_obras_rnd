@@ -3325,6 +3325,94 @@ function mzExtrairNivel(tarefas){
   return out;
 }
 
+/* ---------- sugestão de Área (3 CWAs mais prováveis por linha) ----------
+   Compara o nome da atividade, a trilha (texto cinza acima dela) e o escopo
+   do contrato com o nome de cada CWA: palavras em comum pesam pelo quão raras
+   são na lista de CWAs (abreviação "ALM." casa com "Almoxarifado"). Somam
+   bônus as áreas já definidas em linhas do mesmo contrato, sobretudo sob o
+   mesmo resumo pai. "Fase 01/02" no texto escolhe o prefixo 23xx/24xx. */
+const MZ_STOP=new Set('de do da dos das e em no na nos nas o a os as para por com sem ao aos um uma the and of'.split(' '));
+function mzTokens(s){
+  return (mzDeacc(s).match(/[a-z0-9]+/g)||[])
+    .filter(w=>w.length>=2 && !MZ_STOP.has(w) && !/^\d+$/.test(w))
+    .map(w=>w.length>4?w.replace(/(es|s)$/,''):w);
+}
+function mzFaseDe(s){
+  s=mzDeacc(s);
+  if(/\bfase\s*(0*2|ii)\b/.test(s)) return '24';
+  if(/\bfase\s*(0*1|i)\b/.test(s)) return '23';
+  return null;
+}
+let MZ_SUG_IDX=null;
+function mzSugIndice(){
+  if(MZ_SUG_IDX && MZ_SUG_IDX.src===MZ_CWA) return MZ_SUG_IDX;
+  const itens=MZ_CWA.map(full=>{
+    const i=full.indexOf(' - '), code=(i>=0?full.slice(0,i):full).trim(), nome=i>=0?full.slice(i+3):full;
+    return {full, code, nome:mzDeacc(nome), fase:/^2[34]/.test(code)?code.slice(0,2):null, toks:[...new Set(mzTokens(nome))]};
+  });
+  // IDF contado por nome (o par 23xx/24xx do mesmo nome conta uma vez)
+  const nomes={}; itens.forEach(it=>{ nomes[it.nome]=it.toks; });
+  const n=Object.keys(nomes).length||1, df={};
+  Object.values(nomes).forEach(ts=>ts.forEach(w=>{ df[w]=(df[w]||0)+1; }));
+  const idf=w=>Math.log(1+n/(df[w]||1));
+  itens.forEach(it=>{ it.peso=Math.sqrt(it.toks.reduce((s,w)=>s+idf(w),0))||1; });
+  return MZ_SUG_IDX={src:MZ_CWA, itens, idf};
+}
+/* áreas já gravadas, por contrato e por (contrato + resumo pai) */
+function mzSugAprendido(){
+  const porCtr={}, porPai={};
+  Object.keys(MZ_TREE).forEach(cId=>{
+    (MZ_TREE[cId].linhas||[]).forEach(l=>{
+      const a=((MZ_RESP[mzKey(cId,l.uid)]||{}).area||'').trim(); if(!a) return;
+      const pc=porCtr[cId]=porCtr[cId]||{}; pc[a]=(pc[a]||0)+1;
+      const kp=cId+'::'+(l.trilha[l.trilha.length-1]||''), pp=porPai[kp]=porPai[kp]||{}; pp[a]=(pp[a]||0)+1;
+    });
+  });
+  return {porCtr, porPai};
+}
+const MZ_SUG_CACHE={};
+function mzSugerir(x, ap){
+  const ix=mzSugIndice(); if(!ix.itens.length) return [];
+  const tr=x.l.trilha||[];
+  const fontes=[[mzTokens(x.l.nome),1],[mzTokens(tr[tr.length-1]||''),.8],[mzTokens(tr.slice(0,-1).join(' ')),.5],[mzTokens(x.c.escopo||''),.6]];
+  const casa=(w,ts)=>{
+    let m=0;
+    for(const t of ts){
+      if(t===w) return 1;
+      if(t.length>=3 && (w.startsWith(t) || (w.length>=4 && t.startsWith(w)))) m=Math.max(m,Math.min(t.length,w.length)>=4?.75:.5);
+    }
+    return m;
+  };
+  const texto=mzDeacc([x.l.nome,tr.join(' '),x.c.escopo].join(' '));
+  const ctr=ap.porCtr[x.c.id]||{}, pai=ap.porPai[x.c.id+'::'+(tr[tr.length-1]||'')]||{};
+  // a matriz re-renderiza a cada tecla da busca: só recalcula se mudou a lista
+  // de CWAs ou as áreas já gravadas no contrato
+  const sig=JSON.stringify([ctr,pai]), ca=MZ_SUG_CACHE[x.key];
+  if(x.key && ca && ca.src===MZ_CWA && ca.sig===sig) return ca.out;
+  const totCtr=Object.values(ctr).reduce((s,v)=>s+v,0)||1, totPai=Object.values(pai).reduce((s,v)=>s+v,0)||1;
+  // fase: texto da linha → escopo → prefixo mais usado no contrato
+  let fase=mzFaseDe(x.l.nome+' '+tr.join(' '))||mzFaseDe(x.c.escopo||'');
+  if(!fase){ let n23=0,n24=0; Object.keys(ctr).forEach(a=>{ if(/^23/.test(a)) n23+=ctr[a]; else if(/^24/.test(a)) n24+=ctr[a]; }); if(n24>n23) fase='24'; else if(n23) fase='23'; }
+  const sc=ix.itens.map(it=>{
+    let s=0;
+    it.toks.forEach(w=>{ let b=0; fontes.forEach(([ts,p])=>{ const m=casa(w,ts)*p; if(m>b) b=m; }); s+=b*ix.idf(w); });
+    s/=it.peso;
+    if(it.code.length>=4 && texto.indexOf(mzDeacc(it.code))>=0) s+=2;
+    s+=1.5*(pai[it.full]||0)/totPai + .6*(ctr[it.full]||0)/totCtr;
+    if(fase && it.fase && it.fase!==fase) s*=.3;
+    return {a:it.full, nome:it.nome, s};
+  }).filter(r=>r.s>0.05).sort((a,b)=>b.s-a.s);
+  // sem fase definida, o par 23xx/24xx do mesmo nome ocupa uma vaga só
+  const out=[], vistos=new Set();
+  for(const r of sc){
+    if(vistos.has(r.nome)) continue;
+    vistos.add(r.nome); out.push(r.a);
+    if(out.length===3) break;
+  }
+  if(x.key) MZ_SUG_CACHE[x.key]={src:MZ_CWA, sig, out};
+  return out;
+}
+
 /* ---------- valores efetivos ---------- */
 function mzLinhas(){
   const out=[];
@@ -3393,10 +3481,13 @@ function renderMatriz(){
     mzAtualizarBulk(); return;
   }
   const ed=CAN_UPLOAD && MZ_DB;
-  const areaOpts=(cur)=>{
+  const sugAp=ed?mzSugAprendido():null;
+  const areaOpts=(cur,x)=>{
     let h='<option value="">— definir área —</option>';
     if(cur && MZ_CWA.indexOf(cur)===-1) h+=`<option value="${mzEscA(cur)}" selected>⚠ ${esc(cur)} (fora da lista)</option>`;
-    return h+MZ_CWA.map(a=>`<option value="${mzEscA(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join('');
+    const sug=mzSugerir(x,sugAp);
+    if(sug.length) h+='<optgroup label="Sugestões (mais prováveis)">'+sug.map(a=>`<option value="${mzEscA(a)}">★ ${esc(a)}</option>`).join('')+'</optgroup><optgroup label="Todas as áreas">';
+    return h+MZ_CWA.map(a=>`<option value="${mzEscA(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join('')+(sug.length?'</optgroup>':'');
   };
   /* opções de pessoa montadas uma vez por função (o select de cada linha só troca o "selected") */
   const optCache={};
@@ -3419,7 +3510,7 @@ function renderMatriz(){
     const atv=(x.l.trilha.length?`<div class="mz-trilha">${x.l.trilha.map(esc).join(' › ')}</div>`:'')
       + `<div class="mz-nome">${esc(x.l.nome)}</div><div class="mz-wbs">WBS ${esc(x.l.wbs||'—')}${x.l.level<MZ_NIVEL?' · folha nível '+x.l.level:''}</div>`;
     const area=ed
-      ? `<select class="mz-in mz-area${x.area?'':' vazio'}" data-key="${mzEscA(x.key)}" data-f="area">${areaOpts(x.area)}</select>`
+      ? `<select class="mz-in mz-area${x.area?'':' vazio'}" data-key="${mzEscA(x.key)}" data-f="area">${areaOpts(x.area,x)}</select>`
       : (x.area?esc(x.area):'<span class="mz-herd">— sem área —</span>');
     const pessoas=MZ_CAMPOS.map(f=>{
       const own=(x.s[f.k]||'').trim(), herd=(x.c[f.k]||'').trim();
