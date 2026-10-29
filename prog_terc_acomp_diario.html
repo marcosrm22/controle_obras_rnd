@@ -18,6 +18,7 @@ th.dia.hoje{background:var(--gold-soft,#FEF3C7)}
 th.dia .dsub{display:block;font-size:9.5px;font-weight:500;opacity:.75}
 td.dia{text-align:center;padding:3px 4px}
 td.dia.hoje{background:#fffaf0}
+.ctr-sub{display:block;font-size:10px;font-weight:500;color:var(--text-mute);margin-top:2px;line-height:1.3}
 .dia-sel{width:100%;min-width:84px;font-size:11px;padding:3px 4px;border:1px solid var(--border-2);
   background:#fff;font-family:inherit;cursor:pointer}
 .dia-sel:disabled{cursor:not-allowed;opacity:.45;background:#f6f7f8}
@@ -67,6 +68,7 @@ tr.sem-hoje td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
   <div class="toolbar no-print">
     <select class="f" id="fAnalista"><option value="">Todos os analistas</option></select>
     <select class="f" id="fEmpresa"><option value="">Todas as empresas</option></select>
+    <select class="f" id="fContrato" style="max-width:320px" title="Contratos das atividades da semana — filtrando a empresa, só aparecem os contratos dela"><option value="">Todos os contratos</option></select>
     <select class="f" id="fStatus">
       <option value="">Todos os status</option>
       <option value="programada">Pendente</option>
@@ -103,7 +105,7 @@ tr.sem-hoje td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
   <div class="section-label" style="margin-top:22px">Acompanhamento pelos analistas · semana</div>
   <div class="toolbar no-print" style="margin-top:0">
     <span class="small muted" style="margin-right:auto">Atividades com algum apontamento no dia ÷ atividades programadas na semana,
-      agrupadas pelo analista que acompanha a área (configurado em <a href="prog_terc_analistas_area.html">👥 Analistas por Área</a>). Só dias até hoje.</span>
+      agrupadas pelo analista da Matriz de Responsabilidades (aba da <a href="validacao_cronogramas.html">Validação de Cronogramas</a>; vazio herda o do contrato). Só dias até hoje.</span>
     <label class="small" style="display:flex;align-items:center;gap:5px;cursor:pointer">
       <input type="checkbox" id="fFds"> considerar sábado e domingo</label>
   </div>
@@ -167,6 +169,9 @@ var COL_LABEL = {}; L.KB_COLS.forEach(function(k){ COL_LABEL[k.key] = k.label; }
 
 var ATIV = [], CARDS = [], ACOMP = {};   // ACOMP[programacao_id][data] = row
 var AN_CFG_ERRO = null;   // tabelas de analistas por área ainda não criadas
+var MZ = {}, MZ_ERRO = null;   // val_matriz_resp: MZ[cronograma_id::uid da tarefa de 3º nível]
+var META = {};                 // META[programacao_id] = {ordem, wbs, mz, contrato} (calculado no load)
+var EMP_MULTI = {};            // empresas com mais de um contrato na semana
 var SALVANDO = {};                       // programacao_id -> true enquanto grava
 
 /* ================= REGRAS (puras — testáveis fora do navegador) ================= */
@@ -188,7 +193,9 @@ function load(){
     L.loadAtividades(false),
     L.sbGetAll(L.comUnidade('prog_terc_programacao?select=*&ativo=eq.true&semana=eq.'+BASE+'&order=empresa.asc,id.asc')),
     L.sbGetAll(L.comUnidade('prog_terc_acomp_diario?select=*&semana=eq.'+BASE)),
-    L.loadAnalistasArea(true)
+    L.loadAnalistasArea(true),
+    L.sbGetAll(L.comUnidade('val_matriz_resp?select=cronograma_id,terceira_uid,analista_planejamento&order=id.asc'))
+      .catch(function(e){ return { erro: e }; })
   ]).then(function(r){
     ATIV = r[0].atividades || [];
     CARDS = r[1] || [];
@@ -197,12 +204,16 @@ function load(){
       (ACOMP[a.programacao_id] = ACOMP[a.programacao_id] || {})[String(a.data).slice(0,10)] = a;
     });
     AN_CFG_ERRO = r[3] && r[3].erro;
-    if(AN_CFG_ERRO){
+    MZ = {}; MZ_ERRO = (r[4] && r[4].erro) || null;
+    if(!MZ_ERRO) (r[4] || []).forEach(function(m){ MZ[m.cronograma_id + '::' + m.terceira_uid] = m; });
+    if(MZ_ERRO){
       $('setup').className = 'notice warn';
-      $('setup').innerHTML = '<b>Analistas por área ainda não configurados.</b> Rode o script '
-        + '<code>supabase_analistas_area.sql</code> no Supabase — até lá a coluna Analista fica como "(área sem analista)".';
+      $('setup').innerHTML = '<b>Matriz de Responsabilidades indisponível.</b> Rode o script '
+        + '<code>supabase_matriz_responsabilidades.sql</code> no Supabase — até lá o analista vem do contrato '
+        + '(ou de 👥 Analistas por Área).';
       $('setup').style.display = '';
     } else $('setup').style.display = 'none';
+    prepararMeta();
     fillFiltros(); render();
   }).catch(function(err){
     if(/prog_terc_acomp_diario/.test(String(err && err.message)) || L.isMissingTable(err)){
@@ -223,20 +234,105 @@ function nomeTextoPai(c){
   var a = ativDoCard(c);
   return ((a && a.pai) ? a.pai + ' · ' : '') + (c.descricao || (a ? a.nome : '') || '');
 }
-/* Analista = quem acompanha a ÁREA da atividade (Fase 3.22, tela Analistas por Área) —
-   não o analista do contrato nem quem efetivou a pré-programação. Área do card, ou a
-   área do contrato da atividade quando o card não tem área própria. */
+/* ---- Contrato, hierarquia e Matriz (Fase 3.29) ----
+   A árvore da revisão mais recente de cada contrato vem do loadAtividades (L.arvoreDe).
+   ordem = posição da tarefa no cronograma da terceira (mesma sequência do MS Project);
+   mz = linha da Matriz de Responsabilidades da tarefa de 3º nível acima do card (ou
+   do próprio card, se ele for uma folha de nível ≤ 3) — mesma regra do relatório da
+   Programação Semanal (matrizDoCard / respDe). */
+function contratoDe(id){
+  if(id == null) return null;
+  return (L.contratosCache()||[]).filter(function(x){ return x.id === id; })[0] || null;
+}
+function contratoLabel(id){
+  var ct = contratoDe(id);
+  if(!ct) return 'Contrato #' + id;
+  var t = [ct.escopo || '', ct.numero_contrato ? 'nº ' + ct.numero_contrato : ''].filter(Boolean).join(' · ');
+  return t || ('Contrato #' + id);
+}
+function metaDoCard(c){
+  var arv = c.cronograma_id != null && L.arvoreDe ? L.arvoreDe(c.cronograma_id) : null;
+  var node = null;
+  if(arv){
+    if(c.terceira_uid != null) node = arv.porUid[String(c.terceira_uid)] || null;
+    if(!node && c.terceira_wbs) node = arv.porWbs[String(c.terceira_wbs)] || null;
+  }
+  var wbs = node ? node.wbs : String(c.terceira_wbs || '');
+  var uid3 = null;
+  if(node && node.level != null && node.level <= 3) uid3 = node.uid;
+  else if(arv && wbs){
+    var a3 = L.wbsAncestros(wbs, arv.porWbs).filter(function(t){ return t.level === 3; })[0];
+    uid3 = a3 ? a3.uid : null;
+  }
+  return {
+    ordem: node ? node.ordem : null,
+    wbs: wbs,
+    mz: (uid3 != null && c.cronograma_id != null) ? (MZ[c.cronograma_id + '::' + uid3] || null) : null,
+    contrato: c.cronograma_id != null ? contratoLabel(c.cronograma_id) : ''
+  };
+}
+function meta(c){ return META[c.id] || (META[c.id] = metaDoCard(c)); }
+function prepararMeta(){
+  META = {}; EMP_MULTI = {};
+  var ctrs = {};
+  CARDS.forEach(function(c){
+    META[c.id] = metaDoCard(c);
+    var e = c.empresa || '', k = c.cronograma_id == null ? '__sem' : String(c.cronograma_id);
+    (ctrs[e] = ctrs[e] || {})[k] = 1;
+  });
+  Object.keys(ctrs).forEach(function(e){ if(Object.keys(ctrs[e]).length > 1) EMP_MULTI[e] = true; });
+}
+
+/* WBS em ordem natural (1.2.10 depois de 1.2.9) */
+function cmpWbs(a, b){
+  var pa = String(a || '').split('.'), pb = String(b || '').split('.');
+  for(var i = 0; i < Math.max(pa.length, pb.length); i++){
+    if(pa[i] == null) return -1;
+    if(pb[i] == null) return 1;
+    var na = /^\d+$/.test(pa[i]), nb = /^\d+$/.test(pb[i]);
+    var d = (na && nb) ? (+pa[i] - +pb[i]) : pa[i].localeCompare(pb[i], 'pt-BR', { numeric:true });
+    if(d) return d;
+  }
+  return 0;
+}
+/* Ordem padrão: empresa → contrato → posição no cronograma da terceira (hierarquia/WBS).
+   Card cuja tarefa não está na revisão mais recente vai pro fim do contrato, por WBS. */
+function ordenarPorHierarquia(list){
+  return list.slice().sort(function(x, y){
+    var e = (x.empresa||'').localeCompare(y.empresa||'', 'pt-BR'); if(e) return e;
+    var sx = x.cronograma_id == null, sy = y.cronograma_id == null;
+    if(sx !== sy) return sx ? 1 : -1;
+    var mx = meta(x), my = meta(y);
+    if(x.cronograma_id !== y.cronograma_id){
+      return mx.contrato.localeCompare(my.contrato, 'pt-BR', { numeric:true }) || (x.cronograma_id - y.cronograma_id);
+    }
+    var ox = mx.ordem == null ? Infinity : mx.ordem, oy = my.ordem == null ? Infinity : my.ordem;
+    if(ox !== oy) return ox < oy ? -1 : 1;
+    return cmpWbs(mx.wbs, my.wbs) || (x.descricao||'').localeCompare(y.descricao||'', 'pt-BR') || (x.id - y.id);
+  });
+}
+
 function areaDoCard(c){
   if(c.area) return c.area;
   var a = ativDoCard(c); if(a && a.area) return a.area;
   var ct = c.cronograma_id != null ? (L.contratosCache()||[]).filter(function(x){ return x.id === c.cronograma_id; })[0] : null;
   return (ct && ct.area) || '';
 }
-function analistaDoCard(c){
+/* Analista (Fase 3.29) = Matriz de Responsabilidades da Validação de Cronogramas:
+   linha da tarefa de 3º nível → analista do contrato (o mesmo valor herdado que a
+   Matriz mostra em cinza) → 👥 Analistas por Área, só como último recurso. */
+function analistaInfo(c){
+  var m = meta(c).mz, v = m && String(m.analista_planejamento || '').trim();
+  if(v) return { nome: v, origem: 'Matriz de Responsabilidades (tarefa de 3º nível)' };
+  var ct = contratoDe(c.cronograma_id);
+  v = ct && String(ct.analista_planejamento || '').trim();
+  if(v) return { nome: v, origem: 'Contrato (herdado — vazio na Matriz)' };
   var area = areaDoCard(c);
-  if(!area) return '(sem área)';
-  return L.analistaDaArea(area) || '(área sem analista)';
+  v = area ? L.analistaDaArea(area) : '';
+  if(v) return { nome: v, origem: 'Analistas por Área (sem analista na Matriz nem no contrato)' };
+  return { nome: '(sem analista)', origem: 'Sem analista na Matriz, no contrato nem na área' };
 }
+function analistaDoCard(c){ return analistaInfo(c).nome; }
 function restricoesDoCard(c){
   var rows = ACOMP[c.id] || {};
   return Object.keys(rows).sort().map(function(d){ return rows[d]; }).filter(function(r){ return r.situacao === 'restricao'; });
@@ -266,20 +362,41 @@ function fillFiltros(){
   em.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
   opts('fAnalista', an, 'Todos os analistas');
   opts('fEmpresa', em, 'Todas as empresas');
+  fillContratos();
+}
+/* Contratos das atividades da semana; com empresa filtrada, só os contratos dela */
+function fillContratos(){
+  var fe = $('fEmpresa').value, sel = $('fContrato'), cur = sel.value;
+  var vistos = {}, ops = [], semCtr = false;
+  CARDS.forEach(function(c){
+    if(fe && c.empresa !== fe) return;
+    if(c.cronograma_id == null){ semCtr = true; return; }
+    var k = String(c.cronograma_id);
+    if(vistos[k]) return; vistos[k] = 1;
+    ops.push({ v:k, emp:c.empresa || '', ctr:contratoLabel(c.cronograma_id) });
+  });
+  ops.sort(function(a,b){ return a.emp.localeCompare(b.emp,'pt-BR') || a.ctr.localeCompare(b.ctr,'pt-BR',{numeric:true}); });
+  var html = '<option value="">'+(fe ? 'Todos os contratos da empresa ('+ops.length+')' : 'Todos os contratos')+'</option>'
+    + ops.map(function(o){ return '<option value="'+o.v+'">'+esc((fe ? '' : (o.emp||'—') + ' — ') + o.ctr)+'</option>'; }).join('')
+    + (semCtr ? '<option value="__sem">(sem contrato vinculado)</option>' : '');
+  sel.innerHTML = html;
+  sel.value = (cur && (cur === '__sem' ? semCtr : vistos[cur])) ? cur : '';
 }
 function listaAtual(){
-  var fa = $('fAnalista').value, fe = $('fEmpresa').value, fs = $('fStatus').value;
+  var fa = $('fAnalista').value, fe = $('fEmpresa').value, fs = $('fStatus').value, fc = $('fContrato').value;
   var q = L.deacc($('fBusca').value || '');
   var semHoje = $('fSemHoje').checked;
-  return CARDS.filter(function(c){
+  return ordenarPorHierarquia(CARDS.filter(function(c){
     if(fa && analistaDoCard(c) !== fa) return false;
     if(fe && c.empresa !== fe) return false;
+    if(fc === '__sem'){ if(c.cronograma_id != null) return false; }
+    else if(fc && String(c.cronograma_id) !== fc) return false;
     if(fs === 'restricao'){ if(!restricoesDoCard(c).length) return false; }
     else if(fs && c.coluna !== fs) return false;
     if(q && L.deacc(nomeTextoPai(c) + ' ' + (c.terceira_wbs||'') + ' ' + (c.empresa||'')).indexOf(q) < 0) return false;
     if(semHoje && (ACOMP[c.id]||{})[HOJE]) return false;
     return true;
-  });
+  }));
 }
 
 /* ================= RENDER ================= */
@@ -318,7 +435,7 @@ function renderKpis(list){
 
 function renderHead(){
   var h = '<th style="min-width:110px">Empresa</th><th style="min-width:250px">Atividade</th>'
-    + '<th style="min-width:90px">Área</th><th style="min-width:110px" title="Analista que acompanha a área (👥 Analistas por Área)">Analista</th>'
+    + '<th style="min-width:90px">Área</th><th style="min-width:110px" title="Analista da Matriz de Responsabilidades (Validação de Cronogramas) — vazio na Matriz herda o do contrato">Analista</th>'
     + '<th class="ctr" style="min-width:80px">Qtd Prog.</th><th class="ctr" title="Avanço esperado até o fim da semana pela linha de base">% Prev.</th>'
     + '<th style="min-width:120px">Status</th>';
   diasDaSemana(BASE).forEach(function(d, i){
@@ -366,10 +483,11 @@ function linhaHtml(c){
   var semHoje = hojeNaSemana && !rows[HOJE];
 
   return '<tr data-id="'+c.id+'" class="'+(semHoje?'sem-hoje':'')+'">'
-    + '<td class="small"><b>'+esc(c.empresa||'—')+'</b></td>'
+    + '<td class="small"><b>'+esc(c.empresa||'—')+'</b>'
+      + (EMP_MULTI[c.empresa||''] ? '<span class="ctr-sub">'+esc(c.cronograma_id != null ? meta(c).contrato : '(sem contrato vinculado)')+'</span>' : '') + '</td>'
     + '<td class="small">'+(c.terceira_wbs ? '<span style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(c.terceira_wbs)+'</span>' : '')+esc(nomeTextoPai(c)||'—')+'</td>'
     + '<td class="small">'+esc(areaDoCard(c)||'—')+'</td>'
-    + '<td class="small">'+esc(analistaDoCard(c))+'</td>'
+    + (function(ai){ return '<td class="small" title="'+esc('Origem: '+ai.origem)+'">'+esc(ai.nome)+'</td>'; })(analistaInfo(c))
     + '<td class="ctr" style="font-family:var(--mono)">'+(c.qtd_prog==null?'—':nf(c.qtd_prog,2)+' '+esc(c.un||''))+'</td>'
     + '<td class="ctr" style="font-family:var(--mono);font-weight:700">'+(prev==null?'—':prev+'%')+'</td>'
     + '<td><span class="st-pill st-'+esc(c.coluna||'programada')+'">'+esc(COL_LABEL[c.coluna]||c.coluna||'—')+'</span>'
@@ -552,20 +670,20 @@ $('btnXls').addEventListener('click', function(){
   var list = listaAtual();
   if(!list.length) return L.toast('Nada pra exportar com os filtros atuais.','warn');
   var dias = diasDaSemana(BASE);
-  var head = ['Empresa','Atividade','WBS','Área','Disciplina','Analista','Qtd Prog','Un','% Previsto','Status'];
+  var head = ['Empresa','Contrato','Atividade','WBS','Área','Disciplina','Analista','Qtd Prog','Un','% Previsto','Status'];
   dias.forEach(function(d,i){ head.push(DOW[i]+' '+L.fmtBr(d).slice(0,5)); });
   head.push('Restrições (justificativa)','Último apontamento','Por');
   var aoa = [head];
   list.forEach(function(c){
     var a = ativDoCard(c), prev = a ? L.pctPrevistoEm(a, L.addDays(BASE,6)) : null, rows = ACOMP[c.id] || {}, u = ultimoRegistro(c);
-    var row = [c.empresa||'', nomeTextoPai(c), c.terceira_wbs||'', areaDoCard(c), c.disciplina||'', analistaDoCard(c),
+    var row = [c.empresa||'', c.cronograma_id != null ? meta(c).contrato : '', nomeTextoPai(c), c.terceira_wbs||'', areaDoCard(c), c.disciplina||'', analistaDoCard(c),
       c.qtd_prog==null?'':Number(c.qtd_prog), c.un||'', prev==null?'':prev/100, COL_LABEL[c.coluna]||c.coluna||''];
     dias.forEach(function(d){ var r = rows[d]; row.push(r ? SIT[r.situacao].txt : ''); });
     row.push(restricoesDoCard(c).map(function(r){ return L.fmtBr(r.data).slice(0,5)+': '+(r.justificativa||''); }).join(' | '));
     row.push(u ? L.fmtTS(u.atualizado_em) : ''); row.push(u ? (u.registrado_por||'') : '');
     aoa.push(row);
   });
-  var cols = [{wch:20},{wch:50},{wch:12},{wch:12},{wch:14},{wch:18},{wch:10},{wch:6},{wch:10},{wch:14}];
+  var cols = [{wch:20},{wch:30},{wch:50},{wch:12},{wch:12},{wch:14},{wch:18},{wch:10},{wch:6},{wch:10},{wch:14}];
   dias.forEach(function(){ cols.push({wch:12}); });
   cols.push({wch:50},{wch:16},{wch:18});
   L.exportXlsx([{ nome:'Acompanhamento '+L.weekLabel(BASE), aoa:aoa, cols:cols }],
@@ -573,7 +691,8 @@ $('btnXls').addEventListener('click', function(){
 });
 
 /* ================= EVENTOS ================= */
-['fAnalista','fEmpresa','fStatus','fSemHoje'].forEach(function(id){ $(id).addEventListener('change', render); });
+['fAnalista','fContrato','fStatus','fSemHoje'].forEach(function(id){ $(id).addEventListener('change', render); });
+$('fEmpresa').addEventListener('change', function(){ fillContratos(); render(); });
 $('fBusca').addEventListener('input', render);
 $('fFds').addEventListener('change', renderCompliance);
 $('btnReload').addEventListener('click', load);
@@ -582,7 +701,7 @@ $('wkPrev').addEventListener('click', function(){ BASE = L.addDays(BASE,-7); $('
 $('wkNext').addEventListener('click', function(){ BASE = L.addDays(BASE, 7); $('wkBase').value = BASE; load(); });
 $('wkHoje').addEventListener('click', function(){ BASE = L.quintaOf(); $('wkBase').value = BASE; load(); });
 
-window.__ACOMP_TEST__ = { statusPorApontamentos: statusPorApontamentos };
+window.__ACOMP_TEST__ = { statusPorApontamentos: statusPorApontamentos, cmpWbs: cmpWbs };
 load();
 })();
 </script>

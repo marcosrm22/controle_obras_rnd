@@ -652,7 +652,7 @@
       .then(function (contratos) {
         contratos = contratos || [];
         if (!contratos.length) {
-          _cache = { contratos: [], atividades: [], revInfo: {} };
+          _cache = { contratos: [], atividades: [], revInfo: {}, arvores: {} };
           return _cache;
         }
         // para cada contrato, busca a revisão mais recente COM detalhe
@@ -667,7 +667,7 @@
             return { contrato: c, rev: null };
           });
         })).then(function (pares) {
-          var atividades = [], revInfo = {};
+          var atividades = [], revInfo = {}, arvores = {};
           pares.forEach(function (p) {
             var c = p.contrato, rev = p.rev;
             if (!rev || !rev.tarefas_json) {
@@ -685,6 +685,18 @@
             // de cada folha — não entra na lista de atividades em si
             var porWbs = {};
             tj.forEach(function (x) { if (x.wbs) porWbs[String(x.wbs)] = x.name || ''; });
+            // Fase 3.29: árvore leve com TODAS as tarefas (inclusive resumos) na ordem do
+            // cronograma — usada pra ordenar as atividades pela estrutura do cronograma da
+            // terceira e achar a tarefa de 3º nível da Matriz de Responsabilidades
+            var arv = { porWbs: {}, porUid: {} };
+            tj.forEach(function (x, i) {
+              if (!x || x.uid == null) return;
+              var n = { uid: String(x.uid), wbs: x.wbs ? String(x.wbs) : '', name: x.name || '',
+                        level: x.level == null ? null : x.level, ordem: i };
+              arv.porUid[n.uid] = n;
+              if (n.wbs) arv.porWbs[n.wbs] = n;
+            });
+            arvores[c.id] = arv;
             tj.forEach(function (t) {
               // só tarefas-folha ativas viram atividade do lookahead
               if (t.summary) return;
@@ -692,7 +704,7 @@
               atividades.push(atividadeDe(t, c, paiNomeDe(t.wbs, porWbs)));
             });
           });
-          _cache = { contratos: contratos, atividades: atividades, revInfo: revInfo };
+          _cache = { contratos: contratos, atividades: atividades, revInfo: revInfo, arvores: arvores };
           return _cache;
         });
       });
@@ -701,6 +713,10 @@
   function atividadesCache() { return _cache ? _cache.atividades : []; }
   function contratosCache() { return _cache ? _cache.contratos : []; }
   function revInfoCache()  { return _cache ? _cache.revInfo : {}; }
+  /* árvore da revisão mais recente de um contrato: { porWbs, porUid } → {uid,wbs,name,level,ordem} */
+  function arvoreDe(cronogramaId) {
+    return (_cache && _cache.arvores && _cache.arvores[cronogramaId]) || null;
+  }
   function atividadePorAid(aid) {
     return (atividadesCache()).filter(function (a) { return a.aid === aid; })[0] || null;
   }
@@ -768,7 +784,7 @@
     aidOf: aidOf, refIni: refIni, refFim: refFim,
     classificar: classificar, estaAtrasada: estaAtrasada,
     loadAtividades: loadAtividades, atividadesCache: atividadesCache,
-    contratosCache: contratosCache, revInfoCache: revInfoCache,
+    contratosCache: contratosCache, revInfoCache: revInfoCache, arvoreDe: arvoreDe,
     atividadePorAid: atividadePorAid, paiNomeDe: paiNomeDe,
     construirPorWbs: construirPorWbs, wbsAncestros: wbsAncestros,
     loadAnalistasArea: loadAnalistasArea, analistaDaArea: analistaDaArea
