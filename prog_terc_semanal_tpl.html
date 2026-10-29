@@ -503,9 +503,17 @@ function carregarRev(meta){
     REVS[meta.id] = (rows && rows[0] && rows[0].tarefas_json) ? parseRev(rows[0].tarefas_json) : null;
   }).catch(function(){ REVS[meta.id] = null; });
 }
-function garantirRevsSemana(wk){
+function garantirRevsSemana(wk){ return garantirRevs([wk, addDays(wk, -7)]); }
+/* todas as semanas com programação: o gráfico da Programação Geral também usa
+   o avanço do cronograma na semana. Só as 3 últimas revisões de cada contrato
+   têm detalhe, então o custo extra fica limitado (as podadas voltam vazias). */
+function garantirRevsTodas(){
+  var ws = {}; RAW.cards.forEach(function(c){ ws[d10(c.semana)] = 1; });
+  return garantirRevs(Object.keys(ws));
+}
+function garantirRevs(semanas){
   var metas = [];
-  [wk, addDays(wk, -7)].forEach(function(w){
+  semanas.forEach(function(w){
     RAW.cards.forEach(function(c){
       if(d10(c.semana) !== w || c.cronograma_id == null) return;
       [revAntes(c.cronograma_id, w), revDepois(c.cronograma_id, w)].forEach(function(m){ if(m && REVS[m.id] === undefined && metas.indexOf(m) < 0) metas.push(m); });
@@ -543,7 +551,7 @@ function carregarTudo(){
       });
     }, function(f, t){ setLive('carregando', 'Abrindo cronogramas… ' + f + '/' + t); });
   }).then(function(){
-    return garantirRevsSemana(SEMANA);
+    return garantirRevsTodas();
   }).then(function(){
     LIVE.em = new Date();
     montarAoVivo();
@@ -606,7 +614,7 @@ function linhaAoVivo(c, wk){
     sup: rs.sup, esp: rs.esp, resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
     real: numOu(c.pct_realizado),
     prevA: tA ? prevEm(tA, fim) : null, prevD: tD ? prevEm(tD, fim) : null,
-    concA: tA ? E(tA) : null, concAt: t ? E(t) : null,
+    concA: tA ? E(tA) : null, concAt: t ? E(t) : null, concD: tD ? E(tD) : null,
     revA: rotRev(mA, pA), revD: rotRev(mD, pD), revAt: lat && lat.meta ? rotRev(lat.meta) : '',
     semRevD: !mD,
     st: c.coluna || 'programada', causa: c.causa || '', obs: c.obs || '', val: !!c.validado,
@@ -661,11 +669,8 @@ function geralAoVivo(){
   var porSem = {};
   RAW.cards.forEach(function(c){
     if(!passaRecorte(c)) return;
-    var wk = d10(c.semana), ac = RAW.acomp[c.id] || {};
-    var rs = respDe(c.cronograma_id, c.terceira_uid, c.empresa);
-    var ctr = c.cronograma_id != null ? RAW.cMap[c.cronograma_id] : null;
-    var r = { st: c.coluna || 'programada', real: numOu(c.pct_realizado), acomp: Object.keys(ac).map(function(d){ return ac[d].situacao; }) };
-    (porSem[wk] = porSem[wk] || []).push({ cl: classe(r), sup: rs.sup, esp: rs.esp, disc: c.disciplina || (ctr ? ctr.disciplina : '') || '' });
+    var wk = d10(c.semana), r = linhaAoVivo(c, wk);
+    (porSem[wk] = porSem[wk] || []).push({ cl: classe(r), sup: r.sup, esp: r.esp, disc: r.disc });
   });
   var semanas = Object.keys(porSem).sort().map(function(wk){ return { wk: wk, label: wkLabel(wk), cards: porSem[wk] }; });
   return { ativ: ativ, semanas: semanas };
@@ -711,10 +716,18 @@ var GDIMS = [
 ];
 
 /* Classificação semanal do card (partição concl + inic + nexec = programadas). */
+/* avanço da semana pelo cronograma: % concluído na revisão de fechamento da
+   semana (ou, se ela ainda não subiu, na mais recente) − % concluído antes */
+function avancoSemana(r){
+  if(r.concA == null) return null;
+  var depois = r.concD != null ? r.concD : r.concAt;
+  return depois == null ? null : Math.round((depois - r.concA) * 10) / 10;
+}
 function classe(r){
   if(r.st === 'concluida') return 'concl';
-  var av = r.st === 'execucao' || (r.real != null && r.real > 0) || (r.acomp || []).indexOf('avanco') !== -1;
-  return av ? 'inic' : 'nexec';
+  var av = avancoSemana(r);
+  var tem = r.st === 'execucao' || (r.real != null && r.real > 0) || (r.acomp || []).indexOf('avanco') !== -1 || (av != null && av > 0);
+  return tem ? 'inic' : 'nexec';
 }
 var STF_OK = {
   exec:  function(r){ return r._cl === 'concl' || r._cl === 'inic'; },
@@ -835,7 +848,7 @@ function shell(){
     +     '<b>% Prev. prog.</b> = % previsto para o fim da semana pela revisão do cronograma vigente antes da semana começar · '
     +     '<b>% Prev. pós-fech.</b> = o mesmo cálculo pela 1ª revisão subida depois do fechamento (terça em diante) · '
     +     '<b>% Concl. antes</b> = % concluído naquela revisão de antes da semana · <b>% Concl. atual</b> = % concluído na revisão mais recente do PCO (muda a cada atualização do cronograma). '
-    +     'Executadas = concluídas + iniciadas (status Em execução, % realizado apontado ou ▲ no acompanhamento diário). Não executadas = sem nenhum avanço registrado.'
+    +     'Executadas = concluídas + iniciadas (status Em execução, avanço no cronograma na semana — % concluído na revisão de fechamento, ou na atual se ela ainda não subiu, maior que o de antes —, % realizado apontado ou ▲ no acompanhamento diário). Não executadas = sem nenhum avanço registrado.'
     +     (D.recorte ? ' ' + esc(D.recorte) : '') + '</div>'
     +   '</div></section>'
     + '</div>'
@@ -1056,13 +1069,12 @@ var COLS = [
   { k:'area',  t:'Área',             v:function(r){ return r.area || ''; } },
   { k:'disc',  t:'Disciplina',       v:function(r){ return r.disc || ''; } },
   { k:'sup',   t:'Supervisor',       v:function(r){ return r.sup || ''; } },
-  { k:'resp',  t:'Responsável',      v:function(r){ return r.resp || ''; } },
+  { k:'esp',   t:'Especialista',     v:function(r){ return r.esp || ''; } },
   { k:'prevA', t:'% Prev. prog.', v:function(r){ return r.prevA; }, num:true, cls:'r', tip:'Previsto para o fim da semana pela revisão vigente antes da semana começar' },
   { k:'prevD', t:'% Prev. pós-fech.', v:function(r){ return r.prevD; }, num:true, cls:'r', tip:'Previsto para o fim da semana pela 1ª revisão subida depois do fechamento' },
   { k:'concA', t:'% Concl. antes',   v:function(r){ return r.concA; }, num:true, cls:'r', tip:'% concluído na revisão vigente antes da semana começar' },
-  { k:'st',    t:'Status',           v:function(r){ return ST_ORDEM.indexOf(r.st); }, num:true },
   { k:'concAt',t:'% Concl. atual',   v:function(r){ return r.concAt; }, num:true, cls:'r', tip:'% concluído na revisão mais recente do cronograma no PCO' },
-  { k:'real',  t:'% Realizado',      v:function(r){ return r.real; }, num:true, cls:'r', tip:'% realizado apontado na programação' },
+  { k:'st',    t:'Status',           v:function(r){ return ST_ORDEM.indexOf(r.st); }, num:true },
   { k:'causa', t:'Causa / Justificativa', v:function(r){ return (r.causa || '') + (r.obs || ''); } },
   { k:'val',   t:'Validado',         v:function(r){ return r.val ? 1 : 0; }, num:true, cls:'c' }
 ];
@@ -1106,13 +1118,12 @@ function linha(r){
     + '<td>' + esc(r.area || '—') + '</td>'
     + '<td>' + esc(r.disc || '—') + '</td>'
     + '<td>' + esc(r.sup || '—') + '</td>'
-    + '<td>' + esc(r.resp || '—') + (r.equipe ? '<div class="muted" style="font-size:11px">' + esc(r.equipe) + '</div>' : '') + '</td>'
+    + '<td>' + esc(r.esp || '—') + '</td>'
     + pctCel(r.prevA, r.revA)
     + prevD
     + pctCel(r.concA, r.revA)
-    + '<td><span class="st" style="--c:' + s.c + '">' + s.label + '</span>' + dd + restr + '</td>'
     + concAt
-    + pctCel(r.real, 'apontado na programação')
+    + '<td><span class="st" style="--c:' + s.c + '">' + s.label + '</span>' + dd + restr + '</td>'
     + '<td class="just">' + (r.causa ? '<div class="causa">' + esc(r.causa) + '</div>' : '') + esc(r.obs || '') + (!r.causa && !r.obs ? '<span class="muted">—</span>' : '') + '</td>'
     + '<td class="c"><span class="val ' + (r.val ? 'ok">✓ Validado' : 'pd">A validar') + '</span></td>'
     + '</tr>';
