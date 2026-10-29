@@ -1309,6 +1309,11 @@ function estruturaPaisDoCard(c, porWbsCache){
   if(!porWbs || !wbs) return (a && a.pai) ? [a.pai] : [];   // sem árvore: cai no pai de 1 nível, igual à tela
   return L.wbsAncestros(wbs, porWbs).map(function(t){ return t.name || ''; }).filter(Boolean);
 }
+function especialistaDoCard(c){
+  var cs = L.contratosCache() || [];
+  var k = c.cronograma_id != null ? cs.filter(function(x){ return x.id === c.cronograma_id; })[0] : null;
+  return k && k.especialista ? String(k.especialista).trim() : '';
+}
 function supervisorDoCard(c){
   var cs = L.contratosCache() || [];
   if(c.cronograma_id != null){
@@ -1343,10 +1348,11 @@ function linhaRelatorio(c, wk, porWbsCache){
   return {
     emp: c.empresa || '', pai: (a && a.pai) || '', estr: estruturaPaisDoCard(c, porWbsCache), atv: c.descricao || (a ? a.nome : '') || '',
     wbs: c.terceira_wbs || '', area: c.area || '', disc: c.disciplina || '',
-    sup: supervisorDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
+    sup: supervisorDoCard(c), esp: especialistaDoCard(c), resp: c.responsavel || '', equipe: c.equipe || '', un: c.un || '',
     fase: c.fase ? (FASE_LABELS[c.fase] || c.fase) : '', cwa: c.cwa || '',
-    qp: num(c.qtd_prog), qr: num(c.qtd_real),
-    prev: p == null ? null : Math.round(p * 10) / 10,
+    // foto da emissão (reserva offline): o HTML recalcula tudo ao vivo pelas revisões
+    prevA: p == null ? null : Math.round(p * 10) / 10, prevD: null, concA: null,
+    concAt: a && a.pct != null ? Math.round(a.pct * 10) / 10 : null,
     real: num(c.pct_realizado),
     st: c.coluna || 'programada', causa: c.causa || '', obs: c.obs || '', val: !!c.validado,
     acomp: dias.map(function(d){ return ac[d] ? ac[d].situacao : null; }),
@@ -1399,13 +1405,10 @@ $('btnRelatorio').addEventListener('click', function(){
     });
   };
   var wkAnt = L.addDays(BASE, -7);
-  var todas = daSemanaBarra(BASE), listAnt = daSemanaBarra(wkAnt);
-  var list = listaAtual();
-  var temFiltroCol = Object.keys(COL_FILTERS).some(function(k){ return COL_FILTERS[k] != null; });
-  if(temFiltroCol && list.length !== todas.length){
-    // filtros de coluna ativos: pergunta se a aba da semana sai só com o recorte ou com a semana toda
-    if(!confirm('Há filtros de coluna ativos na tabela.\n\nOK = a aba da semana sai só com as ' + list.length + ' linhas filtradas\nCancelar = sai a semana inteira (' + todas.length + ' linhas)\n\nA aba "Semana Anterior" sai sempre completa.')) list = todas;
-  }
+  // Fase 3.27: o HTML recalcula tudo ao vivo pelo Supabase, então a semana sai
+  // inteira (filtros de coluna da tabela não entram); Fase/CWA da barra seguem
+  // valendo pelo mapa card→fase/cwa embutido abaixo.
+  var list = daSemanaBarra(BASE), listAnt = daSemanaBarra(wkAnt), todas = list;
   if(!list.length && !listAnt.length) return L.toast('Nada pra gerar nesta semana nem na anterior.','warn');
   var btn = this; btn.disabled = true;
   Promise.all([
@@ -1420,9 +1423,13 @@ $('btnRelatorio').addEventListener('click', function(){
   ]).then(function(rr){
     var porWbsCache = rr[2], tpl = rr[3], restrRows = rr[4];
     var recorte = recorteDescricao();
-    if(list.length !== todas.length) recorte.push('aba da semana com ' + list.length + ' de ' + todas.length + ' cards');
+    var fcMap = null;
+    if(ff || fc){ fcMap = {}; CARDS.forEach(function(c){ fcMap[c.id] = [c.fase || '', c.cwa || '']; }); }
     var dados = {
-      versao: 2, unidade: L.unidadeNome(), hoje: L.todayISO(),
+      versao: 3, unidade: L.unidadeNome(), unidadeCod: L.unidade(), hoje: L.todayISO(),
+      // leitura ao vivo: mesma URL/chave anon pública do config.js (só GET)
+      sb: { url: L.SB_URL, key: L.SB_KEY },
+      semanaEmissao: BASE, filtro: { fase: ff || '', cwa: fc || '' }, fcMap: fcMap,
       geradoEm: L.fmtTS(new Date().toISOString()), geradoPor: L.userNome(),
       recorte: recorte.length ? 'Recorte exportado da tela: ' + recorte.join(' · ') + '. Gerado por ' + L.userNome() + '.' : 'Gerado por ' + L.userNome() + '.',
       atual: semanaRelatorio(BASE, list, porWbsCache),
