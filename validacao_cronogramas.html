@@ -24,7 +24,7 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;background:var(--bg);font-family:'Montserrat',system-ui,sans-serif;color:var(--text)}
-.page{max-width:1280px;margin:0 auto;padding:36px 28px 80px}
+.page{max-width:none;margin:0 auto;padding:36px 28px 80px}
 
 /* HEADER */
 .site-header{
@@ -338,7 +338,8 @@ table.mapa.mz tr.mz-novo td{border-top:2px solid #c9d2e0}
 table.mapa.mz tr.mz-semarea td.mz-area-td{background:var(--orange-soft)}
 table.mapa.mz .mz-chk{width:30px;text-align:center}
 table.mapa.mz .mz-chk input{width:15px;height:15px;cursor:pointer}
-.mz-emp{font-weight:700;white-space:nowrap}
+/* coluna Empresa travada em 10% da tela; nomes longos quebram linha */
+.mz-emp{font-weight:700;width:10vw;max-width:10vw;white-space:normal;overflow-wrap:anywhere}
 .mz-rep{color:var(--text-mute);font-weight:500}
 .mz-ctr{font-weight:600;max-width:200px}
 .mz-sub{font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;margin-top:2px}
@@ -3433,7 +3434,7 @@ function renderMatriz(){
   }).join('');
   box.innerHTML=`<div class="mapa-wrap mz-wrap"><table class="mapa mz">
     <thead><tr>${ed?'<th class="mz-chk"><input type="checkbox" id="mz-sel-all" title="Selecionar todas as linhas visíveis"></th>':''}
-      <th>Empresa</th><th>Contrato</th><th>Atividade (${MZ_NIVEL}º nível)</th><th>Área (CWA)</th>
+      <th class="mz-emp">Empresa</th><th>Contrato</th><th>Atividade (${MZ_NIVEL}º nível)</th><th>Área (CWA)</th>
       <th>Analista de Planejamento</th><th>Especialista</th><th>Supervisor</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
     <div class="mz-foot">${lista.length} de ${todas.length} linha(s). <b>↺ nome (contrato)</b> = vazio na matriz, herda o responsável cadastrado no contrato. <b>⚠</b> = nome fora do Cadastro de Responsáveis.</div>`;
