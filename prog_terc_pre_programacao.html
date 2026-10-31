@@ -26,7 +26,7 @@
 
   <div class="notice src-note">
     Fila de validação entre a tela de <b>Cronogramas</b> e a <b>Programação Semanal</b>. Toda atividade
-    enviada por lá (botão <b>▶ Programar</b>) cai primeiro aqui. Revise, <b>remova</b> o que não deve
+    enviada por lá (botão <b>▶ Programar</b> ou <b>⤒ Importar CSV de pisos</b>) cai primeiro aqui. Revise, <b>remova</b> o que não deve
     entrar e, quando a lista estiver correta, use <b>✓ Validar todos</b> para jogar o restante (o que
     estiver visível com os filtros atuais) direto para a Programação Semanal.
   </div>
@@ -125,7 +125,7 @@ function visiveis(){
     if(fs && String(r.semana).slice(0,10) !== fs) return false;
     if(fe && r.empresa !== fe) return false;
     if(!q) return true;
-    return L.deacc([r.descricao,r.empresa,r.area,r.disciplina,r.terceira_wbs].join(' ')).indexOf(q) > -1;
+    return L.deacc([r.descricao,r.empresa,r.area,r.disciplina,r.terceira_wbs,r.obs].join(' ')).indexOf(q) > -1;
   });
   out.sort(function(a,b){
     if(srt === 'empresa') return (a.empresa||'').localeCompare(b.empresa||'','pt-BR') || String(a.semana).localeCompare(String(b.semana));
@@ -162,7 +162,10 @@ function renderLista(){
     return '<tr data-row="'+r.id+'">'
       + '<td class="ctr">'+esc(L.fmtBr(r.semana))+'</td>'
       + '<td class="small"><b>'+esc(r.empresa||'—')+'</b></td>'
-      + '<td class="small">'+(r.terceira_wbs ? '<span class="wbs-mono" style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(r.terceira_wbs)+'</span>' : '')+esc(r.descricao||'—')+'</td>'
+      + '<td class="small">'+(r.terceira_wbs ? '<span class="wbs-mono" style="font-family:var(--mono);font-size:10px;color:var(--text-mute);margin-right:4px">'+esc(r.terceira_wbs)+'</span>' : '')+esc(r.descricao||'—')
+        + (r.cronograma_id ? '' : ' <span class="pill n" title="Sem vínculo com cronograma de terceira (ex.: importado do CSV de pisos) — entra na Programação Semanal como card avulso">sem cronograma</span>')
+        + (r.obs ? '<div class="small muted" style="margin-top:2px">'+esc(r.obs)+'</div>' : '')
+        + '</td>'
       + '<td class="small">'+esc(r.area||'—')+'</td>'
       + '<td class="small">'+esc(r.disciplina||'—')+'</td>'
       + '<td class="ctr">'+esc(r.un||'—')+'</td>'
@@ -206,6 +209,7 @@ function validarTodos(){
       descricao: r.descricao,
       area: r.area, empresa: r.empresa, disciplina: r.disciplina,
       qtd_prog: r.qtd_prog, un: r.un,
+      obs: r.obs || null,
       coluna: 'programada',
       criado_por: L.userNome()
     });
@@ -231,13 +235,13 @@ if(!EDIT) $('btnValidar').style.display = 'none';
 
 /* ================= EXPORT ================= */
 $('btnXls').addEventListener('click', function(){
-  var aoa = [['Semana','Empresa','WBS','Atividade','Área','Disciplina','Un','Qtd. Programada','Criado por','Criado em']];
+  var aoa = [['Semana','Empresa','WBS / Código','Atividade','Área','Disciplina','Un','Qtd. Programada','Obs','Criado por','Criado em']];
   visiveis().forEach(function(r){
     aoa.push([L.fmtBr(r.semana), r.empresa, r.terceira_wbs, r.descricao, r.area, r.disciplina,
-      r.un, r.qtd_prog, r.criado_por, L.fmtBr(r.criado_em)]);
+      r.un, r.qtd_prog, r.obs || '', r.criado_por, L.fmtBr(r.criado_em)]);
   });
   L.exportXlsx([{ nome:'Pré-Programação', aoa:aoa,
-    cols:[{wch:12},{wch:20},{wch:12},{wch:48},{wch:14},{wch:14},{wch:8},{wch:14},{wch:18},{wch:12}] }],
+    cols:[{wch:12},{wch:20},{wch:14},{wch:48},{wch:14},{wch:14},{wch:8},{wch:14},{wch:40},{wch:18},{wch:12}] }],
     'ProgTerc_pre_programacao_' + L.stamp() + '.xlsx');
 });
 

@@ -47,6 +47,19 @@
   table.grid tbody tr:hover td:first-child{background:#fafbfc}
   table.grid tbody tr.naoexec td:first-child{background:#f5f5f7}
   table.grid tbody td:first-child .btn.sm{margin:0 1px;padding:3px 6px}
+  /* Fase 3.30: importação do CSV semanal de pisos (kanban) -> Pré-Programação */
+  #btnCsvPisos{margin-left:auto}
+  #mCsv .csv-head{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;margin-bottom:10px}
+  #mCsv .csv-head b{color:var(--blue-dark)}
+  #mCsv .csv-alert{font-size:11.5px;margin:0 0 10px;padding:8px 10px;border-radius:4px;
+    background:var(--gold-soft,#fdf3e1);border:1px solid #f0c87a;color:#7c4a00}
+  #mCsv .csv-emp{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 12px;
+    align-items:center;font-size:12px;margin:0 0 12px;max-width:640px}
+  #mCsv .csv-emp select{font:inherit;font-size:12px;padding:4px 6px}
+  #mCsv .csv-wrap{max-height:52vh;overflow:auto;border:1px solid var(--border-2)}
+  #mCsv table.grid td{padding:6px 8px;font-size:11.5px}
+  #mCsv tr.off td{opacity:.5}
+  #mCsv .cod{font-family:var(--mono);font-size:10.5px;white-space:nowrap}
 </style>
 <script src="config.js"></script>
 <script src="unidade.js"></script>
@@ -75,6 +88,8 @@
       <select id="selCron"><option value="">Selecione um cronograma…</option></select>
     </div>
     <span class="small" id="cronMeta"></span>
+    <button class="btn" id="btnCsvPisos" title="Importar o CSV semanal da programação de pisos (kanban) direto para a Pré-Programação">⤒ Importar CSV de pisos</button>
+    <input type="file" id="fileCsvPisos" accept=".csv,text/csv" style="display:none">
   </div>
 
   <div id="emptyState" class="notice">Selecione um cronograma acima para visualizar as atividades.</div>
@@ -119,6 +134,37 @@
     <div class="small muted" style="margin-top:10px" id="foot"></div>
   </div>
 </div>
+
+<!-- ===== MODAL DE IMPORTAÇÃO DO CSV DE PISOS (Fase 3.30) ===== -->
+<div class="modal" id="mCsv"><div class="modal-box wide">
+  <div class="modal-head">
+    <div><h3>Importar programação de pisos</h3>
+    <div class="mh-sub" id="csvSub">Confira as linhas antes de enviar para a Pré-Programação</div></div>
+    <button class="modal-close" onclick="PT.closeModal('mCsv')">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="csv-head" id="csvHead"></div>
+    <div id="csvAlertas"></div>
+    <div class="small" style="font-weight:700;margin:0 0 6px">Empresas do arquivo → empresa no sistema</div>
+    <div class="csv-emp" id="csvEmp"></div>
+    <div class="csv-wrap">
+      <table class="grid">
+        <thead><tr>
+          <th class="ctr" style="width:34px"><input type="checkbox" id="csvAll" checked></th>
+          <th>Código</th><th>Empresa</th><th style="min-width:240px">Atividade</th><th>Área</th>
+          <th class="ctr">Status kanban</th><th class="ctr">Prior.</th><th class="ctr">Previsto</th><th style="min-width:160px">Avisos</th>
+        </tr></thead>
+        <tbody id="csvTb"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <span class="small muted" id="csvCount"></span>
+    <span style="flex:1"></span>
+    <button class="btn" onclick="PT.closeModal('mCsv')">Cancelar</button>
+    <button class="btn solid" id="csvEnviar">Enviar para a Pré-Programação</button>
+  </div>
+</div></div>
 
 <!-- ===== MODAL DE RESTRIÇÃO (aparece nesta mesma tela, sem navegar) ===== -->
 <div class="modal" id="mR"><div class="modal-box wide">
@@ -877,6 +923,291 @@ $('btnXls').addEventListener('click', function(){
     cols:[{wch:12},{wch:6},{wch:9},{wch:56},{wch:11},{wch:11},{wch:11},{wch:11},{wch:10},{wch:11},{wch:9},{wch:11},{wch:13},{wch:15}] }],
     'ProgTerc_cronograma_' + (SELECTED.empresa||'contrato').replace(/[^a-z0-9]+/gi,'_') + '_' + L.stamp() + '.xlsx');
 });
+
+/* ================= IMPORTAR CSV DE PISOS (Fase 3.30) =================
+   CSV semanal do kanban de pisos (separador ';', UTF-8 com BOM). Cada linha vira um registro em
+   prog_terc_pre_programacao SEM vínculo com cronograma de terceira (cronograma_id/terceira_uid nulos,
+   igual a um card avulso da Programação Semanal). O Código do piso (PISO-051, PISO-097-T7…) vai em
+   terceira_wbs — serve de identificação na lista e de chave para não importar duas vezes a mesma
+   linha na mesma semana. Semana = quinta-feira da coluna "Início (qui)". Prioridade, data prevista,
+   concretagem, status do kanban, ID e restrições vão para obs. A empresa do arquivo é casada com as
+   empresas de val_cronogramas (sem acento/caixa) para que supervisor/analista funcionem depois. */
+var CSV_COLS = {
+  semana:['SEMANA'], ini:['INICIO (QUI)','INICIO'], fim:['FIM (QUA)','FIM'], disc:['DISCIPLINA'],
+  serv:['SERVICO'], status:['STATUS'], concIni:['INICIO CONCRETAGEM'], concFim:['TERMINO CONCRETAGEM'],
+  prio:['PRIORIDADE'], emp:['EMPRESA'], cod:['CODIGO'], idref:['ID'], fase:['FASE'],
+  area:['AREA PRINCIPAL','AREA'], sub:['SUBAREA/RUA','SUBAREA'], exec:['AREA A EXECUTAR'],
+  obs:['OBSERVACAO','OBSERVACOES','OBS'], restr:['RESTRICOES ABERTAS','RESTRICOES']
+};
+var CSV = null;   // { linhas:[...], empMap:{ empresaCsv: empresaSistema|'' }, semanas:[...] }
+
+function csvParse(txt){
+  txt = String(txt == null ? '' : txt).replace(/^\uFEFF/, '');
+  var l1 = txt.split(/\r?\n/)[0] || '';
+  var sep = l1.split(';').length >= l1.split(',').length ? ';' : ',';
+  var rows = [], row = [], cell = '', q = false;
+  for(var i = 0; i < txt.length; i++){
+    var ch = txt[i];
+    if(q){
+      if(ch === '"'){ if(txt[i+1] === '"'){ cell += '"'; i++; } else q = false; }
+      else cell += ch;
+    } else if(ch === '"') q = true;
+    else if(ch === sep){ row.push(cell); cell = ''; }
+    else if(ch === '\n' || ch === '\r'){
+      if(ch === '\r' && txt[i+1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += ch;
+  }
+  if(cell !== '' || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(c){ return String(c).trim() !== ''; }); });
+}
+/* "Apolina´rio" (acento solto vindo do kanban) -> "Apolinário"; espaços duplos -> 1 */
+function csvTxt(v){
+  return String(v == null ? '' : v)
+    .replace(/([aeiouAEIOU])\u00B4/g, '$1\u0301').replace(/([aeiouAEIOU])`/g, '$1\u0300')
+    .normalize('NFC').replace(/\s+/g, ' ').trim();
+}
+/* dd/mm/aaaa ou dd/mm (ano pela semana de referência) -> ISO; senão null */
+function csvData(v, refIso){
+  var m = String(v || '').trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if(!m) return null;
+  var d = +m[1], mo = +m[2], a = m[3] ? +m[3] : null;
+  if(d < 1 || d > 31 || mo < 1 || mo > 12) return null;
+  if(a != null && a < 100) a += 2000;
+  if(a == null){
+    var ra = refIso ? +refIso.slice(0,4) : new Date().getFullYear(), rm = refIso ? +refIso.slice(5,7) : 6;
+    a = ra + (mo - rm > 6 ? -1 : (rm - mo > 6 ? 1 : 0));
+  }
+  return a + '-' + ('0'+mo).slice(-2) + '-' + ('0'+d).slice(-2);
+}
+function csvDdMm(iso){ return iso ? iso.slice(8,10) + '/' + iso.slice(5,7) : ''; }
+
+function empresasSistema(){
+  var out = [];
+  CONTRATOS.forEach(function(c){ if(c.empresa && out.indexOf(c.empresa) < 0) out.push(c.empresa); });
+  return out.sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+}
+/* Casa "Verc" com "VERC", "Verc Engenharia"… — só aceita se houver UM candidato. */
+function casarEmpresa(nome, lista){
+  var d = L.deacc(nome); if(!d) return '';
+  var exata = lista.filter(function(e){ return L.deacc(e) === d; });
+  if(exata.length) return exata[0];
+  var cand = lista.filter(function(e){
+    var de = L.deacc(e);
+    return (' ' + de.replace(/[^A-Z0-9]+/g,' ') + ' ').indexOf(' ' + d.replace(/[^A-Z0-9]+/g,' ') + ' ') > -1
+        || de.split(/[^A-Z0-9]+/)[0] === d.split(/[^A-Z0-9]+/)[0];
+  });
+  return cand.length === 1 ? cand[0] : '';
+}
+
+/* Texto do CSV -> { linhas, avisos } (sem acesso a rede; testável isolado) */
+function csvMontarLinhas(txt){
+  var rows = csvParse(txt);
+  if(rows.length < 2) throw new Error('Arquivo vazio ou sem linhas de dados.');
+  var head = rows[0].map(function(h){ return L.deacc(h); });
+  var ix = {};
+  Object.keys(CSV_COLS).forEach(function(k){
+    ix[k] = -1;
+    CSV_COLS[k].some(function(nome){ var p = head.indexOf(nome); if(p > -1){ ix[k] = p; return true; } return false; });
+  });
+  var faltam = [];
+  if(ix.emp < 0) faltam.push('Empresa');
+  if(ix.cod < 0) faltam.push('Código');
+  if(ix.exec < 0 && ix.sub < 0) faltam.push('Área a executar');
+  if(ix.ini < 0) faltam.push('Início (qui)');
+  if(faltam.length) throw new Error('Colunas não encontradas no CSV: ' + faltam.join(', ') + '.');
+
+  var avisos = [], codigos = {};
+  var linhas = rows.slice(1).map(function(r, n){
+    function g(k){ return ix[k] < 0 ? '' : csvTxt(r[ix[k]]); }
+    var iniIso = csvData(g('ini'));
+    var semana = iniIso ? L.quintaOf(iniIso) : null;
+    var obsTxt = g('obs'), prev = csvData(obsTxt, semana);
+    var lin = {
+      n: n + 2, sel: true, codigo: g('cod'), empCsv: g('emp'), servico: g('serv') || 'Execução do piso',
+      local: g('exec') || g('sub'), area: g('area') || null, disciplina: g('disc') || 'Civil',
+      fase: g('fase'), status: g('status'), prio: g('prio'), idref: g('idref'),
+      concIni: csvData(g('concIni'), semana), concFim: csvData(g('concFim'), semana),
+      prev: prev, obsLivre: prev ? '' : obsTxt, restr: g('restr'),
+      semana: semana, semLabelCsv: g('semana'), alertas: [], dup: null
+    };
+    if(!semana){ lin.sel = false; lin.alertas.push({c:'r', t:'sem data de início válida'}); }
+    if(!lin.codigo){ lin.sel = false; lin.alertas.push({c:'r', t:'sem código'}); }
+    else if(codigos[lin.codigo]){ lin.sel = false; lin.alertas.push({c:'r', t:'código repetido no arquivo (linha ' + codigos[lin.codigo] + ')'}); }
+    else codigos[lin.codigo] = lin.n;
+    if(/(-T\d+)\1$/i.test(lin.codigo)) lin.alertas.push({c:'y', t:'trecho repetido no código'});
+    if(lin.prev && semana && (lin.prev < semana || lin.prev > L.addDays(semana, 6)))
+      lin.alertas.push({c:'y', t:'previsto p/ ' + csvDdMm(lin.prev) + ', fora da semana'});
+    if(lin.restr) lin.alertas.push({c:'r', t:'restrição aberta: ' + lin.restr});
+    if(semana && lin.semLabelCsv && L.deacc(lin.semLabelCsv) !== L.deacc(L.weekLabel(semana)))
+      lin.alertas.push({c:'y', t:'arquivo diz ' + lin.semLabelCsv + ', sistema calcula ' + L.weekLabel(semana)});
+    return lin;
+  });
+  /* piso inteiro + trechos dele no mesmo arquivo (PISO-117 e PISO-117-T1/T2) = risco de contar 2x */
+  linhas.forEach(function(lin){
+    if(!lin.codigo) return;
+    var filhos = linhas.filter(function(o){ return o !== lin && o.codigo.indexOf(lin.codigo + '-') === 0; });
+    if(filhos.length) lin.alertas.push({c:'y', t:'também há ' + filhos.length + ' trecho(s) deste piso no arquivo'});
+  });
+  if(linhas.some(function(l){ return !l.prio; }) && linhas.some(function(l){ return l.prio; }))
+    avisos.push(linhas.filter(function(l){ return !l.prio; }).length + ' linha(s) sem prioridade.');
+  if(linhas.length && !linhas.some(function(l){ return l.concIni; }) && linhas.some(function(l){ return l.prev; }))
+    avisos.push('As datas previstas vieram na coluna Observação (as colunas de concretagem estão vazias) — foram lidas como data prevista.');
+  return { linhas: linhas, avisos: avisos };
+}
+
+function csvObs(lin){
+  var p = ['Kanban pisos' + (lin.status ? ': ' + lin.status : '')];
+  if(lin.prio) p.push('Prioridade ' + lin.prio);
+  if(lin.prev) p.push('Previsto ' + csvDdMm(lin.prev));
+  if(lin.concIni || lin.concFim) p.push('Concretagem ' + csvDdMm(lin.concIni) + (lin.concFim && lin.concFim !== lin.concIni ? '–' + csvDdMm(lin.concFim) : ''));
+  if(lin.fase) p.push(lin.fase);
+  if(lin.idref) p.push('ID ' + lin.idref);
+  if(lin.restr) p.push('Restrições: ' + lin.restr);
+  if(lin.obsLivre) p.push(lin.obsLivre);
+  return p.join(' · ');
+}
+function csvRegistro(lin){
+  var emp = CSV.empMap[lin.empCsv] || lin.empCsv || null;
+  return L.comTag({
+    semana: lin.semana,
+    cronograma_id: null, terceira_uid: null,
+    terceira_wbs: lin.codigo,
+    descricao: lin.servico + (lin.local ? ' — ' + lin.local : ''),
+    area: lin.area, empresa: emp, disciplina: lin.disciplina,
+    qtd_prog: null, un: null,
+    obs: csvObs(lin),
+    criado_por: L.userNome()
+  });
+}
+
+function csvAbrir(file){
+  var rd = new FileReader();
+  rd.onload = function(){
+    var res;
+    try{ res = csvMontarLinhas(rd.result); }
+    catch(e){ L.toast(e.message, 'warn'); return; }
+    var semanas = [];
+    res.linhas.forEach(function(l){ if(l.semana && semanas.indexOf(l.semana) < 0) semanas.push(l.semana); });
+    var lista = empresasSistema(), empMap = {};
+    res.linhas.forEach(function(l){ if(l.empCsv && !(l.empCsv in empMap)) empMap[l.empCsv] = casarEmpresa(l.empCsv, lista); });
+    CSV = { linhas: res.linhas, avisos: res.avisos, empMap: empMap, semanas: semanas };
+    /* já importado antes? (mesmo código, mesma semana, sem cronograma) — na fila ou já validado */
+    var filtro = semanas.length ? '&semana=in.(' + semanas.join(',') + ')' : '&semana=is.null';
+    Promise.all([
+      L.sbGetAll(L.comUnidade('prog_terc_pre_programacao?select=terceira_wbs,semana&ativo=eq.true&cronograma_id=is.null' + filtro)).catch(function(e){ if(L.isMissingTable(e)) return []; throw e; }),
+      L.sbGetAll(L.comUnidade('prog_terc_programacao?select=terceira_wbs,semana&ativo=eq.true&cronograma_id=is.null' + filtro)).catch(function(e){ if(L.isMissingTable(e)) return []; throw e; })
+    ]).then(function(r){
+      function chaves(lst){ var o = {}; lst.forEach(function(x){ o[String(x.semana).slice(0,10) + '|' + x.terceira_wbs] = 1; }); return o; }
+      var kPre = chaves(r[0] || []), kProg = chaves(r[1] || []);
+      CSV.linhas.forEach(function(l){
+        var k = l.semana + '|' + l.codigo;
+        l.dup = kProg[k] ? 'prog' : (kPre[k] ? 'pre' : null);
+        if(l.dup) l.sel = false;
+      });
+      csvRender();
+      L.openModal('mCsv');
+    }).catch(function(e){ L.toast('Erro ao conferir duplicidades: ' + e.message, 'warn'); });
+  };
+  rd.onerror = function(){ L.toast('Não foi possível ler o arquivo.', 'warn'); };
+  rd.readAsText(file, 'UTF-8');
+}
+
+function csvRender(){
+  var ls = CSV.linhas;
+  var sem = CSV.semanas.map(function(s){ return L.weekLabel(s) + ' (' + L.weekRangeLabel(s) + ')'; }).join(', ') || '—';
+  var emps = Object.keys(CSV.empMap);
+  $('csvSub').textContent = ls.length + ' linha(s) lida(s) do arquivo';
+  $('csvHead').innerHTML = '<span>Semana: <b>' + esc(sem) + '</b></span>'
+    + '<span>Empresas: <b>' + emps.length + '</b></span>'
+    + '<span>Já importadas: <b>' + ls.filter(function(l){ return l.dup; }).length + '</b></span>'
+    + '<span>Com aviso: <b>' + ls.filter(function(l){ return l.alertas.length; }).length + '</b></span>';
+  $('csvAlertas').innerHTML = CSV.avisos.map(function(a){ return '<div class="csv-alert">' + esc(a) + '</div>'; }).join('');
+
+  var lista = empresasSistema();
+  $('csvEmp').innerHTML = emps.map(function(e){
+    var cur = CSV.empMap[e];
+    return '<span><b>' + esc(e) + '</b></span><select data-emp="' + esc(e) + '">'
+      + '<option value="">manter “' + esc(e) + '” (nenhum contrato com esse nome)</option>'
+      + lista.map(function(x){ return '<option' + (x === cur ? ' selected' : '') + ' value="' + esc(x) + '">' + esc(x) + '</option>'; }).join('')
+      + '</select>';
+  }).join('');
+  $('csvEmp').querySelectorAll('select[data-emp]').forEach(function(sel){
+    sel.addEventListener('change', function(){ CSV.empMap[sel.dataset.emp] = sel.value; csvRenderLinhas(); });
+  });
+  csvRenderLinhas();
+}
+function csvRenderLinhas(){
+  $('csvTb').innerHTML = CSV.linhas.map(function(l, i){
+    var pills = l.alertas.map(function(a){ return '<span class="pill ' + a.c + '" style="margin:1px">' + esc(a.t) + '</span>'; }).join('');
+    if(l.dup) pills = '<span class="pill n" style="margin:1px">' + (l.dup === 'prog' ? 'já validada na Programação' : 'já na Pré-Programação') + '</span>' + pills;
+    var emp = CSV.empMap[l.empCsv] || l.empCsv;
+    return '<tr class="' + (l.sel ? '' : 'off') + '">'
+      + '<td class="ctr"><input type="checkbox" data-csv="' + i + '"' + (l.sel ? ' checked' : '') + (l.dup || !l.semana || !l.codigo ? ' disabled' : '') + '></td>'
+      + '<td class="cod">' + esc(l.codigo || '—') + '</td>'
+      + '<td>' + esc(emp || '—') + (emp !== l.empCsv ? '<div class="small muted">arquivo: ' + esc(l.empCsv) + '</div>' : '') + '</td>'
+      + '<td>' + esc(l.servico + (l.local ? ' — ' + l.local : '')) + '</td>'
+      + '<td class="small">' + esc(l.area || '—') + '</td>'
+      + '<td class="ctr small">' + esc(l.status || '—') + '</td>'
+      + '<td class="ctr">' + esc(l.prio || '—') + '</td>'
+      + '<td class="ctr">' + esc(csvDdMm(l.prev) || '—') + '</td>'
+      + '<td>' + (pills || '<span class="small muted">—</span>') + '</td>'
+      + '</tr>';
+  }).join('');
+  $('csvTb').querySelectorAll('input[data-csv]').forEach(function(cb){
+    cb.addEventListener('change', function(){ CSV.linhas[+cb.dataset.csv].sel = cb.checked; csvRenderLinhas(); });
+  });
+  var n = CSV.linhas.filter(function(l){ return l.sel; }).length;
+  $('csvCount').textContent = n + ' de ' + CSV.linhas.length + ' linha(s) selecionada(s)';
+  $('csvEnviar').disabled = !n;
+  $('csvEnviar').textContent = 'Enviar ' + n + ' para a Pré-Programação';
+}
+
+function csvEnviar(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  var sel = CSV.linhas.filter(function(l){ return l.sel; });
+  if(!sel.length) return;
+  var comRestr = sel.filter(function(l){ return l.restr; }).length;
+  if(comRestr && !confirm(comRestr + ' linha(s) selecionada(s) têm restrição aberta no kanban.\n\nNo LPS, o correto é remover a restrição antes de programar.\nEnviar mesmo assim?')) return;
+  var regs = sel.map(csvRegistro);
+  $('csvEnviar').disabled = true;
+  L.sbInsertChunked('prog_terc_pre_programacao', regs)
+    .catch(function(e){
+      /* migração supabase_pre_programacao_obs.sql ainda não rodou: grava sem obs */
+      if(/obs/i.test(String(e.message)) && /PGRST204|column|coluna/i.test(String(e.message))){
+        L.toast('Coluna obs ainda não existe na Pré-Programação — importado sem observações. Rode o supabase_pre_programacao_obs.sql.','warn');
+        return L.sbInsertChunked('prog_terc_pre_programacao', regs.map(function(r){ var o = Object.assign({}, r); delete o.obs; return o; }));
+      }
+      throw e;
+    })
+    .then(function(){
+      L.closeModal('mCsv');
+      L.toast(sel.length + ' piso(s) enviado(s) para a Pré-Programação.','ok');
+      recarregarProgRestr();
+      if(confirm(sel.length + ' piso(s) enviado(s) para a Pré-Programação.\n\nAbrir a Pré-Programação agora para revisar e validar?'))
+        window.location.href = 'prog_terc_pre_programacao.html';
+    })
+    .catch(function(e){
+      $('csvEnviar').disabled = false;
+      if(L.isMissingTable(e)) L.toast('Rode o supabase_pre_programacao.sql para habilitar a pré-programação.','warn');
+      else L.toast('Erro ao importar: ' + e.message,'warn');
+    });
+}
+
+$('btnCsvPisos').addEventListener('click', function(){
+  if(!EDIT) return L.toast('Seu perfil é somente leitura neste módulo.','warn');
+  $('fileCsvPisos').value = '';
+  $('fileCsvPisos').click();
+});
+$('fileCsvPisos').addEventListener('change', function(){ if(this.files && this.files[0]) csvAbrir(this.files[0]); });
+$('csvAll').addEventListener('change', function(){
+  var on = this.checked;
+  CSV.linhas.forEach(function(l){ if(!l.dup && l.semana && l.codigo) l.sel = on; });
+  csvRenderLinhas();
+});
+$('csvEnviar').addEventListener('click', csvEnviar);
+L.wireModal('mCsv');
+if(!EDIT) $('btnCsvPisos').style.display = 'none';
 
 /* ================= EVENTOS GERAIS ================= */
 $('q').addEventListener('input', render);
